@@ -134,6 +134,8 @@ if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
 fi
 
 # Axis 2: Code Diff
+# NOTE: Axis 2 uses last-commit diff (HEAD~1..HEAD) — not full-task diff.
+# Full-task diff support is a future enhancement.
 DIFF_CONTENT=$(git -C "$TARGET_DIR" diff HEAD~1 HEAD 2>/dev/null || echo "(no git diff available)")
 DIFF_LINES=$(echo "$DIFF_CONTENT" | wc -l | tr -d ' ')
 if [[ "$DIFF_LINES" -gt 100 ]]; then
@@ -171,24 +173,30 @@ cat <<EOF
 > For multi-commit tasks, consider providing a broader diff.
 ${AXIS0_NOTE:-}
 
-### 轴0 — Invocation Integrity
+### 轴0 — Invocation Integrity [CONFIRMATION]
 Original Requirement (from Spec):
 ${REQUIREMENT_CONTENT}
 
 Original Constraints (from Spec):
 ${CONSTRAINTS_CONTENT}
 
-### 轴1 — Spec Plan Coverage
+### 轴1 — Spec Plan Coverage [CONFIRMATION]
 ${PLAN_CONTENT}
 
-### 轴2 — Code Diff Scope
+### 轴2 — Code Diff Scope [PRIMARY]
 ${DIFF_CONTENT}
 
-### 轴3 — Execute Log Fidelity
+### 轴3 — Execute Log Fidelity [CONFIRMATION]
 ${EXECUTE_LOG}
 
 ### 指令
 逐轴分析，输出以下格式：
+
+> **轴角色说明**: Axis 2 是 `[PRIMARY]` — Review 的核心职责，全量 Diff 审计只能在此完成。Axis 0/1/3 是 `[CONFIRMATION]` 安全网。
+>
+> ⚠️ **上游门禁失效警告**: 若 Axis 0/1/3 出现 FAIL 判定，在 Verdict 输出中追加：
+> "⚠️ UPSTREAM GATE FAILURE: This Axis [N] failure indicates the corresponding upstream gate (Gate [1/2/3]) did not catch this issue during [Research/Plan/Execute]. Recommend retrospective review of the upstream gate."
+> Verdict 映射: Axis 0 FAIL → FAIL_SPEC | Axis 1 FAIL → FAIL_PLAN | Axis 3 FAIL → FAIL_CODE
 
 #### Axis 0 — Invocation Integrity
 Assessment: [does implementation serve original requirement/constraints?]

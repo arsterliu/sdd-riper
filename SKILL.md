@@ -182,6 +182,15 @@ B) 开始或继续 RIPER 工作流任务
   4. **Spec Writeback** — what to add back to the Spec
 - **CodeMap 检查**：若任务涉及陌生或复杂模块，先检查是否已有对应 CodeMap。已有则优先复用；没有且结构复杂，再调用 `create-codemap`。Research 结束时要明确记录“本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
 - **Next steps**: Offer to update Spec §6 Research Findings.
+- **§5 Invocation Alignment Check** (output at the end of EVERY Research round, not just phase end):
+  ```
+  ### §5 Invocation Alignment Check
+  - **Original invocation intent** (from opening message): [1-2 sentence restatement]
+  - **Current research direction**: [1-2 sentence summary of what was just researched]
+  - **Verdict**: ALIGNED | DRIFTED
+  - **If DRIFTED**: [describe the gap; research may continue but deviation is logged]
+  ```
+  Drift does NOT block Research. Log it and continue. No extra human confirmation required.
 - **Completion gate**: All Open Questions resolved or explicitly deferred. DO NOT auto-advance.
 
 ## Innovate Phase Instructions
@@ -201,6 +210,13 @@ B) 开始或继续 RIPER 工作流任务
   - [ ] Step 1: <file path> — <what to change> — <acceptance condition>
   - [ ] Step 2: ...
   ```
+- **Spec Coverage Gate** (run before requesting Plan Approved):
+  Output a Coverage Matrix table. List every bullet from §2 Requirement Restatement and §3 Constraints in the Spec. Mark each as:
+  - `✅` Covered by the plan
+  - `❌` Not covered (BLOCKS plan approval — must be addressed before requesting Plan Approved)
+  - `⚠️` Partially covered (note what's missing)
+  If any `❌` exists, the plan is **BLOCKED**. Revise the plan to cover the missing items, then re-output the Coverage Matrix.
+  Human can override a BLOCK by explicitly saying "Approve anyway".
 - After generating plan, **MANDATORY** AskUserQuestion:
   > ⚠️ Plan Review Gate
   > Review each step carefully. Once approved, Execute follows the plan exactly.
@@ -216,14 +232,16 @@ B) 开始或继续 RIPER 工作流任务
 - **Rules**:
   - Follow Plan steps in order
   - Record every deviation in Execute Log
-  - If a step is found to be invalid: STOP, return to Plan phase
+  - **DEVIATED_MINOR**: Step goal is still achievable via a different implementation approach → log to `execute.log` with `[DEVIATED_MINOR]` tag and continue to next step
+  - **DEVIATED_MAJOR**: Step goal is no longer valid, OR achieving it would require changes to other Plan steps → STOP immediately, log with `[DEVIATED_MAJOR]` tag, return to Plan phase, explicitly state which downstream steps are affected
+  - Rubric: If in doubt, escalate to DEVIATED_MAJOR
   - NEVER silently deviate from Plan
   - Do not update CodeMap in the middle of unstable implementation; first make the code stable, then decide whether CodeMap needs reverse sync
 - **After each step**: brief log entry AND append to `mydocs/evidence/{spec-slug}/execute.log` (append-only):
   ```
   ---
   Step N: {步骤描述}
-  Status: DONE | DEVIATED | BLOCKED
+  Status: DONE | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
   Output: {命令输出摘要或关键变更}
   Deviation: {若有偏差，说明原因} | none
   Timestamp: {ISO 8601, e.g. 2026-04-20T10:30:00Z}
@@ -280,6 +298,29 @@ B) 开始或继续 RIPER 工作流任务
 - **Forbidden**: vague summaries ("looks good"), auto-fixing code, auto-advancing to Archive
 - **Pass numbering**: Each Review run increments N. Append to §10 as `Review Pass N — <ISO-8601 timestamp> — <VERDICT>`. Do NOT overwrite previous passes.
 - **After verdict**: Offer to update §10 Review Verdict with the full report. DO NOT auto-advance to Archive.
+
+#### Axis Roles
+- **Axis 2 — Code Diff Scope** `[PRIMARY]`: This is Review's PRIMARY responsibility — the full diff audit that can ONLY be done here. Treat any Axis 2 finding with the highest weight.
+  > ⚠️ Known limitation: Code Diff covers only HEAD~1..HEAD (last commit). For multi-commit tasks, provide a broader diff. Full-task diff support is a future enhancement.
+- **Axis 0 — Invocation Integrity** `[CONFIRMATION]`: Safety net. If this fails at Review, it means Gate 1 (Invocation Alignment Check in Research) did not catch the drift.
+- **Axis 1 — Spec Plan Coverage** `[CONFIRMATION]`: Safety net. If this fails at Review, it means Gate 2 (Spec Coverage Gate in Plan) did not catch the gap.
+- **Axis 3 — Execute Log Fidelity** `[CONFIRMATION]`: Safety net. If this fails at Review, it means Gate 3 (DEVIATED_MAJOR logging in Execute) did not catch the discrepancy.
+
+When Axis 0, 1, or 3 produces a FAIL finding, append to your verdict output:
+> ⚠️ UPSTREAM GATE FAILURE: This Axis [N] failure indicates the corresponding upstream gate (Gate [1/2/3]) did not catch this issue during [Research/Plan/Execute]. Recommend a retrospective review of the upstream gate's effectiveness.
+
+Verdict mapping for upstream FAIL:
+- Axis 0 FAIL → `FAIL_SPEC`
+- Axis 1 FAIL → `FAIL_PLAN`
+- Axis 3 FAIL → `FAIL_CODE`
+
+#### FAIL_CODE Auto-Remediation Loop
+When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execute phase (targeting only the failed steps identified in the verdict), then re-runs Review:
+1. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
+2. After Execute completes the fix, Review runs again (new Pass N+1)
+3. Maximum **3 auto-remediation retries**
+4. If still `FAIL_CODE` after 3 retries → output `FAIL_CODE_ESCALATED` and require human intervention
+5. `FAIL_PLAN` and `FAIL_SPEC` are **never auto-remediated** — always require human decision
 
 
 ## Archive Phase Instructions

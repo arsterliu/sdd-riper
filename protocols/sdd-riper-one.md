@@ -71,6 +71,11 @@
   3. Confirmed Facts（我已确认的事实）
   4. Spec Writeback（我建议回写到 Spec 的内容）
 - **阶段自由度**：中（可提问，可澄清，不能跳过）
+- **Gate 1 — Invocation Alignment Check**：每轮 Research 输出末尾必须追加第 5 段 §5 Invocation Alignment Check，格式：
+  - **原始调用意图**（来自最初 invocation 消息）：[1-2句复述]
+  - **当前 Research 方向**：[1-2句说明本轮 Research 了什么]
+  - **判断**：ALIGNED | DRIFTED
+  - **若 DRIFTED**：说明偏差；Research 可继续，偏差记入日志，无需额外人工确认
 - **完成标准**：Open Questions 被解决，并完成 Spec 的 Reverse Sync。
 
 ### 2. Innovate 阶段
@@ -84,12 +89,19 @@
 - **产出物**：输出原子级拆解计划（文件路径 / 函数或接口签名 / 执行顺序 / 验收条件）。
 - **禁止事项**：禁止模糊的操作指引，计划必须具体到行/接口级别。
 - **阶段自由度**：低（原子拆解，禁止模糊）
+- **Gate 2 — Spec Coverage Gate**：请求 Plan Approved 前，必须输出 Coverage Matrix 表格，列出 Spec §2 Requirement Restatement 和 §3 Constraints 中的每一个 bullet，标注：
+  - `✅` 计划已覆盖 / `❌` 未覆盖（BLOCK，必须补全后才能请求 Plan Approved）/ `⚠️` 部分覆盖
+  - 若有任何 `❌`，计划处于 BLOCKED 状态，须修订后重新提交 Coverage Matrix
+  - 人工可显式说明"Approve anyway"以覆盖 BLOCK
 - **完成标准**：必须获得人工门禁签名：**Plan Approved By** 是人工门禁，不可由 AI 替代！
 
 ### 4. Execute 阶段
 - **做什么**：严格执行已获批的 Plan 步骤。
 - **产出物**：记录 Execute Log（步骤日志）/ Change Summary / Deviations from Plan。
-- **执行纪律**：若执行中发现 Plan 不成立，必须回退到 Plan 阶段，不得偷改方案。
+- **执行纪律与偏差分级**：
+  - `DEVIATED_MINOR`：步骤目标仍可达，只是实现方式不同 → 写入 execute.log 标注 `[DEVIATED_MINOR]`，继续执行
+  - `DEVIATED_MAJOR`：步骤目标已不成立，或修复它需要改动其他 Plan 步骤 → 立即 STOP，写入 execute.log 标注 `[DEVIATED_MAJOR]`，明确说明影响的下游步骤，回退到 Plan 阶段
+  - 判断原则：若不确定是 MINOR 还是 MAJOR，按 MAJOR 处理（升级不降级）
 - **CodeMap 纪律**：Execute 过程中只记录“CodeMap 是否可能失效”的信号；待代码稳定后再统一判断是否需要更新 CodeMap，不在半成品状态下改地图。
 - **阶段自由度**：零（严格按 Plan，偏差必记录）
 - **完成标准**：代码改动完成或因 Plan 失效回退。
@@ -120,6 +132,20 @@
 - **CodeMap 检查**：出 Verdict 前，判断本次任务是否改变了入口点、核心调用链、外部依赖或风险项；若改变则先更新 CodeMap，再出 Verdict。
 - **禁止事项**：禁止"看起来没问题"等无效回复；禁止就地修复代码；禁止 AI 自动推进到 Archive。
 - **阶段自由度**：中（需判断，但有固定输出格式）
+- **轴角色分级**：
+  - **Axis 2 — Code Diff Scope** `[PRIMARY]`：Review 的核心职责，全量 Diff 审计，只能在此处完成。⚠️ 当前限制：仅覆盖 HEAD~1..HEAD（上次提交），多提交任务需手动提供更宽范围的 Diff。
+  - **Axis 0 — Invocation Integrity** `[CONFIRMATION]`：安全网。若此轴 FAIL，说明 Gate 1（Research 的 Invocation Alignment Check）未能拦截漂移。
+  - **Axis 1 — Spec Plan Coverage** `[CONFIRMATION]`：安全网。若此轴 FAIL，说明 Gate 2（Plan 的 Spec Coverage Gate）未能拦截缺口。
+  - **Axis 3 — Execute Log Fidelity** `[CONFIRMATION]`：安全网。若此轴 FAIL，说明 Gate 3（Execute 的 DEVIATED_MAJOR 记录）未能拦截差异。
+- **上游门禁失效警告**：当 Axis 0/1/3 出现 FAIL 判定时，在 Verdict 输出中追加：
+  > ⚠️ 上游门禁失效：Axis [N] FAIL 说明对应的上游检查站（Gate [1/2/3]）在 [Research/Plan/Execute] 阶段未能拦截此问题，建议复盘上游门禁的有效性。
+  
+  Verdict 映射：Axis 0 FAIL → `FAIL_SPEC`；Axis 1 FAIL → `FAIL_PLAN`；Axis 3 FAIL → `FAIL_CODE`
+
+- **FAIL_CODE 自动修复循环**：
+  - Verdict 为 `FAIL_CODE` 时，Orchestrator **自动**重新触发 Execute 阶段（仅针对 Verdict 中指定的步骤，非全量重跑），Execute 完成后重新进入 Review（Pass N+1）
+  - 最多自动重试 **3 次**；超出后输出 `FAIL_CODE_ESCALATED`，必须人工介入
+  - `FAIL_PLAN` 和 `FAIL_SPEC` **永远不自动修复**，必须人工决策后进入对应阶段
 - **完成标准**：提供完整的 4 轴 Review 报告并由开发者确认。
 
 ### 6. Archive 阶段
