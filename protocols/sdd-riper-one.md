@@ -95,12 +95,32 @@
 - **完成标准**：代码改动完成或因 Plan 失效回退。
 
 ### 5. Review 阶段
-- **做什么**：对比 Spec 与实际代码，评估完成度及遗留问题。
-- **产出物**：输出 Spec vs Code 对照 / 偏差记录 / 剩余风险 / 最终 Verdict。
-- **CodeMap 检查**：在给出 Verdict 前，必须判断本次任务是否改变了模块的入口点、核心调用链、外部依赖或风险项。若改变了，先更新对应 CodeMap，再给出最终 Verdict。
-- **禁止事项**：禁止仅输出“看起来没问题”等无效回复。
+- **做什么**：对比原始意图 (Invocation) 与最终实现，评估完成度及遗留问题。Review 是裁判，不是程序员——只读代码，只出判决，不就地修复。
+- **四轴验证**：
+  - **Axis 0 — Invocation Integrity**：实现是否仍然服务于原始 requirement / goal / constraints？Finding: `ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE`
+  - **Axis 1 — Spec Plan Coverage**：每个 Plan 步骤是否都有对应实现？Finding: `FULL | PARTIAL | MISSING`
+  - **Axis 2 — Code Diff Scope**：实际代码变更是否在 Plan 范围内？Finding: `IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR`
+  - **Axis 3 — Execute Log Fidelity**：Execute Log 记录的偏差与实际代码是否吻合？Finding: `FAITHFUL | DISCREPANCY`
+- **产出物**：输出带编号的 Review Pass 报告，追加写入 Spec §10，不覆盖历史记录：
+  ```
+  Review Pass N — YYYY-MM-DDTHH:MM:SSZ — VERDICT
+  ```
+- **Verdict 枚举**（仅这五个，无其他）：
+  - `PASS` → 归档
+  - `PASS_WITH_CONCERNS` → 归档（附 Risk Register）；Axis 0=DRIFTED 时触发
+  - `FAIL_CODE` → 开发者重新进入 Execute，按指定步骤修复代码
+  - `FAIL_PLAN` → 开发者重新进入 Plan，修正计划后重新过 Plan Approved 门禁
+  - `FAIL_SPEC` → 开发者重新进入 Research + Plan，澄清需求理解后重新过门禁
+  - **优先级**（多项同时失败时）：`FAIL_SPEC > FAIL_PLAN > FAIL_CODE`
+- **Review 写权限**：
+  - ✅ 允许：回写 §10 Review Verdict（追加，不覆盖）
+  - ✅ 允许：更新 CodeMap（仅限架构事实发生变化时，出 Verdict 前完成）
+  - ❌ 禁止：写代码文件、新增功能、修 Plan 步骤
+- **多轮收敛规则**：每次 FAIL 修复后重新进入 Review，算新一轮 Pass (N+1)；不在同一轮内部自旋修复。
+- **CodeMap 检查**：出 Verdict 前，判断本次任务是否改变了入口点、核心调用链、外部依赖或风险项；若改变则先更新 CodeMap，再出 Verdict。
+- **禁止事项**：禁止"看起来没问题"等无效回复；禁止就地修复代码；禁止 AI 自动推进到 Archive。
 - **阶段自由度**：中（需判断，但有固定输出格式）
-- **完成标准**：提供完整的 Review 报告并由开发者确认。
+- **完成标准**：提供完整的 4 轴 Review 报告并由开发者确认。
 
 ### 6. Archive 阶段
 - **做什么**：沉淀任务资产。

@@ -7,7 +7,11 @@ SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
 print_usage() {
   cat <<'EOF'
 Usage: review-execute.sh <project-dir> [--spec <path>] [--log <path>]
-Generate a three-axis review prompt: Spec Plan vs Code Diff vs Execute Log.
+Generate a four-axis review prompt:
+  Axis 0: Invocation Integrity  (requirement/goal/constraints vs implementation)
+  Axis 1: Spec Plan vs Code     (each Plan step → implemented?)
+  Axis 2: Code Diff             (what actually changed, scope check)
+  Axis 3: Execute Log Fidelity  (deviations in log vs actual code)
 Exit codes: 0=success, 1=missing asset, 3=param error
 EOF
 }
@@ -105,6 +109,24 @@ read_section() {
   if [[ "$total" -gt "$max_lines" ]]; then echo "[TRUNCATED: showed ${max_lines}/${total} lines]"; fi
 }
 
+# Axis 0: Invocation Integrity — extract from Spec body sections
+REQUIREMENT_CONTENT="(section not found)"
+CONSTRAINTS_CONTENT="(section not found)"
+AXIS0_NOTE=""
+if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
+  REQUIREMENT_CONTENT=$(read_section "$SPEC_PATH" "Requirement" 50)
+  CONSTRAINTS_CONTENT=$(read_section "$SPEC_PATH" "Constraint" 50)
+fi
+if [[ "$REQUIREMENT_CONTENT" == "(section not found or empty)" ]] || [[ "$REQUIREMENT_CONTENT" == "(spec not found)" ]]; then
+  REQUIREMENT_CONTENT="(section not found)"
+fi
+if [[ "$CONSTRAINTS_CONTENT" == "(section not found or empty)" ]] || [[ "$CONSTRAINTS_CONTENT" == "(spec not found)" ]]; then
+  CONSTRAINTS_CONTENT="(section not found)"
+fi
+if [[ "$REQUIREMENT_CONTENT" == "(section not found)" ]] && [[ "$CONSTRAINTS_CONTENT" == "(section not found)" ]]; then
+  AXIS0_NOTE="[WARN] Invocation metadata not found in Spec. Axis 0 will be UNVERIFIABLE."
+fi
+
 # Axis 1: Spec Plan
 PLAN_CONTENT="(no spec found)"
 if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
@@ -143,23 +165,68 @@ elif [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
 fi
 
 cat <<EOF
-## REVIEW EXECUTE PROMPT
+## REVIEW EXECUTE PROMPT (4-Axis)
 
-### 轴1：Spec Plan
+> Known limitation: Code Diff covers only HEAD~1..HEAD (last commit).
+> For multi-commit tasks, consider providing a broader diff.
+${AXIS0_NOTE:-}
+
+### 轴0 — Invocation Integrity
+Original Requirement (from Spec):
+${REQUIREMENT_CONTENT}
+
+Original Constraints (from Spec):
+${CONSTRAINTS_CONTENT}
+
+### 轴1 — Spec Plan Coverage
 ${PLAN_CONTENT}
 
-### 轴2：Code Diff
+### 轴2 — Code Diff Scope
 ${DIFF_CONTENT}
 
-### 轴3：Execute Log
+### 轴3 — Execute Log Fidelity
 ${EXECUTE_LOG}
 
 ### 指令
-请逐轴对照，输出：
-1. Spec vs Code 对照（每个 Plan 步骤是否有对应实现）
-2. 偏差记录（实际与 Plan 不符之处）
-3. 剩余风险（已发现但未修复的问题）
-4. 最终 Verdict: PASS | PASS_WITH_CONCERNS | FAIL
+逐轴分析，输出以下格式：
+
+#### Axis 0 — Invocation Integrity
+Assessment: [does implementation serve original requirement/constraints?]
+Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE
+
+#### Axis 1 — Spec Plan Coverage
+[For each Plan step: ✅ implemented / ❌ missing / ⚠️ partial]
+Finding: FULL | PARTIAL | MISSING
+
+#### Axis 2 — Code Diff Scope
+[Within-Plan changes vs. out-of-Plan changes]
+Finding: IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR
+
+#### Axis 3 — Execute Log Fidelity
+[Log deviations vs. actual code — match?]
+Finding: FAITHFUL | DISCREPANCY
+
+#### Defect Table (if any finding is not ALIGNED/FULL/IN_SCOPE/FAITHFUL)
+| Defect | Axis | Severity | Rollback Target |
+|--------|------|----------|-----------------|
+| [desc] | [0-3]| HIGH/MED | Execute / Plan / Research+Plan |
+
+#### Verdict
+PASS | PASS_WITH_CONCERNS | FAIL_CODE | FAIL_PLAN | FAIL_SPEC
+
+Verdict precedence (if multiple failures): FAIL_SPEC > FAIL_PLAN > FAIL_CODE.
+
+#### Rollback Instruction (if FAIL)
+- FAIL_CODE → Developer reopens Execute. Re-execute steps: [list step numbers]
+- FAIL_PLAN → Developer reopens Plan. Plan issues: [describe]
+- FAIL_SPEC → Developer reopens Research + Plan. Requirement concern: [describe]
+
+#### Risk Register (if PASS_WITH_CONCERNS)
+| Risk | Axis | Severity | Mitigation |
+|------|------|----------|------------|
+
+Record this verdict in Spec §10 as:
+Review Pass N — <ISO-8601 timestamp> — <VERDICT>
 EOF
 
 exit 0

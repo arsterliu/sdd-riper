@@ -233,18 +233,54 @@ B) 开始或继续 RIPER 工作流任务
 - **When complete**: summarize Change Summary + Deviations from Plan. DO NOT auto-advance.
 
 ## Review Phase Instructions
-- **Goal**: Verify implementation against Spec
-- **Mandatory output**:
+- **Goal**: Verify implementation against Spec. Review is a **judge, not a programmer** — it reads and verdicts. It does NOT fix code in-place.
+- **Write permissions during Review**:
+  - ✅ MAY write: §10 Review Verdict in Spec (verdict + timestamp + pass number, append-only)
+  - ✅ MAY write: CodeMap — ONLY if this task changed entry points, core call chain, external dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
+  - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
+- **Trigger**: Run `bash "$SDD_ROOT/sdd.sh" review-execute "$_PROJECT_ROOT" --log "$_PROJECT_ROOT/mydocs/evidence/{spec-slug}/execute.log"`
+- **Mandatory 4-axis output format**:
   ```markdown
-  ## Review Report
-  Spec vs Code: [comparison]
-  Deviations: [list or "none"]
-  Remaining Risks: [list or "none"]
-  Verdict: PASS | PASS_WITH_CONCERNS | FAIL
+  ## Review Report (Pass N — YYYY-MM-DDTHH:MM:SSZ)
+
+  ### Axis 0 — Invocation Integrity
+  Assessment: [does implementation serve original requirement/constraints?]
+  Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE
+
+  ### Axis 1 — Spec Plan Coverage
+  [Per Plan step: ✅ implemented / ❌ missing / ⚠️ partial]
+  Finding: FULL | PARTIAL | MISSING
+
+  ### Axis 2 — Code Diff Scope
+  [Within-Plan changes vs. out-of-Plan changes]
+  Finding: IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR
+
+  ### Axis 3 — Execute Log Fidelity
+  [Log deviations vs. actual code — match?]
+  Finding: FAITHFUL | DISCREPANCY
+
+  ### Defect Table
+  | Defect | Axis | Severity | Rollback Target |
+  |--------|------|----------|-----------------|
+
+  ### Verdict
+  PASS | PASS_WITH_CONCERNS | FAIL_CODE | FAIL_PLAN | FAIL_SPEC
+  (Precedence if multiple failures: FAIL_SPEC > FAIL_PLAN > FAIL_CODE)
+
+  ### Rollback Instruction (if FAIL)
+  - FAIL_CODE → Developer reopens Execute. Re-execute steps: [list]
+  - FAIL_PLAN → Developer reopens Plan. Issues: [describe]
+  - FAIL_SPEC → Developer reopens Research + Plan. Concern: [describe]
+
+  ### Risk Register (if PASS_WITH_CONCERNS)
+  | Risk | Axis | Severity | Mitigation |
+  |------|------|----------|------------|
   ```
-- **CodeMap reverse-sync check**: Before final verdict, explicitly answer: did this task change entry points, core call chain, external dependencies, or module risks? If yes, update the corresponding CodeMap first and mention that sync in the review summary.
-- **Forbidden**: "looks good" or vague summaries without evidence
-- **Next steps**: Offer to update Spec §10 Review Verdict. DO NOT auto-advance.
+- **CodeMap reverse-sync check**: Before issuing verdict, explicitly answer: did this task change entry points, core call chain, external dependencies, or module risks? If yes → update the corresponding CodeMap first, then note the sync in the report.
+- **Forbidden**: vague summaries ("looks good"), auto-fixing code, auto-advancing to Archive
+- **Pass numbering**: Each Review run increments N. Append to §10 as `Review Pass N — <ISO-8601 timestamp> — <VERDICT>`. Do NOT overwrite previous passes.
+- **After verdict**: Offer to update §10 Review Verdict with the full report. DO NOT auto-advance to Archive.
+
 
 ## Archive Phase Instructions
 1. **Run**: `bash "$SDD_ROOT/sdd.sh" archive "$_PROJECT_ROOT" "<spec-name>"` — creates skeleton files from templates. Note the `Original spec preserved:` path in output.
