@@ -1,0 +1,58 @@
+{
+  "active_plan": "D:/workspace/canway/other/sdd-riper/.sisyphus/plans/sdd-riper-skill-refactor.md",
+  "started_at": "2026-04-23T15:44:12.000Z",
+  "session_ids": [
+    "ses_245a5ee12ffe19mA2ggFFGVQb0"
+  ],
+  "plan_name": "sdd-riper-skill-refactor",
+  "session_origins": {
+    "ses_245a5ee12ffe19mA2ggFFGVQb0": "direct"
+  },
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "重写 BLOCK 0 — 跨平台 Preamble",
+      "session_id": "ses_244fb5a55ffewSH76Kxsl6JhGU",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-23T15:47:59.024Z"
+    },
+    "todo:3": {
+      "task_key": "todo:3",
+      "task_label": "3",
+      "task_title": "重写 BLOCK 3 — Setup Mode",
+      "session_id": "ses_244f78aa8ffeT7nOeaDr2VDYbd",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-23T15:51:21.913Z"
+    },
+    "todo:5": {
+      "task_key": "todo:5",
+      "task_label": "5",
+      "task_title": "更新 BLOCK 5 — Phase Instructions + Completion Status 规则",
+      "session_id": "ses_244f4915affe1zcbTLKjGJCSAj",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-23T15:54:24.546Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "组装最终 SKILL.md + 全文结构验证",
+      "session_id": "ses_244efecc5ffe2jhlibCPrm5W68",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-04-23T16:00:38.739Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**结构完整性验证** — `quick`",
+      "session_id": "ses_244ebb010ffeCyMV4m3dUZN6y7",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-04-23T16:32:45.132Z"
+    }
+  }
+}

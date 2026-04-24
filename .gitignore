@@ -1,0 +1,16 @@
+# Temporary build and test artifacts
+tmp/
+*.bak
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Evidence and session data (local only)
+.sisyphus/evidence/
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
