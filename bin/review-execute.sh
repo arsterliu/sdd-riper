@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 print_usage() {
   cat <<'EOF'
@@ -23,12 +24,14 @@ fi
 TARGET_DIR="${1:-}"
 SPEC_PATH=""
 LOG_PATH=""
+DIFF_BASE=""
 shift || true
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --spec) SPEC_PATH="${2:-}"; shift 2 ;;
     --log)  LOG_PATH="${2:-}"; shift 2 ;;
+    --diff-base) DIFF_BASE="${2:-}"; shift 2 ;;
     *) echo "[ERROR] Unknown option: $1" >&2; exit 3 ;;
   esac
 done
@@ -37,61 +40,63 @@ if [[ -z "$TARGET_DIR" ]]; then
   echo "[ERROR] Usage: review-execute.sh <project-dir>" >&2; exit 3
 fi
 
-if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
+DOCS_ROOT="$(_sdd_get_docs_root "$TARGET_DIR")"
+
+if [[ ! -d "$DOCS_ROOT" ]]; then
   echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2; exit 1
 fi
 
 # Locate LATEST_SPEC using versioned selection (same logic as _workflow_core.sh resume)
 if [[ -z "$SPEC_PATH" ]]; then
-  # Warn about legacy unversioned specs
-  while IFS= read -r -d '' _f; do
-    _bname="$(basename "$_f")"
-    if [[ ! "$_bname" =~ ^v[0-9]+\.[0-9]+-.+\.md$ ]]; then
-      echo "[WARN] Legacy unversioned spec found (ignored): $_bname" >&2
-    fi
-  done < <(find "$TARGET_DIR/mydocs/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
+  SPEC_PATH="$(_sdd_find_latest_spec "$DOCS_ROOT/specs")"
+  
+  # Fallback to mtime-based selection
+  if [[ -z "$SPEC_PATH" ]]; then
+    SPEC_PATH=$(find "$DOCS_ROOT/specs" -name "*.md" ! -name ".gitkeep" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+  fi
+fi
 
-  # Select highest-versioned spec of the most-recently-modified task
-  declare -A _TASK_MTIME
-  while IFS= read -r -d '' _f; do
-    _bname="$(basename "$_f")"
-    if [[ "$_bname" =~ ^v([0-9]+)\.([0-9]+)-(.+)\.md$ ]]; then
-      _tname="${BASH_REMATCH[3]}"
-      _mtime=$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null || echo 0)
-      if [[ -z "${_TASK_MTIME[$_tname]+x}" ]] || (( _mtime > _TASK_MTIME[$_tname] )); then
-        _TASK_MTIME[$_tname]=$_mtime
+resolve_diff_base() {
+  local dir="$1" explicit_base="$2"
+  local candidate merge_base commit_count root_commit head_commit current_branch
+
+  head_commit=$(git -C "$dir" rev-parse HEAD 2>/dev/null || true)
+  current_branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+
+  if [[ -n "$explicit_base" ]]; then
+    echo "$explicit_base"
+    return
+  fi
+
+  for candidate in origin/main origin/master main master trunk; do
+    if git -C "$dir" rev-parse --verify "$candidate" >/dev/null 2>&1; then
+      if [[ "$candidate" == "$current_branch" ]]; then
+        continue
       fi
-    fi
-  done < <(find "$TARGET_DIR/mydocs/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
-
-  _LATEST_TASK=""
-  _LATEST_MTIME=0
-  for _tname in "${!_TASK_MTIME[@]}"; do
-    if (( _TASK_MTIME[$_tname] > _LATEST_MTIME )); then
-      _LATEST_MTIME=${_TASK_MTIME[$_tname]}
-      _LATEST_TASK=$_tname
+      merge_base=$(git -C "$dir" merge-base HEAD "$candidate" 2>/dev/null || true)
+      if [[ -n "$merge_base" && -n "$head_commit" && "$merge_base" != "$head_commit" ]]; then
+        echo "$merge_base"
+        return
+      fi
     fi
   done
 
-  if [[ -n "$_LATEST_TASK" ]]; then
-    _best_major=0; _best_minor=-1
-    while IFS= read -r -d '' _f; do
-      _bname="$(basename "$_f")"
-      if [[ "$_bname" =~ ^v([0-9]+)\.([0-9]+)-${_LATEST_TASK}\.md$ ]]; then
-        _vmaj="${BASH_REMATCH[1]}"; _vmin="${BASH_REMATCH[2]}"
-        if (( _vmaj > _best_major )) || (( _vmaj == _best_major && _vmin > _best_minor )); then
-          _best_major=$_vmaj; _best_minor=$_vmin
-          SPEC_PATH="$_f"
-        fi
-      fi
-    done < <(find "$TARGET_DIR/mydocs/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
+  commit_count=$(git -C "$dir" rev-list --count HEAD 2>/dev/null || echo 0)
+  if [[ "$commit_count" -gt 1 ]]; then
+    root_commit=$(git -C "$dir" rev-list --max-parents=0 HEAD 2>/dev/null | tail -1)
+    head_commit=$(git -C "$dir" rev-parse HEAD 2>/dev/null || true)
+    if [[ -n "$root_commit" && -n "$head_commit" && "$root_commit" != "$head_commit" ]]; then
+      echo "$root_commit"
+      return
+    fi
+    if git -C "$dir" rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+      echo "HEAD~1"
+      return
+    fi
   fi
 
-  # Fallback to mtime-based selection
-  if [[ -z "$SPEC_PATH" ]]; then
-    SPEC_PATH=$(find "$TARGET_DIR/mydocs/specs" -name "*.md" ! -name ".gitkeep" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
-  fi
-fi
+  echo ""
+}
 
 # Helper: read section from spec (between two headings), truncate to N lines
 read_section() {
@@ -101,9 +106,9 @@ read_section() {
   local raw
   raw=$(awk -v pat="$start_pat" 'BEGIN{found=0} $0 ~ ("^## .*" pat){found=1; next} found && /^## /{exit} found{print}' "$file" 2>/dev/null)
   local content
-  content=$(printf '%s\n' "$raw" | head -"$max_lines")
+  content=$(printf '%s\n' "$raw" | awk -v max="$max_lines" 'NR <= max { print }')
   local total
-  total=$(printf '%s\n' "$raw" | wc -l | tr -d ' ')
+  total=$(printf '%s\n' "$raw" | awk 'END { print NR }')
   if [[ -z "$content" ]]; then echo "(section not found or empty)"; return; fi
   echo "$content"
   if [[ "$total" -gt "$max_lines" ]]; then echo "[TRUNCATED: showed ${max_lines}/${total} lines]"; fi
@@ -134,12 +139,20 @@ if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
 fi
 
 # Axis 2: Code Diff
-# NOTE: Axis 2 uses last-commit diff (HEAD~1..HEAD) — not full-task diff.
-# Full-task diff support is a future enhancement.
-DIFF_CONTENT=$(git -C "$TARGET_DIR" diff HEAD~1 HEAD 2>/dev/null || echo "(no git diff available)")
+DIFF_BASE_RESOLVED="$(resolve_diff_base "$TARGET_DIR" "$DIFF_BASE")"
+if [[ -n "$DIFF_BASE_RESOLVED" ]]; then
+  DIFF_CONTENT=$(git -C "$TARGET_DIR" diff "$DIFF_BASE_RESOLVED" HEAD 2>/dev/null || echo "(no git diff available)")
+  DIFF_SOURCE="${DIFF_BASE_RESOLVED}..HEAD"
+else
+  DIFF_CONTENT="(no git diff available)"
+  DIFF_SOURCE="unavailable"
+fi
+if [[ -z "$DIFF_CONTENT" ]]; then
+  DIFF_CONTENT="(no git diff available)"
+fi
 DIFF_LINES=$(echo "$DIFF_CONTENT" | wc -l | tr -d ' ')
 if [[ "$DIFF_LINES" -gt 100 ]]; then
-  DIFF_CONTENT=$(printf '%s\n' "$DIFF_CONTENT" | head -100)
+  DIFF_CONTENT=$(printf '%s\n' "$DIFF_CONTENT" | awk 'NR <= 100 { print }')
   DIFF_CONTENT="${DIFF_CONTENT}
 [TRUNCATED: showed 100/${DIFF_LINES} lines]"
 fi
@@ -148,11 +161,9 @@ fi
 # Auto-infer log path from spec slug if --log not provided
 if [[ -z "$LOG_PATH" ]] && [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
   _spec_bname="$(basename "$SPEC_PATH" .md)"
-  _inferred_log="$TARGET_DIR/mydocs/evidence/${_spec_bname}/execute.log"
+  _inferred_log="$DOCS_ROOT/evidence/${_spec_bname}/execute.log"
   if [[ -f "$_inferred_log" ]]; then
     LOG_PATH="$_inferred_log"
-  else
-    echo "[INFO] Execute log not found at inferred path: ${_inferred_log} (falling back to Spec section)" >&2
   fi
 fi
 
@@ -169,8 +180,7 @@ fi
 cat <<EOF
 ## REVIEW EXECUTE PROMPT (4-Axis)
 
-> Known limitation: Code Diff covers only HEAD~1..HEAD (last commit).
-> For multi-commit tasks, consider providing a broader diff.
+> Diff source: ${DIFF_SOURCE}
 ${AXIS0_NOTE:-}
 
 ### 轴0 — Invocation Integrity [CONFIRMATION]
@@ -192,7 +202,7 @@ ${EXECUTE_LOG}
 ### 指令
 逐轴分析，输出以下格式：
 
-> **轴角色说明**: Axis 2 是 `[PRIMARY]` — Review 的核心职责，全量 Diff 审计只能在此完成。Axis 0/1/3 是 `[CONFIRMATION]` 安全网。
+> **轴角色说明**: Axis 2 是 '[PRIMARY]' — Review 的核心职责，全量 Diff 审计只能在此完成。Axis 0/1/3 是 '[CONFIRMATION]' 安全网。
 >
 > ⚠️ **上游门禁失效警告**: 若 Axis 0/1/3 出现 FAIL 判定，在 Verdict 输出中追加：
 > "⚠️ UPSTREAM GATE FAILURE: This Axis [N] failure indicates the corresponding upstream gate (Gate [1/2/3]) did not catch this issue during [Research/Plan/Execute]. Recommend retrospective review of the upstream gate."
