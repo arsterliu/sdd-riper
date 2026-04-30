@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 print_usage() {
   cat <<'EOF'
@@ -32,11 +33,13 @@ if [[ -z "$TARGET_DIR" ]]; then
   echo "[ERROR] Usage: create-projectmap.sh <project-dir>" >&2; exit 3
 fi
 
-if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
+DOCS_ROOT="$(_sdd_get_docs_root "$TARGET_DIR")"
+
+if [[ ! -d "$DOCS_ROOT" ]]; then
   echo "[ERROR] Project not initialized." >&2; exit 1
 fi
 
-if [[ -f "$TARGET_DIR/mydocs/projectmap.md" ]] && [[ -z "$FORCE" ]]; then
+if [[ -f "$DOCS_ROOT/projectmap.md" ]] && [[ -z "$FORCE" ]]; then
   echo "[ERROR] projectmap.md already exists. Use --force to override." >&2; exit 2
 fi
 
@@ -81,7 +84,7 @@ ${TEMPLATE_EXCERPT}
 1. 各仓库/模块职责
 2. 跨模块接口契约
 3. 核心数据流
-完成后将内容写入：${TARGET_DIR}/mydocs/projectmap.md
+完成后将内容写入：${DOCS_ROOT}/projectmap.md
 EOF
 
 exit 0

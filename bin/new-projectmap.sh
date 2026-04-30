@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 PROJECT_DIR=""
 REPOS_CSV=""
@@ -22,13 +23,13 @@ if [[ -z "$PROJECT_DIR" ]]; then
   exit 3
 fi
 
-DOCS_DIR="$PROJECT_DIR/mydocs"
-if [[ ! -d "$DOCS_DIR" ]]; then
-  echo "[ERROR] $DOCS_DIR not found. Run 'sdd init $PROJECT_DIR' first." >&2
+DOCS_ROOT="$(_sdd_get_docs_root "$PROJECT_DIR")"
+if [[ ! -d "$DOCS_ROOT" ]]; then
+  echo "[ERROR] $DOCS_ROOT not found. Run 'sdd init $PROJECT_DIR' first." >&2
   exit 1
 fi
 
-OUTPUT_FILE="$DOCS_DIR/projectmap.md"
+OUTPUT_FILE="$DOCS_ROOT/projectmap.md"
 if [[ -f "$OUTPUT_FILE" ]] && [[ -z "$FORCE" ]]; then
   echo "[ERROR] projectmap.md already exists. Use --force to overwrite, or edit it manually." >&2
   exit 1
@@ -61,7 +62,7 @@ if [[ -n "$REPOS_CSV" ]]; then
   awk -v repos="$REPOS_BLOCK" '
     /^repos:/{found=1; print repos; next}
     found && /^  - /{next}
-    found && !/^  - /{found=0}
+    found && !/^  - /{ found=0; print; next }
     {print}
   ' "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
 fi
