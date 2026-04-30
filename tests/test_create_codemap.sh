@@ -20,6 +20,7 @@ if [ "$exit_code" -eq 0 ]; then pass "create-codemap exits 0"; else fail "expect
 if echo "$out" | grep -q "## CREATE CODEMAP PROMPT"; then pass "output contains ## CREATE CODEMAP PROMPT"; else fail "missing ## CREATE CODEMAP PROMPT"; fi
 if echo "$out" | grep -q "### 项目文件树"; then pass "output contains ### 项目文件树"; else fail "missing ### 项目文件树"; fi
 if echo "$out" | grep -q "### AI 指令"; then pass "output contains ### AI 指令"; else fail "missing ### AI 指令"; fi
+if echo "$out" | grep -q "v1.0-$(basename "$tmp").md"; then pass "output contains versioned codemap path"; else fail "missing versioned codemap path"; fi
 cleanup_tmp "$tmp"
 
 # 2. failure path: no mydocs → exit 1, [ERROR] in stderr

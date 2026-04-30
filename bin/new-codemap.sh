@@ -3,11 +3,13 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 PROJECT_DIR=""
 MODULE_NAME=""
 FORCE=""
 VERSION_OVERRIDE=""
+DOCS_ROOT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -27,34 +29,12 @@ if [[ -z "$PROJECT_DIR" ]] || [[ -z "$MODULE_NAME" ]]; then
   exit 3
 fi
 
-CODEMAP_DIR="$PROJECT_DIR/mydocs/codemap"
+DOCS_ROOT="$(_sdd_get_docs_root "$PROJECT_DIR")"
+CODEMAP_DIR="$DOCS_ROOT/codemap"
 if [[ ! -d "$CODEMAP_DIR" ]]; then
   echo "[ERROR] $CODEMAP_DIR not found. Run 'sdd init $PROJECT_DIR' first." >&2
   exit 1
 fi
-
-# Version helper (inline)
-_next_version() {
-  local dir="$1" name="$2"
-  local max_major=0 max_minor=-1
-  local f bname vmaj vmin
-  while IFS= read -r -d '' f; do
-    bname="$(basename "$f")"
-    if [[ "$bname" =~ ^v([0-9]+)\.([0-9]+)-.+\.md$ ]]; then
-      local stem="${bname%.md}"
-      local vprefix="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-      local after_prefix="${stem#${vprefix}-}"
-      if [[ "$after_prefix" == "$name" ]]; then
-        vmaj="${BASH_REMATCH[1]}"
-        vmin="${BASH_REMATCH[2]}"
-        if (( vmaj > max_major )) || (( vmaj == max_major && vmin > max_minor )); then
-          max_major=$vmaj; max_minor=$vmin
-        fi
-      fi
-    fi
-  done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  if (( max_minor == -1 )); then echo "v1.0"; else echo "v${max_major}.$((max_minor + 1))"; fi
-}
 
 DATE_ISO="$(date +%Y-%m-%d)"
 
@@ -67,7 +47,7 @@ if [[ -n "$VERSION_OVERRIDE" ]]; then
   fi
   MODULE_VERSION="$VERSION_OVERRIDE"
 else
-  MODULE_VERSION="$(_next_version "$CODEMAP_DIR" "$MODULE_NAME")"
+  MODULE_VERSION="$(_sdd_next_version "$CODEMAP_DIR" "$MODULE_NAME")"
 fi
 
 OUTPUT_FILE="$CODEMAP_DIR/${MODULE_VERSION}-${MODULE_NAME}.md"

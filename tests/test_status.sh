@@ -59,8 +59,9 @@ tmp="$(make_tmp)"
 echo "Test: codemap missing last-reason"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
 bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
-grep -v '^last-reason:' "$tmp/mydocs/codemap/auth-flow.md" > "$tmp/auth-flow.stripped.md"
-mv "$tmp/auth-flow.stripped.md" "$tmp/mydocs/codemap/auth-flow.md"
+cm_file=$(ls "$tmp/mydocs/codemap/"*auth-flow*.md 2>/dev/null | head -1 || true)
+grep -v '^last-reason:' "$cm_file" > "$tmp/auth-flow.stripped.md"
+mv "$tmp/auth-flow.stripped.md" "$cm_file"
 out=$(bash "$SDD" status "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "status with codemap warn exits 0"; else fail "status with codemap warn exited $exit_code"; fi
 if echo "$out" | grep -q "CodeMap:      WARN"; then pass "status reports codemap WARN"; else fail "status missing codemap WARN"; fi

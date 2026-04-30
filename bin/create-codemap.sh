@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
 
 print_usage() {
@@ -31,13 +32,15 @@ if [[ -z "$TARGET_DIR" ]]; then
   echo "[ERROR] Usage: create-codemap.sh <project-dir>" >&2; exit 3
 fi
 
+DOCS_ROOT="$(_sdd_get_docs_root "$TARGET_DIR")"
+
 if [[ -n "$MODULE_NAME" ]]; then
   if [[ "$MODULE_NAME" == *"/"* ]] || [[ "$MODULE_NAME" == *"\\"* ]] || [[ "$MODULE_NAME" == *".."* ]]; then
     echo "[ERROR] Invalid --module: path separators and '..' are not allowed" >&2; exit 3
   fi
 fi
 
-if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
+if [[ ! -d "$DOCS_ROOT" ]]; then
   echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2; exit 1
 fi
 
@@ -63,13 +66,24 @@ fi
 
 # Determine output path
 MODULE_SLUG="${MODULE_NAME:-$(basename "$TARGET_DIR")}"
-OUTPUT_PATH="$TARGET_DIR/mydocs/codemap/${MODULE_SLUG}.md"
+CODEMAP_DIR="$DOCS_ROOT/codemap"
+
+# Check for legacy unversioned codemap
+if [[ -f "$CODEMAP_DIR/${MODULE_SLUG}.md" ]]; then
+  echo "[WARN] Legacy unversioned codemap found" >&2
+fi
+
+HIGHEST_VERSION_FILE=$(_sdd_find_source_spec "$CODEMAP_DIR" "$MODULE_SLUG")
 
 MODE="CREATE"
 EXISTING_CODEMAP=""
-if [[ -f "$OUTPUT_PATH" ]]; then
+if [[ -n "$HIGHEST_VERSION_FILE" && -f "$HIGHEST_VERSION_FILE" ]]; then
   MODE="UPDATE"
+  OUTPUT_PATH="$HIGHEST_VERSION_FILE"
   EXISTING_CODEMAP=$(cat "$OUTPUT_PATH")
+else
+  NEXT_VERSION=$(_sdd_next_version "$CODEMAP_DIR" "$MODULE_SLUG")
+  OUTPUT_PATH="$CODEMAP_DIR/${NEXT_VERSION}-${MODULE_SLUG}.md"
 fi
 
 if [[ "$MODE" == "UPDATE" ]]; then
