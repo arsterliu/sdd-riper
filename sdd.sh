@@ -18,6 +18,7 @@ Commands:
   new-projectmap    Create a new project map document
   status            Check project status and readiness
   archive           Archive completed specifications
+  reopen            Reopen an archived spec as a patch spec
   review-execute    Three-axis quality review (Spec vs Code vs Log)
   create-codemap    AI-driven codebase scan prompt generator
   build-context-bundle  AI context bundle extraction prompt
@@ -53,7 +54,7 @@ shift || true
 
 # Dispatch to subcommand
 case "$subcmd" in
-  init|discover|resume|new-codemap|new-projectmap|status|archive|review-execute|create-codemap|build-context-bundle|debug|create-projectmap)
+  init|discover|resume|new-codemap|new-projectmap|status|archive|reopen|review-execute|create-codemap|build-context-bundle|debug|create-projectmap)
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
     bash "${script_dir}/bin/${subcmd}.sh" "$@"
     ;;

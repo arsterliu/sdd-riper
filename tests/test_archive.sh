@@ -32,11 +32,12 @@ if [ "$exit_code" -eq 0 ]; then pass "archive exits 0"; else fail "archive exite
 spec_file=$(ls "$tmp/mydocs/specs/"*checkout-retry*.md 2>/dev/null || true)
 if [ -n "$spec_file" ] && [ -f "$spec_file" ]; then pass "original spec preserved"; else fail "original spec missing"; fi
 
-h_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*_human.md 2>/dev/null || true)
-l_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*_llm.md 2>/dev/null || true)
+h_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*-human.md 2>/dev/null || true)
+l_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*-llm.md 2>/dev/null || true)
 
 if [ -n "$h_file" ] && [ -f "$h_file" ]; then pass "human archive exists"; else fail "human archive missing"; fi
 if [ -n "$l_file" ] && [ -f "$l_file" ]; then pass "llm archive exists"; else fail "llm archive missing"; fi
+if grep -q '^status: archived' "$spec_file"; then pass "source spec status archived"; else fail "source spec status not archived"; fi
 
 # 2. conflict -> exit 1
 echo "Test: archive conflict"
