@@ -16,6 +16,7 @@ Options:
   --goal <text>         Goal statement
   --constraints <text>  Technical or business constraints
   --context <text>      Background context
+  --version v{N}.{M}    Override auto-incremented version (e.g. v2.0)
   -h, --help            Show this help
 
 Exit codes: 0=success, 1=missing asset, 3=param error

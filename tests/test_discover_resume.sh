@@ -20,7 +20,7 @@ bash "$SDD" init "$tmp" --mode standard >/dev/null
 out=$(bash "$SDD" discover "$tmp" --task-name "login-flow" --requirement "支持登录" --goal "完成认证") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "discover exits 0"; else fail "discover exited $exit_code"; fi
 if echo "$out" | grep -q "## SPEC CREATION PROMPT"; then pass "discover outputs spec prompt"; else fail "discover missing spec prompt"; fi
-if [ -f "$tmp/mydocs/specs/login-flow.md" ]; then pass "discover created spec"; else fail "discover did not create spec"; fi
+if [ -f "$tmp/mydocs/specs/v1.0-login-flow.md" ]; then pass "discover created spec"; else fail "discover did not create spec"; fi
 cleanup_tmp "$tmp"
 
 # 2. discover missing task-name
@@ -97,7 +97,7 @@ bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume with codemap exits 0"; else fail "resume with codemap exited $exit_code"; fi
 if echo "$out" | grep -q "HAS_CODEMAP: yes"; then pass "resume has codemap"; else fail "resume missing has codemap"; fi
-if echo "$out" | grep -q "CODEMAP_MODULES: auth-flow"; then pass "resume codemap modules listed"; else fail "resume codemap modules missing"; fi
+if echo "$out" | grep -q "CODEMAP_MODULES: v1.0-auth-flow"; then pass "resume codemap modules listed"; else fail "resume codemap modules missing"; fi
 cleanup_tmp "$tmp"
 
 # 10. resume no args
