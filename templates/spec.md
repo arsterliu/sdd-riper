@@ -2,7 +2,9 @@
 date: YYYY-MM-DD
 task-name: "Task Name Placeholder"
 mode: standard  # standard | lite
-status: draft   # draft | approved | done
+status: draft   # draft | approved | done | archived
+reopened-from: ""  # optional, e.g. v1.2
+context-source: "" # optional, e.g. <docs-root>/archive/v1.2-task-llm.md
 ---
 
 <!-- 
@@ -10,6 +12,16 @@ Requirement = 当前执行口径（任务定义，是锚）
 Context     = 背景材料包（历史资料、旧Spec、CodeMap等，不替代Requirement）
 Spec        = Requirement + Context + Research 收敛后的单一真相源
 -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+  RIPER GATE SECTIONS  (both Standard and Lite modes)
+  ─────────────────────────────────────────────────────────────────
+  These sections drive the human-gate checkpoints of the RIPER flow.
+  • Lite mode: fill ONLY these sections (§N sections below are optional).
+  • Standard mode: fill these for gates; use §N sections for detailed content.
+  Note: ## Innovate Options, ## Execute Log, ## Review Summary below are
+  the Lite-mode equivalents of §7, §9, §10 respectively.
+═══════════════════════════════════════════════════════════════ -->
 
 ## Requirement Restatement
 <!-- 我对需求的复述（必填） -->
@@ -35,6 +47,16 @@ Spec        = Requirement + Context + Research 收敛后的单一真相源
 
 ## Review Summary
 <!-- Review摘要: Spec Fulfilled / Deviations / Remaining Risks / Verdict -->
+
+<!-- ═══════════════════════════════════════════════════════════════
+  STANDARD MODE DETAILED SECTIONS  (§1–§10)
+  ─────────────────────────────────────────────────────────────────
+  Standard mode primary workflow sections. In Standard mode:
+  • Use §7 Innovate Options  (not ## Innovate Options above)
+  • Use §9 Execute Log       (not ## Execute Log above)
+  • Use §10 Review Verdict   (not ## Review Summary above)
+  Lite mode may omit all §N sections.
+═══════════════════════════════════════════════════════════════ -->
 
 ## §1 目标（Goal）
 <!-- 核心目标 -->
@@ -68,6 +90,8 @@ Spec        = Requirement + Context + Research 收敛后的单一真相源
 
 <!-- 
 Lite mode minimal sections:
-In lite mode, only Requirement Restatement and Open Questions are strictly required. 
-Other ## § sections are optional.
+In lite mode, only the RIPER GATE SECTIONS above (Requirement Restatement, 
+Open Questions, Assumptions, Research Readiness Checklist, Innovate Options, 
+Plan Readiness / Approval, Execute Log, Review Summary) are strictly required. 
+All §N sections below are optional and may be omitted.
 -->

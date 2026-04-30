@@ -43,7 +43,7 @@
 - **Windows**: 
   - **推荐**：使用 [Git for Windows](https://git-scm.com/download/win) 附带的 **Git Bash**。
   - **可选**：使用 WSL (Windows Subsystem for Linux)。
-  - *注意*：不直接支持 CMD 或 PowerShell。
+  - *注意*：不直接支持 CMD；PowerShell 用户请使用下方的 `sdd.ps1` 包装器。
   - **PowerShell 用户**：可直接使用项目根目录的 `sdd.ps1` 包装脚本，无需手动打开 Git Bash：
     ```powershell
     .\sdd.ps1 init my-project
@@ -85,8 +85,8 @@ cp -r sdd-riper .agents/skills/sdd-riper
 
 | 模式 | 场景 | 触发条件 |
 | :--- | :--- | :--- |
-| **Setup 模式** | 首次使用，引导初始化项目结构、创建首个 Spec | 项目下尚无 `mydocs/` 目录 |
-| **Workflow 模式** | 日常使用，AI 加载当前 Spec 上下文，引导 RIPER 各阶段 | 项目已初始化（有 `mydocs/`） |
+| **Setup 模式** | 首次使用，引导初始化项目结构、创建首个 Spec | 项目下尚无 docs 目录（默认 `mydocs/`，也可由 `.sdd-config` 指定） |
+| **Workflow 模式** | 日常使用，AI 加载当前 Spec 上下文，引导 RIPER 各阶段 | 项目已初始化（默认有 `mydocs/`，或存在 `.sdd-config` 指定的 docs 目录） |
 
 ### 与 Shell CLI 的区别
 
@@ -103,6 +103,7 @@ cp -r sdd-riper .agents/skills/sdd-riper
 > - `./sdd.sh <command>` — Shell CLI，手动精确控制每一步，适合 CI/CD 或不用 OpenCode 的场景。
 > - `./sdd.sh discover` — 开始一个新任务，进入 **Pre-Research**，并创建首个 Spec。
 > - `./sdd.sh resume` — 恢复已有任务上下文，继续之前的工作。
+> - `./sdd.sh reopen` — 当任务已经归档，但人工测试或后续验证发现缺陷时，基于归档上下文创建 patch Spec。
 >
 > 如果你不确定从哪里开始，选 `/sdd-riper`。
 
@@ -143,7 +144,7 @@ cp -r sdd-riper .agents/skills/sdd-riper
 适合 CI/CD、脚本集成或偏好手动控制的场景。
 
 > 这里的 `sdd-riper` 仓库是**工具仓库**；你真正要管理的是后面命令里的目标项目目录（例如 `my-project`）。  
-> 通常**不需要**把整个 `sdd-riper` 复制到业务项目里；CLI 命令只会在目标项目中创建 `mydocs/` 和 AI 配置文件。只有在你明确选择“项目级安装”时，才把它放进 `.agents/skills/sdd-riper`。
+> 通常**不需要**把整个 `sdd-riper` 复制到业务项目里；CLI 命令只会在目标项目中创建 docs 目录（默认 `mydocs/`，可通过 `--docs-dir` 指定并写入 `.sdd-config`）和 AI 配置文件。只有在你明确选择“项目级安装”时，才把它放进 `.agents/skills/sdd-riper`。
 
 1. **克隆仓库**：
    ```bash
@@ -174,7 +175,7 @@ cp -r sdd-riper .agents/skills/sdd-riper
     第一次上手时，你只需要把上面命令里的 `my-project` 和几段中文示例文本替换成你自己的项目与需求即可，不需要额外理解所有参数细节。
 
     > `discover` 不是 `init` 的延续——它是每次新任务的起点，负责进入 **Pre-Research** 并创建 Spec 文件。  
-    > 如果项目已存在（`mydocs/` 已有），直接跳到这一步即可。
+> 如果项目已存在（默认 `mydocs/` 已有，或 `.sdd-config` 指定的 docs 目录已存在），直接跳到这一步即可。
 
 5. **继续已有任务（回到上下文）**：
    ```bash
@@ -183,7 +184,14 @@ cp -r sdd-riper .agents/skills/sdd-riper
 
    `resume` 不会创建新 Spec，它只负责读取当前状态、输出阶段提示，并帮助 AI / 开发者继续之前的任务。
 
-现在，你可以在 `my-project/mydocs` 目录下看到标准的 SDD 结构，并在 `specs/` 下找到已填充的 Spec 文件。
+6. **归档后发现缺陷（创建 patch Spec）**：
+   ```bash
+   ./sdd.sh reopen my-project my-first-task --defect "人工测试发现边界条件缺陷"
+   ```
+
+   `reopen` 只用于**已归档任务**的缺陷修复。（前提：该任务已通过 `sdd archive` 完成归档，来源 Spec 的 `status` 已写回为 `archived`。）它会读取归档产物（优先 `-llm.md`，缺失时回退到 `-human.md`），创建新的 patch Spec，并写入 `reopened-from` / `context-source` 元数据，随后再用 `resume` 继续该 patch 任务。
+
+现在，你可以在项目的 docs 目录下（默认 `my-project/mydocs`，或 `.sdd-config` 指定的目录）看到标准的 SDD 结构，并在 `specs/` 下找到已填充的 Spec 文件。
 
 ---
 
@@ -191,9 +199,11 @@ cp -r sdd-riper .agents/skills/sdd-riper
 
 所有命令通过 `./sdd.sh` 调度，常用格式为 `sdd <command> [args]`。
 
-现在把命令理解成两类：
+现在把命令理解成四类：
 - **新任务入口**：`discover`，进入 **Pre-Research**，创建首个 Spec
 - **继续任务入口**：`resume`，恢复已有任务上下文
+- **归档后缺陷入口**：`reopen`，基于 archive 产物创建 patch Spec
+- **执行阶段调试**：`debug`，在 BUGFIX 或 FAIL_CODE 重试前先定位根因
 
 ### 一张图看懂 CLI 与 RIPER 的关系
 
@@ -201,11 +211,13 @@ cp -r sdd-riper .agents/skills/sdd-riper
 初始化项目:         init
 开始新任务:         discover
 继续已有任务:       resume
+归档后缺陷修复:     reopen
 进入 Review:        review-execute
 归档任务:           archive
 
 典型顺序:
 init -> discover -> Research/Plan/Execute -> review-execute -> archive
+                                             └-> reopen -> resume -> patch Research/Plan/Execute
 ```
 
 ### 基础命令
@@ -218,7 +230,10 @@ init -> discover -> Research/Plan/Execute -> review-execute -> archive
 | **create-codemap** | `sdd create-codemap <dir>` | 创建模块架构映射 (CodeMap) | `--module <name>` |
 | **create-projectmap**| `sdd create-projectmap <dir>` | 创建跨项目映射 (ProjectMap) | `--repos repo1,repo2`, `--force` |
 | **status** | `sdd status <dir>` | 校验项目规范性与进度 | 无 |
-| **archive** | `sdd archive <dir> <spec-name>` | 归档已完成的 Spec | `--force` |
+| **archive** | `sdd archive <dir> <spec-name>` | 归档已完成的 Spec，并将来源 Spec 状态写回为 `archived` | `--force` |
+| **reopen** | `sdd reopen <dir> <spec-name>` | 对已归档任务创建 patch Spec，用于归档后缺陷修复 | `--defect <text>` |
+| **new-codemap** | `sdd new-codemap <dir> <module-name>` | 从模板创建空白 CodeMap 文件（不生成 AI Prompt） | `--version v{N}.{M}`, `--force` |
+| **new-projectmap** | `sdd new-projectmap <dir>` | 从模板创建空白 ProjectMap 文件（不生成 AI Prompt） | `--repos repo1,repo2`, `--force` |
 
 > **模式怎么选？**
 > - **Lite**：适合小修小补、文案调整、单点 Bug 修复
@@ -228,7 +243,7 @@ init -> discover -> Research/Plan/Execute -> review-execute -> archive
 
 ### AI 驱动命令
 
-这些命令**输出结构化 Prompt**（stdout），供你粘贴给 AI 或通过管道传入 AI CLI。它们不修改任何文件（`discover` 除外），执行后将 AI 引导至正确的上下文和任务。
+这些命令会为 AI 生成结构化上下文或直接创建继续工作的入口。多数命令以 stdout 输出 Prompt；其中 `discover` 和 `reopen` 会直接创建新的 Spec 文件，把 AI 引导到正确的任务上下文。
 
 | 命令名 | 用法 | 说明 | 常用参数 |
 | :--- | :--- | :--- | :--- |
@@ -237,7 +252,8 @@ init -> discover -> Research/Plan/Execute -> review-execute -> archive
 | **review-execute** | `sdd review-execute <dir>` | 生成三轴 Review Prompt：Spec Plan vs Code Diff vs Execute Log | `--spec <path>`, `--log <path>` |
 | **create-codemap** | `sdd create-codemap <dir>` | 生成 AI 分析项目结构并填写 CodeMap 的 Prompt | `--module <name>` |
 | **build-context-bundle** | `sdd build-context-bundle <dir>` | 打包当前 Spec + CodeMap + 关联文件为 AI 背景材料包 | `--out <bundle-name>` |
-| **debug** | `sdd debug <dir>` | 生成带代码快照的 Debug Prompt，引导 AI 系统定位根因 | `--log <file>`, `--error <msg>` |
+| **debug** | `sdd debug <dir>` | 生成根因定位 Prompt，供 Execute 阶段 BUGFIX 或 Review 阶段 FAIL_CODE 重试前使用 | `--log <file>`, `--error <msg>` |
+| **reopen** | `sdd reopen <dir> <spec-name>` | 为已归档任务创建 patch Spec，并注入 archive 上下文来源，作为 post-archive defect 的正式入口 | `--defect <text>` |
 | **create-projectmap** | `sdd create-projectmap <dir>` | 生成 AI 扫描多仓并填写 ProjectMap 的 Prompt | `--repos <repo1,repo2,...>`, `--force` |
 
 #### `discover` 典型用法
@@ -253,7 +269,7 @@ init -> discover -> Research/Plan/Execute -> review-execute -> archive
   --context "项目已有 UserService，token 存储在 Redis"
 ```
 
-执行后在 `my-project/mydocs/specs/v1.0-user-login.md` 生成已填充的 Spec 文件（版本号自动递增，如再次创建同名任务则生成 `v1.1-user-login.md`）。
+执行后会在项目 docs 目录的 `specs/` 下生成已填充的 Spec 文件；默认路径是 `my-project/mydocs/specs/v1.0-user-login.md`，如果初始化时使用了 `--docs-dir`，则路径会写入 `.sdd-config` 并改为对应目录（版本号自动递增，如再次创建同名任务则生成 `v1.1-user-login.md`）。
 
 #### `resume` 典型用法
 
@@ -263,7 +279,7 @@ init -> discover -> Research/Plan/Execute -> review-execute -> archive
 ./sdd.sh resume my-project
 ```
 
-执行后会输出 `LATEST_SPEC`、`SPEC_STATUS`、`HAS_CODEMAP`、`PHASE_HINT` 等字段，供 AI 或开发者继续当前阶段。
+执行后会输出 `LATEST_SPEC`、`SPEC_STATUS`、`HAS_CODEMAP`、`PHASE_HINT` 等字段，供 AI 或开发者继续当前阶段。当前 CLI 对前期阶段使用聚合提示 `PHASE_HINT: research_or_plan`；进入执行后则会输出 `execute` / `review` / `archive` 等明确阶段。
 
 #### CodeMap 该怎么维护？
 
@@ -286,9 +302,11 @@ Execute 阶段完成后，用于驱动 AI 做三轴 Review：
   --log my-project/mydocs/evidence/v1.0-user-login/execute.log
 ```
 
+> 如果项目使用了 `--docs-dir`，请将上面示例中的 `mydocs` 替换为 `.sdd-config` 中声明的目录名。
+
 #### `debug` 典型用法
 
-遇到 Bug 时，快速生成带上下文的 Debug Prompt：
+当 Execute 阶段进入 BUGFIX，或 Review 阶段出现 FAIL_CODE 需要重试前，使用 `debug` 先定位 Root Cause：
 
 ```bash
 # 传入错误日志文件
@@ -297,6 +315,24 @@ Execute 阶段完成后，用于驱动 AI 做三轴 Review：
 # 直接传入错误信息字符串
 ./sdd.sh debug my-project --error "TypeError: Cannot read property 'id' of undefined at login.js:42"
 ```
+
+#### `reopen` 典型用法
+
+当任务已经完成归档，但人工测试或后续验证发现缺陷时：
+
+```bash
+# 从最近的已归档 user-login 任务创建 patch Spec
+./sdd.sh reopen my-project user-login --defect "人工测试发现锁定账号后无法自动解锁"
+
+# 也可以显式传版本化 spec 名称；脚本仍会检查其是否 archived
+./sdd.sh reopen my-project v1.0-user-login
+```
+
+`reopen` 的行为规则：
+- 只接受 `status: archived` 的来源 Spec
+- 优先读取 docs 目录下的 `archive/vN.M-<task>-llm.md`；若缺失则回退到 `-human.md`
+- 若同 slug 已有更高版本、且仍未归档的 patch Spec，则拒绝创建，并提示改用 `resume`
+- 新 patch Spec 会写入 `reopened-from` 与 `context-source` frontmatter，便于后续追踪来源
 
 ### 退出码说明
 - `0`: 成功。
@@ -324,12 +360,12 @@ SDD-RIPER 支持两种工作模式，通过 `init` 的 `--mode` 参数指定。
 
 ## 8. 目录结构说明
 
-初始化后的项目目录（默认在 `mydocs/` 下）结构如下：
+初始化后的项目目录（默认在 `mydocs/` 下；若使用 `--docs-dir`，则目录名会写入项目根的 `.sdd-config`）结构如下：
 
-- `specs/`: 存放所有正在进行的任务说明书 (Spec)。**这是开发的核心。**
+- `specs/`: 存放所有正在进行的任务说明书 (Spec)。**这是开发的核心。** 普通任务的 Spec 会带 `status`；由 `reopen` 创建的 patch Spec 还会额外写入 `reopened-from` 与 `context-source`。
 - `codemap/`: 记录模块结构、调用链路和外部依赖，帮助 AI 快速建立本地架构视图。
 - `context/`: 存放背景材料包（如旧 Spec、历史设计稿、PRD 等）。
-- `archive/`: 存放已归档的任务。`sdd archive` 会生成两个文件，命名继承来源 Spec 的版本号：供人类阅读的 `v{N}.{M}-{任务名}-human.md` 和 AI 高密度上下文压缩版 `v{N}.{M}-{任务名}-llm.md`。
+- `archive/`: 存放已归档的任务。`sdd archive` 会生成两个文件，命名继承来源 Spec 的版本号：供人类阅读的 `v{N}.{M}-{任务名}-human.md` 和 AI 高密度上下文压缩版 `v{N}.{M}-{任务名}-llm.md`。归档成功后，来源 Spec 的 `status` 会被写回为 `archived`，供 `resume` / `reopen` 识别。
 - `evidence/`: 存放测试截图、日志、验证脚本等执行证据。
 
 ### AI 配置文件
@@ -356,6 +392,9 @@ A:
 - **`discover`**：开始一个新任务，进入 Pre-Research，并创建首个 Spec
 - **`resume`**：继续已有任务，只恢复上下文，不创建新 Spec
 
+**Q: 任务归档后，如果人工测试发现缺陷怎么办？**  
+A: 使用 `reopen`，不要直接用 `discover`。`reopen` 会校验来源 Spec 已经是 `status: archived`，优先读取对应的 archive `-llm.md`（缺失时回退 `-human.md`），再创建新的 patch Spec。创建成功后，用 `resume` 继续这个 patch 任务即可。
+
 **Q: Requirement / Context / Spec 的区别？**  
 - **Requirement**: “我们要去哪”（需求定义）。
 - **Context**: “我们现在在哪”（历史背景）。
@@ -368,18 +407,27 @@ A:
 `sdd status` 检查“痕迹”（你有没有写这个区块），但不检查“质量”（你写得对不对）。质量必须由人工通过 `Plan Approved` 门禁来保证。工具不应阻断灵活性，但要提醒风险。
 
 **Q: 使用了 `/sdd-riper`，还需要手动运行 `./sdd.sh` 吗？**  
-A: 通常不需要。`/sdd-riper` 激活后，AI 会在需要时自动调用 `sdd.sh` 命令（如 `init`、`discover`、`resume`、`archive`）。你只需在 OpenCode 对话中描述意图即可。  
+A: 通常不需要。`/sdd-riper` 激活后，AI 会在需要时自动调用 `sdd.sh` 命令（如 `init`、`discover`、`resume`、`archive`、`reopen`）。你只需在 OpenCode 对话中描述意图即可。  
 手动运行 `./sdd.sh` 的场景：CI/CD 流水线、不使用 OpenCode 的环境、或需要精确控制特定步骤时。  
 两者可以混用，互不干扰。
 
 **Q: 我需要把整个 `sdd-riper` 复制到我的项目里吗？**  
 A: 通常不需要。最常见的用法是：把 `sdd-riper` 作为全局 Skill 或独立工具仓库安装好，然后对你的目标项目运行 `init`、`discover` / `resume` 等命令。  
-这些命令只会在目标项目里创建 `mydocs/` 和 AI 配置文件，不会要求你把整个工具仓库拷进去。  
+这些命令只会在目标项目里创建 docs 目录（默认 `mydocs/`，可由 `--docs-dir` 指定）和 AI 配置文件，不会要求你把整个工具仓库拷进去。  
 只有当你希望 Skill 跟随仓库一起分发、并锁定版本时，才使用项目级安装：`.agents/skills/sdd-riper`。
 
 **Q: Windows 上如何使用？**
 
-请确保安装了 Git for Windows，并在 **Git Bash** 终端中运行命令。不要使用 PowerShell 或 CMD，因为它们不支持某些 Bash 特有的语法和命令。
+请确保安装了 Git for Windows。
+
+- **推荐**：在 **Git Bash** 终端中直接运行 `./sdd.sh ...`
+- **PowerShell 用户**：使用仓库自带的 `sdd.ps1` 包装器，例如：
+  ```powershell
+  .\sdd.ps1 init my-project
+  .\sdd.ps1 reopen my-project user-login --defect "人工测试发现边界缺陷"
+  ```
+
+不要直接在 PowerShell 或 CMD 中调用 `./sdd.sh`，因为它们不支持某些 Bash 特有语法；请改用 Git Bash 或 `sdd.ps1`。
 
 ---
 

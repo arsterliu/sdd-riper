@@ -26,6 +26,8 @@ SDD_ROOT="${SDD_ROOT:-$(cd "$(dirname "$0")" 2>/dev/null && pwd || pwd)}"
 echo "SDD_ROOT: $SDD_ROOT"
 echo "PROJECT_ROOT: $_PROJECT_ROOT"
 HAS_SDD=$([ -d "$_PROJECT_ROOT/mydocs" ] && echo "yes" || echo "no")
+CONFIG_DOCS_DIR=$(grep '^DOCS_DIR=' "$_PROJECT_ROOT/.sdd-config" 2>/dev/null | head -1 | sed 's/^DOCS_DIR=//; s/\r$//' | sed 's/^"//; s/"$//' || true)
+[ -n "$CONFIG_DOCS_DIR" ] && [ -d "$_PROJECT_ROOT/$CONFIG_DOCS_DIR" ] && HAS_SDD=yes
 echo "HAS_SDD: $HAS_SDD"
 ```
 
@@ -50,7 +52,7 @@ Project: {PROJECT_ROOT}
 Status: {HAS_SDD=yes → "SDD structure found" | HAS_SDD=no → "Not yet initialized"}
 
 请选择：
-A) 初始化项目 SDD 结构（创建 mydocs/、AI 配置文件）
+A) 初始化项目 SDD 结构（默认创建 mydocs/，也可通过 .sdd-config 指定 docs 目录，并生成 AI 配置文件）
 B) 开始或继续 RIPER 工作流任务
 ---
 
@@ -70,9 +72,9 @@ B) 开始或继续 RIPER 工作流任务
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory and mode before continuing.
 2. Run: `bash "$SDD_ROOT/sdd.sh" init "$TARGET_DIR" --mode <mode>` (DO NOT use Write/Edit tools directly to create project files).
 3. Show created files.
-4. **CodeMap 引导（仅当满足条件时）**: Check whether the `init` command output contains `[SDD-RIPER]`, and whether `$TARGET_DIR/mydocs/codemap/` **already has** `.md` files (excluding `.gitkeep`).
-   - If init output does **not** contain `[SDD-RIPER]`, OR `$TARGET_DIR/mydocs/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
-   - If init output **contains** `[SDD-RIPER]` AND `$TARGET_DIR/mydocs/codemap/` has **no** `.md` files: use `AskUserQuestion`:
+4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[SDD-RIPER]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
+   - If init output does **not** contain `[SDD-RIPER]`, OR `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
+   - If init output **contains** `[SDD-RIPER]` AND `<DOCS_ROOT>/codemap/` has **no** `.md` files: use `AskUserQuestion`:
       > 检测到目标项目已有较多源码文件，尚未建立 CodeMap。
       > 是否现在建立 CodeMap 以帮助 AI 快速理解模块结构？
       > （可选）模块名称（留空则扫描整个项目）: ___
@@ -86,18 +88,18 @@ B) 开始或继续 RIPER 工作流任务
    - If yes:
       a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, and constraints (optional).
          > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items (task name, requirement, goal, constraints). If the user provides fewer than 4 items, re-ask for the missing ones — do NOT infer or skip.
-      b. **Context Bundle 引导**: Check whether `$TARGET_DIR/mydocs/context/` is missing or has **no** `.md` files (excluding `.gitkeep`).
-         - If `$TARGET_DIR/mydocs/context/` is missing or has **no** `.md` files (excluding `.gitkeep`): use `AskUserQuestion`:
-           > `mydocs/context/` 目录为空，尚无 Context Bundle。
+      b. **Context Bundle 引导**: Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check whether `<DOCS_ROOT>/context/` is missing or has **no** `.md` files (excluding `.gitkeep`).
+         - If `<DOCS_ROOT>/context/` is missing or has **no** `.md` files (excluding `.gitkeep`): use `AskUserQuestion`:
+           > 当前 docs 目录下的 `context/` 为空，尚无 Context Bundle。
            > Context Bundle 可将当前 Spec、CodeMap 及关联文件打包，作为 discover 的 `--context` 背景材料，帮助 AI 更准确理解任务背景。
            > 是否现在构建 Context Bundle？
            > A) 是，立即构建
            > B) 否，跳过
            > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's A/B response before running any command.
-            - If A: run `bash "$SDD_ROOT/sdd.sh" build-context-bundle "$TARGET_DIR"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
-           - If B: proceed without `--context`.
-         - If `$TARGET_DIR/mydocs/context/` **already has** `.md` files: use the most recently modified `.md` file path as `--context <path>` in the discover command below.
-      c. Check `$TARGET_DIR/mydocs/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version (v1.0 if none exist, otherwise v{N}.{M+1}). Output to user and END YOUR TURN:
+             - If A: run `bash "$SDD_ROOT/sdd.sh" build-context-bundle "$TARGET_DIR"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
+            - If B: proceed without `--context`.
+         - If `<DOCS_ROOT>/context/` **already has** `.md` files: use the most recently modified `.md` file path as `--context <path>` in the discover command below.
+      c. Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version (v1.0 if none exist, otherwise v{N}.{M+1}). Output to user and END YOUR TURN:
 
 ---
 即将创建 Spec：**v{N.M}-{task-name}.md**
@@ -111,12 +113,19 @@ B) 开始或继续 RIPER 工作流任务
 6. Explain: "Run /sdd-riper again to enter Workflow Mode for this task"
 
 ## Workflow Mode (if B selected)
-1. Run: `bash "$SDD_ROOT/sdd.sh" resume "$_PROJECT_ROOT"`
+1. Run: `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"`
+   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 2. Read the `LATEST_SPEC` and `PHASE_HINT` values from the resume output.
-3. **If `PHASE_HINT=new_task` or `LATEST_SPEC=none`**: the previous task is fully archived or no spec exists.
-   - **Context Bundle 更新**：Check whether `$_PROJECT_ROOT/mydocs/archive/` contains any `.md` files (excluding `.gitkeep`).
-     - If archive has files: run `bash "$SDD_ROOT/sdd.sh" build-context-bundle "$_PROJECT_ROOT"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
-     - If archive is empty: check if `$_PROJECT_ROOT/mydocs/context/` has any `.md` files; if yes use the most recently modified one as `CONTEXT_PATH`; if no, proceed without context.
+3. **Health Check** (optional): Run `bash "<SDD_ROOT>/sdd.sh" status "<PROJECT_ROOT>"` to verify project structure integrity at the start of a workflow session.
+   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+4. **If `PHASE_HINT=new_task` or `LATEST_SPEC=none`**: the previous task is fully archived or no spec exists.
+    - **Defect vs new task routing**：如果是归档后人工发现的缺陷修复，**不要**直接按新任务创建 Spec。唯一入口是 `bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>"`，由它创建 patch Spec 并关联归档上下文。
+      > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+    - 只有在这是一个真正的新需求 / 新任务时，才继续下面的新任务创建流程。
+    - **Context Bundle 更新**：Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check whether `<DOCS_ROOT>/archive/` contains any `.md` files (excluding `.gitkeep`).
+      - If archive has files: run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
+         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+      - If archive is empty: check if `<DOCS_ROOT>/context/` has any `.md` files; if yes use the most recently modified one as `CONTEXT_PATH`; if no, proceed without context.
    - Use `AskUserQuestion`:
      > 上一个任务已归档，Context Bundle 已更新。准备开始新任务。
      > 请提供以下信息：
@@ -125,16 +134,18 @@ B) 开始或继续 RIPER 工作流任务
      > - goal：最终要达到什么结果
      > - constraints：约束；没有就写 none
      > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items. If fewer than 4 provided, re-ask for missing ones — do NOT infer or skip.
-   - Once all 4 items received: check `$_PROJECT_ROOT/mydocs/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version. Output to user and END YOUR TURN:
+    - Once all 4 items received: determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version. Output to user and END YOUR TURN:
 
 ---
 即将创建 Spec：**v{N.M}-{task-name}.md**
 如需修改版本号，请输入（格式 vN.M，如 v2.0）；否则直接回复"继续"。
 ---
 
-     **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-     - If user provides a version: run `bash "$SDD_ROOT/sdd.sh" discover "$_PROJECT_ROOT" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
-     - If user says "继续" or anything else: run `bash "$SDD_ROOT/sdd.sh" discover "$_PROJECT_ROOT" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<CONTEXT_PATH>"]`
+      **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
+      - If user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
+        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+      - If user says "继续" or anything else: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<CONTEXT_PATH>"]`
+        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
      Read the created Spec and help fill Research Findings.
    - If user says they don't want a new task: end the session.
 4. Otherwise (active spec found): Read the spec file content using the Read tool.
@@ -153,12 +164,22 @@ B) 开始或继续 RIPER 工作流任务
      - Archive: Review Summary
    - **冷层**（默认不带）: 历史 Spec 全文、archive 文件、其他任务 Spec、context 目录内容
 6. **Phase Routing** — based on `PHASE_HINT`:
-   - If `PHASE_HINT` is one of `research`, `innovate`, `plan`, `execute`, `review`, `archive`:
-     Output to user (plain text, no tool call):
-     > Context loaded: {spec name}, Phase hint: {PHASE_HINT}
-     > 当前阶段已自动识别为 **{PHASE_HINT}**，直接进入该阶段。如需切换阶段，请告知。
+   - If `PHASE_HINT` is one of `execute`, `review`, `archive`:
+      Output to user (plain text, no tool call):
+      > Context loaded: {spec name}, Phase hint: {PHASE_HINT}
+      > 当前阶段已自动识别为 **{PHASE_HINT}**，直接进入该阶段。如需切换阶段，请告知。
 
-     Then **immediately jump to that phase's instruction section** — do NOT show the A-F menu, do NOT call `AskUserQuestion`.
+      Then **immediately jump to that phase's instruction section** — do NOT show the A-F menu, do NOT call `AskUserQuestion`.
+
+   - If `PHASE_HINT` is `research_or_plan`:
+      Use `AskUserQuestion`:
+      > Context loaded: {spec name}, Phase hint: research_or_plan
+      > 当前任务尚处于前期收敛阶段。请选择接下来要进入的环节：
+      > A) Research — clarify requirements and open questions
+      > B) Innovate — compare solution options
+      > C) Plan — draft an atomic execution plan
+
+      Then jump to the chosen phase's instruction section.
 
    - If `PHASE_HINT` is empty, unknown, or ambiguous: Use `AskUserQuestion`:
      > Context loaded: {spec name}, Phase hint: {PHASE_HINT}
@@ -232,16 +253,32 @@ B) 开始或继续 RIPER 工作流任务
 - **Rules**:
   - Follow Plan steps in order
   - Record every deviation in Execute Log
+  - **Defect vs Deviation vs Enhancement**:
+    - **Defect**: implementation result is wrong, but the current Step goal and original task intent still hold → enter `BUGFIX`
+    - **Deviation**: implementing or fixing the Step would require changes outside the current Step's explicitly declared file / directory / module boundary, or would invalidate downstream Plan steps → escalate to `DEVIATED_MAJOR`
+    - **Enhancement / New Requirement**: request changes original task intent, expands archived scope, or adds new acceptance criteria → MUST NOT be handled via `BUGFIX`; return to Research / Plan or start a new task
+  - **BUGFIX entry**: if the current Step hits a runtime error, assertion failure, test failure, or other defect while the Step goal remains valid, enter `BUGFIX`
+  - **BUGFIX Step Scope Rule**: every Plan Step must explicitly declare file paths, directory boundaries, or module boundaries; `BUGFIX` may modify only that declared boundary. If the Step lacks an explicit boundary, the Plan is incomplete → return to Plan before continuing.
+   - **BUGFIX loop**:
+     1. Before **every** retry, run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
+        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+     2. Read the `## DEBUG PROMPT` output, identify Root Cause, and apply the smallest fix that stays within the current Step boundary
+    3. If `debug` is inconclusive, fails, or the required fix crosses the current Step boundary → escalate immediately to `DEVIATED_MAJOR`
+    4. Maximum **3 BUGFIX retries** per defect instance
+    5. If still failing after 3 retries → log `[BUGFIX_ESCALATED]`, stop, and require human intervention
+  - **BUGFIX status semantics**:
+    - `BUGFIX`: a defect was found and fixed within the current Step boundary
+    - `BUGFIX_ESCALATED`: the defect could not be resolved autonomously within 3 retries
   - **DEVIATED_MINOR**: Step goal is still achievable via a different implementation approach → log to `execute.log` with `[DEVIATED_MINOR]` tag and continue to next step
   - **DEVIATED_MAJOR**: Step goal is no longer valid, OR achieving it would require changes to other Plan steps → STOP immediately, log with `[DEVIATED_MAJOR]` tag, return to Plan phase, explicitly state which downstream steps are affected
   - Rubric: If in doubt, escalate to DEVIATED_MAJOR
   - NEVER silently deviate from Plan
   - Do not update CodeMap in the middle of unstable implementation; first make the code stable, then decide whether CodeMap needs reverse sync
-- **After each step**: brief log entry AND append to `mydocs/evidence/{spec-slug}/execute.log` (append-only):
+- **After each step**: brief log entry AND append to `<docs-root>/evidence/{spec-slug}/execute.log` (append-only; docs root defaults to `mydocs/`, or the directory configured in `.sdd-config`):
   ```
   ---
   Step N: {步骤描述}
-  Status: DONE | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
+  Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
   Output: {命令输出摘要或关键变更}
   Deviation: {若有偏差，说明原因} | none
   Timestamp: {ISO 8601, e.g. 2026-04-20T10:30:00Z}
@@ -256,7 +293,8 @@ B) 开始或继续 RIPER 工作流任务
   - ✅ MAY write: §10 Review Verdict in Spec (verdict + timestamp + pass number, append-only)
   - ✅ MAY write: CodeMap — ONLY if this task changed entry points, core call chain, external dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
   - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
-- **Trigger**: Run `bash "$SDD_ROOT/sdd.sh" review-execute "$_PROJECT_ROOT" --log "$_PROJECT_ROOT/mydocs/evidence/{spec-slug}/execute.log"`
+- **Trigger**: Run `bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>" --log "<PROJECT_ROOT>/<docs-root>/evidence/{spec-slug}/execute.log"`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **Mandatory 4-axis output format**:
   ```markdown
   ## Review Report (Pass N — YYYY-MM-DDTHH:MM:SSZ)
@@ -316,15 +354,18 @@ Verdict mapping for upstream FAIL:
 
 #### FAIL_CODE Auto-Remediation Loop
 When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execute phase (targeting only the failed steps identified in the verdict), then re-runs Review:
-1. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
-2. After Execute completes the fix, Review runs again (new Pass N+1)
-3. Maximum **3 auto-remediation retries**
-4. If still `FAIL_CODE` after 3 retries → output `FAIL_CODE_ESCALATED` and require human intervention
-5. `FAIL_PLAN` and `FAIL_SPEC` are **never auto-remediated** — always require human decision
+1. **Before each retry**: run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" --error "<FAIL_CODE finding summary>"` and read the Debug Prompt output. Do NOT retry Execute without first establishing Root Cause via `debug`.
+   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+2. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
+3. After Execute completes the fix, Review runs again (new Pass N+1)
+4. Maximum **3 auto-remediation retries** (each preceded by `debug`)
+5. If still `FAIL_CODE` after 3 retries → output `FAIL_CODE_ESCALATED` and require human intervention
+6. `FAIL_PLAN` and `FAIL_SPEC` are **never auto-remediated** — always require human decision. Use `reopen` only after the task has been fully archived.
 
 
 ## Archive Phase Instructions
-1. **Run**: `bash "$SDD_ROOT/sdd.sh" archive "$_PROJECT_ROOT" "<spec-name>"` — creates skeleton files from templates. Note the `Original spec preserved:` path in output.
+1. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — creates skeleton files from templates. Note the `Original spec preserved:` path in output.
+   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 2. **Read** the source Spec file (the path printed as `Original spec preserved: ...`).
 3. **Fill `_human.md`** — use Edit/Write tool to replace every `<!-- ... -->` placeholder with real content extracted from the Spec:
    - `## 目标摘要`: 1-sentence summary from Spec `goal` frontmatter or Requirement Restatement section.
@@ -339,6 +380,7 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
    - `## 坑点与风险`: resolved Open Questions, issues hit during Execute, non-obvious gotchas.
    - `## 约束清单`: what must NOT be changed — from Spec constraints field + Plan "Must NOT" items.
 5. **Verify**: confirm neither file contains any remaining `<!-- ... -->` placeholder comments. Show both files.
+6. **Write back source spec status**: after both archive files are created and verified, update the source Spec frontmatter to `status: archived`. This state writeback happens last so half-finished archive artifacts never masquerade as a fully archived task.
 
 ## Completion Status Protocol
 When completing any phase or the full workflow, report status:
@@ -357,12 +399,14 @@ When completing any phase or the full workflow, report status:
 
 | 产出物 | 路径 | 命名示例 |
 |---|---|---|
-| Spec | `mydocs/specs/` | `v1.0-user-login.md`, `v1.1-user-login.md` |
-| CodeMap | `mydocs/codemap/` | `v1.0-auth.md`, `v1.1-auth.md` |
-| Context Bundle | `mydocs/context/` | `v1.0-context-bundle.md` |
-| Archive | `mydocs/archive/` | `v1.1-user-login-human.md`, `v1.1-user-login-llm.md` |
-| Evidence | `mydocs/evidence/` | `{spec-slug}/execute.log`（append-only） |
-| ProjectMap | `mydocs/projectmap.md` | 固定单文件，不版本化 |
+| Spec | `<docs-root>/specs/` | `v1.0-user-login.md`, `v1.1-user-login.md` |
+| CodeMap | `<docs-root>/codemap/` | `v1.0-auth.md`, `v1.1-auth.md` |
+| Context Bundle | `<docs-root>/context/` | `v1.0-context-bundle.md` |
+| Archive | `<docs-root>/archive/` | `v1.1-user-login-human.md`, `v1.1-user-login-llm.md` |
+| Evidence | `<docs-root>/evidence/` | `{spec-slug}/execute.log`（append-only） |
+| ProjectMap | `<docs-root>/projectmap.md` | 固定单文件，不版本化 |
+
+- `<docs-root>` 默认为 `mydocs/`；若项目根存在 `.sdd-config` 且声明了 `DOCS_DIR=...`，则应改用该目录。
 
 - **版本递增**：每次对同名产出物执行创建命令时，minor 自动 +1（`v1.9 → v1.10`，不进位）
 - **手动指定**：`discover`、`new-codemap`、`build-context-bundle` 支持 `--version v{N}.{M}` 覆盖
@@ -374,38 +418,56 @@ When completing any phase or the full workflow, report status:
 - **触发时机**：进入 Review 阶段时
 - **命令**：
   ```bash
-  bash "$SDD_ROOT/sdd.sh" review-execute "$_PROJECT_ROOT" \
-    --log "$_PROJECT_ROOT/mydocs/evidence/{spec-slug}/execute.log"
+  bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>" \
+    --log "<PROJECT_ROOT>/<docs-root>/evidence/{spec-slug}/execute.log"
   ```
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
   其中 `{spec-slug}` = 当前 Spec 文件名去掉 `.md`（如 `v1.1-user-login`）。若不传 `--log`，脚本将自动推断路径；若 log 文件不存在，降级读取 Spec 内 Execute Log 区块。
 - **AI 行为**：读取命令输出的结构化 Prompt，执行三轴对照分析，填写 Spec §10 Review Report
 - **三轴**：轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 `evidence/{spec-slug}/execute.log`）
 
 ### discover（P1b 首版 Spec 创建 / Pre-Research 入口）
 - **触发时机**：Setup Mode 中用户选择"创建首个 Spec"时
-- **命令**：`bash "$SDD_ROOT/sdd.sh" discover "$_PROJECT_ROOT" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>"`
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>"`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **AI 行为**：读取命令输出的 `## SPEC CREATION PROMPT`，读取创建的 Spec 文件，填写 Research Findings 区块和初始 Open Questions
-- **注意**：`--task-name` 为必填参数；此命令会写入 `mydocs/specs/v{N}.{M}-<task-name>.md`（版本自动递增）；支持 `--version v{N}.{M}` 手动指定
+- **注意**：`--task-name` 为必填参数；此命令会写入 `<docs-root>/specs/v{N}.{M}-<task-name>.md`（版本自动递增，`<docs-root>` 默认为 `mydocs/`，可由 `.sdd-config` 指定）；支持 `--version v{N}.{M}` 手动指定
 
 ### create-codemap（P2a AI 驱动代码库扫描）
 - **触发时机**：Research 或 Plan 阶段，需要建立代码库架构视图时
-- **命令**：`bash "$SDD_ROOT/sdd.sh" create-codemap "$_PROJECT_ROOT" [--module <name>]`
-- **AI 行为**：读取 Prompt 中的文件树和 CodeMap 模板，分析代码库结构，填写 CodeMap 并写入 `mydocs/codemap/<module>.md`
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" create-codemap "<PROJECT_ROOT>" [--module <name>]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：读取 Prompt 中的文件树和 CodeMap 模板，分析代码库结构，填写 CodeMap 并写入 `<docs-root>/codemap/<module>.md`
 - **治理规则**：若目标模块已有 CodeMap，优先进入 UPDATE 模式，对现有地图做增量更新；不要为同一模块重复创建多份 CodeMap。
 
 ### build-context-bundle（P2b AI 提炼上下文包）
 - **触发时机**：任务开始前，需要从历史文档中提炼上下文时
-- **命令**：`bash "$SDD_ROOT/sdd.sh" build-context-bundle "$_PROJECT_ROOT" [--out <name>]`
-- **AI 行为**：读取 Prompt 中的 mydocs 文件清单，阅读相关文档，按 Context Bundle 模板提炼结构化上下文，写入 `mydocs/context/v{N}.{M}-<bundle-name>.md`（版本自动递增）
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：读取 Prompt 中的 docs-root 文件清单，阅读相关文档，按 Context Bundle 模板提炼结构化上下文，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增）
 
 ### debug（P3a 日志驱动 Bug 定位）
-- **触发时机**：Execute 阶段遇到 Bug，需要定位根本原因时
-- **命令**：`bash "$SDD_ROOT/sdd.sh" debug "$_PROJECT_ROOT" [--log <log-file>] [--error "<error-msg>"]`
-- **AI 行为**：读取输出的 `## DEBUG PROMPT`，分析错误信息、日志和执行步骤，定位 Root Cause 后提出最小修复方案
+- **触发时机**：Execute 阶段进入 `BUGFIX`，或 Review 阶段触发 `FAIL_CODE` 自动修复重试时；每次 retry 前都必须先运行 `debug` 定位根本原因
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：读取输出的 `## DEBUG PROMPT`，分析错误信息、日志和执行步骤，定位 Root Cause 后提出最小修复方案；若无法建立 Root Cause，则不得继续 BUGFIX / FAIL_CODE 重试
 - **铁律**：禁止在未明确 Root Cause 的情况下提出修复方案
 
 ### create-projectmap（P3b AI 驱动 ProjectMap 生成）
 - **触发时机**：任务涉及多仓库/多模块，需要建立全局地图时
-- **命令**：`bash "$SDD_ROOT/sdd.sh" create-projectmap "$_PROJECT_ROOT" [--repos <repo1,repo2>] [--force]`
-- **AI 行为**：读取输出的 `## CREATE PROJECTMAP PROMPT`，根据项目信息和模板格式，填写 ProjectMap 并写入 `mydocs/projectmap.md`
-- **注意**：若 `mydocs/projectmap.md` 已存在，需加 `--force` 才能覆盖（exit 2 提示）
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" create-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：读取输出的 `## CREATE PROJECTMAP PROMPT`，根据项目信息和模板格式，填写 ProjectMap 并写入 `<docs-root>/projectmap.md`
+- **注意**：若 `<docs-root>/projectmap.md` 已存在，需加 `--force` 才能覆盖（exit 2 提示）
+
+### reopen（P4 归档后缺陷回溯入口）
+- **触发时机**：任务已 Archive 完成，随后由人工测试或后续验证发现 defect，需要在不改变原始任务意图的前提下创建 patch Spec 继续修复时
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>" [--defect "<defect-summary>"]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **前置条件**：
+  - 源 Spec 的 `status` 必须为 `archived`
+  - `<docs-root>/archive/` 中必须存在对应的 `-llm.md` 或 `-human.md` 归档文件（优先使用 `-llm.md`，缺失则回退到 `-human.md`）
+  - `<docs-root>/specs/` 中不得已存在同 slug 的更高版本且 `status != archived` 的 patch Spec；若存在，改为运行 `resume`
+- **AI 行为**：命令成功后，读取新建 patch Spec 的 `reopened-from` 与 `context-source` 元数据，运行 `resume` 载入该 patch Spec，再在 §6 Research Findings 中记录归档上下文来源与缺陷来源。`reopen` 只用于 defect patch，不得借此扩大范围或引入新功能。
+- **失败处理**：若输出提示 `Open patch spec already exists`，不要重复 reopen，改为运行 `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"` 继续已有 patch Spec。
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.

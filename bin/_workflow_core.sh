@@ -5,6 +5,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 # Handle --help / -h early (before any other parsing)
 for arg in "$@"; do
@@ -32,43 +33,6 @@ EOF
     exit 0
   fi
 done
-
-# ---------------------------------------------------------------------------
-# Version helpers
-# _sdd_next_version <dir> <logical_name>
-#   Scans <dir> for files matching v{N}.{M}-<logical_name>.md,
-#   returns next version as "v{MAJOR}.{MINOR+1}". Returns "v1.0" if none found.
-#   Uses integer arithmetic only (no floats).
-# ---------------------------------------------------------------------------
-_sdd_next_version() {
-  local dir="$1" name="$2"
-  local max_major=0 max_minor=-1
-  local f bname vmaj vmin
-  while IFS= read -r -d '' f; do
-    bname="$(basename "$f")"
-    if [[ "$bname" =~ ^v([0-9]+)\.([0-9]+)-.+\.md$ ]]; then
-      local stem="${bname%.md}"
-      local vprefix="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-      local after_prefix="${stem#${vprefix}-}"
-      if [[ "$after_prefix" == "$name" ]]; then
-        vmaj="${BASH_REMATCH[1]}"
-        vmin="${BASH_REMATCH[2]}"
-        if (( vmaj > max_major )) || (( vmaj == max_major && vmin > max_minor )); then
-          max_major=$vmaj
-          max_minor=$vmin
-        fi
-      fi
-    fi
-  done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  if (( max_minor == -1 )); then echo "v1.0"; else echo "v${max_major}.$((max_minor + 1))"; fi
-}
-
-# _sdd_version_exists <dir> <logical_name> <version>
-#   Returns 0 (true) if v{version}-{name}.md already exists in <dir>.
-_sdd_version_exists() {
-  local dir="$1" name="$2" ver="$3"
-  [[ -f "$dir/${ver}-${name}.md" ]]
-}
 
 # Detect --create-spec mode
 CREATE_SPEC_MODE=false
@@ -107,7 +71,9 @@ if [[ "$CREATE_SPEC_MODE" == "true" ]]; then
   if [[ -z "$TARGET_DIR" ]]; then
     echo "[ERROR] Usage: sdd discover <project-dir> --task-name <name>" >&2; exit 3
   fi
-  if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
+  DOCS_DIR="$(_sdd_get_docs_dir "$TARGET_DIR")"
+  DOCS_ROOT="$TARGET_DIR/$DOCS_DIR"
+  if [[ ! -d "$DOCS_ROOT" ]]; then
     echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2; exit 1
   fi
   if [[ -z "$TASK_NAME" ]]; then
@@ -122,7 +88,7 @@ if [[ "$CREATE_SPEC_MODE" == "true" ]]; then
     echo "[ERROR] templates/spec.md not found at: $SPEC_TEMPLATE" >&2; exit 1
   fi
   
-  SPECS_DIR="$TARGET_DIR/mydocs/specs"
+  SPECS_DIR="$DOCS_ROOT/specs"
   if [[ -n "$VERSION_OVERRIDE" ]]; then
     if [[ ! "$VERSION_OVERRIDE" =~ ^v[0-9]+\.[0-9]+$ ]]; then
       echo "[ERROR] Invalid --version format: '${VERSION_OVERRIDE}'. Expected: v{N}.{M} (e.g. v1.0, v2.3)" >&2; exit 3
@@ -208,7 +174,7 @@ if [[ "$CREATE_SPEC_MODE" == "true" ]]; then
     fi
   }
 
-  _codemap_hint_if_needed "$TARGET_DIR"
+  _codemap_hint_if_needed "$TARGET_DIR" "$DOCS_DIR"
   
   # Output SPEC CREATION PROMPT
   cat <<EOF
@@ -244,133 +210,5 @@ EOF
   exit 0
 fi
 
-TARGET_DIR="${1:-}"
-if [[ -z "$TARGET_DIR" ]]; then
-  echo "[ERROR] Usage: sdd resume <project-dir>" >&2
-  exit 3
-fi
-
-# Validate: must have mydocs/
-if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
-  echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2
-  exit 1
-fi
-
-DOCS_DIR="mydocs"
-
-# Find specs
-SPEC_COUNT=$(find "$TARGET_DIR/$DOCS_DIR/specs" -name "*.md" ! -name ".gitkeep" 2>/dev/null | wc -l | tr -d ' ')
-
-# Warn about legacy unversioned spec files
-while IFS= read -r -d '' _f; do
-  _bname="$(basename "$_f")"
-  if [[ ! "$_bname" =~ ^v[0-9]+\.[0-9]+-.+\.md$ ]]; then
-    echo "[WARN] Legacy unversioned spec found (ignored by resume): $_bname" >&2
-  fi
-done < <(find "$TARGET_DIR/$DOCS_DIR/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
-
-# Select highest-versioned spec of the most-recently-modified task
-declare -A _TASK_MTIME
-while IFS= read -r -d '' _f; do
-  _bname="$(basename "$_f")"
-  if [[ "$_bname" =~ ^v([0-9]+)\.([0-9]+)-(.+)\.md$ ]]; then
-    _tname="${BASH_REMATCH[3]}"
-    _mtime=$(stat -c '%Y' "$_f" 2>/dev/null || stat -f '%m' "$_f" 2>/dev/null || echo 0)
-    if [[ -z "${_TASK_MTIME[$_tname]+x}" ]] || (( _mtime > _TASK_MTIME[$_tname] )); then
-      _TASK_MTIME[$_tname]=$_mtime
-    fi
-  fi
-done < <(find "$TARGET_DIR/$DOCS_DIR/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
-
-_LATEST_TASK=""
-_LATEST_MTIME=0
-for _tname in "${!_TASK_MTIME[@]}"; do
-  if (( _TASK_MTIME[$_tname] > _LATEST_MTIME )); then
-    _LATEST_MTIME=${_TASK_MTIME[$_tname]}
-    _LATEST_TASK=$_tname
-  fi
-done
-
-LATEST_SPEC=""
-if [[ -n "$_LATEST_TASK" ]]; then
-  _best_major=0; _best_minor=-1
-  while IFS= read -r -d '' _f; do
-    _bname="$(basename "$_f")"
-    if [[ "$_bname" =~ ^v([0-9]+)\.([0-9]+)-${_LATEST_TASK}\.md$ ]]; then
-      _vmaj="${BASH_REMATCH[1]}"; _vmin="${BASH_REMATCH[2]}"
-      if (( _vmaj > _best_major )) || (( _vmaj == _best_major && _vmin > _best_minor )); then
-        _best_major=$_vmaj; _best_minor=$_vmin
-        LATEST_SPEC="$_f"
-      fi
-    fi
-  done < <(find "$TARGET_DIR/$DOCS_DIR/specs" -name "*.md" ! -name ".gitkeep" -print0 2>/dev/null)
-fi
-if [[ -z "$LATEST_SPEC" ]]; then
-  LATEST_SPEC=$(find "$TARGET_DIR/$DOCS_DIR/specs" -name "*.md" ! -name ".gitkeep" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
-fi
-
-# Read spec status from frontmatter
-SPEC_STATUS="none"
-PHASE_HINT="unknown"
-if [[ -n "$LATEST_SPEC" && -f "$LATEST_SPEC" ]]; then
-  SPEC_STATUS=$(grep "^status:" "$LATEST_SPEC" 2>/dev/null | head -1 | sed 's/status: *//; s/#.*$//' | tr -d '[:space:]' || echo "none")
-  
-  # Derive PHASE_HINT based on status and Plan Approved By
-  if grep -q -E "^[[:space:]]*Plan Approved By:" "$LATEST_SPEC" 2>/dev/null; then
-    if grep -q -E "^[[:space:]]*Plan Approved By:[[:space:]]*[^[:space:]].*" "$LATEST_SPEC" 2>/dev/null; then
-      # Has Plan Approved By with actual content
-      case "$SPEC_STATUS" in
-        approved) PHASE_HINT="review" ;;
-        done)     PHASE_HINT="archive" ;;
-        archived) PHASE_HINT="new_task" ;;
-        *)        PHASE_HINT="execute" ;;
-      esac
-    else
-      # Plan Approved By exists but is empty
-      PHASE_HINT="research_or_plan"
-    fi
-  else
-    # No Plan Approved By field
-    case "$SPEC_STATUS" in
-      approved) PHASE_HINT="review" ;;
-      done)     PHASE_HINT="archive" ;;
-      archived) PHASE_HINT="new_task" ;;
-      *)        PHASE_HINT="research_or_plan" ;;
-    esac
-  fi
-else
-  PHASE_HINT="new_task"
-fi
-
-HAS_CODEMAP="no"
-CODEMAP_MODULES=""
-if [[ -d "$TARGET_DIR/$DOCS_DIR/codemap" ]]; then
-  CODEMAP_FILES=$(find "$TARGET_DIR/$DOCS_DIR/codemap" -name "*.md" ! -name ".gitkeep" 2>/dev/null | sort)
-  if [[ -n "$CODEMAP_FILES" ]]; then
-    CODEMAP_COUNT=$(printf '%s\n' "$CODEMAP_FILES" | grep -c .)
-  else
-    CODEMAP_COUNT=0
-  fi
-  if [[ "$CODEMAP_COUNT" -gt 0 ]]; then
-    HAS_CODEMAP="yes"
-    CODEMAP_MODULES=$(printf '%s\n' "$CODEMAP_FILES" | while IFS= read -r f; do basename "$f" .md; done | paste -sd ',' -)
-  fi
-fi
-
-HAS_PROJECTMAP="no"
-if [[ -f "$TARGET_DIR/$DOCS_DIR/projectmap.md" ]]; then
-  HAS_PROJECTMAP="yes"
-fi
-
-echo "[SDD Resume] $TARGET_DIR"
-echo "DOCS_DIR: $DOCS_DIR"
-echo "ACTIVE_SPECS: $SPEC_COUNT"
-echo "LATEST_SPEC: ${LATEST_SPEC:-none}"
-echo "SPEC_STATUS: $SPEC_STATUS"
-echo "HAS_CODEMAP: $HAS_CODEMAP"
-if [[ "$HAS_CODEMAP" == "yes" ]]; then
-  echo "CODEMAP_MODULES: $CODEMAP_MODULES"
-fi
-echo "HAS_PROJECTMAP: $HAS_PROJECTMAP"
-echo "PHASE_HINT: $PHASE_HINT"
-exit 0
+echo "[ERROR] _workflow_core.sh only supports --create-spec mode. Use discover.sh or resume.sh." >&2
+exit 3

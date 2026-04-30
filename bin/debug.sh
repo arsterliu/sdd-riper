@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 print_usage() {
   cat <<'EOF'
@@ -27,6 +28,8 @@ if [[ -z "$TARGET_DIR" || "$TARGET_DIR" == --* ]]; then
   exit 3
 fi
 
+DOCS_ROOT="$(_sdd_get_docs_root "$TARGET_DIR")"
+
 shift
 
 LOG_FILE=""
@@ -49,12 +52,12 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! -d "$TARGET_DIR/mydocs/" ]]; then
+if [[ ! -d "$DOCS_ROOT/" ]]; then
   echo "[ERROR] Project not initialized." >&2
   exit 1
 fi
 
-LATEST_SPEC=$(find "$TARGET_DIR/mydocs/specs" -name "*.md" ! -name ".gitkeep" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+LATEST_SPEC="$(_sdd_find_latest_spec "$DOCS_ROOT/specs")"
 if [[ -d "$LATEST_SPEC" ]]; then LATEST_SPEC=""; fi
 
 # Log handling
@@ -72,7 +75,7 @@ if [[ -n "$LOG_FILE" ]]; then
     LOG_CONTENT="(日志文件未找到: $LOG_FILE)"
   fi
 else
-  AUTO_LOG=$(find "$TARGET_DIR/mydocs/evidence" -name "*.log" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
+  AUTO_LOG=$(find "$DOCS_ROOT/evidence" -name "*.log" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
   if [[ -d "$AUTO_LOG" ]]; then AUTO_LOG=""; fi
   if [[ -n "$AUTO_LOG" && -f "$AUTO_LOG" ]]; then
     TOTAL_LINES=$(wc -l < "$AUTO_LOG" | tr -d ' ')

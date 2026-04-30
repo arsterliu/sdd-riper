@@ -18,11 +18,13 @@
 1. **先看 `projectmap.md` 理解全局**
    - 重点关注 YAML frontmatter (`repos` 字段声明了参与方)。
    - 重点关注“核心接口契约 (Interface Contract)”，这是前后端并行开发的唯一真理（Source of Truth）。
-2. **再看各端的 Spec (`mydocs/specs/*.md`)**
+2. **再看各端的 Spec**
+   - 在本示例中，路径分别是 `examples/frontend-app/mydocs/specs/*.md` 和 `examples/backend-api/mydocs/specs/*.md`。
    - 观察前/后端是如何在 Spec 中复述各自的需求边界的。
    - 关注 §6 (Research Findings) 阶段，看两端是如何各自调研并确认接口格式和相关依赖库的。
    - 关注 §8 (Plan) 阶段，看两端如何列出原子级的执行步骤（包含具体的文件路径和方法调用）。
-3. **结合 CodeMap (`mydocs/codemap/*.md`)**
+3. **结合 CodeMap**
+   - 在本示例中，路径分别是 `examples/frontend-app/mydocs/codemap/*.md` 和 `examples/backend-api/mydocs/codemap/*.md`。
    - 观察 Mermaid 流程图如何清晰地展示业务逻辑和外部依赖。
    - 了解每个模块的关键入口点和数据流向。
 

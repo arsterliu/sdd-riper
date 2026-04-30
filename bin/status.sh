@@ -2,6 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$SCRIPT_DIR/_common.sh"
 
 PROJECT_DIR="${1:-}"
 if [[ -z "$PROJECT_DIR" ]]; then
@@ -10,14 +11,16 @@ if [[ -z "$PROJECT_DIR" ]]; then
 fi
 
 EXIT_CODE=0
+DOCS_DIR="$(_sdd_get_docs_dir "$PROJECT_DIR")"
+DOCS_ROOT="$PROJECT_DIR/$DOCS_DIR"
 
 echo "[SDD Status] $PROJECT_DIR"
 
 # --- Structure check ---
 MISSING_DIRS=()
 for d in specs codemap context archive evidence; do
-  if [[ ! -d "$PROJECT_DIR/mydocs/$d" ]]; then
-    MISSING_DIRS+=("mydocs/$d")
+  if [[ ! -d "$DOCS_ROOT/$d" ]]; then
+    MISSING_DIRS+=("$DOCS_DIR/$d")
   fi
 done
 if [[ ${#MISSING_DIRS[@]} -eq 0 ]]; then
@@ -43,6 +46,7 @@ fi
 
 # --- ProjectMap check ---
 PM_FILE="$PROJECT_DIR/mydocs/projectmap.md"
+PM_FILE="$DOCS_ROOT/projectmap.md"
 if [[ -f "$PM_FILE" ]]; then
   HAS_NAME=$(grep -c "^name:" "$PM_FILE" 2>/dev/null || true)
   HAS_REPOS=$(grep -c "^repos:" "$PM_FILE" 2>/dev/null || true)
@@ -58,6 +62,7 @@ fi
 
 # --- CodeMap governance check ---
 CODEMAP_DIR="$PROJECT_DIR/mydocs/codemap"
+CODEMAP_DIR="$DOCS_ROOT/codemap"
 if [[ ! -d "$CODEMAP_DIR" ]]; then
   echo "  CodeMap:      WARN (codemap/ directory missing)"
 elif ! find "$CODEMAP_DIR" -maxdepth 1 -name "*.md" ! -name ".gitkeep" 2>/dev/null | grep -q .; then
@@ -88,6 +93,7 @@ fi
 # --- Spec status summary ---
 TOTAL=0; DRAFT=0; APPROVED=0; DONE=0
 SPECS_DIR="$PROJECT_DIR/mydocs/specs"
+SPECS_DIR="$DOCS_ROOT/specs"
 
 WARN_RESEARCH=()
 WARN_INNOVATE=()
@@ -95,18 +101,24 @@ WARN_PLAN=()
 WARN_EXECUTE=()
 WARN_REVIEW=()
 
-check_section_empty() {
+# _section_is_empty <file> <section-pattern>
+# Returns 0 (true/success) if the named section exists but contains no non-comment content.
+# Returns 1 (false/failure) if the section has content or does not exist.
+# Usage: if _section_is_empty "$spec" "Review Summary"; then WARN+=...
+_section_is_empty() {
   local file="$1" section="$2"
   awk -v section="$section" '
     /^##/ { 
       if (in_section) { 
         if (had_content==0) exit 0; else exit 1 
       }
-      if ($0 ~ section) { in_section=1; had_content=0 }
+      if ($0 ~ section) { in_section=1; had_content=0; in_comment=0 }
       else { in_section=0 }
       next
     }
-    in_section && NF>0 && !/^<!--/ { 
+    in_section && /<!--/ { in_comment=1 }
+    in_section && /-->/ { in_comment=0; next }
+    in_section && !in_comment && NF>0 && !/^<!--/ { 
       had_content=1 
     }
     END { 
@@ -131,23 +143,23 @@ if [[ -d "$SPECS_DIR" ]]; then
     local_warn_research=0
     
     # Check Requirement Restatement
-    if grep -q "^## Requirement Restatement" "$spec" 2>/dev/null; then
-      if check_section_empty "$spec" "Requirement Restatement"; then
-        local_warn_research=1
-      fi
-    fi
-    # Check Open Questions
-    if grep -q "^## Open Questions" "$spec" 2>/dev/null; then
-      if check_section_empty "$spec" "Open Questions"; then
-        local_warn_research=1
-      fi
-    fi
-    # Check §6 Research Findings
-    if grep -q "^## §6 Research Findings" "$spec" 2>/dev/null; then
-      if check_section_empty "$spec" "§6 Research Findings"; then
-        local_warn_research=1
-      fi
-    fi
+     if grep -q "^## Requirement Restatement" "$spec" 2>/dev/null; then
+       if _section_is_empty "$spec" "Requirement Restatement"; then
+         local_warn_research=1
+       fi
+     fi
+     # Check Open Questions
+     if grep -q "^## Open Questions" "$spec" 2>/dev/null; then
+       if _section_is_empty "$spec" "Open Questions"; then
+         local_warn_research=1
+       fi
+     fi
+     # Check §6 Research Findings
+     if grep -q "^## §6 Research Findings" "$spec" 2>/dev/null; then
+       if _section_is_empty "$spec" "§6 Research Findings"; then
+         local_warn_research=1
+       fi
+     fi
     # Check [待确认]
     if grep -q "\[待确认\]" "$spec" 2>/dev/null; then
       local_warn_research=1
@@ -157,14 +169,14 @@ if [[ -d "$SPECS_DIR" ]]; then
       WARN_RESEARCH+=("$BNAME")
     fi
 
-    # Check Innovate Options
-    if grep -q "^## .*Innovate Options" "$spec" 2>/dev/null; then
-      if ! grep -q "Innovate: Skipped" "$spec" 2>/dev/null; then
-        if check_section_empty "$spec" "Innovate Options"; then
-          WARN_INNOVATE+=("$BNAME")
-        fi
-      fi
-    fi
+     # Check Innovate Options
+     if grep -q "^## .*Innovate Options" "$spec" 2>/dev/null; then
+       if ! grep -q "Innovate: Skipped" "$spec" 2>/dev/null; then
+         if _section_is_empty "$spec" "Innovate Options"; then
+           WARN_INNOVATE+=("$BNAME")
+         fi
+       fi
+     fi
 
     # Check Plan Approved By
     if grep -q "Plan Approved By:" "$spec" 2>/dev/null; then
@@ -173,19 +185,19 @@ if [[ -d "$SPECS_DIR" ]]; then
       fi
     fi
 
-    # Check Execute Log
-    if grep -q "^## .*Execute Log" "$spec" 2>/dev/null; then
-      if check_section_empty "$spec" "Execute Log"; then
-        WARN_EXECUTE+=("$BNAME")
-      fi
-    fi
+     # Check Execute Log
+     if grep -q "^## .*Execute Log" "$spec" 2>/dev/null; then
+       if _section_is_empty "$spec" "Execute Log"; then
+         WARN_EXECUTE+=("$BNAME")
+       fi
+     fi
 
-    # Check Review Verdict / Review Summary
-    if grep -qE "^## .*Review (Verdict|Summary)" "$spec" 2>/dev/null; then
-      if check_section_empty "$spec" "Review (Verdict|Summary)"; then
-        WARN_REVIEW+=("$BNAME")
-      fi
-    fi
+     # Check Review Verdict / Review Summary
+     if grep -qE "^## .*Review (Verdict|Summary)" "$spec" 2>/dev/null; then
+       if _section_is_empty "$spec" "Review (Verdict|Summary)"; then
+         WARN_REVIEW+=("$BNAME")
+       fi
+     fi
     
   done < <(find "$SPECS_DIR" -maxdepth 1 -name "*.md" -print0 2>/dev/null || true)
 fi
