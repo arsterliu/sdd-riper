@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 PROJECT_DIR=""
 SPEC_NAME=""
@@ -25,8 +26,9 @@ if [[ -z "$PROJECT_DIR" ]] || [[ -z "$SPEC_NAME" ]]; then
   exit 3
 fi
 
-SPECS_DIR="$PROJECT_DIR/mydocs/specs"
-ARCHIVE_DIR="$PROJECT_DIR/mydocs/archive"
+DOCS_ROOT="$(_sdd_get_docs_root "$PROJECT_DIR")"
+SPECS_DIR="$DOCS_ROOT/specs"
+ARCHIVE_DIR="$DOCS_ROOT/archive"
 
 if [[ ! -d "$SPECS_DIR" ]]; then
   echo "[ERROR] $SPECS_DIR not found. Run 'sdd init $PROJECT_DIR' first." >&2
@@ -37,37 +39,7 @@ mkdir -p "$ARCHIVE_DIR"
 # Normalize input slug (replace spaces with hyphens)
 SPEC_SLUG="${SPEC_NAME// /-}"
 
-# Find the highest-versioned spec matching the logical name.
-# Accepts either:
-#   - full versioned filename:   v1.1-user-login
-#   - logical name only:         user-login  (auto-selects highest version)
-_find_source_spec() {
-  local dir="$1" slug="$2"
-  local best_file="" best_major=0 best_minor=-1
-  local f bname vmaj vmin
-  while IFS= read -r -d '' f; do
-    bname="$(basename "$f")"
-    [[ "$bname" == ".gitkeep" ]] && continue
-    if [[ "$bname" =~ ^v([0-9]+)\.([0-9]+)-(.+)\.md$ ]]; then
-      local file_slug="${BASH_REMATCH[3]}"
-      vmaj="${BASH_REMATCH[1]}"
-      vmin="${BASH_REMATCH[2]}"
-      if [[ "$file_slug" == "$slug" ]]; then
-        if (( vmaj > best_major )) || (( vmaj == best_major && vmin > best_minor )); then
-          best_major=$vmaj
-          best_minor=$vmin
-          best_file="$f"
-        fi
-      fi
-    elif [[ "${bname%.md}" == "$slug" ]]; then
-      best_file="$f"
-      break
-    fi
-  done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  echo "$best_file"
-}
-
-SOURCE_SPEC="$(_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
+SOURCE_SPEC="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
 
 if [[ -z "$SOURCE_SPEC" ]]; then
   echo "[ERROR] No versioned spec matching '${SPEC_SLUG}' found in $SPECS_DIR" >&2
@@ -116,5 +88,7 @@ echo "<!-- Source Spec: $(basename "$SOURCE_SPEC") -->" >> "$LLM_FILE"
 
 echo "[CREATE] $HUMAN_FILE"
 echo "[CREATE] $LLM_FILE"
+sed -i.bak 's/^status:[[:space:]]*[^[:space:]#]*/status: archived/' "$SOURCE_SPEC" && rm -f "$SOURCE_SPEC.bak"
+echo "[UPDATE] status: archived -> $SOURCE_SPEC"
 echo "Original spec preserved: $SOURCE_SPEC"
 exit 0

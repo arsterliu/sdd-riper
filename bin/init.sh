@@ -3,18 +3,20 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 # Parse arguments
 TARGET_DIR=""
 MODE="standard"
 FORCE=""
 DOCS_DIR="mydocs"
+DOCS_DIR_EXPLICIT=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --mode) MODE="$2"; shift 2 ;;
     --force) FORCE="--force"; shift ;;
-    --docs-dir) DOCS_DIR="$2"; shift 2 ;;
+    --docs-dir) DOCS_DIR="$2"; DOCS_DIR_EXPLICIT=true; shift 2 ;;
     -*) echo "[ERROR] Unknown option: $1" >&2; exit 3 ;;
     *) TARGET_DIR="$1"; shift ;;
   esac
@@ -25,7 +27,11 @@ if [[ -z "$TARGET_DIR" ]]; then
   exit 3
 fi
 
-if [[ ! "$DOCS_DIR" =~ ^[A-Za-z0-9._-]+$ ]] || [[ "$DOCS_DIR" == "." ]] || [[ "$DOCS_DIR" == ".." ]]; then
+if [[ "$DOCS_DIR_EXPLICIT" == "false" ]] && [[ -f "$TARGET_DIR/.sdd-config" ]] && [[ -z "$FORCE" ]]; then
+  DOCS_DIR="$(_sdd_get_docs_dir "$TARGET_DIR")"
+fi
+
+if ! _sdd_is_valid_docs_dir_name "$DOCS_DIR"; then
   echo "[ERROR] --docs-dir must be a plain directory name" >&2
   exit 3
 fi
@@ -58,12 +64,34 @@ make_gitkeep() {
   fi
 }
 
-# 1. Create mydocs subdirectories
+write_project_config() {
+  local dst="$1" docs_dir="$2"
+  local content="DOCS_DIR=\"${docs_dir}\""
+  local existing_docs_dir=""
+
+  if [[ -f "$dst" ]] && [[ -z "$FORCE" ]]; then
+    existing_docs_dir="$(_sdd_get_docs_dir "$TARGET_DIR")"
+    if [[ "$existing_docs_dir" == "$docs_dir" ]]; then
+      echo "[SKIP] $dst already exists"
+      SKIPPED=$((SKIPPED + 1))
+      return
+    fi
+  fi
+
+  printf '%s\n' "$content" > "$dst"
+  echo "[CREATE] $dst"
+  CREATED=$((CREATED + 1))
+}
+
+# 1. Create docs subdirectories
 for subdir in specs codemap context archive evidence; do
   make_gitkeep "$TARGET_DIR/$DOCS_DIR/$subdir"
 done
 
-# 2. Generate AI configs
+# 2. Persist project config
+write_project_config "$TARGET_DIR/.sdd-config" "$DOCS_DIR"
+
+# 3. Generate AI configs
 AI_CONFIG_OUTPUT=$(bash "$SCRIPT_DIR/_gen_ai_configs.sh" "$TARGET_DIR" "$MODE" "$FORCE")
 printf '%s\n' "$AI_CONFIG_OUTPUT"
 AI_CREATED=$(printf '%s\n' "$AI_CONFIG_OUTPUT" | grep -c '^\[CREATE\]' || true)
