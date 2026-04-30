@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/_common.sh"
 
 print_usage() {
   cat <<'EOF'
@@ -38,7 +39,10 @@ if [[ -z "$TARGET_DIR" ]]; then
   echo "[ERROR] Usage: build-context-bundle.sh <project-dir>" >&2; exit 3
 fi
 
-if [[ ! -d "$TARGET_DIR/mydocs" ]]; then
+DOCS_DIR="$(_sdd_get_docs_dir "$TARGET_DIR")"
+DOCS_ROOT="$TARGET_DIR/$DOCS_DIR"
+
+if [[ ! -d "$DOCS_ROOT" ]]; then
   echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2; exit 1
 fi
 
@@ -47,30 +51,7 @@ if [[ -z "$BUNDLE_NAME" ]]; then
   BUNDLE_NAME="context-bundle"
 fi
 
-CONTEXT_DIR="$TARGET_DIR/mydocs/context"
-
-# Version helper (inline)
-_next_version_bundle() {
-  local dir="$1" name="$2"
-  local max_major=0 max_minor=-1
-  local f bname vmaj vmin
-  while IFS= read -r -d '' f; do
-    bname="$(basename "$f")"
-    if [[ "$bname" =~ ^v([0-9]+)\.([0-9]+)-.+\.md$ ]]; then
-      local stem="${bname%.md}"
-      local vprefix="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-      local after_prefix="${stem#${vprefix}-}"
-      if [[ "$after_prefix" == "$name" ]]; then
-        vmaj="${BASH_REMATCH[1]}"
-        vmin="${BASH_REMATCH[2]}"
-        if (( vmaj > max_major )) || (( vmaj == max_major && vmin > max_minor )); then
-          max_major=$vmaj; max_minor=$vmin
-        fi
-      fi
-    fi
-  done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  if (( max_minor == -1 )); then echo "v1.0"; else echo "v${max_major}.$((max_minor + 1))"; fi
-}
+CONTEXT_DIR="$DOCS_ROOT/context"
 
 if [[ -n "$VERSION_OVERRIDE" ]]; then
   if [[ ! "$VERSION_OVERRIDE" =~ ^v[0-9]+\.[0-9]+$ ]]; then
@@ -81,10 +62,10 @@ if [[ -n "$VERSION_OVERRIDE" ]]; then
   fi
   BUNDLE_VERSION="$VERSION_OVERRIDE"
 else
-  BUNDLE_VERSION="$(_next_version_bundle "$CONTEXT_DIR" "$BUNDLE_NAME")"
+  BUNDLE_VERSION="$(_sdd_next_version "$CONTEXT_DIR" "$BUNDLE_NAME")"
 fi
 
-DOCS_DIR="$TARGET_DIR/mydocs"
+DOCS_DIR_ROOT="$DOCS_ROOT"
 
 # Enumerate markdown files grouped by directory
 list_md_files() {
@@ -108,10 +89,10 @@ list_md_files() {
 }
 
 FILE_LISTING=$(
-  list_md_files "$DOCS_DIR/specs"   "specs"
-  list_md_files "$DOCS_DIR/codemap" "codemap"
-  list_md_files "$DOCS_DIR/context" "context"
-  list_md_files "$DOCS_DIR/archive" "archive"
+  list_md_files "$DOCS_DIR_ROOT/specs"   "specs"
+  list_md_files "$DOCS_DIR_ROOT/codemap" "codemap"
+  list_md_files "$DOCS_DIR_ROOT/context" "context"
+  list_md_files "$DOCS_DIR_ROOT/archive" "archive"
 )
 
 # Read template (first 20 lines)
@@ -121,7 +102,7 @@ if [[ -f "$TEMPLATE_PATH" ]]; then
   TEMPLATE_EXCERPT=$(head -20 "$TEMPLATE_PATH")
 fi
 
-OUTPUT_PATH="$TARGET_DIR/mydocs/context/${BUNDLE_VERSION}-${BUNDLE_NAME}.md"
+OUTPUT_PATH="$DOCS_ROOT/context/${BUNDLE_VERSION}-${BUNDLE_NAME}.md"
 
 cat <<EOF
 ## BUILD CONTEXT BUNDLE PROMPT
