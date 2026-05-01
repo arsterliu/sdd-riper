@@ -19,7 +19,7 @@ Commands:
   status            Check project status and readiness
   archive           Archive completed specifications
   reopen            Reopen an archived spec as a patch spec
-  review-execute    Three-axis quality review (Spec vs Code vs Log)
+  review-execute    Four-axis quality review (Spec vs Code vs Log vs Invocation)
   create-codemap    AI-driven codebase scan prompt generator
   build-context-bundle  AI context bundle extraction prompt
   debug             Debug prompt generator (log-driven root cause)
