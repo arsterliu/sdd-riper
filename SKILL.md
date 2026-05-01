@@ -165,7 +165,8 @@ B) 开始或继续 RIPER 工作流任务
    - **冷层**（默认不带）: 历史 Spec 全文、archive 文件、其他任务 Spec、context 目录内容
 6. **Phase Routing** — based on `PHASE_HINT`:
    - If `PHASE_HINT` is one of `execute`, `review`, `archive`:
-      Output to user (plain text, no tool call):
+      > Note: `resume` 已先完成状态映射。例如 `status: approved → review`、`status: done → archive`、`draft + Plan Approved By → execute`。这里处理的是映射后的 `PHASE_HINT`，不是原始 `status`。
+       Output to user (plain text, no tool call):
       > Context loaded: {spec name}, Phase hint: {PHASE_HINT}
       > 当前阶段已自动识别为 **{PHASE_HINT}**，直接进入该阶段。如需切换阶段，请告知。
 
@@ -414,7 +415,7 @@ When completing any phase or the full workflow, report status:
 - **旧版保留**：递增时旧文件不删除，历史可追溯
 - **resume**：自动读取最近修改任务的最高版本 Spec
 
-### review-execute（P0 三轴质量筛查）
+### review-execute（P0 四轴质量筛查）
 - **触发时机**：进入 Review 阶段时
 - **命令**：
   ```bash
@@ -422,9 +423,10 @@ When completing any phase or the full workflow, report status:
     --log "<PROJECT_ROOT>/<docs-root>/evidence/{spec-slug}/execute.log"
   ```
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+  支持可选参数：`--spec <path>`、`--log <path>`、`--diff-base <rev>`。
   其中 `{spec-slug}` = 当前 Spec 文件名去掉 `.md`（如 `v1.1-user-login`）。若不传 `--log`，脚本将自动推断路径；若 log 文件不存在，降级读取 Spec 内 Execute Log 区块。
-- **AI 行为**：读取命令输出的结构化 Prompt，执行三轴对照分析，填写 Spec §10 Review Report
-- **三轴**：轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 `evidence/{spec-slug}/execute.log`）
+- **AI 行为**：读取命令输出的结构化 Prompt，执行四轴对照分析，填写 Spec §10 Review Report
+- **四轴**：轴0=Invocation Integrity / 轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 `evidence/{spec-slug}/execute.log`）
 
 ### discover（P1b 首版 Spec 创建 / Pre-Research 入口）
 - **触发时机**：Setup Mode 中用户选择"创建首个 Spec"时
@@ -444,7 +446,7 @@ When completing any phase or the full workflow, report status:
 - **触发时机**：任务开始前，需要从历史文档中提炼上下文时
 - **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取 Prompt 中的 docs-root 文件清单，阅读相关文档，按 Context Bundle 模板提炼结构化上下文，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增）
+- **AI 行为**：读取 Prompt 中的 docs-root 文件清单，阅读相关文档，按 Context Bundle 模板提炼结构化上下文，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增；支持 `--version v{N}.{M}` 手动指定）
 
 ### debug（P3a 日志驱动 Bug 定位）
 - **触发时机**：Execute 阶段进入 `BUGFIX`，或 Review 阶段触发 `FAIL_CODE` 自动修复重试时；每次 retry 前都必须先运行 `debug` 定位根本原因
@@ -471,3 +473,15 @@ When completing any phase or the full workflow, report status:
 - **AI 行为**：命令成功后，读取新建 patch Spec 的 `reopened-from` 与 `context-source` 元数据，运行 `resume` 载入该 patch Spec，再在 §6 Research Findings 中记录归档上下文来源与缺陷来源。`reopen` 只用于 defect patch，不得借此扩大范围或引入新功能。
 - **失败处理**：若输出提示 `Open patch spec already exists`，不要重复 reopen，改为运行 `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"` 继续已有 patch Spec。
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+
+### new-codemap（P5 空白 CodeMap 模板）
+- **触发时机**：你只想先创建一个空白的版本化 CodeMap 文件，而不是让 AI 立即扫描代码库时
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" new-codemap "<PROJECT_ROOT>" "<module>" [--version v{N}.{M}] [--force]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：不扫描代码，不生成 Prompt；仅从模板创建空白文件，供后续人工或 AI 填写。
+
+### new-projectmap（P6 空白 ProjectMap 模板）
+- **触发时机**：你只想先创建一个空白的 ProjectMap 文件，而不是让 AI 立即生成完整全局地图时
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" new-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
+  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **AI 行为**：不扫描多仓，不生成 Prompt；仅从模板创建空白 `projectmap.md`。
