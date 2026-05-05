@@ -284,7 +284,7 @@ Plan 阶段不是“AI 列个 todo 就完了”。在 Skill 里，Plan 输出后
 | `reopen` | 基于已归档任务创建 patch Spec | `<project-dir>` `<task-slug>` `--defect <text>` |
 | `review-execute` | 生成 **四轴** Review Prompt | `--spec <path>` `--log <path>` `--diff-base <rev>` |
 | `create-codemap` | 生成 AI 扫描代码库并创建 / 更新 CodeMap 的 Prompt | `<project-dir>` `--module <name>` |
-| `build-context-bundle` | 生成提炼 Context Bundle 的 Prompt，并输出目标路径 | `<project-dir>` `--out <name>` `--version vN.M` |
+| `build-context-bundle` | 生成提炼 Context Bundle 的 Prompt，并输出目标路径 | `<project-dir>` `--sources <dir>` `--out <name>` `--version vN.M` |
 | `debug` | 生成基于错误信息和日志的 Root Cause 分析 Prompt | `<project-dir>` `--log <file>` `--error <msg>` |
 | `create-projectmap` | 生成 AI 填写 ProjectMap 的 Prompt | `<project-dir>` `--repos repo1,repo2` `--force` |
 | `new-codemap` | 从模板创建空白 CodeMap 文件 | `<project-dir>` `<module-name>` `--version vN.M` `--force` |
@@ -439,7 +439,14 @@ DOCS_DIR="mydocs"
 
 ### Context Bundle 什么时候需要？
 
-当你需要把当前 Spec、历史归档、CodeMap 等材料打包给 AI，避免它去啃一堆分散文件时，就该用 `build-context-bundle`。
+当你需要把当前任务相关材料整理成一个可以直接交给 AI 的上下文包时，就该用 `build-context-bundle`。
+
+它现在是一个两层模型：
+
+- **Source Materials**：通过 `--sources <dir>` 提供的外部原始材料目录。
+- **Project Background**：项目内部已有的 `specs/`、`codemap/`、`archive/` 等背景资料。
+
+也就是说，这个命令既能吸收任务外部输入，也会结合项目内已经沉淀的背景文档来生成 Context Bundle。
 
 ---
 

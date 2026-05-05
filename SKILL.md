@@ -443,10 +443,11 @@ When completing any phase or the full workflow, report status:
 - **治理规则**：若目标模块已有 CodeMap，优先进入 UPDATE 模式，对现有地图做增量更新；不要为同一模块重复创建多份 CodeMap。
 
 ### build-context-bundle（P2b AI 提炼上下文包）
-- **触发时机**：任务开始前，需要从历史文档中提炼上下文时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>]`
+- **触发时机**：任务开始前，用户手头有外部材料（如 UI 稿、PRD、会议记录）或需要从项目文档提炼上下文时；典型触发如“我有设计稿要放进去”“PRD 文档怎么带进 context”
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>] [--sources <dir>]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取 Prompt 中的 docs-root 文件清单，阅读相关文档，按 Context Bundle 模板提炼结构化上下文，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增；支持 `--version v{N}.{M}` 手动指定）
+- **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增；支持 `--version v{N}.{M}` 手动指定）
+- **跟进引导**：生成完成后，可询问用户是否要把该 Context Bundle 路径回填到当前 Spec 的 `context-source:` 字段；这是 skill 引导动作，不是 CLI 参数。
 
 ### debug（P3a 日志驱动 Bug 定位）
 - **触发时机**：Execute 阶段进入 `BUGFIX`，或 Review 阶段触发 `FAIL_CODE` 自动修复重试时；每次 retry 前都必须先运行 `debug` 定位根本原因

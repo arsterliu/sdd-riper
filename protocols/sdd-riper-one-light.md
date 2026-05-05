@@ -17,7 +17,10 @@ micro-spec 必须包含 5 个字段：**目标 / 范围 / 约束 / 风险 / Chec
 
 ### 最小输入定义
 - **requirement** = micro-spec（当前执行口径）。
-- **context** = 背景材料包（可选，但不替代 requirement）。
+- **context** = 背景材料（可选，但不替代 requirement），分为两层：
+  - **Source Materials** = 当前任务相关的外部原始材料。
+  - **Project Background** = 项目内已沉淀的背景知识（如 specs / codemap / archive）。
+- 两层 context 可按需通过 `build-context-bundle` 归一化为单个上下文包供任务加载。
 
 ## 分流规则
 - **Fast / Standard / Deep 三档分流规则**：简单任务走 Fast（当前 Lite 模式），复杂任务必须回退到 Deep/Standard 模式。

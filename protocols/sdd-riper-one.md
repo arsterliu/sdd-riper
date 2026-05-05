@@ -10,7 +10,10 @@
 
 ### 核心输入语义
 - **requirement** = 当前生效的任务定义（当前执行口径），是锚，不可被 context 替代。
-- **context** = 支撑 requirement 的背景材料包（旧 spec / 历史资料 / CodeMap / ProjectMap / PRD）。
+- **context** = 支撑 requirement 的背景材料，分为两层：
+  - **Source Materials** = 当前任务相关的外部原始材料。
+  - **Project Background** = 项目内已沉淀的背景知识（如 specs / codemap / archive）。
+- 两层 context 可按需通过 `build-context-bundle` 归一化为单个上下文包供任务加载。
 - **sdd_discover** 动作同时接收 requirement + context：requirement 定方向，context 补理解。
   - CLI 推荐入口：`sdd discover <dir> --task-name <name> ...`
   - *注意*：若 context 与 requirement 冲突，以 requirement 为准，并在 Research 中记录冲突。
