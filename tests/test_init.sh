@@ -29,7 +29,7 @@ bash "$SDD" init "$tmp" --mode standard && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "init standard exits 0"; else fail "init standard exited $exit_code"; fi
 
 missing=0
-for d in specs codemap context archive evidence; do
+for d in specs codemap context archive; do
   [ -d "$tmp/mydocs/$d" ] || missing=1
 done
 if [ "$missing" -eq 0 ]; then pass "all mydocs dirs exist"; else fail "some mydocs dirs missing"; fi

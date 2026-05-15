@@ -67,25 +67,22 @@ PHASE_HINT="unknown"
 if [[ -n "$LATEST_SPEC" && -f "$LATEST_SPEC" ]]; then
   SPEC_STATUS=$(grep "^status:" "$LATEST_SPEC" 2>/dev/null | head -1 | sed 's/status: *//; s/#.*$//' | tr -d '[:space:]' || echo "none")
 
-  if grep -q -E "^[[:space:]]*Plan Approved By:" "$LATEST_SPEC" 2>/dev/null; then
-    if grep -q -E "^[[:space:]]*Plan Approved By:[[:space:]]*[^[:space:]].*" "$LATEST_SPEC" 2>/dev/null; then
-      case "$SPEC_STATUS" in
-        approved) PHASE_HINT="review" ;;
-        done)     PHASE_HINT="archive" ;;
-        archived) PHASE_HINT="new_task" ;;
-        *)        PHASE_HINT="execute" ;;
-      esac
-    else
-      PHASE_HINT="research_or_plan"
-    fi
-  else
-    case "$SPEC_STATUS" in
-      approved) PHASE_HINT="review" ;;
-      done)     PHASE_HINT="archive" ;;
-      archived) PHASE_HINT="new_task" ;;
-      *)        PHASE_HINT="research_or_plan" ;;
-    esac
-  fi
+  case "$SPEC_STATUS" in
+    archived) PHASE_HINT="new_task" ;;
+    *)
+      # Content-driven routing within an active spec
+      if grep -q -E "^[[:space:]]*Plan Approved By:[[:space:]]*[^[:space:]].*" "$LATEST_SPEC" 2>/dev/null; then
+        # Plan signed — check if Review has content
+        if ! _sdd_section_is_empty "$LATEST_SPEC" "Review (Verdict|Summary)" 2>/dev/null; then
+          PHASE_HINT="archive"
+        else
+          PHASE_HINT="execute"
+        fi
+      else
+        PHASE_HINT="research_or_plan"
+      fi
+      ;;
+  esac
 else
   PHASE_HINT="new_task"
 fi
@@ -110,6 +107,15 @@ if [[ -f "$DOCS_ROOT/projectmap.md" ]]; then
   HAS_PROJECTMAP="yes"
 fi
 
+# Derive SECTIONS_HINT from PHASE_HINT
+case "$PHASE_HINT" in
+  new_task)     SECTIONS_HINT="(none — no active spec)" ;;
+  research_or_plan) SECTIONS_HINT="Summary,Invocation,Research,Innovate Options" ;;
+  execute)      SECTIONS_HINT="Summary,Plan,Execute Log" ;;
+  archive)      SECTIONS_HINT="Summary,Execute Log,Review Verdict,Review Summary" ;;
+  *)            SECTIONS_HINT="Summary,Invocation,Plan" ;;
+esac
+
 echo "[SDD Resume] $TARGET_DIR"
 echo "DOCS_DIR: $DOCS_DIR"
 echo "ACTIVE_SPECS: $SPEC_COUNT"
@@ -121,4 +127,5 @@ if [[ "$HAS_CODEMAP" == "yes" ]]; then
 fi
 echo "HAS_PROJECTMAP: $HAS_PROJECTMAP"
 echo "PHASE_HINT: $PHASE_HINT"
+echo "SECTIONS_HINT: $SECTIONS_HINT"
 exit 0

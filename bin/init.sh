@@ -23,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$TARGET_DIR" ]]; then
-  echo "[ERROR] Usage: init.sh <target-dir> [--mode standard|lite] [--force] [--docs-dir <name>]" >&2
+  echo "[ERROR] Usage: init.sh <target-dir> [--mode standard|lite|micro] [--force] [--docs-dir <name>]" >&2
   exit 3
 fi
 
@@ -64,9 +64,13 @@ make_gitkeep() {
   fi
 }
 
+SDD_PROTOCOL_VERSION="1.0"
+
 write_project_config() {
-  local dst="$1" docs_dir="$2"
-  local content="DOCS_DIR=\"${docs_dir}\""
+  local dst="$1" docs_dir="$2" mode="$3"
+  local content="DOCS_DIR=\"${docs_dir}\"
+MODE=\"${mode}\"
+SDD_VERSION=\"${SDD_PROTOCOL_VERSION}\""
   local existing_docs_dir=""
 
   if [[ -f "$dst" ]] && [[ -z "$FORCE" ]]; then
@@ -84,12 +88,12 @@ write_project_config() {
 }
 
 # 1. Create docs subdirectories
-for subdir in specs codemap context archive evidence; do
+for subdir in specs codemap context archive; do
   make_gitkeep "$TARGET_DIR/$DOCS_DIR/$subdir"
 done
 
 # 2. Persist project config
-write_project_config "$TARGET_DIR/.sdd-config" "$DOCS_DIR"
+write_project_config "$TARGET_DIR/.sdd-config" "$DOCS_DIR" "$MODE"
 
 # 3. Generate AI configs
 AI_CONFIG_OUTPUT=$(bash "$SCRIPT_DIR/_gen_ai_configs.sh" "$TARGET_DIR" "$MODE" "$FORCE")
@@ -100,34 +104,7 @@ CREATED=$((CREATED + AI_CREATED))
 SKIPPED=$((SKIPPED + AI_SKIPPED))
 
 # Check if target project already has substantial source code and suggest CodeMap
-_check_codemap_hint() {
-  local dir="$1"
-  local src_count
-  src_count=$(find "$dir" -maxdepth 6 \
-    \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \
-       -o -name "*.py" -o -name "*.go" -o -name "*.java" -o -name "*.cs" \
-       -o -name "*.rb" -o -name "*.php" -o -name "*.rs" -o -name "*.cpp" -o -name "*.c" \) \
-    -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" \
-    -not -path "*/dist/*" -not -path "*/build/*" -not -path "*/target/*" \
-    2>/dev/null | wc -l | tr -d ' ')
-
-  local has_marker=false
-  for marker in package.json go.mod pyproject.toml pom.xml Cargo.toml build.gradle; do
-    if [[ -f "$dir/$marker" ]]; then
-      has_marker=true
-      break
-    fi
-  done
-
-  if [[ "$src_count" -gt 20 ]] && [[ "$has_marker" == "true" ]]; then
-    echo ""
-    echo "[SDD-RIPER] 检测到目标项目已存在 ${src_count} 个源码文件，且包含项目标记文件。"
-    echo "  建议在第一次 discover 之前先建立 CodeMap，帮助 AI 快速理解模块结构："
-    echo "    ./sdd.sh create-codemap $dir [--module <name>]"
-  fi
-}
-
-_check_codemap_hint "$TARGET_DIR"
+_sdd_should_suggest_codemap "$TARGET_DIR" "$DOCS_DIR"
 echo "Use 'sdd discover <dir> --task-name <name> ...' to create your first spec."
 echo "SDD initialized in $TARGET_DIR. Created: $CREATED files, Skipped: $SKIPPED files."
 exit 0

@@ -29,23 +29,22 @@ bash "$SDD" discover "$tmp" --task-name "checkout-retry" --requirement "archive 
 bash "$SDD" archive "$tmp" "checkout-retry" && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "archive exits 0"; else fail "archive exited $exit_code"; fi
 
+# archive.sh moves the spec into archive/ — check there, not in specs/
+h_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*.md 2>/dev/null || true)
+if [ -n "$h_file" ] && [ -f "$h_file" ]; then pass "archive file exists"; else fail "archive file missing"; fi
+if grep -q '^status: archived' "$h_file"; then pass "archived spec status is archived"; else fail "source spec status not archived"; fi
+# original spec should no longer be in specs/
 spec_file=$(ls "$tmp/mydocs/specs/"*checkout-retry*.md 2>/dev/null || true)
-if [ -n "$spec_file" ] && [ -f "$spec_file" ]; then pass "original spec preserved"; else fail "original spec missing"; fi
-
-h_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*-human.md 2>/dev/null || true)
-l_file=$(ls "$tmp/mydocs/archive/"*checkout-retry*-llm.md 2>/dev/null || true)
-
-if [ -n "$h_file" ] && [ -f "$h_file" ]; then pass "human archive exists"; else fail "human archive missing"; fi
-if [ -n "$l_file" ] && [ -f "$l_file" ]; then pass "llm archive exists"; else fail "llm archive missing"; fi
-if grep -q '^status: archived' "$spec_file"; then pass "source spec status archived"; else fail "source spec status not archived"; fi
+if [ -z "$spec_file" ]; then pass "original spec moved out of specs/"; else fail "original spec missing"; fi
 
 # 2. conflict -> exit 1
 echo "Test: archive conflict"
 bash "$SDD" archive "$tmp" "checkout-retry" && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 1 ]; then pass "conflict exits 1"; else fail "conflict expected exit 1, got $exit_code"; fi
 
-# 3. --force overwrite
+# 3. --force overwrite: re-create a spec and archive again with --force
 echo "Test: archive force overwrite"
+bash "$SDD" discover "$tmp" --task-name "checkout-retry" --requirement "archive retry" >/dev/null
 bash "$SDD" archive "$tmp" "checkout-retry" --force && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "force exits 0"; else fail "force expected exit 0, got $exit_code"; fi
 

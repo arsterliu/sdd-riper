@@ -9,7 +9,7 @@ SDD-RIPER（Structured Driven Development - Research, Innovate, Plan, Execute, R
 - **质量不可控**：改动为什么发生、是否偏离计划、有没有留下证据，很难追。
 - **修复失焦**：遇到失败后，AI 很容易跳过根因分析直接乱试。
 
-SDD-RIPER 的做法是：把任务收敛成 **Spec**，把架构事实沉淀成 **CodeMap / ProjectMap**，把执行痕迹落到 **evidence / archive**，再通过 CLI 和 Skill 把这些门禁真正执行起来。
+SDD-RIPER 的做法是：把任务收敛成 **Spec**，把架构事实沉淀成 **CodeMap / ProjectMap**，把执行痕迹直接写入 Spec 的 Execute Log 区块，再通过 CLI 和 Skill 把这些门禁真正执行起来。
 
 ---
 
@@ -55,7 +55,7 @@ SDD-RIPER 的做法是：把任务收敛成 **Spec**，把架构事实沉淀成 
 另外还有两个重要目录：
 
 - **`<docs-root>/context/`**：存放 Context Bundle，给新任务或跨阶段切换提供结构化背景材料。
-- **`<docs-root>/archive/`**：存放归档后的 `-human.md` / `-llm.md`，一个给人看，一个给 AI 高密度恢复上下文。
+- **`<docs-root>/archive/`**：存放归档文件 `vN.M-<task>.md`，兼顾人类阅读与 AI 上下文恢复，内容从源 Spec 的关键区块自动提取。同目录下的 `index.md` 由 `archive` 命令自动维护，每行一条归档记录（file / date / task / verdict），AI 查历史上下文时先读 index，再按需打开具体文件。
 
 如果你是第一次用，记一句就够了：
 
@@ -119,14 +119,14 @@ Skill 会先判断项目是否已初始化：
 第一次上手的最短路径就是两步：
 
 ```bash
-./sdd.sh init <target-dir>
-./sdd.sh discover <target-dir> --task-name "my-task" --requirement "你的需求"
+./sdd.sh init my-project
+./sdd.sh discover my-project --task-name my-task --requirement "我要做什么"
 ```
 
 如果任务中断，再用：
 
 ```bash
-./sdd.sh resume <target-dir>
+./sdd.sh resume my-project
 ```
 
 ### 路径 C：Windows PowerShell
@@ -134,11 +134,89 @@ Skill 会先判断项目是否已初始化：
 如果你在 PowerShell 里工作，优先用：
 
 ```powershell
-.\sdd.ps1 init <target-dir>
-.\sdd.ps1 discover <target-dir> --task-name "my-task" --requirement "你的需求"
+.\sdd.ps1 init my-project
+.\sdd.ps1 discover my-project --task-name my-task --requirement "我要做什么"
 ```
 
 `sdd.ps1` 会优先从 Windows Registry 自动定位 Git Bash；找不到时再尝试 `Get-Command bash`。你不需要手动把路径转换成 MINGW 形式。
+
+---
+
+## 5.1 快速参考卡
+
+| 场景 | 命令 |
+| :--- | :--- |
+| **初始化项目** | `./sdd.sh init <dir>` |
+| **开始新任务** | `./sdd.sh discover <dir> --task-name xxx --requirement "..."` |
+| **继续已有任务** | `./sdd.sh resume <dir>` |
+| **检查项目健康度** | `./sdd.sh status <dir>` |
+| **归档已完成任务** | `./sdd.sh archive <dir> <spec-name>` |
+| **修复归档后的缺陷** | `./sdd.sh reopen <dir> <task-slug> --defect "..."` |
+
+**核心规则速记**：
+- `Plan 未批准` → 你需要先找人审批
+- `Plan 已批准，无 Review 结论` → 进入开发阶段
+- `任务完成，有 Review 结论` → 可以归档
+- `遇到 bug` → 先跑 `debug` 定位根因，再决定是否重试
+
+---
+
+## 5.2 看看效果：一个真实的 Spec 文件
+
+运行 `./sdd.sh discover` 后，会在 `mydocs/specs/` 下创建一个 Spec 文件，例如：
+
+```markdown
+---
+date: 2026-05-15
+task-name: user-login
+mode: standard
+status: draft
+---
+
+# User Login Spec
+
+## ## Invocation
+- **Requirement**: 用户可以通过邮箱和密码登录
+- **Goal**: 完成安全的登录流程
+- **Constraints**: 不引入新依赖
+
+## ## Summary
+当前阶段: Research
+目标: 实现邮箱+密码登录功能
+关键约束: 使用现有 AuthService，不引入新依赖
+最新进展: 刚创建 Spec，等待 AI 填写 Research Findings
+
+## ## Research
+### Findings
+（AI 在此填入调研结论：代码位置、调用链、依赖关系）
+
+### Open Questions
+（AI 在此列出需要确认的问题）
+
+### Assumptions
+（AI 在此记录暂未验证的假设）
+
+### Requirement Restatement
+（AI 用自己的话复述需求，确保理解一致）
+
+## ## Innovate Options
+（AI 在此列出 ≥2 个方案并对比）
+
+## ## Plan
+- [ ] Step 1: <文件路径> — <做什么> — <验收条件>
+> Plan Approved By: ___ / At: ___
+
+## ## Execute Log
+（每个执行步骤的记录在此追加）
+
+## ## Review Verdict
+（四轴审查结论在此填写）
+```
+
+**一个 Spec 解决什么问题**：
+- 所有参与者（人、AI）都以 Spec 为准，不用翻聊天记录
+- 执行过程全部留痕，出了问题是可追溯的
+- 人工审批必须明确，不能"AI 自己过了"
 
 ---
 
@@ -152,7 +230,7 @@ Skill 会先判断项目是否已初始化：
 
 这一步会做几件事：
 
-- 创建 docs 根目录（默认 `mydocs/`）及其子目录：`specs/`、`codemap/`、`context/`、`archive/`、`evidence/`
+- 创建 docs 根目录（默认 `mydocs/`）及其子目录：`specs/`、`codemap/`、`context/`、`archive/`
 - 写入 `.sdd-config`，保存 docs 目录名
 - 生成 AI 侧规则文件：
   - `AGENTS.md`
@@ -197,18 +275,20 @@ Skill 会先判断项目是否已初始化：
 - `CODEMAP_MODULES`（存在 CodeMap 时）
 - `HAS_PROJECTMAP`
 - `PHASE_HINT`
+- `SECTIONS_HINT`
 
-其中 `PHASE_HINT` 是最关键的，它会告诉 AI 当前更适合进入哪个阶段。当前实现的映射规则是：
+其中 `PHASE_HINT` 告诉 AI 当前更适合进入哪个阶段，`SECTIONS_HINT` 告诉 AI 本次需要读取的 Spec 区块列表，两者配合实现按需加载，避免全量读取 Spec。
 
-| Spec 状态 | 额外条件 | PHASE_HINT |
-| :--- | :--- | :--- |
-| `draft` | 没有有效的 `Plan Approved By:` 内容 | `research_or_plan` |
-| `draft` | 已有有效的 `Plan Approved By:` 内容 | `execute` |
-| `approved` | 无 | `review` |
-| `done` | 无 | `archive` |
-| 无活跃 Spec / 最新 Spec 已 `archived` | 无 | `new_task` |
+**阶段判断逻辑**（不需要记住，知道结果就行）：
 
-也就是说，`resume` 不是简单按文件是否存在来判断阶段，而是会结合 `status` 和 `Plan Approved By` 的内容来给出下一步建议。
+| 当前状态 | AI 会建议进入 |
+| :--- | :--- |
+| Spec 状态为 archived，或没有活跃 Spec | 新任务（创建新 Spec） |
+| Plan 已批准，且 Review 有结论 | 归档（任务完成） |
+| Plan 已批准，但 Review 还没有结论 | 开发（Execute） |
+| Plan 还没批准 | 研究或计划（Research / Plan） |
+
+也就是说，`resume` 不是简单判断文件状态，而是先看 Plan 是否已批准，再看 Review 是否已有结论，从而给出下一步建议。
 
 ---
 
@@ -255,10 +335,15 @@ Plan 阶段不是“AI 列个 todo 就完了”。在 Skill 里，Plan 输出后
 
 ### Archive / Reopen：闭环，而不是失忆重开
 
-- `archive` 会生成：
-  - `vN.M-<task>-human.md`
-  - `vN.M-<task>-llm.md`
-- 同时把来源 Spec 的 `status` 改成 `archived`
+Spec 的状态机是：
+
+```
+draft → archived
+```
+
+`Plan Approved By:` 字段填写内容是进入 Execute 的门禁信号，不需要单独的 `approved` 状态值。`resume` 根据 Plan Approved 字段内容和 Review 区块内容组合推导 `PHASE_HINT`。
+
+- `archive` 会从源 Spec 提取关键区块内容，生成单一归档文件 `vN.M-<task>.md`，兼顾人类阅读与 AI 上下文恢复，并把来源 Spec 的 `status` 改成 `archived`
 
 如果归档后发现缺陷，不应该重新 `discover` 一个新任务，而应该用：
 
@@ -268,27 +353,28 @@ Plan 阶段不是“AI 列个 todo 就完了”。在 Skill 里，Plan 输出后
 
 `reopen` 会读取 archive 里的上下文，创建新的 patch Spec，并写入 `reopened-from` 与 `context-source`。如果来源任务还没有归档，`reopen` 会直接失败，并提示你改用 `resume` 继续当前任务。
 
----
-
 ## 8. CLI 命令总览
 
 `sdd.sh` 当前调度 13 个子命令：
 
 | 命令 | 作用 | 关键参数 / 说明 |
 | :--- | :--- | :--- |
-| `init` | 初始化 docs 结构和 AI 配置文件 | `<project-dir>` `--mode standard\|lite` `--force` `--docs-dir <name>` |
-| `discover` | 创建新任务的首个 Spec | `<project-dir>` `--task-name` `--requirement` `--goal` `--constraints` `--context` `--version` |
+| `init` | 初始化 docs 结构和 AI 配置文件 | `<project-dir>` `--mode standard\|lite\|micro` `--force` `--docs-dir <name>` |
+| `discover` | 创建新任务的首个 Spec | `<project-dir>` `--task-name` `[--requirement] [--goal] [--constraints] [--context] [--version]` |
 | `resume` | 恢复当前任务上下文并输出 `PHASE_HINT` | `<project-dir>` |
 | `status` | 检查结构完整性和流程健康度 | `<project-dir>` |
-| `archive` | 归档已完成 Spec，生成 human / llm 两份归档 | `<project-dir>` `<spec-name>` `--force` |
+| `archive` | 归档已完成 Spec，提取内容生成单一归档文件 | `<project-dir>` `<spec-name>` `--force` |
 | `reopen` | 基于已归档任务创建 patch Spec | `<project-dir>` `<task-slug>` `--defect <text>` |
-| `review-execute` | 生成 **四轴** Review Prompt | `--spec <path>` `--log <path>` `--diff-base <rev>` |
+| `review-execute` | 生成 **四轴** Review Prompt | `--spec <path>` `--diff-base <rev>` |
 | `create-codemap` | 生成 AI 扫描代码库并创建 / 更新 CodeMap 的 Prompt | `<project-dir>` `--module <name>` |
 | `build-context-bundle` | 生成提炼 Context Bundle 的 Prompt，并输出目标路径 | `<project-dir>` `--sources <dir>` `--out <name>` `--version vN.M` |
 | `debug` | 生成基于错误信息和日志的 Root Cause 分析 Prompt | `<project-dir>` `--log <file>` `--error <msg>` |
 | `create-projectmap` | 生成 AI 填写 ProjectMap 的 Prompt | `<project-dir>` `--repos repo1,repo2` `--force` |
 | `new-codemap` | 从模板创建空白 CodeMap 文件 | `<project-dir>` `<module-name>` `--version vN.M` `--force` |
 | `new-projectmap` | 从模板创建空白 ProjectMap 文件 | `<project-dir>` `--repos repo1,repo2` `--force` |
+
+> **参数说明**：`[]` 内的为可选参数，必填参数不带方括号。
+> `discover` 只需要 `--task-name` 和 `--requirement`，其他参数可以后续补充。
 
 ### 退出码
 
@@ -324,7 +410,7 @@ CLI 的统一退出码语义是：
 1. **Axis 0 — Invocation Integrity**：需求 / 目标 / 约束是否仍然对齐
 2. **Axis 1 — Spec Plan Coverage**：Plan 步骤有没有落实
 3. **Axis 2 — Code Diff Scope**：真实代码改动是否越界
-4. **Axis 3 — Execute Log Fidelity**：执行日志和真实改动是否一致
+4. **Axis 3 — Execute Log Fidelity**：执行日志和真实改动是否一致（日志位于 Spec `## Execute Log` 区块）
 
 其中 Axis 2 是 primary，另外三轴是 confirmation safety net。
 
@@ -357,14 +443,28 @@ DOCS_DIR="mydocs"
 
 ---
 
-## 11. Standard 和 Lite 怎么选
+## 11. Standard、Lite 和 Micro 怎么选
 
-`init --mode` 支持两种模式：
+`init --mode` 支持三种模式，选择后会写入 `.sdd-config`，后续所有 `discover` / `reopen` 命令都自动使用对应模板：
 
-- **standard**：适合多文件功能开发、重构、核心逻辑变更
-- **lite**：适合小改动、轻量 bugfix、你已经非常熟悉这套协议
+- **standard**：适合新功能开发、重构、多模块变更。完整 RIPER 流程：Research（Pre-load + 四项输出 + Alignment Check）→ Innovate（≥2方案）→ Plan（Coverage Gate 全量）→ Execute → Review（四轴）→ Archive（四块摘要）。
+- **lite**：适合中小改动，熟悉代码库的团队。Innovate 可 Skipped；Coverage Gate 仅检查 Invocation；Alignment Check 可省略；Archive 摘要一句话即可。
+- **micro**：适合单文件 bugfix、配置调整、文案修改等极轻量任务。Research / Innovate 整体跳过，直接 Plan → Execute → Review（仅 Axis2 — Code Diff Scope）→ Archive（摘要可省）。
 
-两种模式都保留 RIPER 门禁，但 standard 的 Spec 区块更完整，适合需要更强治理的任务。
+三种模式所有核心门禁一致：**Human Gate（Plan 审批）、Execute Log、debug-before-retry** 均不可跳过。差异只在 Spec 模板结构和流程门禁密度。
+
+| 门禁 | standard | lite | micro |
+| :--- | :---: | :---: | :---: |
+| Research Pre-load | ✅ | ✅ | ❌ |
+| Findings → Restatement 顺序 | ✅ | ✅ | ❌ |
+| Alignment Check | ✅ | ⚠️ 可省 | ❌ |
+| Innovate ≥2 方案 | ✅ | ⚠️ 可 Skipped | ❌ |
+| Coverage Gate | ✅ 全量 | ⚠️ 仅 Invocation | ❌ |
+| Human Gate（Plan 审批） | ✅ | ✅ | ✅ |
+| Execute Log | ✅ | ✅ | ✅ |
+| Review 四轴 | ✅ | ⚠️ Axis1+2 | ⚠️ 仅 Axis2 |
+| debug-before-retry | ✅ | ✅ | ✅ |
+| Archive 摘要 | ✅ 四块 | ⚠️ 一句话 | ❌ 可省 |
 
 ---
 
@@ -408,17 +508,15 @@ DOCS_DIR="mydocs"
    ├─ specs/
    ├─ codemap/
    ├─ context/
-   ├─ archive/
-   └─ evidence/
+   └─ archive/
 ```
 
 每个目录的职责：
 
-- `specs/`：活跃任务 Spec
+- `specs/`：活跃任务 Spec（含 Execute Log 区块）
 - `codemap/`：模块地图
 - `context/`：上下文包
-- `archive/`：归档结果
-- `evidence/`：执行日志、验证证据
+- `archive/`：归档结果（Spec 移入 + summary 子节追加）
 
 ---
 
@@ -439,18 +537,32 @@ DOCS_DIR="mydocs"
 
 ### Context Bundle 什么时候需要？
 
-当你需要把当前任务相关材料整理成一个可以直接交给 AI 的上下文包时，就该用 `build-context-bundle`。
+当你在开始一个新任务前，手头有外部原始材料（如 UI 稿、PRD、会议记录）需要一起带入任务背景时，就该用 `build-context-bundle --sources <dir>`。
 
-它现在是一个两层模型：
+Skill 会在每次创建 Spec 前主动询问你是否有这类材料，选"有"后提供目录路径即可自动触发构建。
 
-- **Source Materials**：通过 `--sources <dir>` 提供的外部原始材料目录。
-- **Project Background**：项目内部已有的 `specs/`、`codemap/`、`archive/` 等背景资料。
-
-也就是说，这个命令既能吸收任务外部输入，也会结合项目内已经沉淀的背景文档来生成 Context Bundle。
+如果没有外部材料，直接跳过即可——AI 在 Research 阶段可以直接读取 `specs/`、`codemap/`、`archive/` 等目录，不需要先提炼成 bundle。
 
 ---
 
-## 15. 贡献
+## 15. 术语解释
+
+| 术语 | 说明 |
+| :--- | :--- |
+| **Spec** | 任务规格文档，包含需求、约束、研究结论、计划、执行日志、评审结论。所有参与者以 Spec 为准，不用翻聊天记录。 |
+| **CodeMap** | 模块级架构地图，用 Mermaid 展示入口点、调用链、外部依赖、风险项。新项目可以跳过，复杂模块建议创建。 |
+| **ProjectMap** | 多仓库协作的全局地图，定义边界、接口契约、职责分工。只有多仓库协作时才需要。 |
+| **Context Bundle** | 外部材料的提炼包（如 PRD、设计稿），把原始材料压缩成结构化背景，帮助 AI 快速理解任务上下文。 |
+| **Human Gate** | 人工审批门禁。Plan 阶段必须经过人工批准，AI 才能进入 Execute。这不是流程的阻碍，而是质量的保障。 |
+| **Phase / PHASE_HINT** | 当前所处的工作阶段（Research/Innovate/Plan/Execute/Review/Archive）。`resume` 命令会根据 Spec 内容推断当前阶段，给出下一步建议。 |
+| **Execute Log** | 执行日志，位于 Spec 的 `## Execute Log` 区块。每个步骤的执行结果都记录在此，可追溯、可审计。 |
+| **四轴 Review** | 四维度质量审查：轴0=需求对齐、轴1=计划覆盖、轴2=代码边界、轴3=日志一致性。轴2是主审查，轴0/1/3是安全网。 |
+| **RIPER** | Research → Innovate → Plan → Execute → Review 的首字母缩写，SDD-RIPER 的核心流程。 |
+| **归档 (Archive)** | 任务完成后，将 Spec 移入 `archive/` 目录并追加摘要，保留完整上下文供后续查阅或 reopen。 |
+
+---
+
+## 16. 贡献
 
 欢迎提 Issue 和 PR。提交前至少建议做两件事：
 

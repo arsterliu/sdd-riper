@@ -51,6 +51,9 @@ SDD-RIPER activated.
 Project: {PROJECT_ROOT}
 Status: {HAS_SDD=yes → "SDD structure found" | HAS_SDD=no → "Not yet initialized"}
 
+{if HAS_SDD=yes → "已检测到 SDD 结构。通常选 B 继续工作流；选 A 会重新初始化（覆盖现有 AI 配置文件，docs 目录保留）。"}
+{if HAS_SDD=no → "尚未初始化，建议先选 A 完成初始化，再选 B 开始任务。"}
+
 请选择：
 A) 初始化项目 SDD 结构（默认创建 mydocs/，也可通过 .sdd-config 指定 docs 目录，并生成 AI 配置文件）
 B) 开始或继续 RIPER 工作流任务
@@ -68,9 +71,10 @@ B) 开始或继续 RIPER 工作流任务
 > - **STOP and wait** for the user to respond in a new turn.
 > Violating this rule causes all subsequent human gates to be bypassed by `TODO_CONTINUATION`.
 
-1. Use `AskUserQuestion` to ask for target directory (default: current project root) and mode (standard or lite). Store the user-selected directory as `TARGET_DIR` for all subsequent commands in this flow.
+1. Use `AskUserQuestion` to ask for target directory (default: current project root) and mode (standard, lite, or micro). Store the user-selected directory as `TARGET_DIR` for all subsequent commands in this flow.
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory and mode before continuing.
-2. Run: `bash "$SDD_ROOT/sdd.sh" init "$TARGET_DIR" --mode <mode>` (DO NOT use Write/Edit tools directly to create project files).
+2. Run: `bash "<SDD_ROOT>/sdd.sh" init "<TARGET_DIR>" --mode <mode>` (DO NOT use Write/Edit tools directly to create project files).
+   > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
 3. Show created files.
 4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[SDD-RIPER]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
    - If init output does **not** contain `[SDD-RIPER]`, OR `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
@@ -81,24 +85,22 @@ B) 开始或继续 RIPER 工作流任务
       > A) 是，立即建立
       > B) 否，跳过
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's A/B response before running any command.
-    - If user selects A: run `bash "$SDD_ROOT/sdd.sh" create-codemap "$TARGET_DIR"` (append `--module <name>` if module name was provided). Show command output. If command fails, explain the error and continue to step 5.
+    - If user selects A: run `bash "<SDD_ROOT>/sdd.sh" create-codemap "<TARGET_DIR>"` (append `--module <name>` if module name was provided). Show command output. If command fails, explain the error and continue to step 5.
+      > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
     - If user selects B: continue to step 5.
 5. Use `AskUserQuestion`: "Create your first Spec now?"
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's yes/no response.
    - If yes:
       a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, and constraints (optional).
          > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items (task name, requirement, goal, constraints). If the user provides fewer than 4 items, re-ask for the missing ones — do NOT infer or skip.
-      b. **Context Bundle 引导**: Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check whether `<DOCS_ROOT>/context/` is missing or has **no** `.md` files (excluding `.gitkeep`).
-         - If `<DOCS_ROOT>/context/` is missing or has **no** `.md` files (excluding `.gitkeep`): use `AskUserQuestion`:
-           > 当前 docs 目录下的 `context/` 为空，尚无 Context Bundle。
-           > Context Bundle 可将当前 Spec、CodeMap 及关联文件打包，作为 discover 的 `--context` 背景材料，帮助 AI 更准确理解任务背景。
-           > 是否现在构建 Context Bundle？
-           > A) 是，立即构建
-           > B) 否，跳过
-           > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's A/B response before running any command.
-             - If A: run `bash "$SDD_ROOT/sdd.sh" build-context-bundle "$TARGET_DIR"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
-            - If B: proceed without `--context`.
-         - If `<DOCS_ROOT>/context/` **already has** `.md` files: use the most recently modified `.md` file path as `--context <path>` in the discover command below.
+      b. **Context Bundle 引导**: Use `AskUserQuestion`:
+           > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
+           > A) 有，请提供目录路径：___
+           > B) 没有，直接继续
+           > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's response before running any command.
+             - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<TARGET_DIR>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
+             > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
+             - If B: proceed without `--context`.
       c. Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version (v1.0 if none exist, otherwise v{N}.{M+1}). Output to user and END YOUR TURN:
 
 ---
@@ -107,8 +109,10 @@ B) 开始或继续 RIPER 工作流任务
 ---
 
          **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-         - If user provides a version (matches `v\d+\.\d+`): run `bash "$SDD_ROOT/sdd.sh" discover "$TARGET_DIR" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<path>"]`
-         - If user says "继续" or anything else: run `bash "$SDD_ROOT/sdd.sh" discover "$TARGET_DIR" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<path>"]`
+         - If user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<path>"]`
+           > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
+         - If user says "继续" or anything else: run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<path>"]`
+           > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
          Read the `## SPEC CREATION PROMPT` output and the created Spec file. Help the user fill in Research Findings and initial Open Questions.
 6. Explain: "Run /sdd-riper again to enter Workflow Mode for this task"
 
@@ -122,19 +126,25 @@ B) 开始或继续 RIPER 工作流任务
     - **Defect vs new task routing**：如果是归档后人工发现的缺陷修复，**不要**直接按新任务创建 Spec。唯一入口是 `bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>"`，由它创建 patch Spec 并关联归档上下文。
       > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
     - 只有在这是一个真正的新需求 / 新任务时，才继续下面的新任务创建流程。
-    - **Context Bundle 更新**：Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check whether `<DOCS_ROOT>/archive/` contains any `.md` files (excluding `.gitkeep`).
-      - If archive has files: run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
-         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-      - If archive is empty: check if `<DOCS_ROOT>/context/` has any `.md` files; if yes use the most recently modified one as `CONTEXT_PATH`; if no, proceed without context.
    - Use `AskUserQuestion`:
-     > 上一个任务已归档，Context Bundle 已更新。准备开始新任务。
-     > 请提供以下信息：
+     > 上一个任务已归档，准备开始新任务。
+     > 请提供以下信息（或选 C 退出）：
      > - task name（kebab-case，如 user-login）
      > - requirement：这次要做什么
      > - goal：最终要达到什么结果
      > - constraints：约束；没有就写 none
-     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items. If fewer than 4 provided, re-ask for missing ones — do NOT infer or skip.
-    - Once all 4 items received: determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version. Output to user and END YOUR TURN:
+     >
+     > C) 暂时不需要，结束本次会话
+     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items or select C. If user selects C: end the session. If fewer than 4 items provided, re-ask for missing ones — do NOT infer or skip.
+   - Once all 4 items received: **Context Bundle 引导**: Use `AskUserQuestion`:
+     > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
+     > A) 有，请提供目录路径：___
+     > B) 没有，直接继续
+     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's response before running any command.
+       - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
+         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+       - If B: proceed without `--context`.
+    - Once context decision is made: determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version. Output to user and END YOUR TURN:
 
 ---
 即将创建 Spec：**v{N.M}-{task-name}.md**
@@ -147,25 +157,30 @@ B) 开始或继续 RIPER 工作流任务
       - If user says "继续" or anything else: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<CONTEXT_PATH>"]`
         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
      Read the created Spec and help fill Research Findings.
-   - If user says they don't want a new task: end the session.
-4. Otherwise (active spec found): Read the spec file content using the Read tool.
-5. Also read CodeMap if HAS_CODEMAP=yes, ProjectMap if HAS_PROJECTMAP=yes.
+5. Otherwise (active spec found): **按需读取 Spec，不要全量加载**。
+   - 先只读 `## Summary` 区块（热区，3-5行）确认当前阶段与目标。
+   - 再按 `SECTIONS_HINT` 列表读取对应区块（`resume` 输出中的 `SECTIONS_HINT` 字段）。
+   - 仅在确实需要完整内容时才读完整 Spec（如 Review 阶段）。
+   - 若 Spec 尚无 `## Summary` 区块（旧 Spec），则完整读取一次，并在本轮结束后补写 Summary。
+   - **Micro 模式**：读取 `mode:` frontmatter 字段确认为 `micro` 后，跳过 Research / Innovate 阶段指令，直接路由到 Plan → Execute → Review（仅 Axis2）。
+6. Also read CodeMap if HAS_CODEMAP=yes, ProjectMap if HAS_PROJECTMAP=yes.
    **CodeMap 复用规则**:
    - 若 HAS_CODEMAP=yes：优先读取现有 CodeMap，并判断其是否仍能正确描述当前模块；不要默认重建。
    - 若当前任务复杂且 HAS_CODEMAP=no：在进入深入 Research / Plan 前，建议调用 `create-codemap` 为相关模块补建 CodeMap。
    - 若已有 CodeMap 但发现入口点、核心调用链、外部依赖或风险描述已失真：在任务收尾时更新现有 CodeMap，而不是新建另一份同模块地图。
    **上下文分层加载规则**（热/温/冷三层）:
-   - **热层**（每轮必带）: 当前阶段活跃 Spec 区块 + Plan（若已 Approved）
-   - **温层**（切阶段时按需）: 每个阶段进入时参照以下预热清单自动加载
-     - Research: CodeMap（若存在）
-     - Plan: CodeMap + Innovate Options
-     - Execute: Plan 全文 + CodeMap
-     - Review: Plan 全文 + Execute Log
-     - Archive: Review Summary
-   - **冷层**（默认不带）: 历史 Spec 全文、archive 文件、其他任务 Spec、context 目录内容
-6. **Phase Routing** — based on `PHASE_HINT`:
-   - If `PHASE_HINT` is one of `execute`, `review`, `archive`:
-      > Note: `resume` 已先完成状态映射。例如 `status: approved → review`、`status: done → archive`、`draft + Plan Approved By → execute`。这里处理的是映射后的 `PHASE_HINT`，不是原始 `status`。
+   - **热层**（每轮必带）: `## Summary` 区块（如存在）+ `SECTIONS_HINT` 指定区块
+   - **温层**（切阶段时按需，对应 `SECTIONS_HINT` 的完整定义）:
+     - Research: `Invocation` + `Research` + CodeMap（若存在）+ context bundle（若 `context-source:` 非空）
+     - Plan: `Invocation` + `Research` + `Innovate Options` + CodeMap
+     - Execute: `Plan` + `Execute Log` + CodeMap
+     - Review: `Plan` + `Execute Log` + `Review Verdict/Summary`
+     - Archive: `Execute Log` + `Review Verdict/Summary`
+   - **冷层**（默认不带）: 历史 Spec 全文、archive 具体文件、其他任务 Spec、context 目录内容（例外：`context-source:` 指向的 bundle 在 Research Pre-load 阶段按需加载）
+   - **archive/index.md 例外**：需查历史上下文时，先只读 `archive/index.md`（单行索引），按需再打开具体归档文件；不要直接列目录遍历所有归档文件。
+7. **Phase Routing** — based on `PHASE_HINT`:
+   - If `PHASE_HINT` is one of `execute`, `archive`:
+      > Note: `resume` 已先完成内容驱动的状态映射。例如：`status: archived → new_task`；Plan Approved + Review 有内容 → `archive`；Plan Approved + Review 空 → `execute`；未填写 Plan Approved By → `research_or_plan`。这里处理的是映射后的 `PHASE_HINT`，不是原始 `status`。
        Output to user (plain text, no tool call):
       > Context loaded: {spec name}, Phase hint: {PHASE_HINT}
       > 当前阶段已自动识别为 **{PHASE_HINT}**，直接进入该阶段。如需切换阶段，请告知。
@@ -193,35 +208,55 @@ B) 开始或继续 RIPER 工作流任务
      > F) Archive — finalize and archive
 
      Then jump to the chosen phase's instruction section.
-7. Jump to the chosen phase's instruction section below.
+8. Jump to the chosen phase's instruction section below.
+   > **Micro 模式快捷路由**：若 Spec `mode: micro`，无论 PHASE_HINT 如何，始终跳过 Research / Innovate，直接进入 Plan（未审批）或 Execute（已审批）或 Review / Archive。
 
 ## Research Phase Instructions
 - **Goal**: Clarify requirements, surface unknowns, align on Spec
-- **Mandatory output format (4 sections)**:
-  1. **Requirement Restatement** — restate in your own words
-  2. **Open Questions** — unknowns that block progress
-  3. **Confirmed Facts** — what you know for certain
-  4. **Spec Writeback** — what to add back to the Spec
-- **CodeMap 检查**：若任务涉及陌生或复杂模块，先检查是否已有对应 CodeMap。已有则优先复用；没有且结构复杂，再调用 `create-codemap`。Research 结束时要明确记录“本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
-- **Next steps**: Offer to update Spec §6 Research Findings.
-- **§5 Invocation Alignment Check** (output at the end of EVERY Research round, not just phase end):
+- **Pre-load（Research 开始前必须完成，输出 Requirement Restatement 之前）**:
+  1. 读 Spec frontmatter 的 `context-source:` 字段
+     - 非空：用 Read tool 加载该 bundle 文件，将其内容作为 Research 的背景底料
+     - 空：跳过
+  2. 检查 `HAS_CODEMAP`（来自 `resume` 输出）
+     - `yes`：读取对应 CodeMap，判断是否仍能正确描述当前模块
+     - `no` + 任务涉及陌生或复杂模块：先运行 `create-codemap`，再继续
+  > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Requirement Restatement）。
+- **Mandatory output format (4 sections — 按认知层次顺序输出)**:
+  1. **Findings** — 先采集原始事实：代码位置、调用链、依赖关系、已确认的行为 → write back to `### Findings`
+  2. **Open Questions** — 从 Findings 中识别出的未知，阻碍进一步判断的疑点 → write back to `### Open Questions`
+  3. **Assumptions** — Open Questions 暂无答案时的前提填充，需明确标注"待验证" → write back to `### Assumptions`
+  4. **Requirement Restatement** — 基于以上三项的综合判断，用自己的话复述需求 → write back to `### Requirement Restatement`
+
+  > 顺序强制：不得在 Findings 输出前写 Requirement Restatement；不得在 Open Questions 输出前写 Assumptions。
+  > **Restatement 冻结规则**：第一轮写入的 `### Requirement Restatement` 视为基准版本，后续轮次**不得覆写**。若有修订，追加为 `### Requirement Restatement (Revised — Round N)`，并注明修订原因。Invocation Alignment Check 永远与**最早一版**对比。
+  > Lite mode has no `## Research` section. Write the four items as named bold paragraphs directly under `## Invocation` for Requirement Restatement / Assumptions / Findings, and under `## Open Questions` for Open Questions. Example: `**Findings**: …` and `**Open Questions**: …` and `**Assumptions**: …` appended first; then `**Requirement Restatement**: …` written last, appended to `## Invocation`.
+  > “Spec Writeback” is not a separate heading — it means actually editing the Spec file with the above content after each Research round.
+- **CodeMap 检查**：若任务涉及陌生或复杂模块，先检查是否已有对应 CodeMap。已有则优先复用；没有且结构复杂，再调用 `create-codemap`。Research 结束时要明确记录”本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
+- **Next steps**: Offer to update the `## Research` section (Spec Findings).
+- **Invocation Alignment Check** (从第二轮 Research 开始，每轮结束时输出；第一轮不输出，因为 Requirement Restatement 是本轮产物):
   ```
-  ### §5 Invocation Alignment Check
-  - **Original invocation intent** (from opening message): [1-2 sentence restatement]
+  ### Invocation Alignment Check
+  - **Requirement Restatement 基准（来自 Spec `### Requirement Restatement` 最早一版）**: [复述首轮写入的版本，不引用 Revised 版本]
   - **Current research direction**: [1-2 sentence summary of what was just researched]
   - **Verdict**: ALIGNED | DRIFTED
   - **If DRIFTED**: [describe the gap; research may continue but deviation is logged]
   ```
   Drift does NOT block Research. Log it and continue. No extra human confirmation required.
-- **Completion gate**: All Open Questions resolved or explicitly deferred. DO NOT auto-advance.
+- **Completion gate**: 满足以下全部条件才可标记 Research 完成，否则继续迭代。DO NOT auto-advance.
+  1. All Open Questions resolved or explicitly deferred（每条须有结论或明确注明"deferred: 原因"）
+  2. Findings 必须覆盖与 Requirement Restatement 直接相关的代码位置 / 调用链 / 依赖关系；若 Findings 仅有泛化描述（如"代码在 src/ 下"）或为空，不得标记完成
 
 ## Innovate Phase Instructions
 - **Goal**: Generate and compare solution options
+- **Pre-load（Innovate 开始前，若未经由 Research 直接进入本阶段）**:
+  1. 读 Spec frontmatter 的 `context-source:` 字段 — 非空则 Read bundle 文件
+  2. 检查 `HAS_CODEMAP` — `yes` 则读取对应 CodeMap
+  > 若本轮已完成 Research Pre-load，跳过此步骤。
 - **Rules**:
   - Complex tasks: ≥2 options, each with Pros / Cons / Risk / Recommendation
   - Simple tasks: allowed `Innovate: Skipped, Reason: <why>`
 - **Next steps**: Ask developer which option they choose.
-- Update Spec §7 Innovate Options with the chosen approach. DO NOT auto-advance.
+- Update the `## Innovate Options` section in Spec with the chosen approach. DO NOT auto-advance.
 
 ## Plan Phase Instructions — HUMAN GATE ⚠️
 - **Goal**: Atomic execution plan
@@ -233,7 +268,11 @@ B) 开始或继续 RIPER 工作流任务
   - [ ] Step 2: ...
   ```
 - **Spec Coverage Gate** (run before requesting Plan Approved):
-  Output a Coverage Matrix table. List every bullet from §2 Requirement Restatement and §3 Constraints in the Spec. Mark each as:
+  > **Micro 模式**：跳过 Coverage Gate，由人工在 Plan Review Gate 中目测覆盖情况。
+  Output a Coverage Matrix table. List every requirement and constraint bullet from:
+  - `## Invocation` section (standard: `### Requirement` + `### Constraints`; lite: combined `## Invocation` content)
+  - `### Assumptions` section（Research 阶段补录的约束与前提，同样纳入检查）
+  Mark each as:
   - `✅` Covered by the plan
   - `❌` Not covered (BLOCKS plan approval — must be addressed before requesting Plan Approved)
   - `⚠️` Partially covered (note what's missing)
@@ -247,7 +286,7 @@ B) 开始或继续 RIPER 工作流任务
   > A) **Plan Approved** — I have reviewed it. Begin Execute.
   > B) **Revise Plan** — [I will describe what needs to change]
   > C) **Abort** — Stop here
-- ONLY proceed if user selects A. Write `Plan Approved By: <user>` + `Approved At: <timestamp>` to Spec §8. DO NOT auto-advance.
+- ONLY proceed if user selects A. Write `Plan Approved By: <user>` + `Approved At: <timestamp>` to the `## Plan` section in Spec. DO NOT auto-advance.
 
 ## Execute Phase Instructions
 - **Goal**: Strict plan implementation
@@ -275,7 +314,7 @@ B) 开始或继续 RIPER 工作流任务
   - Rubric: If in doubt, escalate to DEVIATED_MAJOR
   - NEVER silently deviate from Plan
   - Do not update CodeMap in the middle of unstable implementation; first make the code stable, then decide whether CodeMap needs reverse sync
-- **After each step**: brief log entry AND append to `<docs-root>/evidence/{spec-slug}/execute.log` (append-only; docs root defaults to `mydocs/`, or the directory configured in `.sdd-config`):
+- **After each step**: brief log entry AND append to `## Execute Log` in the active Spec file (append-only):
   ```
   ---
   Step N: {步骤描述}
@@ -285,16 +324,17 @@ B) 开始或继续 RIPER 工作流任务
   Timestamp: {ISO 8601, e.g. 2026-04-20T10:30:00Z}
   ---
   ```
-  Where `{spec-slug}` = current Spec filename without `.md` (e.g. `v1.1-user-login`). Create the directory if it doesn't exist.
+  Where `{spec-slug}` = current Spec filename without `.md` (e.g. `v1.1-user-login`). Used for log entry headers only — records go into the Spec, not a separate file.
 - **When complete**: summarize Change Summary + Deviations from Plan. DO NOT auto-advance.
 
 ## Review Phase Instructions
 - **Goal**: Verify implementation against Spec. Review is a **judge, not a programmer** — it reads and verdicts. It does NOT fix code in-place.
+- **Micro 模式**：仅运行 Axis2（Code Diff Scope）。输出简版 Review：改动是否在 Plan 声明边界内，verdict 为 `PASS` / `PASS_WITH_CONCERNS` / `FAIL_CODE`。Axis0 / Axis1 / Axis3 跳过。Archive 摘要可省略，直接归档。
 - **Write permissions during Review**:
-  - ✅ MAY write: §10 Review Verdict in Spec (verdict + timestamp + pass number, append-only)
+  - ✅ MAY write: `## Review Verdict` (standard) or `## Review Summary` (lite) in Spec (verdict + timestamp + pass number, append-only)
   - ✅ MAY write: CodeMap — ONLY if this task changed entry points, core call chain, external dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
   - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
-- **Trigger**: Run `bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>" --log "<PROJECT_ROOT>/<docs-root>/evidence/{spec-slug}/execute.log"`
+- **Trigger**: Run `bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>"`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **Mandatory 4-axis output format**:
   ```markdown
@@ -335,8 +375,8 @@ B) 开始或继续 RIPER 工作流任务
   ```
 - **CodeMap reverse-sync check**: Before issuing verdict, explicitly answer: did this task change entry points, core call chain, external dependencies, or module risks? If yes → update the corresponding CodeMap first, then note the sync in the report.
 - **Forbidden**: vague summaries ("looks good"), auto-fixing code, auto-advancing to Archive
-- **Pass numbering**: Each Review run increments N. Append to §10 as `Review Pass N — <ISO-8601 timestamp> — <VERDICT>`. Do NOT overwrite previous passes.
-- **After verdict**: Offer to update §10 Review Verdict with the full report. DO NOT auto-advance to Archive.
+- **Pass numbering**: Each Review run increments N. Append to `## Review Verdict` (standard) / `## Review Summary` (lite) as `Review Pass N — <ISO-8601 timestamp> — <VERDICT>`. Do NOT overwrite previous passes.
+- **After verdict**: Offer to update `## Review Verdict` / `## Review Summary` with the full report. DO NOT auto-advance to Archive.
 
 #### Axis Roles
 - **Axis 2 — Code Diff Scope** `[PRIMARY]`: This is Review's PRIMARY responsibility — the full diff audit that can ONLY be done here. Treat any Axis 2 finding with the highest weight.
@@ -365,23 +405,22 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
 
 
 ## Archive Phase Instructions
-1. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — creates skeleton files from templates. Note the `Original spec preserved:` path in output.
+1. **缺陷兜底出口**：若收到缺陷反馈（用户描述问题、报错或不符合预期的行为），**暂停归档**，重新进入 Execute → Review 循环修复后再回到 Archive。不要在 Archive 阶段就地修代码。
+2. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — marks source Spec as `status: archived`, appends summary scaffolding, then moves the file to `archive/`. Note the `[ARCHIVE]` and `[INDEX]` paths in output.
    > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-2. **Read** the source Spec file (the path printed as `Original spec preserved: ...`).
-3. **Fill `_human.md`** — use Edit/Write tool to replace every `<!-- ... -->` placeholder with real content extracted from the Spec:
-   - `## 目标摘要`: 1-sentence summary from Spec `goal` frontmatter or Requirement Restatement section.
-   - `## 最终方案`: which Innovate option was chosen and why (from Innovate Options section).
-   - `## 关键决策`: key technical/product decisions and rationale (from Plan / key decision points).
-   - `## 执行摘要`: what was actually done — condensed summary, not a step-by-step log (from Execute Log).
-   - `## Review 结论`: final verdict and any residual risks (from Review Summary / Verdict section).
-4. **Fill `_llm.md`** — use Edit/Write tool to replace every `<!-- ... -->` placeholder:
-   - `## 项目背景（高密度）`: key constraints, boundaries, known limitations (from Spec constraints + Assumptions).
-   - `## 核心数据结构`: critical interfaces, data formats, field conventions mentioned in Plan or Execute Log.
-   - `## 调用链路摘要`: compressed description of the key execution path (from Plan steps + Execute Log).
-   - `## 坑点与风险`: resolved Open Questions, issues hit during Execute, non-obvious gotchas.
-   - `## 约束清单`: what must NOT be changed — from Spec constraints field + Plan "Must NOT" items.
-5. **Verify**: confirm neither file contains any remaining `<!-- ... -->` placeholder comments. Show both files.
-6. **Write back source spec status**: after both archive files are created and verified, update the source Spec frontmatter to `status: archived`. This state writeback happens last so half-finished archive artifacts never masquerade as a fully archived task.
+   > **Micro 模式**：`archive` 命令执行后跳过摘要填充（步骤4-5），直接执行步骤6（Verify）和步骤7（Confirm status）。
+3. **Read** the archive file (the path printed as `[ARCHIVE] ...`).
+4. **Review and enrich** — the archive file is the original Spec with summary sections appended at the bottom. Use Edit tool to:
+   - Replace any remaining `<!-- (未填充) -->` placeholders with real content
+   - Enrich summaries where auto-scaffolded content is sparse:
+     - `## 目标摘要`: confirm it reflects the actual goal achieved
+     - `## 最终方案`: confirm the chosen Innovate option and rationale are captured
+     - `## 关键约束`: verify constraints and assumptions are accurate
+     - `## 坑点与风险`: add any resolved Open Questions and gotchas
+   - The existing `## Execute Log`, `## Review Verdict` / `## Review Summary` sections are already in the file from the original Spec — verify they are complete.
+5. **Update `archive/index.md` verdict** — the `archive` command wrote a placeholder verdict row. If the actual Review verdict is now known (e.g. `PASS` / `FAIL` / one-line summary), update that row in `archive/index.md` to reflect it.
+6. **Verify**: confirm the archive file contains no remaining `<!-- (未填充) -->` comments. Show the file.
+7. **Confirm status**: the archive command already set `status: archived` — verify it in the file frontmatter.
 
 ## Completion Status Protocol
 When completing any phase or the full workflow, report status:
@@ -389,6 +428,17 @@ When completing any phase or the full workflow, report status:
 - **DONE_WITH_CONCERNS** — Completed with issues to note. List each.
 - **BLOCKED** — Cannot proceed. State what blocks and what was tried.
 - **NEEDS_CONTEXT** — Missing info needed. State exactly what.
+
+**每次阶段切换时更新 `## Summary` 区块**（热区维护规则）：
+- 在完成当前阶段、准备进入下一阶段之前，用 Edit tool 更新 Spec 的 `## Summary` 区块。
+- Summary 格式（3-5行，不超过100字）：
+  ```
+  当前阶段: <Research|Innovate|Plan|Execute|Review|Archive>
+  目标: <一句话描述本任务要实现什么>
+  关键约束: <最重要的1-2条约束>
+  最新进展: <本阶段结论或当前卡点>
+  ```
+- 这确保下次 resume 时 AI 能只读 Summary 快速定位，无需重新加载整个 Spec。
 
 ## AI 驱动命令
 
@@ -403,8 +453,7 @@ When completing any phase or the full workflow, report status:
 | Spec | `<docs-root>/specs/` | `v1.0-user-login.md`, `v1.1-user-login.md` |
 | CodeMap | `<docs-root>/codemap/` | `v1.0-auth.md`, `v1.1-auth.md` |
 | Context Bundle | `<docs-root>/context/` | `v1.0-context-bundle.md` |
-| Archive | `<docs-root>/archive/` | `v1.1-user-login-human.md`, `v1.1-user-login-llm.md` |
-| Evidence | `<docs-root>/evidence/` | `{spec-slug}/execute.log`（append-only） |
+| Archive | `<docs-root>/archive/` | `v1.1-user-login.md`（Spec 移入 + summary 追加） |
 | ProjectMap | `<docs-root>/projectmap.md` | 固定单文件，不版本化 |
 
 - `<docs-root>` 默认为 `mydocs/`；若项目根存在 `.sdd-config` 且声明了 `DOCS_DIR=...`，则应改用该目录。
@@ -419,14 +468,12 @@ When completing any phase or the full workflow, report status:
 - **触发时机**：进入 Review 阶段时
 - **命令**：
   ```bash
-  bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>" \
-    --log "<PROJECT_ROOT>/<docs-root>/evidence/{spec-slug}/execute.log"
+  bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>"
   ```
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-  支持可选参数：`--spec <path>`、`--log <path>`、`--diff-base <rev>`。
-  其中 `{spec-slug}` = 当前 Spec 文件名去掉 `.md`（如 `v1.1-user-login`）。若不传 `--log`，脚本将自动推断路径；若 log 文件不存在，降级读取 Spec 内 Execute Log 区块。
-- **AI 行为**：读取命令输出的结构化 Prompt，执行四轴对照分析，填写 Spec §10 Review Report
-- **四轴**：轴0=Invocation Integrity / 轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 `evidence/{spec-slug}/execute.log`）
+  支持可选参数：`--spec <path>`、`--diff-base <rev>`。
+- **AI 行为**：读取命令输出的结构化 Prompt，执行四轴对照分析，填写 Spec `## Review Verdict`（standard）/ `## Review Summary`（lite）
+- **四轴**：轴0=Invocation Integrity / 轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 Spec `## Execute Log` 区块）
 
 ### discover（P1b 首版 Spec 创建 / Pre-Research 入口）
 - **触发时机**：Setup Mode 中用户选择"创建首个 Spec"时
@@ -443,7 +490,7 @@ When completing any phase or the full workflow, report status:
 - **治理规则**：若目标模块已有 CodeMap，优先进入 UPDATE 模式，对现有地图做增量更新；不要为同一模块重复创建多份 CodeMap。
 
 ### build-context-bundle（P2b AI 提炼上下文包）
-- **触发时机**：任务开始前，用户手头有外部材料（如 UI 稿、PRD、会议记录）或需要从项目文档提炼上下文时；典型触发如“我有设计稿要放进去”“PRD 文档怎么带进 context”
+- **触发时机**：任务开始前，用户手头有外部材料（如 UI 稿、PRD、会议记录）需要带入任务背景时；典型触发如”我有设计稿要放进去””PRD 文档怎么带进 context”。Skill 会在每次创建 Spec 前主动询问，用户选择提供路径后触发。
 - **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>] [--sources <dir>]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增；支持 `--version v{N}.{M}` 手动指定）
@@ -469,9 +516,9 @@ When completing any phase or the full workflow, report status:
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **前置条件**：
   - 源 Spec 的 `status` 必须为 `archived`
-  - `<docs-root>/archive/` 中必须存在对应的 `-llm.md` 或 `-human.md` 归档文件（优先使用 `-llm.md`，缺失则回退到 `-human.md`）
+  - `<docs-root>/archive/` 中必须存在对应的归档文件 `vN.M-<task-slug>.md`
   - `<docs-root>/specs/` 中不得已存在同 slug 的更高版本且 `status != archived` 的 patch Spec；若存在，改为运行 `resume`
-- **AI 行为**：命令成功后，读取新建 patch Spec 的 `reopened-from` 与 `context-source` 元数据，运行 `resume` 载入该 patch Spec，再在 §6 Research Findings 中记录归档上下文来源与缺陷来源。`reopen` 只用于 defect patch，不得借此扩大范围或引入新功能。
+- **AI 行为**：命令成功后，读取新建 patch Spec 的 `reopened-from` 与 `context-source` 元数据，运行 `resume` 载入该 patch Spec，再在 `## Research` 区块中记录归档上下文来源与缺陷来源。`reopen` 只用于 defect patch，不得借此扩大范围或引入新功能。
 - **失败处理**：若输出提示 `Open patch spec already exists`，不要重复 reopen，改为运行 `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"` 继续已有 patch Spec。
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 

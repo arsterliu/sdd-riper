@@ -1,58 +1,56 @@
 {
-  "active_plan": "D:/workspace/canway/other/sdd-riper/.sisyphus/plans/sdd-riper-skill-refactor.md",
-  "started_at": "2026-04-23T15:44:12.000Z",
+  "active_plan": "D:\\workspace\\personal\\sdd-ripper\\.sisyphus\\plans\\context-intake-layer.md",
+  "started_at": "2026-05-04T11:14:41.761Z",
   "session_ids": [
-    "ses_245a5ee12ffe19mA2ggFFGVQb0"
+    "ses_227f6c877fferhYRd0t0PgZPyL"
   ],
-  "plan_name": "sdd-riper-skill-refactor",
   "session_origins": {
-    "ses_245a5ee12ffe19mA2ggFFGVQb0": "direct"
+    "ses_227f6c877fferhYRd0t0PgZPyL": "direct"
   },
+  "plan_name": "context-intake-layer",
+  "agent": "atlas",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "重写 BLOCK 0 — 跨平台 Preamble",
-      "session_id": "ses_244fb5a55ffewSH76Kxsl6JhGU",
+      "task_title": "`build-context-bundle.sh` — 增加 `--sources` 参数与分层 Prompt",
+      "session_id": "ses_20cf14050ffe5TG5kDEWb4Al00",
       "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-23T15:47:59.024Z"
+      "category": "unspecified-high",
+      "updated_at": "2026-05-04T12:58:43.000Z"
+    },
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "`templates/context-bundle.md` — 补充来源标签注释",
+      "session_id": "ses_209d1aa7fffeCX7YBN3zqmHxMA",
+      "agent": "build",
+      "updated_at": "2026-05-05T03:29:07.769Z"
     },
     "todo:3": {
       "task_key": "todo:3",
       "task_label": "3",
-      "task_title": "重写 BLOCK 3 — Setup Mode",
-      "session_id": "ses_244f78aa8ffeT7nOeaDr2VDYbd",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-23T15:51:21.913Z"
-    },
-    "todo:5": {
-      "task_key": "todo:5",
-      "task_label": "5",
-      "task_title": "更新 BLOCK 5 — Phase Instructions + Completion Status 规则",
-      "session_id": "ses_244f4915affe1zcbTLKjGJCSAj",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-23T15:54:24.546Z"
-    },
-    "todo:7": {
-      "task_key": "todo:7",
-      "task_label": "7",
-      "task_title": "组装最终 SKILL.md + 全文结构验证",
-      "session_id": "ses_244efecc5ffe2jhlibCPrm5W68",
+      "task_title": "bash 测试 — `tests/test_build_context_bundle.sh`",
+      "session_id": "ses_209cfdad5ffeomW9dfuyvz97QN",
       "agent": "Sisyphus-Junior",
       "category": "unspecified-high",
-      "updated_at": "2026-04-23T16:00:38.739Z"
+      "updated_at": "2026-05-05T03:35:36.114Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "`SKILL.md` — 补充 `--sources` 触发场景与 `context-source:` 引导",
+      "session_id": "ses_209ab427fffeJ0e0lwFit1LtyY",
+      "agent": "build",
+      "updated_at": "2026-05-05T04:11:30.393Z"
     },
     "final-wave:f1": {
       "task_key": "final-wave:f1",
       "task_label": "F1",
-      "task_title": "**结构完整性验证** — `quick`",
-      "session_id": "ses_244ebb010ffeCyMV4m3dUZN6y7",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-23T16:32:45.132Z"
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_209513f1cffeyswRRefeAq2L5N",
+      "agent": "oracle",
+      "updated_at": "2026-05-05T08:04:00.041Z"
     }
   }
 }

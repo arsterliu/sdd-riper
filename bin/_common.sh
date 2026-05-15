@@ -1,6 +1,8 @@
 #!/bin/bash
 # _common.sh: Pure utility functions library for sdd-riper
-# No side effects on stdout; only returns values via final echo.
+# Most functions return values via final echo and have no stdout side effects.
+# Exception: _sdd_should_suggest_codemap() prints advisory text to stdout when
+#   conditions are met — callers must account for this in output parsing.
 # Legacy spec warnings go to stderr only.
 
 _sdd_get_config_file() {
@@ -35,6 +37,32 @@ _sdd_get_docs_root() {
   local docs_dir
   docs_dir="$(_sdd_get_docs_dir "$project_dir")"
   echo "$project_dir/$docs_dir"
+}
+
+# _sdd_get_mode <project_dir>
+#   Read MODE from .sdd-config. Returns "standard" if not set or unrecognised.
+_sdd_get_mode() {
+  local project_dir="$1"
+  local config_file mode=""
+  config_file="$(_sdd_get_config_file "$project_dir")"
+  if [[ -f "$config_file" ]]; then
+    mode="$(grep '^MODE=' "$config_file" 2>/dev/null | head -1 | sed 's/^MODE=//; s/\r$//' || true)"
+    mode="${mode#\"}"; mode="${mode%\"}"
+  fi
+  case "$mode" in
+    lite)  echo "lite" ;;
+    micro) echo "micro" ;;
+    *)     echo "standard" ;;
+  esac
+}
+
+# _sdd_get_spec_template <scaffold_root> <project_dir>
+#   Return path to the correct spec template based on project mode.
+_sdd_get_spec_template() {
+  local scaffold_root="$1" project_dir="$2"
+  local mode
+  mode="$(_sdd_get_mode "$project_dir")"
+  echo "${scaffold_root}/templates/spec-${mode}.md"
 }
 
 # _sdd_next_version <dir> <name>
@@ -124,6 +152,103 @@ _sdd_find_latest_spec() {
   fi
   
   echo "$LATEST_SPEC"
+}
+
+# _sdd_extract_section <file> <section-pattern> [max-lines]
+#   Extract raw text content of the first ## heading whose text matches
+#   <section-pattern> (awk regex). Returns lines between that heading and the
+#   next ## heading. Optionally truncated to <max-lines> lines (default 200).
+#   Returns: raw section lines (may include HTML comment lines), or empty.
+_sdd_extract_section() {
+  local file="$1" pattern="$2" max_lines="${3:-200}"
+  awk -v pat="$pattern" -v max="$max_lines" '
+    BEGIN { found=0; count=0 }
+    /^## / {
+      if (found) exit
+      if ($0 ~ ("^## .*" pat)) { found=1 }
+      next
+    }
+    found {
+      if (max > 0 && count >= max) { print "[TRUNCATED]"; exit }
+      print; count++
+    }
+  ' "$file" 2>/dev/null
+}
+
+# _sdd_should_suggest_codemap <project-dir> <docs-dir>
+#   Prints a CodeMap suggestion to stdout if ALL of these are true:
+#     - codemap dir has no .md files (excluding .gitkeep)
+#     - source file count in project > 20
+#     - a recognised project-marker file exists (package.json, go.mod, etc.)
+#   No output and returns 0 when the suggestion is not warranted.
+_sdd_should_suggest_codemap() {
+  local dir="$1" docs_dir="${2:-mydocs}"
+  local has_codemap=false codemap_count
+
+  if [[ -d "$dir/$docs_dir/codemap" ]]; then
+    codemap_count=$(find "$dir/$docs_dir/codemap" -name "*.md" ! -name ".gitkeep" 2>/dev/null | wc -l | tr -d ' ')
+    [[ "$codemap_count" -gt 0 ]] && has_codemap=true
+  fi
+  [[ "$has_codemap" == "true" ]] && return 0
+
+  local src_count
+  src_count=$(find "$dir" -maxdepth 6 \
+    \( -name "*.js" -o -name "*.ts" -o -name "*.jsx" -o -name "*.tsx" \
+       -o -name "*.py" -o -name "*.go" -o -name "*.java" -o -name "*.cs" \
+       -o -name "*.rb" -o -name "*.php" -o -name "*.rs" -o -name "*.cpp" -o -name "*.c" \) \
+    -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/vendor/*" \
+    -not -path "*/dist/*" -not -path "*/build/*" -not -path "*/target/*" \
+    2>/dev/null | wc -l | tr -d ' ')
+
+  local has_marker=false
+  for marker in package.json go.mod pyproject.toml pom.xml Cargo.toml build.gradle; do
+    if [[ -f "$dir/$marker" ]]; then has_marker=true; break; fi
+  done
+
+  if [[ "$src_count" -gt 20 ]] && [[ "$has_marker" == "true" ]]; then
+    echo ""
+    echo "[SDD-RIPER] 检测到目标项目已存在 ${src_count} 个源码文件，且尚未建立 CodeMap。"
+    echo "  建议先建立 CodeMap 再进入 Research，帮助 AI 快速理解模块结构："
+    echo "    ./sdd.sh create-codemap $dir [--module <name>]"
+  fi
+}
+
+# _sdd_section_is_empty <file> <section-pattern>
+# Returns 0 (true) if a ## heading matching pattern exists but has no non-comment content.
+# Returns 1 (false) if the section has real content or does not exist.
+_sdd_section_is_empty() {
+  local file="$1" section="$2"
+  awk -v section="$section" '
+    /^##/ {
+      if (in_section) { if (had_content==0) exit 0; else exit 1 }
+      if ($0 ~ section) { in_section=1; had_content=0; in_comment=0 }
+      else { in_section=0 }
+      next
+    }
+    in_section && /<!--/ { in_comment=1 }
+    in_section && /-->/ { in_comment=0; next }
+    in_section && !in_comment && NF>0 && !/^<!--/ { had_content=1 }
+    END { if (in_section && had_content==0) exit 0; else exit 1 }
+  ' "$file" 2>/dev/null
+}
+
+# _sdd_subsection_is_empty <file> <h3-pattern>
+# Returns 0 (true) if a ### heading matching pattern exists but has no non-comment content.
+_sdd_subsection_is_empty() {
+  local file="$1" section="$2"
+  awk -v section="$section" '
+    /^###/ {
+      if (in_section) { if (had_content==0) exit 0; else exit 1 }
+      if ($0 ~ section) { in_section=1; had_content=0; in_comment=0 }
+      else { in_section=0 }
+      next
+    }
+    /^##[^#]/ { if (in_section) { if (had_content==0) exit 0; else exit 1 } in_section=0; next }
+    in_section && /<!--/ { in_comment=1 }
+    in_section && /-->/ { in_comment=0; next }
+    in_section && !in_comment && NF>0 && !/^<!--/ { had_content=1 }
+    END { if (in_section && had_content==0) exit 0; else exit 1 }
+  ' "$file" 2>/dev/null
 }
 
 # _sdd_find_source_spec <dir> <slug> [archived_only]

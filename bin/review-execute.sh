@@ -7,12 +7,12 @@ source "$SCRIPT_DIR/_common.sh"
 
 print_usage() {
   cat <<'EOF'
-Usage: review-execute.sh <project-dir> [--spec <path>] [--log <path>]
+Usage: review-execute.sh <project-dir> [--spec <path>] [--diff-base <rev>]
 Generate a four-axis review prompt:
   Axis 0: Invocation Integrity  (requirement/goal/constraints vs implementation)
   Axis 1: Spec Plan vs Code     (each Plan step → implemented?)
   Axis 2: Code Diff             (what actually changed, scope check)
-  Axis 3: Execute Log Fidelity  (deviations in log vs actual code)
+  Axis 3: Execute Log Fidelity  (deviations in ## Execute Log section of Spec vs actual code)
 Exit codes: 0=success, 1=missing asset, 3=param error
 EOF
 }
@@ -23,14 +23,12 @@ fi
 
 TARGET_DIR="${1:-}"
 SPEC_PATH=""
-LOG_PATH=""
 DIFF_BASE=""
 shift || true
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --spec) SPEC_PATH="${2:-}"; shift 2 ;;
-    --log)  LOG_PATH="${2:-}"; shift 2 ;;
     --diff-base) DIFF_BASE="${2:-}"; shift 2 ;;
     *) echo "[ERROR] Unknown option: $1" >&2; exit 3 ;;
   esac
@@ -98,44 +96,22 @@ resolve_diff_base() {
   echo ""
 }
 
-# Helper: read section from spec (between two headings), truncate to N lines
-read_section() {
-  local file="$1" start_pat="$2" max_lines="${3:-100}"
-  if [[ -z "$file" ]] || [[ ! -f "$file" ]]; then echo "(spec not found)"; return; fi
-  # start_pat is internal-only. Do not pass user-provided regex fragments here.
-  local raw
-  raw=$(awk -v pat="$start_pat" 'BEGIN{found=0} $0 ~ ("^## .*" pat){found=1; next} found && /^## /{exit} found{print}' "$file" 2>/dev/null)
-  local content
-  content=$(printf '%s\n' "$raw" | awk -v max="$max_lines" 'NR <= max { print }')
-  local total
-  total=$(printf '%s\n' "$raw" | awk 'END { print NR }')
-  if [[ -z "$content" ]]; then echo "(section not found or empty)"; return; fi
-  echo "$content"
-  if [[ "$total" -gt "$max_lines" ]]; then echo "[TRUNCATED: showed ${max_lines}/${total} lines]"; fi
-}
-
-# Axis 0: Invocation Integrity — extract from Spec body sections
-REQUIREMENT_CONTENT="(section not found)"
-CONSTRAINTS_CONTENT="(section not found)"
+# Axis 0: Invocation Integrity — read ## Invocation section
+INVOCATION_CONTENT="(section not found)"
 AXIS0_NOTE=""
 if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
-  REQUIREMENT_CONTENT=$(read_section "$SPEC_PATH" "Requirement" 50)
-  CONSTRAINTS_CONTENT=$(read_section "$SPEC_PATH" "Constraint" 50)
+  INVOCATION_CONTENT=$(_sdd_extract_section "$SPEC_PATH" "Invocation" 80)
 fi
-if [[ "$REQUIREMENT_CONTENT" == "(section not found or empty)" ]] || [[ "$REQUIREMENT_CONTENT" == "(spec not found)" ]]; then
-  REQUIREMENT_CONTENT="(section not found)"
-fi
-if [[ "$CONSTRAINTS_CONTENT" == "(section not found or empty)" ]] || [[ "$CONSTRAINTS_CONTENT" == "(spec not found)" ]]; then
-  CONSTRAINTS_CONTENT="(section not found)"
-fi
-if [[ "$REQUIREMENT_CONTENT" == "(section not found)" ]] && [[ "$CONSTRAINTS_CONTENT" == "(section not found)" ]]; then
+if [[ -z "$INVOCATION_CONTENT" ]]; then
+  INVOCATION_CONTENT="(section not found)"
   AXIS0_NOTE="[WARN] Invocation metadata not found in Spec. Axis 0 will be UNVERIFIABLE."
 fi
 
 # Axis 1: Spec Plan
 PLAN_CONTENT="(no spec found)"
 if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
-  PLAN_CONTENT=$(read_section "$SPEC_PATH" "Plan" 100)
+  _plan=$(_sdd_extract_section "$SPEC_PATH" "Plan" 100)
+  [[ -n "$_plan" ]] && PLAN_CONTENT="$_plan" || PLAN_CONTENT="(section not found or empty)"
 fi
 
 # Axis 2: Code Diff
@@ -157,24 +133,13 @@ if [[ "$DIFF_LINES" -gt 100 ]]; then
 [TRUNCATED: showed 100/${DIFF_LINES} lines]"
 fi
 
-# Axis 3: Execute Log
-# Auto-infer log path from spec slug if --log not provided
-if [[ -z "$LOG_PATH" ]] && [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
-  _spec_bname="$(basename "$SPEC_PATH" .md)"
-  _inferred_log="$DOCS_ROOT/evidence/${_spec_bname}/execute.log"
-  if [[ -f "$_inferred_log" ]]; then
-    LOG_PATH="$_inferred_log"
+# Axis 3: Execute Log — read ## Execute Log section from Spec
+EXECUTE_LOG="(no Execute Log section found in Spec — write step records to ## Execute Log in the Spec file)"
+if [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
+  _raw_log=$(_sdd_extract_section "$SPEC_PATH" "Execute Log" 100)
+  if [[ -n "$_raw_log" ]]; then
+    EXECUTE_LOG="$_raw_log"
   fi
-fi
-
-EXECUTE_LOG="(no execute log found)"
-if [[ -n "$LOG_PATH" ]] && [[ -f "$LOG_PATH" ]]; then
-  EXECUTE_LOG=$(tail -100 "$LOG_PATH")
-  LOG_LINES=$(wc -l < "$LOG_PATH" | tr -d ' ')
-  if [[ "$LOG_LINES" -gt 100 ]]; then EXECUTE_LOG="${EXECUTE_LOG}
-[TRUNCATED: showed last 100/${LOG_LINES} lines]"; fi
-elif [[ -n "$SPEC_PATH" ]] && [[ -f "$SPEC_PATH" ]]; then
-  EXECUTE_LOG=$(read_section "$SPEC_PATH" "Execute Log" 100)
 fi
 
 cat <<EOF
@@ -184,11 +149,8 @@ cat <<EOF
 ${AXIS0_NOTE:-}
 
 ### 轴0 — Invocation Integrity [CONFIRMATION]
-Original Requirement (from Spec):
-${REQUIREMENT_CONTENT}
-
-Original Constraints (from Spec):
-${CONSTRAINTS_CONTENT}
+Invocation (from Spec):
+${INVOCATION_CONTENT}
 
 ### 轴1 — Spec Plan Coverage [CONFIRMATION]
 ${PLAN_CONTENT}

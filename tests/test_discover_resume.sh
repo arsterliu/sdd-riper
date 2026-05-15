@@ -115,28 +115,30 @@ if [ "$exit_code" -eq 3 ]; then pass "resume rejects create-spec exits 3"; else 
 if echo "$out" | grep -q "not valid for resume"; then pass "resume rejects create-spec message"; else fail "resume rejects create-spec missing message"; fi
 cleanup_tmp "$tmp"
 
-# 12. resume phase hint: approved -> review
+# 12. resume phase hint: review has content -> archive
 tmp="$(make_tmp)"
-echo "Test: resume approved -> review"
+echo "Test: resume review content -> archive"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
 bash "$SDD" discover "$tmp" --task-name "approved-flow" --requirement "approved phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*approved-flow*.md" | head -1)
-sed -i.bak 's/status: draft/status: approved/' "$spec_file" && rm -f "$spec_file.bak"
+# Sign the plan inside ## Plan section, then add review verdict content
+sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
+sed -i.bak 's/^<!-- Spec vs Code.*$/Review Pass 1 — 2026-01-01T00:00:00Z — PASS/' "$spec_file" && rm -f "$spec_file.bak"
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
-if [ "$exit_code" -eq 0 ]; then pass "resume approved exits 0"; else fail "resume approved exited $exit_code"; fi
-if echo "$out" | grep -q "PHASE_HINT: review"; then pass "resume approved phase hint review"; else fail "resume approved phase hint wrong"; fi
+if [ "$exit_code" -eq 0 ]; then pass "resume archive exits 0"; else fail "resume archive exited $exit_code"; fi
+if echo "$out" | grep -q "PHASE_HINT: archive"; then pass "resume review content phase hint archive"; else fail "resume review content phase hint wrong"; fi
 cleanup_tmp "$tmp"
 
-# 13. resume phase hint: done -> archive
+# 13. resume phase hint: plan signed, no review content -> execute
 tmp="$(make_tmp)"
 echo "Test: resume done -> archive"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
 bash "$SDD" discover "$tmp" --task-name "done-flow" --requirement "done phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*done-flow*.md" | head -1)
-sed -i.bak 's/status: draft/status: done/' "$spec_file" && rm -f "$spec_file.bak"
+sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume done exits 0"; else fail "resume done exited $exit_code"; fi
-if echo "$out" | grep -q "PHASE_HINT: archive"; then pass "resume done phase hint archive"; else fail "resume done phase hint wrong"; fi
+if echo "$out" | grep -q "PHASE_HINT: execute"; then pass "resume done phase hint execute"; else fail "resume done phase hint wrong"; fi
 cleanup_tmp "$tmp"
 
 # 14. resume phase hint: approved plan -> execute
@@ -145,7 +147,7 @@ echo "Test: resume approved plan -> execute"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
 bash "$SDD" discover "$tmp" --task-name "execute-flow" --requirement "execute phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*execute-flow*.md" | head -1)
-printf '\nPlan Approved By: Alice\n' >> "$spec_file"
+sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume execute exits 0"; else fail "resume execute exited $exit_code"; fi
 if echo "$out" | grep -q "PHASE_HINT: execute"; then pass "resume execute phase hint execute"; else fail "resume execute phase hint wrong"; fi

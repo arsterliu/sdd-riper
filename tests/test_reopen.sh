@@ -33,10 +33,10 @@ if [ "$exit_code" -eq 0 ]; then pass "reopen exits 0"; else fail "reopen exited 
 patch_file=$(ls "$tmp/mydocs/specs/"*payment-retry*.md 2>/dev/null | sort | tail -1)
 if [ -n "$patch_file" ] && [ -f "$patch_file" ] && [ "$(basename "$patch_file")" != "v1.0-payment-retry.md" ]; then pass "reopen created patch spec"; else fail "reopen patch spec missing"; fi
 if grep -q '^reopened-from: "v1.0"' "$patch_file"; then pass "patch has reopened-from"; else fail "patch missing reopened-from"; fi
-if grep -q '^context-source: "mydocs/archive/v1.0-payment-retry-llm.md"' "$patch_file"; then pass "patch has context-source"; else fail "patch missing context-source"; fi
+if grep -q '^context-source: "mydocs/archive/v1.0-payment-retry.md"' "$patch_file"; then pass "patch has context-source"; else fail "patch missing context-source"; fi
 if [ "$(grep -c '^reopened-from:' "$patch_file")" -eq 1 ]; then pass "patch has single reopened-from key"; else fail "patch has duplicate reopened-from keys"; fi
 if [ "$(grep -c '^context-source:' "$patch_file")" -eq 1 ]; then pass "patch has single context-source key"; else fail "patch has duplicate context-source keys"; fi
-if grep -q 'Reopened from archived context: mydocs/archive/v1.0-payment-retry-llm.md | defect: manual regression' "$patch_file"; then pass "patch records archive note"; else fail "patch missing archive note"; fi
+if grep -q 'Reopened from archived context: mydocs/archive/v1.0-payment-retry.md | defect: manual regression' "$patch_file"; then pass "patch records archive note"; else fail "patch missing archive note"; fi
 cleanup_tmp "$tmp"
 
 # 2. source spec not archived
@@ -48,31 +48,18 @@ if [ "$exit_code" -eq 1 ]; then pass "non-archived exits 1"; else fail "non-arch
 if echo "$out" | grep -q 'Source spec is not archived'; then pass "non-archived error message"; else fail "non-archived missing error message"; fi
 cleanup_tmp "$tmp"
 
-# 3. missing archive llm but fallback human exists
-tmp="$(make_tmp)"
-echo "Test: reopen fallback to human archive"
-bash "$SDD" discover "$tmp" --task-name "fallback-reopen" --requirement "fallback reopen task" >/dev/null
-bash "$SDD" archive "$tmp" "fallback-reopen" >/dev/null
-rm -f "$tmp/mydocs/archive/v1.0-fallback-reopen-llm.md"
-out=$(bash "$SDD" reopen "$tmp" "fallback-reopen" 2>&1) && exit_code=0 || exit_code=$?
-if [ "$exit_code" -eq 0 ]; then pass "fallback reopen exits 0"; else fail "fallback reopen exited $exit_code"; fi
-if echo "$out" | grep -q 'Falling back'; then pass "fallback warning shown"; else fail "fallback warning missing"; fi
-patch_file=$(ls "$tmp/mydocs/specs/"*fallback-reopen*.md 2>/dev/null | sort | tail -1)
-if grep -q '^context-source: "mydocs/archive/v1.0-fallback-reopen-human.md"' "$patch_file"; then pass "fallback uses human archive"; else fail "fallback did not use human archive"; fi
-cleanup_tmp "$tmp"
-
-# 4. missing all archive context
+# 3. missing archive file
 tmp="$(make_tmp)"
 echo "Test: reopen missing archive context"
 bash "$SDD" discover "$tmp" --task-name "missing-context" --requirement "missing context task" >/dev/null
 bash "$SDD" archive "$tmp" "missing-context" >/dev/null
-rm -f "$tmp/mydocs/archive/v1.0-missing-context-llm.md" "$tmp/mydocs/archive/v1.0-missing-context-human.md"
+rm -f "$tmp/mydocs/archive/v1.0-missing-context.md"
 out=$(bash "$SDD" reopen "$tmp" "missing-context" 2>&1) && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 1 ]; then pass "missing context exits 1"; else fail "missing context expected exit 1, got $exit_code"; fi
-if echo "$out" | grep -q 'Archive context files not found'; then pass "missing context error shown"; else fail "missing context error missing"; fi
+if echo "$out" | grep -q 'Archive context file not found'; then pass "missing context error shown"; else fail "missing context error missing"; fi
 cleanup_tmp "$tmp"
 
-# 5. open patch already exists
+# 4. open patch already exists
 tmp="$(make_tmp)"
 echo "Test: reopen refuses existing open patch"
 bash "$SDD" discover "$tmp" --task-name "existing-patch" --requirement "existing patch task" >/dev/null
@@ -84,7 +71,7 @@ if echo "$out" | grep -q 'Open patch spec already exists'; then pass "existing p
 if echo "$out" | grep -q 'resume'; then pass "existing patch resume hint shown"; else fail "existing patch resume hint missing"; fi
 cleanup_tmp "$tmp"
 
-# 6. no args -> help exit 0 via sdd dispatcher
+# 5. no args -> help exit 0 via sdd dispatcher
 echo "Test: reopen help"
 out=$(bash "$SDD" reopen --help 2>&1) && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "reopen help exits 0"; else fail "reopen help exited $exit_code"; fi

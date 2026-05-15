@@ -58,7 +58,6 @@ if [[ ! -d "$DOCS_ROOT/" ]]; then
 fi
 
 LATEST_SPEC="$(_sdd_find_latest_spec "$DOCS_ROOT/specs")"
-if [[ -d "$LATEST_SPEC" ]]; then LATEST_SPEC=""; fi
 
 # Log handling
 LOG_CONTENT="(无日志文件)"
@@ -73,18 +72,6 @@ if [[ -n "$LOG_FILE" ]]; then
     fi
   else
     LOG_CONTENT="(日志文件未找到: $LOG_FILE)"
-  fi
-else
-  AUTO_LOG=$(find "$DOCS_ROOT/evidence" -name "*.log" 2>/dev/null -print0 | xargs -0 ls -t 2>/dev/null | head -1 || echo "")
-  if [[ -d "$AUTO_LOG" ]]; then AUTO_LOG=""; fi
-  if [[ -n "$AUTO_LOG" && -f "$AUTO_LOG" ]]; then
-    TOTAL_LINES=$(wc -l < "$AUTO_LOG" | tr -d ' ')
-    if [[ "$TOTAL_LINES" -gt 100 ]]; then
-      LOG_CONTENT="$(head -n 100 "$AUTO_LOG")
-[TRUNCATED: showed 100/${TOTAL_LINES} lines]"
-    else
-      LOG_CONTENT="$(cat "$AUTO_LOG")"
-    fi
   fi
 fi
 

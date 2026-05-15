@@ -65,7 +65,7 @@ DOCS_DIR_NAME="$(_sdd_get_docs_dir "$PROJECT_DIR")"
 DOCS_ROOT="$PROJECT_DIR/$DOCS_DIR_NAME"
 SPECS_DIR="$DOCS_ROOT/specs"
 ARCHIVE_DIR="$DOCS_ROOT/archive"
-SPEC_TEMPLATE="$SCAFFOLD_ROOT/templates/spec.md"
+SPEC_TEMPLATE="$(_sdd_get_spec_template "$SCAFFOLD_ROOT" "$PROJECT_DIR")"
 
 if [[ ! -d "$DOCS_ROOT" || ! -d "$SPECS_DIR" ]]; then
   echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2
@@ -73,7 +73,7 @@ if [[ ! -d "$DOCS_ROOT" || ! -d "$SPECS_DIR" ]]; then
 fi
 
 if [[ ! -f "$SPEC_TEMPLATE" ]]; then
-  echo "[ERROR] templates/spec.md not found at: $SPEC_TEMPLATE" >&2
+  echo "[ERROR] spec template not found at: $SPEC_TEMPLATE" >&2
   exit 1
 fi
 
@@ -83,14 +83,21 @@ if [[ "$SPEC_SLUG" =~ ^v([0-9]+)\.([0-9]+)-(.+)$ ]]; then
 fi
 
 highest_spec="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
-if [[ -z "$highest_spec" ]]; then
-  echo "[ERROR] No versioned spec matching '${SPEC_SLUG}' found in $SPECS_DIR" >&2
+archived_spec="$(_sdd_find_source_spec "$ARCHIVE_DIR" "$SPEC_SLUG" "true")"
+
+if [[ -z "$highest_spec" ]] && [[ -z "$archived_spec" ]]; then
+  echo "[ERROR] No versioned spec matching '${SPEC_SLUG}' found in $SPECS_DIR or $ARCHIVE_DIR" >&2
   exit 1
 fi
 
+# If the highest active spec is not archived, use archive dir to find archived version
 source_spec="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG" "true")"
 if [[ -z "$source_spec" ]]; then
-  echo "[ERROR] Source spec is not archived. Use 'sdd.sh resume "$PROJECT_DIR"' to continue the active task." >&2
+  # Check archive dir for archived spec
+  source_spec="$archived_spec"
+fi
+if [[ -z "$source_spec" ]]; then
+  echo "[ERROR] Source spec is not archived. Use 'sdd.sh resume \"$PROJECT_DIR\"' to continue the active task." >&2
   exit 1
 fi
 
@@ -102,17 +109,13 @@ fi
 
 source_version="${BASH_REMATCH[1]}"
 task_slug="${BASH_REMATCH[2]}"
-archive_llm="$ARCHIVE_DIR/${source_version}-${task_slug}-llm.md"
-archive_human="$ARCHIVE_DIR/${source_version}-${task_slug}-human.md"
+archive_file="$ARCHIVE_DIR/${source_version}-${task_slug}.md"
 archive_context_path=""
 
-if [[ -f "$archive_llm" ]]; then
-  archive_context_path="$archive_llm"
-elif [[ -f "$archive_human" ]]; then
-  archive_context_path="$archive_human"
-  echo "[WARN] ${source_version}-${task_slug}-llm.md not found. Falling back to ${source_version}-${task_slug}-human.md"
+if [[ -f "$archive_file" ]]; then
+  archive_context_path="$archive_file"
 else
-  echo "[ERROR] Archive context files not found for '${task_slug}'. Expected '${archive_llm}' or '${archive_human}'." >&2
+  echo "[ERROR] Archive context file not found for '${task_slug}'. Expected '${archive_file}'." >&2
   exit 1
 fi
 
@@ -145,7 +148,16 @@ if [[ -n "$open_patch" ]]; then
   exit 1
 fi
 
-new_version="$(_sdd_next_version "$SPECS_DIR" "$task_slug")"
+new_version_specs="$(_sdd_next_version "$SPECS_DIR" "$task_slug")"
+new_version_archive="$(_sdd_next_version "$ARCHIVE_DIR" "$task_slug")"
+# Pick the higher of the two to avoid colliding with archived versions
+_v1="${new_version_specs#v}"; _maj1="${_v1%%.*}"; _min1="${_v1##*.}"
+_v2="${new_version_archive#v}"; _maj2="${_v2%%.*}"; _min2="${_v2##*.}"
+if (( _maj2 > _maj1 )) || (( _maj2 == _maj1 && _min2 > _min1 )); then
+  new_version="$new_version_archive"
+else
+  new_version="$new_version_specs"
+fi
 new_spec="$SPECS_DIR/${new_version}-${task_slug}.md"
 today_iso="$(date +%Y-%m-%d)"
 context_relative="${archive_context_path#${PROJECT_DIR}/}"

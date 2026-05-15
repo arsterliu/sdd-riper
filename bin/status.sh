@@ -18,7 +18,7 @@ echo "[SDD Status] $PROJECT_DIR"
 
 # --- Structure check ---
 MISSING_DIRS=()
-for d in specs codemap context archive evidence; do
+for d in specs codemap context archive; do
   if [[ ! -d "$DOCS_ROOT/$d" ]]; then
     MISSING_DIRS+=("$DOCS_DIR/$d")
   fi
@@ -45,7 +45,6 @@ else
 fi
 
 # --- ProjectMap check ---
-PM_FILE="$PROJECT_DIR/mydocs/projectmap.md"
 PM_FILE="$DOCS_ROOT/projectmap.md"
 if [[ -f "$PM_FILE" ]]; then
   HAS_NAME=$(grep -c "^name:" "$PM_FILE" 2>/dev/null || true)
@@ -61,7 +60,6 @@ else
 fi
 
 # --- CodeMap governance check ---
-CODEMAP_DIR="$PROJECT_DIR/mydocs/codemap"
 CODEMAP_DIR="$DOCS_ROOT/codemap"
 if [[ ! -d "$CODEMAP_DIR" ]]; then
   echo "  CodeMap:      WARN (codemap/ directory missing)"
@@ -91,118 +89,69 @@ else
 fi
 
 # --- Spec status summary ---
-TOTAL=0; DRAFT=0; APPROVED=0; DONE=0
-SPECS_DIR="$PROJECT_DIR/mydocs/specs"
+TOTAL=0; DRAFT=0
 SPECS_DIR="$DOCS_ROOT/specs"
 
 WARN_RESEARCH=()
 WARN_INNOVATE=()
 WARN_PLAN=()
-WARN_EXECUTE=()
 WARN_REVIEW=()
-
-# _section_is_empty <file> <section-pattern>
-# Returns 0 (true/success) if the named section exists but contains no non-comment content.
-# Returns 1 (false/failure) if the section has content or does not exist.
-# Usage: if _section_is_empty "$spec" "Review Summary"; then WARN+=...
-_section_is_empty() {
-  local file="$1" section="$2"
-  awk -v section="$section" '
-    /^##/ { 
-      if (in_section) { 
-        if (had_content==0) exit 0; else exit 1 
-      }
-      if ($0 ~ section) { in_section=1; had_content=0; in_comment=0 }
-      else { in_section=0 }
-      next
-    }
-    in_section && /<!--/ { in_comment=1 }
-    in_section && /-->/ { in_comment=0; next }
-    in_section && !in_comment && NF>0 && !/^<!--/ { 
-      had_content=1 
-    }
-    END { 
-      if (in_section && had_content==0) exit 0; else exit 1 
-    }
-  ' "$file" 2>/dev/null
-}
 
 if [[ -d "$SPECS_DIR" ]]; then
   while IFS= read -r -d '' spec; do
     BNAME="$(basename "$spec")"
     [[ "$BNAME" == ".gitkeep" ]] && continue
-    
+
     TOTAL=$((TOTAL+1))
-    STATUS_VAL=$(grep "^status:" "$spec" 2>/dev/null | head -1 | sed 's/status: *//' | tr -d '[:space:]' || echo "draft")
-    case "$STATUS_VAL" in
-      approved) APPROVED=$((APPROVED+1)) ;;
-      done)     DONE=$((DONE+1)) ;;
-      *)        DRAFT=$((DRAFT+1)) ;;
-    esac
-    
+    STATUS_VAL=$(grep "^status:" "$spec" 2>/dev/null | head -1 | sed 's/status: *//' | tr -d '[:space:]#' || echo "draft")
+    [[ "$STATUS_VAL" == "archived" ]] || DRAFT=$((DRAFT+1))
+
+    SPEC_MODE=$(grep "^mode:" "$spec" 2>/dev/null | head -1 | sed 's/mode: *//' | tr -d '[:space:]#' || echo "standard")
+
     local_warn_research=0
-    
-    # Check Requirement Restatement
-     if grep -q "^## Requirement Restatement" "$spec" 2>/dev/null; then
-       if _section_is_empty "$spec" "Requirement Restatement"; then
-         local_warn_research=1
-       fi
-     fi
-     # Check Open Questions
-     if grep -q "^## Open Questions" "$spec" 2>/dev/null; then
-       if _section_is_empty "$spec" "Open Questions"; then
-         local_warn_research=1
-       fi
-     fi
-     # Check §6 Research Findings
-     if grep -q "^## §6 Research Findings" "$spec" 2>/dev/null; then
-       if _section_is_empty "$spec" "§6 Research Findings"; then
-         local_warn_research=1
-       fi
-     fi
-    # Check [待确认]
-    if grep -q "\[待确认\]" "$spec" 2>/dev/null; then
-      local_warn_research=1
-    fi
-    
-    if [[ $local_warn_research -eq 1 ]]; then
-      WARN_RESEARCH+=("$BNAME")
+
+    if [[ "$SPEC_MODE" == "lite" ]]; then
+      # Lite: ## Invocation and ## Open Questions must have content
+      if grep -q "^## Invocation" "$spec" 2>/dev/null; then
+        if _sdd_section_is_empty "$spec" "Invocation"; then local_warn_research=1; fi
+      fi
+      if grep -q "^## Open Questions" "$spec" 2>/dev/null; then
+        if _sdd_section_is_empty "$spec" "Open Questions"; then local_warn_research=1; fi
+      fi
+    else
+      # Standard: ## Research must have content in ### subsections
+      if grep -q "^## Research" "$spec" 2>/dev/null; then
+        if _sdd_subsection_is_empty "$spec" "Requirement Restatement"; then local_warn_research=1; fi
+        if _sdd_subsection_is_empty "$spec" "Open Questions"; then local_warn_research=1; fi
+      fi
     fi
 
-     # Check Innovate Options
-     if grep -q "^## .*Innovate Options" "$spec" 2>/dev/null; then
-       if ! grep -q "Innovate: Skipped" "$spec" 2>/dev/null; then
-         if _section_is_empty "$spec" "Innovate Options"; then
-           WARN_INNOVATE+=("$BNAME")
-         fi
-       fi
-     fi
+    if grep -q "\[待确认\]" "$spec" 2>/dev/null; then local_warn_research=1; fi
+    if [[ $local_warn_research -eq 1 ]]; then WARN_RESEARCH+=("$BNAME"); fi
 
-    # Check Plan Approved By
+    # Innovate — ## Innovate Options (both modes)
+    if grep -q "^## Innovate Options" "$spec" 2>/dev/null; then
+      if ! grep -q "Innovate: Skipped" "$spec" 2>/dev/null; then
+        if _sdd_section_is_empty "$spec" "Innovate Options"; then WARN_INNOVATE+=("$BNAME"); fi
+      fi
+    fi
+
+    # Plan Approved By — same field in both modes
     if grep -q "Plan Approved By:" "$spec" 2>/dev/null; then
-      if grep -q -E "Plan Approved By: *(\[.*\])?[[:space:]]*(<!--.*|-->.*)?$" "$spec" 2>/dev/null; then
+      if grep -q -E "^Plan Approved By:[[:space:]]*$" "$spec" 2>/dev/null; then
         WARN_PLAN+=("$BNAME")
       fi
     fi
 
-     # Check Execute Log
-     if grep -q "^## .*Execute Log" "$spec" 2>/dev/null; then
-       if _section_is_empty "$spec" "Execute Log"; then
-         WARN_EXECUTE+=("$BNAME")
-       fi
-     fi
+    # Review — ## Review Verdict (standard) or ## Review Summary (lite)
+    if grep -qE "^## (Review Verdict|Review Summary)" "$spec" 2>/dev/null; then
+      if _sdd_section_is_empty "$spec" "Review (Verdict|Summary)"; then WARN_REVIEW+=("$BNAME"); fi
+    fi
 
-     # Check Review Verdict / Review Summary
-     if grep -qE "^## .*Review (Verdict|Summary)" "$spec" 2>/dev/null; then
-       if _section_is_empty "$spec" "Review (Verdict|Summary)"; then
-         WARN_REVIEW+=("$BNAME")
-       fi
-     fi
-    
   done < <(find "$SPECS_DIR" -maxdepth 1 -name "*.md" -print0 2>/dev/null || true)
 fi
 
-echo "  Specs:        $TOTAL total ($DRAFT draft, $APPROVED approved, $DONE done)"
+echo "  Specs:        $TOTAL total ($DRAFT active)"
 
 if [[ ${#WARN_RESEARCH[@]} -gt 0 ]]; then
   echo "  Research:     WARN (empty/pending in: ${WARN_RESEARCH[*]})"
@@ -220,12 +169,6 @@ if [[ ${#WARN_PLAN[@]} -gt 0 ]]; then
   echo "  Plan:         WARN (missing approval in: ${WARN_PLAN[*]})"
 else
   echo "  Plan:         OK"
-fi
-
-if [[ ${#WARN_EXECUTE[@]} -gt 0 ]]; then
-  echo "  Execute:      WARN (empty log in: ${WARN_EXECUTE[*]})"
-else
-  echo "  Execute:      OK"
 fi
 
 if [[ ${#WARN_REVIEW[@]} -gt 0 ]]; then

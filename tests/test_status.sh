@@ -26,7 +26,7 @@ bash "$SDD" init "$tmp" --mode standard >/dev/null
 bash "$SDD" new-projectmap "$tmp" --repos "frontend" >/dev/null
 out=$(bash "$SDD" status "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "status OK exits 0"; else fail "status OK exited $exit_code"; fi
-if echo "$out" | grep -q "Structure:    OK"; then pass "output contains OK"; else fail "output missing OK"; fi
+if echo "$out" | grep -q "Specs:.*active"; then pass "output contains OK"; else fail "output missing OK"; fi
 if echo "$out" | grep -q "CodeMap:      OK (none"; then pass "status reports no codemap as OK"; else fail "status missing codemap OK"; fi
 cleanup_tmp "$tmp"
 

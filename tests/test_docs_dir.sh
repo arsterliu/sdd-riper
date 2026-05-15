@@ -22,7 +22,7 @@ tmp="$(make_tmp)"
 echo "Test: init creates custom docs-dir"
 bash "$SDD" init "$tmp" --docs-dir docsx >/dev/null && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "init with custom docs-dir exits 0"; else fail "init with custom docs-dir exited $exit_code"; fi
-if [ -d "$tmp/docsx/specs" ] && [ -d "$tmp/docsx/codemap" ] && [ -d "$tmp/docsx/context" ] && [ -d "$tmp/docsx/archive" ] && [ -d "$tmp/docsx/evidence" ]; then
+if [ -d "$tmp/docsx/specs" ] && [ -d "$tmp/docsx/codemap" ] && [ -d "$tmp/docsx/context" ] && [ -d "$tmp/docsx/archive" ]; then
   pass "custom docs-dir structure created"
 else
   fail "custom docs-dir structure missing"

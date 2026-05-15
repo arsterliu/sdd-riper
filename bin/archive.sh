@@ -36,11 +36,9 @@ if [[ ! -d "$SPECS_DIR" ]]; then
 fi
 mkdir -p "$ARCHIVE_DIR"
 
-# Normalize input slug (replace spaces with hyphens)
 SPEC_SLUG="${SPEC_NAME// /-}"
 
 SOURCE_SPEC="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
-
 if [[ -z "$SOURCE_SPEC" ]]; then
   echo "[ERROR] No versioned spec matching '${SPEC_SLUG}' found in $SPECS_DIR" >&2
   echo "  Available specs:" >&2
@@ -50,7 +48,6 @@ if [[ -z "$SOURCE_SPEC" ]]; then
   exit 1
 fi
 
-# Extract version from source spec filename: vN.M-slug.md
 SOURCE_BNAME="$(basename "$SOURCE_SPEC")"
 SPEC_VERSION=""
 if [[ "$SOURCE_BNAME" =~ ^(v[0-9]+\.[0-9]+)-.+\.md$ ]]; then
@@ -60,35 +57,66 @@ else
   echo "[WARN] Source spec '${SOURCE_BNAME}' has no version prefix; defaulting archive version to v1.0" >&2
 fi
 
-HUMAN_FILE="$ARCHIVE_DIR/${SPEC_VERSION}-${SPEC_SLUG}-human.md"
-LLM_FILE="$ARCHIVE_DIR/${SPEC_VERSION}-${SPEC_SLUG}-llm.md"
+ARCHIVE_FILE="$ARCHIVE_DIR/${SPEC_VERSION}-${SPEC_SLUG}.md"
 
-if [[ -f "$HUMAN_FILE" ]] || [[ -f "$LLM_FILE" ]]; then
+if [[ -f "$ARCHIVE_FILE" ]]; then
   if [[ -z "$FORCE" ]]; then
-    echo "[ERROR] Archive '${SPEC_VERSION}-${SPEC_SLUG}' already exists. Use --force to overwrite." >&2
+    echo "[ERROR] Archive '${SPEC_VERSION}-${SPEC_SLUG}.md' already exists. Use --force to overwrite." >&2
     exit 1
   fi
 fi
 
-TASK_NAME_VAL=$(grep "^task-name:" "$SOURCE_SPEC" 2>/dev/null | head -1 | sed 's/task-name: *//' | tr -d '"' || echo "$SPEC_SLUG")
 DATE_ISO="$(date +%Y-%m-%d)"
 
-cp "$SCAFFOLD_ROOT/templates/archive-human.md" "$HUMAN_FILE"
-sed -i.bak "s/task-name: \"Task Name\"/task-name: \"${TASK_NAME_VAL}\"/g" "$HUMAN_FILE" && rm -f "$HUMAN_FILE.bak"
-sed -i.bak "s/date: YYYY-MM-DD/date: ${DATE_ISO}/g" "$HUMAN_FILE" && rm -f "$HUMAN_FILE.bak"
-echo "" >> "$HUMAN_FILE"
-echo "<!-- Source Spec: $(basename "$SOURCE_SPEC") -->" >> "$HUMAN_FILE"
-
-# Generate _llm.md from template
-cp "$SCAFFOLD_ROOT/templates/archive-llm.md" "$LLM_FILE"
-sed -i.bak "s/task-name: \"Task Name\"/task-name: \"${TASK_NAME_VAL}\"/g" "$LLM_FILE" && rm -f "$LLM_FILE.bak"
-sed -i.bak "s/date: YYYY-MM-DD/date: ${DATE_ISO}/g" "$LLM_FILE" && rm -f "$LLM_FILE.bak"
-echo "" >> "$LLM_FILE"
-echo "<!-- Source Spec: $(basename "$SOURCE_SPEC") -->" >> "$LLM_FILE"
-
-echo "[CREATE] $HUMAN_FILE"
-echo "[CREATE] $LLM_FILE"
+# Mark source spec as archived
 sed -i.bak 's/^status:[[:space:]]*[^[:space:]#]*/status: archived/' "$SOURCE_SPEC" && rm -f "$SOURCE_SPEC.bak"
-echo "[UPDATE] status: archived -> $SOURCE_SPEC"
-echo "Original spec preserved: $SOURCE_SPEC"
+
+# Append summary scaffold to the spec (AI will fill these in during Archive Phase step 3)
+cat >> "$SOURCE_SPEC" <<SUMMARY_EOF
+
+---
+<!-- Archive summary — appended by sdd archive on ${DATE_ISO} -->
+
+## 目标摘要
+<!-- (未填充) -->
+
+## 最终方案
+<!-- (未填充) -->
+
+## 关键约束
+<!-- (未填充) -->
+
+## 坑点与风险
+<!-- (未填充) -->
+SUMMARY_EOF
+
+# Move spec into archive/
+mv "$SOURCE_SPEC" "$ARCHIVE_FILE"
+
+# Maintain archive/index.md
+INDEX_FILE="$ARCHIVE_DIR/index.md"
+if [[ ! -f "$INDEX_FILE" ]]; then
+  cat > "$INDEX_FILE" <<'INDEX_HEADER'
+# Archive Index
+<!-- Auto-maintained by sdd archive. Do NOT edit manually. -->
+<!-- Format: | version-slug | date | task-name | verdict | -->
+
+| File | Date | Task | Verdict |
+|---|---|---|---|
+INDEX_HEADER
+fi
+
+TASK_NAME_VAL=$(grep "^task-name:" "$ARCHIVE_FILE" 2>/dev/null | head -1 | sed 's/task-name:[[:space:]]*//' | tr -d '"' || echo "$SPEC_SLUG")
+VERDICT_VAL=$(grep -E "^## (Review Verdict|Review Summary)" "$ARCHIVE_FILE" 2>/dev/null | head -1 | sed 's/^## //' || echo "—")
+# Try to extract a short verdict from the section content
+_verdict_content=$(awk '/^## (Review Verdict|Review Summary)/{found=1; next} found && /^## /{exit} found{print}' "$ARCHIVE_FILE" 2>/dev/null | grep -v '^<!--' | grep -v '^[[:space:]]*$' | head -1 || true)
+if [[ -n "$_verdict_content" ]]; then
+  VERDICT_VAL="$_verdict_content"
+fi
+
+echo "| $(basename "$ARCHIVE_FILE") | ${DATE_ISO} | ${TASK_NAME_VAL} | ${VERDICT_VAL} |" >> "$INDEX_FILE"
+
+echo "[ARCHIVE] $ARCHIVE_FILE"
+echo "[INDEX]   $INDEX_FILE"
+echo "[MOVED] $(basename "$SOURCE_SPEC") → archive/$(basename "$ARCHIVE_FILE")"
 exit 0
