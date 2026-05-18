@@ -17,7 +17,7 @@ cleanup_tmp() { [[ -n "${1:-}" ]] && rm -rf "$1"; }
 tmp="$(make_tmp)"
 echo "Test: discover happy path"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-out=$(bash "$SDD" discover "$tmp" --task-name "login-flow" --requirement "支持登录" --goal "完成认证") && exit_code=0 || exit_code=$?
+out=$(bash "$SDD" discover "$tmp" --task-name "login-flow" --version v1.0 --requirement "支持登录" --goal "完成认证") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "discover exits 0"; else fail "discover exited $exit_code"; fi
 if echo "$out" | grep -q "## SPEC CREATION PROMPT"; then pass "discover outputs spec prompt"; else fail "discover missing spec prompt"; fi
 if [ -f "$tmp/mydocs/specs/v1.0-login-flow.md" ]; then pass "discover created spec"; else fail "discover did not create spec"; fi
@@ -29,6 +29,15 @@ echo "Test: discover missing task-name"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
 out=$(bash "$SDD" discover "$tmp" --requirement "foo" 2>&1) && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 3 ]; then pass "discover missing task-name exits 3"; else fail "discover missing task-name expected 3, got $exit_code"; fi
+cleanup_tmp "$tmp"
+
+# 2b. discover missing --version
+tmp="$(make_tmp)"
+echo "Test: discover missing --version"
+bash "$SDD" init "$tmp" --mode standard >/dev/null
+out=$(bash "$SDD" discover "$tmp" --task-name "login-flow" --requirement "foo" 2>&1) && exit_code=0 || exit_code=$?
+if [ "$exit_code" -eq 3 ]; then pass "discover missing version exits 3"; else fail "discover missing version expected 3, got $exit_code"; fi
+if echo "$out" | grep -q "\-\-version is required"; then pass "discover missing version reports error"; else fail "discover missing version missing message"; fi
 cleanup_tmp "$tmp"
 
 # 3. discover invalid task-name
@@ -66,7 +75,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume happy path (with spec)"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "test-feature" --requirement "resume test task" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "test-feature" --version v1.0 --requirement "resume test task" >/dev/null
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume with spec exits 0"; else fail "resume with spec exited $exit_code"; fi
 if echo "$out" | grep -q "LATEST_SPEC:.*\.md"; then pass "resume outputs latest spec"; else fail "resume latest spec missing"; fi
@@ -83,7 +92,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume draft -> research_or_plan"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "draft-flow" --requirement "draft phase test" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "draft-flow" --version v1.0 --requirement "draft phase test" >/dev/null
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume draft exits 0"; else fail "resume draft exited $exit_code"; fi
 if echo "$out" | grep -q "PHASE_HINT: research_or_plan"; then pass "resume draft phase hint research_or_plan"; else fail "resume draft phase hint wrong"; fi
@@ -93,7 +102,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume with codemap"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
+bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.0 >/dev/null
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume with codemap exits 0"; else fail "resume with codemap exited $exit_code"; fi
 if echo "$out" | grep -q "HAS_CODEMAP: yes"; then pass "resume has codemap"; else fail "resume missing has codemap"; fi
@@ -119,7 +128,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume review content -> archive"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "approved-flow" --requirement "approved phase test" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "approved-flow" --version v1.0 --requirement "approved phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*approved-flow*.md" | head -1)
 # Sign the plan inside ## Plan section, then add review verdict content
 sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
@@ -133,7 +142,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume done -> archive"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "done-flow" --requirement "done phase test" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "done-flow" --version v1.0 --requirement "done phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*done-flow*.md" | head -1)
 sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
@@ -145,7 +154,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume approved plan -> execute"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "execute-flow" --requirement "execute phase test" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "execute-flow" --version v1.0 --requirement "execute phase test" >/dev/null
 spec_file=$(find "$tmp/mydocs/specs" -name "*execute-flow*.md" | head -1)
 sed -i.bak 's/^Plan Approved By:$/Plan Approved By: Alice/' "$spec_file" && rm -f "$spec_file.bak"
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?

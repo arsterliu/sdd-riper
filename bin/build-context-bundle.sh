@@ -64,7 +64,7 @@ if [[ -n "$VERSION_OVERRIDE" ]]; then
   fi
   BUNDLE_VERSION="$VERSION_OVERRIDE"
 else
-  BUNDLE_VERSION="$(_sdd_next_version "$CONTEXT_DIR" "$BUNDLE_NAME")"
+  echo "[ERROR] --version is required (e.g. --version v1.0)" >&2; exit 3
 fi
 
 DOCS_DIR_ROOT="$DOCS_ROOT"

@@ -33,7 +33,7 @@ cleanup_tmp() { [[ -n "${1:-}" ]] && rm -rf "$1"; }
 tmp="$(make_tmp)"
 echo "Test: happy path"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "test-feature" --requirement "review execute test" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "test-feature" --version v1.0 --requirement "review execute test" >/dev/null
 stdout_file="$tmp/review.stdout"
 stderr_file="$tmp/review.stderr"
 bash "$SDD" review-execute "$tmp" >"$stdout_file" 2>"$stderr_file" && exit_code=0 || exit_code=$?
@@ -84,7 +84,7 @@ tmp="$(make_tmp)"
 echo "Test: multi-commit diff coverage"
 git_init_repo "$tmp"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "diff-coverage" --requirement "review execute diff coverage" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "diff-coverage" --version v1.0 --requirement "review execute diff coverage" >/dev/null
 printf 'base\n' > "$tmp/base.txt"
 git_commit_all "$tmp" "main branch baseline"
 git -C "$tmp" checkout -b feature/review-diff >/dev/null 2>&1
@@ -108,7 +108,7 @@ tmp="$(make_tmp)"
 echo "Test: single-commit repo fallback"
 git_init_repo "$tmp"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "single-commit" --requirement "single commit diff" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "single-commit" --version v1.0 --requirement "single commit diff" >/dev/null
 git_commit_all "$tmp" "initial task commit"
 stdout_file="$tmp/single.stdout"
 stderr_file="$tmp/single.stderr"

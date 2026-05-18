@@ -91,8 +91,8 @@ B) 开始或继续 RIPER 工作流任务
 5. Use `AskUserQuestion`: "Create your first Spec now?"
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's yes/no response.
    - If yes:
-      a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, and constraints (optional).
-         > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items (task name, requirement, goal, constraints). If the user provides fewer than 4 items, re-ask for the missing ones — do NOT infer or skip.
+      a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, constraints (optional), and mode (standard / lite / micro; default: project .sdd-config).
+         > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 5 items (task name, requirement, goal, constraints, mode). If the user provides fewer than 5 items, re-ask for the missing ones — do NOT infer or skip.
       b. **Context Bundle 引导**: Use `AskUserQuestion`:
            > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
            > A) 有，请提供目录路径：___
@@ -101,17 +101,14 @@ B) 开始或继续 RIPER 工作流任务
              - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<TARGET_DIR>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
              > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
              - If B: proceed without `--context`.
-      c. Determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version (v1.0 if none exist, otherwise v{N}.{M+1}). Output to user and END YOUR TURN:
+      c. Output to user and END YOUR TURN:
 
 ---
-即将创建 Spec：**v{N.M}-{task-name}.md**
-如需修改版本号，请输入（格式 vN.M，如 v2.0）；否则直接回复"继续"。
+请为本次 Spec 指定版本号（格式 vN.M，如 v1.0）：
 ---
 
          **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-         - If user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<path>"]`
-           > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
-         - If user says "继续" or anything else: run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<path>"]`
+         - Once user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --mode "<mode>" --version "<user-version>" [--context "<path>"]`
            > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
          Read the `## SPEC CREATION PROMPT` output and the created Spec file. Help the user fill in Research Findings and initial Open Questions.
 6. Explain: "Run /sdd-riper again to enter Workflow Mode for this task"
@@ -133,9 +130,10 @@ B) 开始或继续 RIPER 工作流任务
      > - requirement：这次要做什么
      > - goal：最终要达到什么结果
      > - constraints：约束；没有就写 none
+     > - mode：standard / lite / micro（留空沿用项目默认值）
      >
      > C) 暂时不需要，结束本次会话
-     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items or select C. If user selects C: end the session. If fewer than 4 items provided, re-ask for missing ones — do NOT infer or skip.
+     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 5 items or select C. If user selects C: end the session. If fewer than 5 items provided, re-ask for missing ones — do NOT infer or skip.
    - Once all 4 items received: **Context Bundle 引导**: Use `AskUserQuestion`:
      > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
      > A) 有，请提供目录路径：___
@@ -144,17 +142,14 @@ B) 开始或继续 RIPER 工作流任务
        - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
          > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
        - If B: proceed without `--context`.
-    - Once context decision is made: determine the docs root from `.sdd-config` if present; otherwise use `mydocs/`. Check `<DOCS_ROOT>/specs/` for existing files matching `*-<task-name>.md` to determine the next auto-incremented version. Output to user and END YOUR TURN:
+    - Once context decision is made: output to user and END YOUR TURN:
 
 ---
-即将创建 Spec：**v{N.M}-{task-name}.md**
-如需修改版本号，请输入（格式 vN.M，如 v2.0）；否则直接回复"继续"。
+请为本次 Spec 指定版本号（格式 vN.M，如 v1.0）：
 ---
 
       **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-      - If user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
-        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-      - If user says "继续" or anything else: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--context "<CONTEXT_PATH>"]`
+      - Once user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --mode "<mode>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
      Read the created Spec and help fill Research Findings.
 5. Otherwise (active spec found): **按需读取 Spec，不要全量加载**。
@@ -458,10 +453,10 @@ When completing any phase or the full workflow, report status:
 
 - `<docs-root>` 默认为 `mydocs/`；若项目根存在 `.sdd-config` 且声明了 `DOCS_DIR=...`，则应改用该目录。
 
-- **版本递增**：每次对同名产出物执行创建命令时，minor 自动 +1（`v1.9 → v1.10`，不进位）
-- **手动指定**：`discover`、`new-codemap`、`build-context-bundle` 支持 `--version v{N}.{M}` 覆盖
+- **版本由用户指定**：`discover`、`new-codemap`、`build-context-bundle` 均要求 `--version v{N}.{M}`，不自动递增
 - **archive**：自动继承来源 Spec 的版本号，无需手动指定
-- **旧版保留**：递增时旧文件不删除，历史可追溯
+- **reopen**：patch spec 版本号与来源 archived spec 完全一致（不递增）
+- **旧版保留**：旧文件不删除，历史可追溯
 - **resume**：自动读取最近修改任务的最高版本 Spec
 
 ### review-execute（P0 四轴质量筛查）
@@ -477,10 +472,10 @@ When completing any phase or the full workflow, report status:
 
 ### discover（P1b 首版 Spec 创建 / Pre-Research 入口）
 - **触发时机**：Setup Mode 中用户选择"创建首个 Spec"时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>"`
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --version v{N}.{M} --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--mode standard|lite|micro]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 - **AI 行为**：读取命令输出的 `## SPEC CREATION PROMPT`，读取创建的 Spec 文件，填写 Research Findings 区块和初始 Open Questions
-- **注意**：`--task-name` 为必填参数；此命令会写入 `<docs-root>/specs/v{N}.{M}-<task-name>.md`（版本自动递增，`<docs-root>` 默认为 `mydocs/`，可由 `.sdd-config` 指定）；支持 `--version v{N}.{M}` 手动指定
+- **注意**：`--task-name` 和 `--version` 均为必填参数；此命令会写入 `<docs-root>/specs/v{N}.{M}-<task-name>.md`（`<docs-root>` 默认为 `mydocs/`，可由 `.sdd-config` 指定）
 
 ### create-codemap（P2a AI 驱动代码库扫描）
 - **触发时机**：Research 或 Plan 阶段，需要建立代码库架构视图时
@@ -491,9 +486,9 @@ When completing any phase or the full workflow, report status:
 
 ### build-context-bundle（P2b AI 提炼上下文包）
 - **触发时机**：任务开始前，用户手头有外部材料（如 UI 稿、PRD、会议记录）需要带入任务背景时；典型触发如”我有设计稿要放进去””PRD 文档怎么带进 context”。Skill 会在每次创建 Spec 前主动询问，用户选择提供路径后触发。
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" [--out <name>] [--sources <dir>]`
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" --version v{N}.{M} [--out <name>] [--sources <dir>]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本自动递增；支持 `--version v{N}.{M}` 手动指定）
+- **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本由用户通过 `--version` 指定）
 - **跟进引导**：生成完成后，可询问用户是否要把该 Context Bundle 路径回填到当前 Spec 的 `context-source:` 字段；这是 skill 引导动作，不是 CLI 参数。
 
 ### debug（P3a 日志驱动 Bug 定位）
@@ -512,8 +507,9 @@ When completing any phase or the full workflow, report status:
 
 ### reopen（P4 归档后缺陷回溯入口）
 - **触发时机**：任务已 Archive 完成，随后由人工测试或后续验证发现 defect，需要在不改变原始任务意图的前提下创建 patch Spec 继续修复时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>" [--defect "<defect-summary>"]`
+- **命令**：`bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>" [--defect "<defect-summary>"] [--mode standard|lite|micro]`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **默认模式**：`micro`。patch 任务天然轻量（边界清晰、不需要重新 Innovate），仅在缺陷修复范围较大时才传 `--mode standard` 或 `--mode lite` 覆盖。
 - **前置条件**：
   - 源 Spec 的 `status` 必须为 `archived`
   - `<docs-root>/archive/` 中必须存在对应的归档文件 `vN.M-<task-slug>.md`

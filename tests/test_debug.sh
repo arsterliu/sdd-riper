@@ -15,7 +15,7 @@ cleanup_tmp() { [[ -n "${1:-}" ]] && rm -rf "$1"; }
 tmp="$(make_tmp)"
 echo "Test: happy path"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "test-task" --requirement "debug test task" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "test-task" --version v1.0 --requirement "debug test task" >/dev/null
 out=$(bash "$SDD" debug "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "debug exits 0"; else fail "expected exit 0, got $exit_code"; fi
 if echo "$out" | grep -q "## DEBUG PROMPT"; then pass "output contains ## DEBUG PROMPT"; else fail "missing ## DEBUG PROMPT"; fi

@@ -25,7 +25,7 @@ cleanup_tmp() { [[ -n "${1:-}" ]] && rm -rf "$1"; }
 # 1. happy path
 tmp="$(make_tmp)"
 echo "Test: archive happy path"
-bash "$SDD" discover "$tmp" --task-name "checkout-retry" --requirement "archive test task" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "checkout-retry" --version v1.0 --requirement "archive test task" >/dev/null
 bash "$SDD" archive "$tmp" "checkout-retry" && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "archive exits 0"; else fail "archive exited $exit_code"; fi
 
@@ -44,7 +44,7 @@ if [ "$exit_code" -eq 1 ]; then pass "conflict exits 1"; else fail "conflict exp
 
 # 3. --force overwrite: re-create a spec and archive again with --force
 echo "Test: archive force overwrite"
-bash "$SDD" discover "$tmp" --task-name "checkout-retry" --requirement "archive retry" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "checkout-retry" --version v1.0 --requirement "archive retry" >/dev/null
 bash "$SDD" archive "$tmp" "checkout-retry" --force && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "force exits 0"; else fail "force expected exit 0, got $exit_code"; fi
 

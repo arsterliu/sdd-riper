@@ -58,7 +58,7 @@ if [ "$exit_code" -eq 3 ]; then pass "no args exits 3"; else fail "no args expec
 tmp="$(make_tmp)"
 echo "Test: codemap missing last-reason"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
+bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.0 >/dev/null
 cm_file=$(ls "$tmp/mydocs/codemap/"*auth-flow*.md 2>/dev/null | head -1 || true)
 grep -v '^last-reason:' "$cm_file" > "$tmp/auth-flow.stripped.md"
 mv "$tmp/auth-flow.stripped.md" "$cm_file"
@@ -71,7 +71,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: review warning"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" discover "$tmp" --task-name "checkout-retry" --requirement "status test task" >/dev/null
+bash "$SDD" discover "$tmp" --task-name "checkout-retry" --version v1.0 --requirement "status test task" >/dev/null
 out=$(bash "$SDD" status "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "status with empty review exits 0"; else fail "status with empty review exited $exit_code"; fi
 if echo "$out" | grep -q "Review:       WARN"; then pass "status reports review WARN"; else fail "status missing review WARN"; fi

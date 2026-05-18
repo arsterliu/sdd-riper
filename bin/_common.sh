@@ -56,40 +56,23 @@ _sdd_get_mode() {
   esac
 }
 
-# _sdd_get_spec_template <scaffold_root> <project_dir>
-#   Return path to the correct spec template based on project mode.
+# _sdd_get_spec_template <scaffold_root> <project_dir> [explicit_mode]
+#   Return path to the correct spec template.
+#   If explicit_mode is provided (standard|lite|micro), use it directly.
+#   Otherwise read MODE from .sdd-config, defaulting to "standard".
 _sdd_get_spec_template() {
-  local scaffold_root="$1" project_dir="$2"
+  local scaffold_root="$1" project_dir="$2" explicit_mode="${3:-}"
   local mode
-  mode="$(_sdd_get_mode "$project_dir")"
+  if [[ -n "$explicit_mode" ]]; then
+    case "$explicit_mode" in
+      lite)  mode="lite" ;;
+      micro) mode="micro" ;;
+      *)     mode="standard" ;;
+    esac
+  else
+    mode="$(_sdd_get_mode "$project_dir")"
+  fi
   echo "${scaffold_root}/templates/spec-${mode}.md"
-}
-
-# _sdd_next_version <dir> <name>
-#   Find the highest version of a spec with given name in <dir>,
-#   then return the next incremented version.
-#   Returns: "v1.0" if no matching spec exists, else "v{major}.{minor+1}"
-_sdd_next_version() {
-  local dir="$1" name="$2"
-  local max_major=0 max_minor=-1
-  local f bname vmaj vmin
-  while IFS= read -r -d '' f; do
-    bname="$(basename "$f")"
-    if [[ "$bname" =~ ^v([0-9]+)\.([0-9]+)-.+\.md$ ]]; then
-      local stem="${bname%.md}"
-      local vprefix="v${BASH_REMATCH[1]}.${BASH_REMATCH[2]}"
-      local after_prefix="${stem#${vprefix}-}"
-      if [[ "$after_prefix" == "$name" ]]; then
-        vmaj="${BASH_REMATCH[1]}"
-        vmin="${BASH_REMATCH[2]}"
-        if (( vmaj > max_major )) || (( vmaj == max_major && vmin > max_minor )); then
-          max_major=$vmaj
-          max_minor=$vmin
-        fi
-      fi
-    fi
-  done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
-  if (( max_minor == -1 )); then echo "v1.0"; else echo "v${max_major}.$((max_minor + 1))"; fi
 }
 
 # _sdd_version_exists <dir> <logical_name> <version>

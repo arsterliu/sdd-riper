@@ -82,8 +82,7 @@ if [[ -n "$HIGHEST_VERSION_FILE" && -f "$HIGHEST_VERSION_FILE" ]]; then
   OUTPUT_PATH="$HIGHEST_VERSION_FILE"
   EXISTING_CODEMAP=$(cat "$OUTPUT_PATH")
 else
-  NEXT_VERSION=$(_sdd_next_version "$CODEMAP_DIR" "$MODULE_SLUG")
-  OUTPUT_PATH="$CODEMAP_DIR/${NEXT_VERSION}-${MODULE_SLUG}.md"
+  OUTPUT_PATH="$CODEMAP_DIR/v{N}.{M}-${MODULE_SLUG}.md"
 fi
 
 if [[ "$MODE" == "UPDATE" ]]; then
@@ -128,7 +127,9 @@ CodeMap 是模块级活文档，供后续任务复用：
 - 请在 frontmatter 中将 updated-at 设为今天日期
 - 将 last-reason 设为 "Initial creation"
 
-完成后将内容写入：${OUTPUT_PATH}
+完成后请用户运行以下命令创建文件，再将内容写入：
+  sdd new-codemap <project-dir> ${MODULE_SLUG} --version v{N}.{M}
+（请用户自行指定版本号，如 v1.0）
 EOF
 fi
 

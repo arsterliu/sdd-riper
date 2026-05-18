@@ -70,7 +70,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: discover supports custom docs-dir"
 bash "$SDD" init "$tmp" --docs-dir docsx >/dev/null
-out=$(bash "$SDD" discover "$tmp" --task-name "docs-dir-task" --requirement "regression" 2>&1) && exit_code=0 || exit_code=$?
+out=$(bash "$SDD" discover "$tmp" --task-name "docs-dir-task" --version v1.0 --requirement "regression" 2>&1) && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "discover accepts custom docs-dir"; else fail "discover expected exit 0 on custom docs-dir, got $exit_code"; fi
 if [ -f "$tmp/docsx/specs/v1.0-docs-dir-task.md" ]; then pass "discover creates spec under custom docs-dir"; else fail "discover missing spec under custom docs-dir"; fi
 cleanup_tmp "$tmp"

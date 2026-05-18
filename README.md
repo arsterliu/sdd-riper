@@ -1,8 +1,10 @@
 # SDD-RIPER：面向 AI 协作开发的治理协议与工具链
 
-SDD-RIPER（Structured Driven Development - Research, Innovate, Plan, Execute, Review）不是一个“提示词模板集合”，而是一套把 **任务定义、阶段门禁、上下文恢复、执行证据和归档复盘** 落到文件系统里的工作流。
+SDD-RIPER（Structured Driven Development - Research, Innovate, Plan, Execute, Review）不是一个”提示词模板集合”，而是一套把 **任务定义、阶段门禁、上下文恢复、执行证据和归档复盘** 落到文件系统里的工作流。
 
-它要解决的不是“让 AI 多写一点代码”，而是下面这些在 AI 协作开发里反复出现的问题：
+> **使用方式**：你不需要读懂这套工具的所有细节再上手。推荐的方式是——在支持 Skill 的 AI 工具（如 OpenCode）里输入 `/sdd` 或 `/sdd-riper`，由 AI 带着你一步步走完整个流程，包括初始化、创建任务、研究、计划审批、执行和归档。**你的主要工作是回答 AI 的问题、审批 Plan、在关键节点做决策**，其余的上下文加载、阶段判断、Spec 填写都由 AI 承担。
+
+它要解决的不是”让 AI 多写一点代码”，而是下面这些在 AI 协作开发里反复出现的问题：
 
 - **方案漂移**：对话拉长后，AI 逐渐偏离原始目标。
 - **上下文爆炸**：历史聊天太长，真正重要的约束被淹没。
@@ -187,11 +189,14 @@ status: draft
 最新进展: 刚创建 Spec，等待 AI 填写 Research Findings
 
 ## ## Research
+### Requirement Review
+（AI 在此审查需求文本：歧义点、边界缺口、隐含假设、约束冲突；有阻碍项时先列出等待确认）
+
 ### Findings
 （AI 在此填入调研结论：代码位置、调用链、依赖关系）
 
 ### Open Questions
-（AI 在此列出需要确认的问题）
+（AI 在此列出技术未知点）
 
 ### Assumptions
 （AI 在此记录暂未验证的假设）
@@ -221,6 +226,9 @@ status: draft
 ---
 
 ## 6. 5 分钟上手：真实主路径
+
+> **如果你用的是 OpenCode Skill（路径 A），直接输入 `/sdd` 即可——AI 会引导你完成下面所有步骤，不需要手动执行这些命令。**  
+> 本节面向路径 B/C（CLI 手动操作）或希望理解底层发生了什么的用户。
 
 ### 第一步：初始化项目
 
@@ -255,9 +263,21 @@ status: draft
 
 - 在 `<docs-root>/specs/` 下创建版本化 Spec，例如 `v1.0-user-login.md`
 - 自动填充你传入的 requirement / goal / constraints / context
-- 输出 `## SPEC CREATION PROMPT`，指导 AI 回填研究结论和初始问题
+- 输出 `## SPEC CREATION PROMPT`
 
-如果同名任务之前已经存在，版本号会自动递增；也可以显式传 `--version vN.M` 覆盖默认版本。
+版本号通过 `--version` 自行指定（必填），例如 `--version v1.0`。同名同版本已存在时会报错。
+
+**`SPEC CREATION PROMPT` 输出后，你该做什么**：
+
+把这段输出直接粘贴给 AI（或在 Skill 流程里 AI 会自动读取）。AI 会：
+
+1. 读取刚创建的 Spec 文件
+2. 先对需求做 **Requirement Review**——苏格拉底式追问，不接受需求的字面表述，逐一拆解每个陈述背后的假设（边界、异常路径、约束真实性、验收标准、内部冲突、真实目标）。**有未被显式回答的问题，AI 会停下来向你提问，等你确认后才继续**
+3. 调研代码库，填写 Findings / Open Questions / Assumptions / Requirement Restatement
+4. 提出 ≥2 个方案（Innovate），等你选择
+5. 写出 Plan，**等你审批**（这是唯一需要你明确操作的门禁）
+
+**你在这个阶段只需要**：回答 AI 的需求澄清问题，以及在 Plan 写好后签字审批（在 Spec 里填写 `Plan Approved By` 和 `Approved At`）。
 
 ### 第三步：恢复上下文
 
@@ -360,11 +380,11 @@ draft → archived
 | 命令 | 作用 | 关键参数 / 说明 |
 | :--- | :--- | :--- |
 | `init` | 初始化 docs 结构和 AI 配置文件 | `<project-dir>` `--mode standard\|lite\|micro` `--force` `--docs-dir <name>` |
-| `discover` | 创建新任务的首个 Spec | `<project-dir>` `--task-name` `[--requirement] [--goal] [--constraints] [--context] [--version]` |
+| `discover` | 创建新任务的首个 Spec | `<project-dir>` `--task-name` `[--requirement] [--goal] [--constraints] [--context] [--version] [--mode standard\|lite\|micro]` |
 | `resume` | 恢复当前任务上下文并输出 `PHASE_HINT` | `<project-dir>` |
 | `status` | 检查结构完整性和流程健康度 | `<project-dir>` |
 | `archive` | 归档已完成 Spec，提取内容生成单一归档文件 | `<project-dir>` `<spec-name>` `--force` |
-| `reopen` | 基于已归档任务创建 patch Spec | `<project-dir>` `<task-slug>` `--defect <text>` |
+| `reopen` | 基于已归档任务创建 patch Spec | `<project-dir>` `<task-slug>` `--defect <text>` `[--mode standard\|lite\|micro]`（默认 micro）|
 | `review-execute` | 生成 **四轴** Review Prompt | `--spec <path>` `--diff-base <rev>` |
 | `create-codemap` | 生成 AI 扫描代码库并创建 / 更新 CodeMap 的 Prompt | `<project-dir>` `--module <name>` |
 | `build-context-bundle` | 生成提炼 Context Bundle 的 Prompt，并输出目标路径 | `<project-dir>` `--sources <dir>` `--out <name>` `--version vN.M` |
@@ -374,7 +394,7 @@ draft → archived
 | `new-projectmap` | 从模板创建空白 ProjectMap 文件 | `<project-dir>` `--repos repo1,repo2` `--force` |
 
 > **参数说明**：`[]` 内的为可选参数，必填参数不带方括号。
-> `discover` 只需要 `--task-name` 和 `--requirement`，其他参数可以后续补充。
+> `discover` 只需要 `--task-name` 和 `--requirement`，其他参数可以后续补充。`--mode` 不传时沿用项目 `.sdd-config` 的默认值。
 
 ### 退出码
 
@@ -447,14 +467,15 @@ DOCS_DIR="mydocs"
 
 `init --mode` 支持三种模式，选择后会写入 `.sdd-config`，后续所有 `discover` / `reopen` 命令都自动使用对应模板：
 
-- **standard**：适合新功能开发、重构、多模块变更。完整 RIPER 流程：Research（Pre-load + 四项输出 + Alignment Check）→ Innovate（≥2方案）→ Plan（Coverage Gate 全量）→ Execute → Review（四轴）→ Archive（四块摘要）。
-- **lite**：适合中小改动，熟悉代码库的团队。Innovate 可 Skipped；Coverage Gate 仅检查 Invocation；Alignment Check 可省略；Archive 摘要一句话即可。
+- **standard**：适合新功能开发、重构、多模块变更。完整 RIPER 流程：Research（Pre-load + Requirement Review + 四项输出 + Alignment Check）→ Innovate（≥2方案）→ Plan（Coverage Gate 全量）→ Execute → Review（四轴）→ Archive（四块摘要）。
+- **lite**：适合中小改动，熟悉代码库的团队。Research 包含 Requirement Review；Innovate 可 Skipped；Coverage Gate 仅检查 Invocation；Alignment Check 可省略；Archive 摘要一句话即可。
 - **micro**：适合单文件 bugfix、配置调整、文案修改等极轻量任务。Research / Innovate 整体跳过，直接 Plan → Execute → Review（仅 Axis2 — Code Diff Scope）→ Archive（摘要可省）。
 
 三种模式所有核心门禁一致：**Human Gate（Plan 审批）、Execute Log、debug-before-retry** 均不可跳过。差异只在 Spec 模板结构和流程门禁密度。
 
 | 门禁 | standard | lite | micro |
 | :--- | :---: | :---: | :---: |
+| Requirement Review | ✅ | ✅ | ❌ |
 | Research Pre-load | ✅ | ✅ | ❌ |
 | Findings → Restatement 顺序 | ✅ | ✅ | ❌ |
 | Alignment Check | ✅ | ⚠️ 可省 | ❌ |

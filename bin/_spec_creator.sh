@@ -18,11 +18,12 @@ Create a new Spec file pre-filled with provided fields.
 Options:
   --create-spec         Enable spec creation mode (injected by discover.sh)
   --task-name <name>    Task name (required)
+  --version v{N}.{M}    Version for this spec (required, e.g. v1.0)
+  --mode <mode>         Spec mode: standard | lite | micro (default: project .sdd-config)
   --requirement <text>  Requirement definition
   --goal <text>         Goal statement
   --constraints <text>  Technical or business constraints
   --context <text>      Background context
-  --version v{N}.{M}    Override auto-incremented version (e.g. v2.0)
   -h, --help            Show this help
 
 Exit codes: 0=success, 1=missing asset, 3=param error
@@ -51,6 +52,7 @@ GOAL=""
 CONSTRAINTS=""
 CONTEXT_TEXT=""
 VERSION_OVERRIDE=""
+MODE_OVERRIDE=""
 
 TARGET_DIR="${1:-}"
 shift || true
@@ -63,6 +65,7 @@ while [[ $# -gt 0 ]]; do
     --constraints) CONSTRAINTS="${2:-}"; shift 2 ;;
     --context)     CONTEXT_TEXT="${2:-}"; shift 2 ;;
     --version)     VERSION_OVERRIDE="${2:-}"; shift 2 ;;
+    --mode)        MODE_OVERRIDE="${2:-}"; shift 2 ;;
     *) echo "[ERROR] Unknown option: $1" >&2; exit 3 ;;
   esac
 done
@@ -73,6 +76,12 @@ fi
 DOCS_DIR="$(_sdd_get_docs_dir "$TARGET_DIR")"
 DOCS_ROOT="$TARGET_DIR/$DOCS_DIR"
 MODE="$(_sdd_get_mode "$TARGET_DIR")"
+if [[ -n "$MODE_OVERRIDE" ]]; then
+  case "$MODE_OVERRIDE" in
+    standard|lite|micro) MODE="$MODE_OVERRIDE" ;;
+    *) echo "[ERROR] Invalid --mode value: '${MODE_OVERRIDE}'. Expected: standard | lite | micro" >&2; exit 3 ;;
+  esac
+fi
 if [[ ! -d "$DOCS_ROOT" ]]; then
   echo "[ERROR] Project not initialized. Run: sdd.sh init <dir>" >&2; exit 1
 fi
@@ -83,26 +92,23 @@ if [[ ! "$TASK_NAME" =~ ^[A-Za-z0-9_-]+$ ]]; then
   echo "[ERROR] Invalid --task-name: use only letters, numbers, hyphens, and underscores" >&2; exit 3
 fi
 
-SPEC_TEMPLATE="$(_sdd_get_spec_template "$SCAFFOLD_ROOT" "$TARGET_DIR")"
+SPEC_TEMPLATE="$(_sdd_get_spec_template "$SCAFFOLD_ROOT" "$TARGET_DIR" "$MODE")"
 if [[ ! -f "$SPEC_TEMPLATE" ]]; then
   echo "[ERROR] spec template not found at: $SPEC_TEMPLATE" >&2; exit 1
 fi
 
 SPECS_DIR="$DOCS_ROOT/specs"
-if [[ -n "$VERSION_OVERRIDE" ]]; then
-  if [[ ! "$VERSION_OVERRIDE" =~ ^v[0-9]+\.[0-9]+$ ]]; then
-    echo "[ERROR] Invalid --version format: '${VERSION_OVERRIDE}'. Expected: v{N}.{M} (e.g. v1.0, v2.3)" >&2; exit 3
-  fi
-  if _sdd_version_exists "$SPECS_DIR" "$TASK_NAME" "$VERSION_OVERRIDE"; then
-    echo "[ERROR] Spec '${VERSION_OVERRIDE}-${TASK_NAME}.md' already exists. Choose a different version or omit --version for auto-increment." >&2; exit 1
-  fi
-  SPEC_VERSION="$VERSION_OVERRIDE"
-else
-  SPEC_VERSION="$(_sdd_next_version "$SPECS_DIR" "$TASK_NAME")"
+if [[ -z "$VERSION_OVERRIDE" ]]; then
+  echo "[ERROR] --version is required (e.g. --version v1.0)" >&2; exit 3
 fi
+if [[ ! "$VERSION_OVERRIDE" =~ ^v[0-9]+\.[0-9]+$ ]]; then
+  echo "[ERROR] Invalid --version format: '${VERSION_OVERRIDE}'. Expected: v{N}.{M} (e.g. v1.0, v2.3)" >&2; exit 3
+fi
+if _sdd_version_exists "$SPECS_DIR" "$TASK_NAME" "$VERSION_OVERRIDE"; then
+  echo "[ERROR] Spec '${VERSION_OVERRIDE}-${TASK_NAME}.md' already exists. Choose a different version." >&2; exit 1
+fi
+SPEC_VERSION="$VERSION_OVERRIDE"
 SPEC_OUT="$SPECS_DIR/${SPEC_VERSION}-${TASK_NAME}.md"
-
-# Fill template: read and substitute placeholders
 SPEC_CONTENT=$(cat "$SPEC_TEMPLATE")
 
 INVOCATION_PLACEHOLDER='<!-- 核心目标 -->'
@@ -163,15 +169,23 @@ context: ${CONTEXT_TEXT:-"(未指定)"}
 ${SPEC_OUT}
 
 ### AI 指令
-请读取上述 Spec 文件，根据以下字段完善 Research Findings 区块，并识别初始 Open Questions：
+请读取上述 Spec 文件，按以下顺序完善 Research 区块：
 - Requirement（需求定义）: ${REQUIREMENT:-"(待填充)"}
 - Goal（目标）: ${GOAL:-"(待填充)"}
 - Constraints（约束）: ${CONSTRAINTS:-"(待填充)"}
 - Context（背景）: ${CONTEXT_TEXT:-"(待填充)"}
 
-在 Spec Research 区块中：
-1. 先采集 Findings（代码位置 / 调用链 / 依赖关系）
-2. 从 Findings 识别 2-5 个 Open Questions
+在 Spec Research 区块中，严格按顺序执行：
+0. **Requirement Review（先于代码调研，苏格拉底式追问）**：不接受需求的字面表述，逐一拆解每个陈述背后的假设：
+   - 这个词的边界在哪里？（定义不清）
+   - 如果 X 发生，期望是什么？（异常路径 / edge case）
+   - 这个约束是绝对的还是可商量的？（约束真实性）
+   - 谁来判断"完成"？标准是什么？（验收标准缺失）
+   - 这个需求和已知约束 / 目标有没有矛盾？（内部冲突）
+   - 为什么要这样做？背后的真实问题是什么？（目标验证）
+   - **有任何未被显式回答的问题，停在此处列出并等待确认，不继续后续步骤**
+1. 采集 Findings（代码位置 / 调用链 / 依赖关系）
+2. 从 Findings 识别 2-5 个技术 Open Questions
 3. 将 constraints 记录到 Assumptions 区块
 4. 最后基于以上三项写 Requirement Restatement
 
