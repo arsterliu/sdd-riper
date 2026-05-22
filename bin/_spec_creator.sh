@@ -123,16 +123,56 @@ INVOCATION_LINES=""
 [[ -n "$CONTEXT_TEXT"  ]] && INVOCATION_LINES+="<!-- context: ${CONTEXT_TEXT} -->"$'\n'
 INVOCATION_CONTENT="${INVOCATION_LINES:-$INVOCATION_PLACEHOLDER}"
 
-# Sentinel swap to guard against user content matching later patterns
-SPEC_CONTENT="${SPEC_CONTENT//task-name: \"Task Name Placeholder\"/task-name: \"$TASK_NAME\"}"
-SPEC_CONTENT="${SPEC_CONTENT//$INVOCATION_PLACEHOLDER/$INVOCATION_TOKEN}"
-SPEC_CONTENT="${SPEC_CONTENT//$INVOCATION_TOKEN/$INVOCATION_CONTENT}"
+# Write template content with substitutions applied via awk (safe against '/' and glob chars).
+# Strategy:
+#   Pass each replacement value through a temp file so awk reads it as literal text,
+#   avoiding any shell quoting or awk special-character issues.
+_task_name_file="$(mktemp)"
+_invocation_file="$(mktemp)"
+trap 'rm -f "$_task_name_file" "$_invocation_file"' EXIT
+printf '%s' "$TASK_NAME"          > "$_task_name_file"
+printf '%s' "$INVOCATION_CONTENT" > "$_invocation_file"
+
+SPEC_CONTENT=$(awk \
+  -v task_name_file="$_task_name_file" \
+  -v invocation_file="$_invocation_file" \
+  -v placeholder="$INVOCATION_PLACEHOLDER" \
+  'BEGIN {
+    # Read replacement values from files to avoid awk special-char issues
+    getline task_name  < task_name_file
+    close(task_name_file)
+    # Invocation may be multi-line; read entire file
+    invocation = ""
+    while ((getline line < invocation_file) > 0) {
+      invocation = (invocation == "") ? line : invocation "\n" line
+    }
+    close(invocation_file)
+  }
+  {
+    # Replace task-name placeholder (literal string, no regex needed)
+    gsub(/task-name: "Task Name Placeholder"/, "task-name: \"" task_name "\"")
+    # Replace invocation placeholder
+    if (index($0, placeholder) > 0) {
+      n = split($0, parts, placeholder)
+      line = parts[1]
+      for (i = 2; i <= n; i++) {
+        line = line invocation parts[i]
+      }
+      print line
+    } else {
+      print
+    }
+  }' <<< "$SPEC_CONTENT")
+
+rm -f "$_task_name_file" "$_invocation_file"
+trap - EXIT
 
 # Write the spec file
 printf '%s\n' "$SPEC_CONTENT" > "$SPEC_OUT"
 
 # Advisory: suggest CodeMap if project has substantial code and no codemap yet
-_sdd_should_suggest_codemap "$TARGET_DIR" "$DOCS_DIR"
+# Use || true so set -e doesn't treat "no suggestion needed" (exit 1) as failure.
+_sdd_should_suggest_codemap "$TARGET_DIR" "$DOCS_DIR" || true
 
 # Output SPEC CREATION PROMPT
 if [[ "$MODE" == "micro" ]]; then

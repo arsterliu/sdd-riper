@@ -40,7 +40,7 @@ if [[ ! -d "$DOCS_ROOT" ]]; then
 fi
 
 if [[ -f "$DOCS_ROOT/projectmap.md" ]] && [[ -z "$FORCE" ]]; then
-  echo "[ERROR] projectmap.md already exists. Use --force to override." >&2; exit 2
+  echo "[ERROR] projectmap.md already exists. Use --force to override." >&2; exit 1
 fi
 
 PROJECT_NAME=$(basename "$TARGET_DIR")

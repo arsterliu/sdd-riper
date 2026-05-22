@@ -65,7 +65,8 @@ fi
 SPEC_STATUS="none"
 PHASE_HINT="unknown"
 if [[ -n "$LATEST_SPEC" && -f "$LATEST_SPEC" ]]; then
-  SPEC_STATUS=$(grep "^status:" "$LATEST_SPEC" 2>/dev/null | head -1 | sed 's/status: *//; s/#.*$//' | tr -d '[:space:]' || echo "none")
+  SPEC_STATUS=$(_sdd_get_frontmatter_field "$LATEST_SPEC" "status")
+  [[ -z "$SPEC_STATUS" ]] && SPEC_STATUS="none"
 
   case "$SPEC_STATUS" in
     archived) PHASE_HINT="new_task" ;;

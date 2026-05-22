@@ -103,10 +103,12 @@ if [[ -d "$SPECS_DIR" ]]; then
     [[ "$BNAME" == ".gitkeep" ]] && continue
 
     TOTAL=$((TOTAL+1))
-    STATUS_VAL=$(grep "^status:" "$spec" 2>/dev/null | head -1 | sed 's/status: *//' | tr -d '[:space:]#' || echo "draft")
+    STATUS_VAL=$(_sdd_get_frontmatter_field "$spec" "status")
+    [[ -z "$STATUS_VAL" ]] && STATUS_VAL="draft"
     [[ "$STATUS_VAL" == "archived" ]] || DRAFT=$((DRAFT+1))
 
-    SPEC_MODE=$(grep "^mode:" "$spec" 2>/dev/null | head -1 | sed 's/mode: *//' | tr -d '[:space:]#' || echo "standard")
+    SPEC_MODE=$(_sdd_get_frontmatter_field "$spec" "mode")
+    [[ -z "$SPEC_MODE" ]] && SPEC_MODE="standard"
 
     local_warn_research=0
 

@@ -48,7 +48,7 @@ fi
 FILE_LIST=$(find "$TARGET_DIR" -maxdepth 3 \( -name "*.ts" -o -name "*.js" -o -name "*.py" -o -name "*.go" -o -name "*.java" -o -name "*.sh" \) \
   ! -path "*/node_modules/*" ! -path "*/.git/*" ! -path "*/dist/*" ! -path "*/__pycache__/*" \
   2>/dev/null | sort | head -50)
-FILE_COUNT=$(echo "$FILE_LIST" | grep -c . 2>/dev/null || echo "0")
+FILE_COUNT=$(printf '%s\n' "$FILE_LIST" | grep -c '[^[:space:]]' 2>/dev/null || echo "0")
 
 # Optional: module-specific files
 MODULE_FILES=""
@@ -80,7 +80,13 @@ EXISTING_CODEMAP=""
 if [[ -n "$HIGHEST_VERSION_FILE" && -f "$HIGHEST_VERSION_FILE" ]]; then
   MODE="UPDATE"
   OUTPUT_PATH="$HIGHEST_VERSION_FILE"
-  EXISTING_CODEMAP=$(cat "$OUTPUT_PATH")
+  # Guard against embedding a very large existing codemap in the prompt
+  _codemap_size=$(wc -c < "$OUTPUT_PATH" | tr -d ' ')
+  if [[ "$_codemap_size" -gt 51200 ]]; then
+    EXISTING_CODEMAP="[文件过大 (${_codemap_size} bytes)，请直接读取文件：${OUTPUT_PATH}]"
+  else
+    EXISTING_CODEMAP=$(cat "$OUTPUT_PATH")
+  fi
 else
   OUTPUT_PATH="$CODEMAP_DIR/v{N}.{M}-${MODULE_SLUG}.md"
 fi

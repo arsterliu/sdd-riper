@@ -43,7 +43,9 @@ cp "$SCAFFOLD_ROOT/templates/projectmap.md" "$OUTPUT_FILE"
 sed -i.bak "s/name: \"Project Name\"/name: \"${PROJECT_NAME}\"/g" "$OUTPUT_FILE" && rm -f "$OUTPUT_FILE.bak"
 sed -i.bak "s/updated-at: YYYY-MM-DD/updated-at: ${DATE_ISO}/g" "$OUTPUT_FILE" && rm -f "$OUTPUT_FILE.bak"
 
-# If --repos provided, replace the repos array in frontmatter
+# If --repos provided, replace the repos array in frontmatter.
+# Pass the repos block via a temp file rather than awk -v to avoid awk treating
+# newlines in the variable as literal "\n" (behaviour differs between gawk and mawk).
 if [[ -n "$REPOS_CSV" ]]; then
   # Build the repos YAML block
   REPOS_BLOCK="repos:"
@@ -57,14 +59,20 @@ if [[ -n "$REPOS_CSV" ]]; then
     tech-stack: \"\"
     owner: \"\""
   done
-  
-  # Use awk to replace repos: block with the new one
-  awk -v repos="$REPOS_BLOCK" '
-    /^repos:/{found=1; print repos; next}
-    found && /^  - /{next}
-    found && !/^  - /{ found=0; print; next }
-    {print}
-  ' "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
+
+  _repos_tmp="$(mktemp)"
+  printf '%s\n' "$REPOS_BLOCK" > "$_repos_tmp"
+
+  # Replace the repos: block: read replacement from the temp file so newlines are preserved.
+  awk '
+    NR==FNR { repos = repos $0 "\n"; next }
+    /^repos:/ { found=1; printf "%s", repos; next }
+    found && /^  - / { next }
+    found && !/^  - / { found=0; print; next }
+    { print }
+  ' "$_repos_tmp" "$OUTPUT_FILE" > "${OUTPUT_FILE}.tmp" && mv "${OUTPUT_FILE}.tmp" "$OUTPUT_FILE"
+
+  rm -f "$_repos_tmp"
 fi
 
 echo "[CREATE] $OUTPUT_FILE"

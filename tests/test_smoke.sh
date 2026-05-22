@@ -94,5 +94,37 @@ bash sdd.sh init "$T" --mode standard > /dev/null
 bash sdd.sh discover "$T" --task-name "my-feature" --version v1.0 --requirement "User login" --goal "Allow authentication" > s10.out
 cat s10.out | grep -q "## SPEC CREATION PROMPT" && [ -f "$T/mydocs/specs/v1.0-my-feature.md" ] && echo "S10: PASS" || echo "S10: FAIL"
 
+# S11: discover with special chars in requirement (regression for Bash // truncation fix)
+echo "=== S11 ==="
+T=$(mktemp -d)
+trap 'rm -rf "$T"' EXIT
+bash sdd.sh init "$T" --mode standard > /dev/null
+bash sdd.sh discover "$T" --task-name "special-chars" --version v1.0 \
+  --requirement "fix /api/v1/users endpoint" --goal "https://example.com/docs" > s11.out
+# The requirement and goal must appear verbatim in the prompt output
+grep -q "fix /api/v1/users endpoint" s11.out && grep -q "https://example.com/docs" s11.out \
+  && echo "S11: PASS" || echo "S11: FAIL"
+
+# S12: _sdd_get_frontmatter_field reads status correctly (regression for M4)
+echo "=== S12 ==="
+T=$(mktemp -d)
+trap 'rm -rf "$T"' EXIT
+bash sdd.sh init "$T" --mode standard > /dev/null
+bash sdd.sh discover "$T" --task-name "fm-test" --version v1.0 --requirement "frontmatter test" > /dev/null
+SPEC="$T/mydocs/specs/v1.0-fm-test.md"
+# status field should be non-empty (template sets it to e.g. "draft")
+STATUS=$(bash -c "source '$REPO_ROOT/bin/_common.sh' && _sdd_get_frontmatter_field '$SPEC' status")
+[ -n "$STATUS" ] && echo "S12: PASS" || echo "S12: FAIL"
+
+# S13: archive with version-prefixed spec-name works (regression for M6 normalize_slug)
+echo "=== S13 ==="
+T=$(mktemp -d)
+trap 'rm -rf "$T"' EXIT
+bash sdd.sh init "$T" --mode standard > /dev/null
+bash sdd.sh discover "$T" --task-name "slug-test" --version v1.0 --requirement "slug test" > /dev/null
+# Pass versioned name — _sdd_normalize_slug should strip the prefix
+bash sdd.sh archive "$T" "v1.0-slug-test" > s13.out
+grep -q "\[ARCHIVE\]" s13.out && echo "S13: PASS" || echo "S13: FAIL"
+
 # Cleanup temp files
 rm -f s*.out

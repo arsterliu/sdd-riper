@@ -36,7 +36,7 @@ if [[ ! -d "$SPECS_DIR" ]]; then
 fi
 mkdir -p "$ARCHIVE_DIR"
 
-SPEC_SLUG="${SPEC_NAME// /-}"
+SPEC_SLUG="$(_sdd_normalize_slug "$SPEC_NAME")"
 
 SOURCE_SPEC="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
 if [[ -z "$SOURCE_SPEC" ]]; then
@@ -68,11 +68,19 @@ fi
 
 DATE_ISO="$(date +%Y-%m-%d)"
 
-# Mark source spec as archived
-sed -i.bak 's/^status:[[:space:]]*[^[:space:]#]*/status: archived/' "$SOURCE_SPEC" && rm -f "$SOURCE_SPEC.bak"
+# Build the final archive file content atomically:
+#   1. Modify status in a temp file (never touch SOURCE_SPEC until we're ready to delete it)
+#   2. Append summary scaffold to the temp file
+#   3. Only after all content is ready, move the temp file to ARCHIVE_FILE and remove SOURCE_SPEC
+#
+# This ensures that if any step fails, SOURCE_SPEC is untouched and no partial archive is written.
+_archive_tmp="$(mktemp)"
+# shellcheck disable=SC2064  # we want the current value of _archive_tmp captured now
+trap "rm -f '$_archive_tmp'" EXIT
 
-# Append summary scaffold to the spec (AI will fill these in during Archive Phase step 3)
-cat >> "$SOURCE_SPEC" <<SUMMARY_EOF
+sed 's/^status:[[:space:]]*[^[:space:]#]*/status: archived/' "$SOURCE_SPEC" > "$_archive_tmp"
+
+cat >> "$_archive_tmp" <<SUMMARY_EOF
 
 ---
 <!-- Archive summary — appended by sdd archive on ${DATE_ISO} -->
@@ -90,8 +98,10 @@ cat >> "$SOURCE_SPEC" <<SUMMARY_EOF
 <!-- (未填充) -->
 SUMMARY_EOF
 
-# Move spec into archive/
-mv "$SOURCE_SPEC" "$ARCHIVE_FILE"
+# Commit: move temp file to final archive path, then remove the source spec
+mv "$_archive_tmp" "$ARCHIVE_FILE"
+rm -f "$SOURCE_SPEC"
+trap - EXIT   # clear the temp-file cleanup trap; file is already renamed
 
 # Maintain archive/index.md
 INDEX_FILE="$ARCHIVE_DIR/index.md"
@@ -106,13 +116,12 @@ if [[ ! -f "$INDEX_FILE" ]]; then
 INDEX_HEADER
 fi
 
-TASK_NAME_VAL=$(grep "^task-name:" "$ARCHIVE_FILE" 2>/dev/null | head -1 | sed 's/task-name:[[:space:]]*//' | tr -d '"' || echo "$SPEC_SLUG")
-VERDICT_VAL=$(grep -E "^## (Review Verdict|Review Summary)" "$ARCHIVE_FILE" 2>/dev/null | head -1 | sed 's/^## //' || echo "—")
-# Try to extract a short verdict from the section content
-_verdict_content=$(awk '/^## (Review Verdict|Review Summary)/{found=1; next} found && /^## /{exit} found{print}' "$ARCHIVE_FILE" 2>/dev/null | grep -v '^<!--' | grep -v '^[[:space:]]*$' | head -1 || true)
-if [[ -n "$_verdict_content" ]]; then
-  VERDICT_VAL="$_verdict_content"
-fi
+TASK_NAME_VAL=$(_sdd_get_frontmatter_field "$ARCHIVE_FILE" "task-name")
+[[ -z "$TASK_NAME_VAL" ]] && TASK_NAME_VAL="$SPEC_SLUG"
+# Try to extract a short verdict from the Review section content
+_verdict_content=$(_sdd_extract_section "$ARCHIVE_FILE" "Review (Verdict|Summary)" 5)
+_verdict_content=$(printf '%s\n' "$_verdict_content" | grep -v '^<!--' | grep -v '^[[:space:]]*$' | head -1 || true)
+VERDICT_VAL="${_verdict_content:-—}"
 
 echo "| $(basename "$ARCHIVE_FILE") | ${DATE_ISO} | ${TASK_NAME_VAL} | ${VERDICT_VAL} |" >> "$INDEX_FILE"
 

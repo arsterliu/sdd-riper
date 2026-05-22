@@ -104,7 +104,9 @@ CREATED=$((CREATED + AI_CREATED))
 SKIPPED=$((SKIPPED + AI_SKIPPED))
 
 # Check if target project already has substantial source code and suggest CodeMap
-_sdd_should_suggest_codemap "$TARGET_DIR" "$DOCS_DIR"
+# _sdd_should_suggest_codemap returns 1 (no suggestion) or 0 (suggestion printed).
+# Use || true so set -e doesn't treat "no suggestion" as a script failure.
+_sdd_should_suggest_codemap "$TARGET_DIR" "$DOCS_DIR" || true
 echo "Use 'sdd discover <dir> --task-name <name> ...' to create your first spec."
 echo "SDD initialized in $TARGET_DIR. Created: $CREATED files, Skipped: $SKIPPED files."
 exit 0

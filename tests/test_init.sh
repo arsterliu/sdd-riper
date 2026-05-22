@@ -66,6 +66,8 @@ echo "Test: force overwrite"
 bash "$SDD" init "$tmp" --mode lite >/dev/null
 bash "$SDD" init "$tmp" --mode standard --force && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "force overwrite exits 0"; else fail "force overwrite exited $exit_code"; fi
+# Verify the mode was actually overwritten (not just that exit code was 0)
+if grep -q 'MODE="standard"' "$tmp/.sdd-config"; then pass "force updated mode to standard"; else fail "force did not update mode in .sdd-config"; fi
 cleanup_tmp "$tmp"
 
 # 5. path with spaces

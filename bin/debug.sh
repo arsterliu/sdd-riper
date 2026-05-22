@@ -75,20 +75,11 @@ if [[ -n "$LOG_FILE" ]]; then
   fi
 fi
 
-# Spec handling
+# Spec handling — extract Execute Log via shared helper (max 50 lines)
 EXECUTE_LOG="(未找到 Execute Log)"
 if [[ -n "$LATEST_SPEC" && -f "$LATEST_SPEC" ]]; then
-  # Extract §9 Execute Log section
-  EXTRACTED=$(awk '/^## .*Execute Log/{flag=1; print; next} /^## /{if(flag) flag=0} flag' "$LATEST_SPEC")
-  if [[ -n "$EXTRACTED" ]]; then
-    TOTAL_LINES_SPEC=$(echo "$EXTRACTED" | wc -l | tr -d ' ')
-    if [[ "$TOTAL_LINES_SPEC" -gt 50 ]]; then
-      EXECUTE_LOG="$(echo "$EXTRACTED" | head -n 50)
-[TRUNCATED: showed 50/${TOTAL_LINES_SPEC} lines]"
-    else
-      EXECUTE_LOG="$EXTRACTED"
-    fi
-  fi
+  EXTRACTED=$(_sdd_extract_section "$LATEST_SPEC" "Execute Log" 50)
+  [[ -n "$EXTRACTED" ]] && EXECUTE_LOG="$EXTRACTED"
 fi
 
 cat <<EOF

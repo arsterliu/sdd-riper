@@ -89,10 +89,7 @@ if [[ ! -f "$SPEC_TEMPLATE" ]]; then
   exit 1
 fi
 
-SPEC_SLUG="${SPEC_NAME// /-}"
-if [[ "$SPEC_SLUG" =~ ^v([0-9]+)\.([0-9]+)-(.+)$ ]]; then
-  SPEC_SLUG="${BASH_REMATCH[3]}"
-fi
+SPEC_SLUG="$(_sdd_normalize_slug "$SPEC_NAME")"
 
 highest_spec="$(_sdd_find_source_spec "$SPECS_DIR" "$SPEC_SLUG")"
 archived_spec="$(_sdd_find_source_spec "$ARCHIVE_DIR" "$SPEC_SLUG" "true")"

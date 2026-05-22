@@ -127,10 +127,11 @@ if [[ -z "$DIFF_CONTENT" ]]; then
   DIFF_CONTENT="(no git diff available)"
 fi
 DIFF_LINES=$(echo "$DIFF_CONTENT" | wc -l | tr -d ' ')
-if [[ "$DIFF_LINES" -gt 100 ]]; then
-  DIFF_CONTENT=$(printf '%s\n' "$DIFF_CONTENT" | awk 'NR <= 100 { print }')
+MAX_DIFF_LINES="${MAX_DIFF_LINES:-500}"
+if [[ "$DIFF_LINES" -gt "$MAX_DIFF_LINES" ]]; then
+  DIFF_CONTENT=$(printf '%s\n' "$DIFF_CONTENT" | awk -v max="$MAX_DIFF_LINES" 'NR <= max { print }')
   DIFF_CONTENT="${DIFF_CONTENT}
-[TRUNCATED: showed 100/${DIFF_LINES} lines]"
+[TRUNCATED: showed ${MAX_DIFF_LINES}/${DIFF_LINES} lines]"
 fi
 
 # Axis 3: Execute Log — read ## Execute Log section from Spec

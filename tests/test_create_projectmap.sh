@@ -26,7 +26,7 @@ else
 fi
 cleanup_tmp "$tmp1"
 
-# Test 2: Already exists -> exit 2
+# Test 2: Already exists -> exit 1 (unified with new-projectmap which also uses exit 1)
 tmp2=$(make_tmp)
 bash "$SDD" init "$tmp2" --mode standard >/dev/null
 bash "$SDD" new-projectmap "$tmp2" >/dev/null
@@ -34,8 +34,8 @@ set +e
 out=$(bash "$SDD" create-projectmap "$tmp2" 2>&1)
 code=$?
 set -e
-if [ $code -eq 2 ] && (echo "$out" | grep -q "already exists" || echo "$out" | grep -q "--force"); then
-  pass "Already exists returns 2 with warning"
+if [ $code -eq 1 ] && (echo "$out" | grep -q "already exists" || echo "$out" | grep -q "--force"); then
+  pass "Already exists returns 1 with warning"
 else
   fail "Already exists failed (code: $code, output: $out)"
 fi

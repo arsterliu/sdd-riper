@@ -4,6 +4,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Pre-clean any stale tmp dirs from previous interrupted runs
+rm -rf "$REPO_ROOT/tmp/test-"* 2>/dev/null || true
+
 TOTAL_PASS=0
 TOTAL_FAIL=0
 
@@ -36,6 +39,11 @@ run_suite "smoke tests" "$SCRIPT_DIR/test_smoke.sh"
 run_suite "docs-dir regression tests" "$SCRIPT_DIR/test_docs_dir.sh"
 
 echo "Tests: $TOTAL_PASS passed, $TOTAL_FAIL failed"
+
+# Cleanup test temp directories
+if [[ -d "$REPO_ROOT/tmp" ]]; then
+  rm -rf "$REPO_ROOT/tmp/test-"* 2>/dev/null || true
+fi
 
 if [ "$TOTAL_FAIL" -eq 0 ]; then
   exit 0

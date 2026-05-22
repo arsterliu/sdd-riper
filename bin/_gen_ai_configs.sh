@@ -4,9 +4,21 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCAFFOLD_ROOT="$(dirname "$SCRIPT_DIR")"
 
+# Argument validation (positional, matching init.sh call pattern)
+if [[ $# -lt 1 ]]; then
+  echo "[ERROR] Usage: _gen_ai_configs.sh <target-dir> [mode] [force]" >&2
+  exit 3
+fi
+
 TARGET_DIR="$1"
 MODE="${2:-standard}"
 FORCE="${3:-}"
+
+# Validate mode
+case "$MODE" in
+  standard|lite|micro) ;;
+  *) echo "[ERROR] Invalid mode: $MODE (expected standard|lite|micro)" >&2; exit 3 ;;
+esac
 
 CREATED=0
 SKIPPED=0

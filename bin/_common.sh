@@ -5,6 +5,16 @@
 #   conditions are met — callers must account for this in output parsing.
 # Legacy spec warnings go to stderr only.
 
+# ---------------------------------------------------------------------------
+# Bash version guard — associative arrays (declare -A) require Bash 4.0+.
+# macOS ships Bash 3.2 at /bin/bash; install a newer bash (e.g. via Homebrew).
+# ---------------------------------------------------------------------------
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "[ERROR] sdd-riper requires Bash 4.0+. Current version: $BASH_VERSION" >&2
+  echo "  macOS users: brew install bash   (then invoke sdd.sh with the installed bash)" >&2
+  exit 1
+fi
+
 _sdd_get_config_file() {
   local project_dir="$1"
   echo "$project_dir/.sdd-config"
@@ -159,11 +169,13 @@ _sdd_extract_section() {
 }
 
 # _sdd_should_suggest_codemap <project-dir> <docs-dir>
-#   Prints a CodeMap suggestion to stdout if ALL of these are true:
+#   Returns 0 (true) + prints suggestion to stdout if ALL of these are true:
 #     - codemap dir has no .md files (excluding .gitkeep)
 #     - source file count in project > 20
 #     - a recognised project-marker file exists (package.json, go.mod, etc.)
-#   No output and returns 0 when the suggestion is not warranted.
+#   Returns 1 (false) with no output when the suggestion is not warranted.
+#   NOTE: This is the only function in _common.sh with stdout side effects.
+#         Callers must account for this when capturing return values.
 _sdd_should_suggest_codemap() {
   local dir="$1" docs_dir="${2:-mydocs}"
   local has_codemap=false codemap_count
@@ -172,7 +184,7 @@ _sdd_should_suggest_codemap() {
     codemap_count=$(find "$dir/$docs_dir/codemap" -name "*.md" ! -name ".gitkeep" 2>/dev/null | wc -l | tr -d ' ')
     [[ "$codemap_count" -gt 0 ]] && has_codemap=true
   fi
-  [[ "$has_codemap" == "true" ]] && return 0
+  [[ "$has_codemap" == "true" ]] && return 1
 
   local src_count
   src_count=$(find "$dir" -maxdepth 6 \
@@ -193,7 +205,10 @@ _sdd_should_suggest_codemap() {
     echo "[SDD-RIPER] 检测到目标项目已存在 ${src_count} 个源码文件，且尚未建立 CodeMap。"
     echo "  建议先建立 CodeMap 再进入 Research，帮助 AI 快速理解模块结构："
     echo "    ./sdd.sh create-codemap $dir [--module <name>]"
+    return 0
   fi
+
+  return 1
 }
 
 # _sdd_section_is_empty <file> <section-pattern>
@@ -254,7 +269,7 @@ _sdd_find_source_spec() {
       vmin="${BASH_REMATCH[2]}"
       if [[ "$file_slug" == "$slug" ]]; then
         if [[ "$archived_only" == "true" ]]; then
-          file_status="$(grep '^status:' "$f" 2>/dev/null | head -1 | sed 's/status: *//; s/#.*$//' | tr -d '[:space:]' || true)"
+          file_status="$(_sdd_get_frontmatter_field "$f" "status")"
           [[ "$file_status" != "archived" ]] && continue
         fi
         if (( vmaj > best_major )) || (( vmaj == best_major && vmin > best_minor )); then
@@ -266,4 +281,41 @@ _sdd_find_source_spec() {
     fi
   done < <(find "$dir" -maxdepth 1 -name "*.md" -print0 2>/dev/null)
   echo "$best_file"
+}
+
+# _sdd_get_frontmatter_field <file> <field>
+#   Read a YAML frontmatter field from a Markdown file.
+#   Only searches inside the opening --- ... --- block to avoid false matches in body text.
+#   Returns the field value (unquoted), or empty string if not found.
+#   Example: _sdd_get_frontmatter_field spec.md status  → "archived"
+_sdd_get_frontmatter_field() {
+  local file="$1" field="$2"
+  awk -v field="$field" '
+    /^---/ { if (NR==1) { in_front=1; next } else if (in_front) { exit } }
+    in_front && $0 ~ ("^" field ":") {
+      sub("^" field ":[[:space:]]*", "")
+      gsub(/"/, "")
+      gsub(/#.*$/, "")
+      gsub(/[[:space:]]*$/, "")
+      print; exit
+    }
+  ' "$file" 2>/dev/null
+}
+
+# _sdd_normalize_slug <name>
+#   Normalise a user-provided spec name into a bare slug, stripping:
+#     - spaces (replaced by hyphens)
+#     - a leading version prefix of the form v{N}.{M}-
+#   Examples:
+#     "checkout retry"  → "checkout-retry"
+#     "v1.0-checkout-retry" → "checkout-retry"
+#     "checkout-retry"  → "checkout-retry"
+_sdd_normalize_slug() {
+  local name="$1"
+  local slug="${name// /-}"
+  # Strip leading vN.M- prefix if present
+  if [[ "$slug" =~ ^v[0-9]+\.[0-9]+-(.+)$ ]]; then
+    slug="${BASH_REMATCH[1]}"
+  fi
+  echo "$slug"
 }

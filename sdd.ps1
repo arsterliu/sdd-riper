@@ -48,5 +48,6 @@ $rest     = $sddSh.Substring(2) -replace '\\', '/'
 $sddShUnix = "/$drive$rest"
 
 # Step 4: Execute and pass through exit code
-& $bash $sddShUnix @args
+# Quote $sddShUnix to handle paths containing spaces correctly.
+& $bash "$sddShUnix" @args
 exit $LASTEXITCODE
