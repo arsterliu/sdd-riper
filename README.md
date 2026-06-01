@@ -39,10 +39,12 @@ SDD-RIPER 的做法是：把任务收敛成 **Spec**，把架构事实沉淀成 
 
 - **No Spec, No Code**：没有 Spec，就不应该进入实现。
 - **Plan needs a human gate**：Plan 没有明确批准，就不能进入 Execute。
-- **No root cause, no retry**：出现失败后，先跑 `debug` 找根因，再决定是否重试。
+- **No test, no production code**：执行阶段写生产代码前，必须先有失败测试（TDD）。
+- **No root cause, no retry**：出现失败后，先跑 `debug` 找根因，再决定是否重试；针对同一缺陷最多重试 3 次，超出即升级人工介入。
+- **No claim without verification**：宣布阶段完成前，必须新鲜运行命令并读取实际输出，不允许靠"应该能工作"来收工。
 - **Spec is truth**：任务边界、约束和执行口径以 Spec 为准，不以聊天记忆为准。
 
-这些规则不是 README 里的口号，它们会被 `init` 生成到 `AGENTS.md`、`CLAUDE.md`、`.cursorrules`、`.github/copilot-instructions.md` 里，成为 AI 侧的约束。
+这些规则不是 README 里的口号——前两条会被 `init` 写入 `AGENTS.md`、`CLAUDE.md`、`.cursorrules`、`.github/copilot-instructions.md`；后四条由 `SKILL.md` 在 AI 执行层强制执行。
 
 ---
 
@@ -331,27 +333,39 @@ init -> discover -> RIPER -> archive
 
 ### Human Gate：Plan 批准后才能执行
 
-Plan 阶段不是“AI 列个 todo 就完了”。在 Skill 里，Plan 输出后必须经过人工确认，AI 才能进入 Execute。
+Plan 阶段不是”AI 列个 todo 就完了”。Skill 里，Plan 输出后必须经过人工确认，AI 才能进入 Execute。
+
+Plan 步骤有格式要求——每步必须包含：**完整文件路径 + 具体变更描述（非”加验证”等模糊表达）+ 可运行的验收条件**；粒度控制在 2–5 分钟一步，若超出则拆分。`review-execute` 的 Axis 1 会在 Review 阶段对步骤格式做回溯检查，格式问题会作为 LOW 级别缺陷记录，形成反向压力。
 
 这也是为什么 Spec 模板里有：
 
 - `Plan Approved By:`
 - `Approved At:`
 
-如果这两个信息没有实质内容，流程就不应该继续执行。
+如果这两个字段没有实质内容，流程就不应该继续执行。
+
+### Execute：TDD + 按规模路由
+
+Execute 阶段有两条执行规则：
+
+**TDD 铁律**：写任何生产代码之前，必须先有一个失败测试。顺序强制为 RED（写失败测试并确认原因）→ GREEN（写最少代码通过）→ REFACTOR（清理，不新增行为）。若发现代码是在测试之前写的，必须删掉重来——不允许以”参考”为由保留。
+
+**Subagent 路由**：根据 Plan 规模自动分流——
+- Plan ≤ 5 步且改动集中在单一模块：当前上下文直接执行
+- Plan > 5 步或跨 2 个以上模块：派发独立 subagent 逐步执行，每步完成后强制走 Spec Compliance Review → Code Quality Review 两轮，顺序不可跳过
+
+**Completion Verification Gate**：宣布 Execute 完成前，必须新鲜运行测试套件并读取完整输出，确认零失败、零报错后才能继续。禁止用”should”、”probably”、”应该能工作”来替代实际验证。
 
 ### BUGFIX / FAIL_CODE：先 debug，再重试
 
-当 Execute 阶段遇到缺陷，或者 Review 判定为 `FAIL_CODE` 时，规则不是“直接再改一次”，而是：
+当 Execute 阶段遇到缺陷，或者 Review 判定为 `FAIL_CODE` 时，规则不是”直接再改一次”，而是：
 
-1. 先运行 `debug`
-2. 根据 `DEBUG PROMPT` 找 Root Cause
-3. 只做最小修复
-4. 针对同一个 defect instance，最多重试 3 次
+1. 先运行 `debug`，在每个组件边界加诊断探针，逆向追踪数据流
+2. 找到可工作的参考实现后完整阅读（不略读），列出每处差异
+3. 一次只改一个变量验证一个假设，只做最小修复
+4. 针对同一个 defect instance，最多重试 3 次；仍无法收敛 → 升级为人工介入，不继续盲试
 
-如果 3 次后仍无法收敛，就应该升级为人工介入，而不是继续盲试。
-
-这里说的是**任务进行中**的修复重试；如果任务已经 `archive` 完成，后续再发现缺陷，就不走这里的重试环，而是改用 `reopen` 创建 patch Spec。
+这里说的是**任务进行中**的修复重试；任务已 `archive` 完成后再发现缺陷，改用 `reopen` 创建 patch Spec。
 
 ### Archive / Reopen：闭环，而不是失忆重开
 
@@ -361,11 +375,13 @@ Spec 的状态机是：
 draft → archived
 ```
 
-`Plan Approved By:` 字段填写内容是进入 Execute 的门禁信号，不需要单独的 `approved` 状态值。`resume` 根据 Plan Approved 字段内容和 Review 区块内容组合推导 `PHASE_HINT`。
+`Plan Approved By:` 字段有内容是进入 Execute 的门禁信号；`resume` 根据该字段和 Review 区块内容组合推导 `PHASE_HINT`。
 
-- `archive` 会从源 Spec 提取关键区块内容，生成单一归档文件 `vN.M-<task>.md`，兼顾人类阅读与 AI 上下文恢复，并把来源 Spec 的 `status` 改成 `archived`
+归档前，Skill 会先运行测试套件——测试失败则停止归档。测试全部通过后，向用户呈现分支处理选项（本地 merge / 推 PR / 保留 / 丢弃），确认后才执行 `archive` 命令。
 
-如果归档后发现缺陷，不应该重新 `discover` 一个新任务，而应该用：
+`archive` 会从源 Spec 提取关键区块内容，生成单一归档文件 `vN.M-<task>.md`，并把来源 Spec 的 `status` 改成 `archived`。
+
+归档后发现缺陷，不应该重新 `discover` 一个新任务，而应该用：
 
 ```bash
 ./sdd.sh reopen <project-dir> <task-slug> --defect "缺陷描述"
@@ -428,11 +444,11 @@ CLI 的统一退出码语义是：
 它会生成 4 个维度的审查上下文：
 
 1. **Axis 0 — Invocation Integrity**：需求 / 目标 / 约束是否仍然对齐
-2. **Axis 1 — Spec Plan Coverage**：Plan 步骤有没有落实
+2. **Axis 1 — Spec Plan Coverage**：Plan 步骤有没有落实；同时回溯检查每步是否有完整文件路径、具体变更描述和可验证验收条件，格式缺陷记为 LOW 级别信息项
 3. **Axis 2 — Code Diff Scope**：真实代码改动是否越界
 4. **Axis 3 — Execute Log Fidelity**：执行日志和真实改动是否一致（日志位于 Spec `## Execute Log` 区块）
 
-其中 Axis 2 是 primary，另外三轴是 confirmation safety net。
+其中 Axis 2 是 primary，另外三轴是 confirmation safety net。Axis 0/1/3 出现 FAIL 时，除了判定 verdict，还会追加上游门禁失效警告，指出是哪个阶段的门控没拦住。
 
 ### `create-codemap` 和 `new-codemap` 不一样
 

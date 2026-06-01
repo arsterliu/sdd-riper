@@ -47,7 +47,39 @@ $drive    = $sddSh.Substring(0, 1).ToLower()
 $rest     = $sddSh.Substring(2) -replace '\\', '/'
 $sddShUnix = "/$drive$rest"
 
-# Step 4: Execute and pass through exit code
+# Step 4: Normalize path-like arguments for Git Bash
+function Convert-ToMingwPath {
+    param([string]$PathValue)
+
+    if ($PathValue -match '^[A-Za-z]:\\') {
+        $argDrive = $PathValue.Substring(0, 1).ToLower()
+        $argRest = $PathValue.Substring(2) -replace '\\', '/'
+        return "/$argDrive$argRest"
+    }
+
+    return $PathValue
+}
+
+$normalizedArgs = New-Object System.Collections.Generic.List[string]
+$pathValueFlags = @('--sources', '--log', '--spec')
+
+for ($i = 0; $i -lt $args.Count; $i++) {
+    $arg = [string]$args[$i]
+
+    if ($i -eq 0) {
+        $normalizedArgs.Add((Convert-ToMingwPath $arg))
+        continue
+    }
+
+    $normalizedArgs.Add($arg)
+
+    if ($pathValueFlags -contains $arg -and ($i + 1) -lt $args.Count) {
+        $i++
+        $normalizedArgs.Add((Convert-ToMingwPath ([string]$args[$i])))
+    }
+}
+
+# Step 5: Execute and pass through exit code
 # Quote $sddShUnix to handle paths containing spaces correctly.
-& $bash "$sddShUnix" @args
+& $bash "$sddShUnix" $normalizedArgs.ToArray()
 exit $LASTEXITCODE

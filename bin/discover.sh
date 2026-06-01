@@ -31,4 +31,4 @@ fi
 TARGET_DIR="$1"
 shift || true
 
-exec bash "$SCRIPT_DIR/_spec_creator.sh" "$TARGET_DIR" --create-spec "$@"
+exec "${BASH}" "$SCRIPT_DIR/_spec_creator.sh" "$TARGET_DIR" --create-spec "$@"

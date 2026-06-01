@@ -176,7 +176,13 @@ Assessment: [does implementation serve original requirement/constraints?]
 Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE
 
 #### Axis 1 — Spec Plan Coverage
-[For each Plan step: ✅ implemented / ❌ missing / ⚠️ partial]
+Step quality check (before coverage): for each Plan step, verify it meets the granularity contract:
+- ✅ Has explicit file path | ⚠️ Missing file path (vague)
+- ✅ Has specific change description | ⚠️ Vague description (e.g. "add validation")
+- ✅ Has verifiable acceptance condition | ⚠️ Missing acceptance condition
+If any step is ⚠️: note it in the Defect Table as Axis 1 / LOW severity (informational, does not block PASS verdict by itself).
+
+Coverage: for each Plan step: ✅ implemented / ❌ missing / ⚠️ partial
 Finding: FULL | PARTIAL | MISSING
 
 #### Axis 2 — Code Diff Scope

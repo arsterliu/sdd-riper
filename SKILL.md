@@ -39,8 +39,11 @@ echo "HAS_SDD: $HAS_SDD"
 > - `PROJECT_ROOT: <value>` → use this exact path string in all subsequent bash commands
 > 
 > **Always substitute the actual path directly into every command. Never use `$SDD_ROOT` or `$_PROJECT_ROOT` as variable references.**
+>
+> **Windows launcher rule:** on Windows, do not call `bash "<SDD_ROOT>/sdd.sh" ...` directly. Use `& "<SDD_ROOT>/sdd.ps1" ...` instead. On macOS/Linux, keep using `bash "<SDD_ROOT>/sdd.sh" ...`.
 > 
 > ✅ Correct: `bash "C:/Users/liuyl/.config/opencode/skills/sdd-riper/sdd.sh" resume "D:/workspace/myproject"`
+> ✅ Correct on Windows: `& "C:/Users/liuyl/.config/opencode/skills/sdd-riper/sdd.ps1" resume "D:/workspace/myproject"`
 > ❌ Wrong: `bash "$SDD_ROOT/sdd.sh" resume "$_PROJECT_ROOT"`
 
 ## Mode Selection
@@ -51,11 +54,11 @@ SDD-RIPER activated.
 Project: {PROJECT_ROOT}
 Status: {HAS_SDD=yes → "SDD structure found" | HAS_SDD=no → "Not yet initialized"}
 
-{if HAS_SDD=yes → "已检测到 SDD 结构。通常选 B 继续工作流；选 A 会重新初始化（覆盖现有 AI 配置文件，docs 目录保留）。"}
+{if HAS_SDD=yes → "已检测到 SDD 结构。通常应选 B 继续工作流；如需重建或修复 AI 配置，再选 A。A 会重新初始化（覆盖现有 AI 配置文件，docs 目录保留）。"}
 {if HAS_SDD=no → "尚未初始化，建议先选 A 完成初始化，再选 B 开始任务。"}
 
 请选择：
-A) 初始化项目 SDD 结构（默认创建 mydocs/，也可通过 .sdd-config 指定 docs 目录，并生成 AI 配置文件）
+A) 重新初始化 / 修复 SDD 配置（覆盖现有 AI 配置文件；默认 docs 目录为 mydocs/，也可通过 .sdd-config 指定）
 B) 开始或继续 RIPER 工作流任务
 ---
 
@@ -262,6 +265,11 @@ B) 开始或继续 RIPER 工作流任务
   - [ ] Step 1: <file path> — <what to change> — <acceptance condition>
   - [ ] Step 2: ...
   ```
+- **Step Granularity Rule** (from writing-plans):
+  - 每步粒度为 **2–5 分钟的单一动作**；若步骤超过5分钟，拆分为更小步骤
+  - 每步必须包含：① 完整文件路径 ② 具体变更内容（非"加验证"等模糊描述） ③ 验收条件（可运行的命令或可观察的结果）
+  - 若任务涉及 TDD：每个"写测试 → 确认红 → 写实现 → 确认绿"四步各为独立 Plan Step，不合并为单步
+  - Plan 头部建议包含一行 Goal 摘要，供 Execute 阶段快速核对边界
 - **Spec Coverage Gate** (run before requesting Plan Approved):
   > **Micro 模式**：跳过 Coverage Gate，由人工在 Plan Review Gate 中目测覆盖情况。
   Output a Coverage Matrix table. List every requirement and constraint bullet from:
@@ -285,6 +293,21 @@ B) 开始或继续 RIPER 工作流任务
 
 ## Execute Phase Instructions
 - **Goal**: Strict plan implementation
+- **Subagent Routing** (from subagent-driven-development): 在开始执行前，根据 Plan 规模选择执行模式：
+  - **单 Agent 模式**（默认）：Plan ≤ 5 步且改动集中在单一模块 → 直接在当前上下文按步执行
+  - **Subagent 模式**：Plan > 5 步，或跨越 2 个以上模块/目录 → 按如下方式派发：
+    1. 完整读取所有 Plan Steps，创建执行队列
+    2. 每步派发独立 implementer subagent，携带：该步完整文本 + 相关文件路径 + 验收条件（不让 subagent 自己读 plan 文件）
+    3. 实现完成后，派发 **Spec Compliance Reviewer**（检查该步是否满足 Plan 声明的验收条件）；通过后，再派发 **Code Quality Reviewer**；两轮顺序强制，不得并行或跳过
+    4. 某步失败 → 派发 fix subagent 附带具体指令，不在 orchestrator 层直接修（防止上下文污染）
+    5. 全部 Steps 完成后调用 **Completion Verification Gate**（见下文）
+  - **Micro 模式**：始终使用单 Agent 模式，不派发 subagent
+- **TDD Rule** (from test-driven-development — applies when writing production code):
+  - **铁律**：没有失败测试，不得写任何生产代码
+  - 顺序强制：① 写一个失败测试 → 运行并确认它因正确原因失败（RED） → ② 写最少代码使其通过（GREEN，不过度实现） → ③ 重构清理（不新增行为）
+  - 若发现代码是在测试之前写的：**删掉代码重来**，不允许保留为"参考"
+  - 测试使用真实代码；仅在确实无法避免时才用 mock
+  - 以下理由全部无效，不得以此绕过 TDD：太简单了不用测、事后补测试、已手动验证过、时间紧、这次就算了
 - **Rules**:
   - Follow Plan steps in order
   - Record every deviation in Execute Log
@@ -297,10 +320,13 @@ B) 开始或继续 RIPER 工作流任务
    - **BUGFIX loop**:
      1. Before **every** retry, run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-     2. Read the `## DEBUG PROMPT` output, identify Root Cause, and apply the smallest fix that stays within the current Step boundary
-    3. If `debug` is inconclusive, fails, or the required fix crosses the current Step boundary → escalate immediately to `DEVIATED_MAJOR`
-    4. Maximum **3 BUGFIX retries** per defect instance
-    5. If still failing after 3 retries → log `[BUGFIX_ESCALATED]`, stop, and require human intervention
+     2. Read the `## DEBUG PROMPT` output; trace data flow backward to establish Root Cause **before** proposing any fix (from systematic-debugging):
+        - 在每个组件边界加诊断探针，逐层追踪，不跳过任何层级
+        - 找到可工作的参考实现后**完整阅读**（不允许略读），列出每处差异
+        - 一次只改**一个变量**验证一个假设
+     3. Apply the smallest fix that stays within the current Step boundary
+     4. If `debug` is inconclusive, fails, or the required fix crosses the current Step boundary → escalate immediately to `DEVIATED_MAJOR`
+     5. Maximum **3 BUGFIX retries** per defect instance; if still failing after 3 retries → log `[BUGFIX_ESCALATED]`, STOP, and require human intervention — do NOT attempt a 4th retry
   - **BUGFIX status semantics**:
     - `BUGFIX`: a defect was found and fixed within the current Step boundary
     - `BUGFIX_ESCALATED`: the defect could not be resolved autonomously within 3 retries
@@ -321,6 +347,16 @@ B) 开始或继续 RIPER 工作流任务
   ```
   Where `{spec-slug}` = current Spec filename without `.md` (e.g. `v1.1-user-login`). Used for log entry headers only — records go into the Spec, not a separate file.
 - **When complete**: summarize Change Summary + Deviations from Plan. DO NOT auto-advance.
+- **Completion Verification Gate** (from verification-before-completion):
+  - 宣布 Execute 完成前，必须完成以下 5 步，不得跳过：
+    1. 确认能证明完成的命令（测试套件 / linter / 构建命令）
+    2. **新鲜运行**该命令（不使用缓存或之前的输出）
+    3. 读取完整输出，检查 exit code
+    4. 确认输出与声明一致（零失败、零报错）
+    5. 只有上述全部通过，才可输出"完成"
+  - 禁止使用：should、probably、seems to、应该能工作等词
+  - 禁止行为：在验证前表达满意（"Great!"、"Done!"）；依赖 subagent 的成功报告而不自行验证
+  - 没有例外（即使有把握、时间紧、刚改了一行也不行）
 
 ## Review Phase Instructions
 - **Goal**: Verify implementation against Spec. Review is a **judge, not a programmer** — it reads and verdicts. It does NOT fix code in-place.
@@ -401,11 +437,23 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
 
 ## Archive Phase Instructions
 1. **缺陷兜底出口**：若收到缺陷反馈（用户描述问题、报错或不符合预期的行为），**暂停归档**，重新进入 Execute → Review 循环修复后再回到 Archive。不要在 Archive 阶段就地修代码。
-2. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — marks source Spec as `status: archived`, appends summary scaffolding, then moves the file to `archive/`. Note the `[ARCHIVE]` and `[INDEX]` paths in output.
+2. **Pre-Archive Git Gate** (from finishing-a-development-branch):
+   - 运行测试套件，若有失败 → **停止归档**，展示失败清单，不得继续
+   - 确认无未提交的变更（`git status` 干净）
+   - 若测试全部通过，向用户呈现分支处理选项：
+     > 代码已就绪，请选择分支处理方式：
+     > A) 合并回 base branch（本地）
+     > B) 推送并创建 Pull Request
+     > C) 保留分支，暂不处理
+     > D) 丢弃本分支（需手动输入 `discard` 确认）
+   - **← HUMAN GATE**: 等待用户选择后再继续
+   - 选 A/B：merge/push 后再次运行测试验证；选 D：须用户明确输入 `discard`
+   - **Micro 模式**：若任务仅为单文件修复且无独立分支，跳过分支选项，仅确认测试通过即可
+3. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — marks source Spec as `status: archived`, appends summary scaffolding, then moves the file to `archive/`. Note the `[ARCHIVE]` and `[INDEX]` paths in output.
    > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-   > **Micro 模式**：`archive` 命令执行后跳过摘要填充（步骤4-5），直接执行步骤6（Verify）和步骤7（Confirm status）。
-3. **Read** the archive file (the path printed as `[ARCHIVE] ...`).
-4. **Review and enrich** — the archive file is the original Spec with summary sections appended at the bottom. Use Edit tool to:
+   > **Micro 模式**：`archive` 命令执行后跳过摘要填充（步骤5-6），直接执行步骤7（Verify）和步骤8（Confirm status）。
+4. **Read** the archive file (the path printed as `[ARCHIVE] ...`).
+5. **Review and enrich** — the archive file is the original Spec with summary sections appended at the bottom. Use Edit tool to:
    - Replace any remaining `<!-- (未填充) -->` placeholders with real content
    - Enrich summaries where auto-scaffolded content is sparse:
      - `## 目标摘要`: confirm it reflects the actual goal achieved
@@ -413,9 +461,9 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
      - `## 关键约束`: verify constraints and assumptions are accurate
      - `## 坑点与风险`: add any resolved Open Questions and gotchas
    - The existing `## Execute Log`, `## Review Verdict` / `## Review Summary` sections are already in the file from the original Spec — verify they are complete.
-5. **Update `archive/index.md` verdict** — the `archive` command wrote a placeholder verdict row. If the actual Review verdict is now known (e.g. `PASS` / `FAIL` / one-line summary), update that row in `archive/index.md` to reflect it.
-6. **Verify**: confirm the archive file contains no remaining `<!-- (未填充) -->` comments. Show the file.
-7. **Confirm status**: the archive command already set `status: archived` — verify it in the file frontmatter.
+6. **Update `archive/index.md` verdict** — the `archive` command wrote a placeholder verdict row. If the actual Review verdict is now known (e.g. `PASS` / `FAIL` / one-line summary), update that row in `archive/index.md` to reflect it.
+7. **Verify**: confirm the archive file contains no remaining `<!-- (未填充) -->` comments. Show the file.
+8. **Confirm status**: the archive command already set `status: archived` — verify it in the file frontmatter.
 
 ## Completion Status Protocol
 When completing any phase or the full workflow, report status:

@@ -96,7 +96,7 @@ done
 write_project_config "$TARGET_DIR/.sdd-config" "$DOCS_DIR" "$MODE"
 
 # 3. Generate AI configs
-AI_CONFIG_OUTPUT=$(bash "$SCRIPT_DIR/_gen_ai_configs.sh" "$TARGET_DIR" "$MODE" "$FORCE")
+AI_CONFIG_OUTPUT=$("${BASH}" "$SCRIPT_DIR/_gen_ai_configs.sh" "$TARGET_DIR" "$MODE" "$FORCE")
 printf '%s\n' "$AI_CONFIG_OUTPUT"
 AI_CREATED=$(printf '%s\n' "$AI_CONFIG_OUTPUT" | grep -c '^\[CREATE\]' || true)
 AI_SKIPPED=$(printf '%s\n' "$AI_CONFIG_OUTPUT" | grep -c '^\[SKIP\]' || true)

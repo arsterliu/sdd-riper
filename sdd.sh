@@ -56,7 +56,7 @@ shift || true
 case "$subcmd" in
   init|discover|resume|new-codemap|new-projectmap|status|archive|reopen|review-execute|create-codemap|build-context-bundle|debug|create-projectmap)
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    bash "${script_dir}/bin/${subcmd}.sh" "$@"
+    "${BASH}" "${script_dir}/bin/${subcmd}.sh" "$@"
     ;;
   *)
     echo "Unknown command: $subcmd" >&2
