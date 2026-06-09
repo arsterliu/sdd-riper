@@ -221,6 +221,16 @@ B) 开始或继续 RIPER 工作流任务
      - `yes`：读取对应 CodeMap，判断是否仍能正确描述当前模块
      - `no` + 任务涉及陌生或复杂模块：先运行 `create-codemap`，再继续
   > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Requirement Restatement）。
+- **Requirement Review — document-first with gate**（Pre-load 后、Findings 前必做）:
+  - AI 对原始 requirement 做一次完整苏格拉底式审视，**不进行实时一次一题追问**（避免主上下文被 12 turns 的 Q&A 污染）
+  - 6 维度全部分析后，按模板规定格式（维度状态表 / Open Question + Tentative Assumption + Impact-if-wrong / Premise List）写入 Spec `### Requirement Review` 区块
+  - 写入完成后，**触发门禁** `AskUserQuestion`：
+    > Requirement Review identified N open issues (⚠️ M dimensions, ❌ K dimensions).
+    > A) STOP — 我去线下澄清/重定义需求，Spec 保持 draft
+    > B) CONTINUE — 接受当前 Tentative Assumptions，自动复制到 ### Assumptions，进入 Findings
+  - 若所有 6 维度都为 ✅ Clear，可省略门禁直接进入 Findings；但 Premise List 仍要写入
+  - 用户选 STOP → END YOUR TURN，等待用户更新 Spec 后再回到 Research
+  - 用户选 CONTINUE → orchestrator 把 Tentative Assumptions 复制到 `### Assumptions`，然后进入 Findings
 - **Subagent Routing — 多源调研** (from `protocols/subagent-dispatch.md`):
   - When Research requires reading > 3 files or > 500 lines of raw code / docs (typical for unfamiliar modules), **do not read them in the main orchestrator context**. Dispatch one or more subagents per source category:
     - **Codebase Scanner subagent** — greps + reads relevant code files, returns entry points / call chains / external deps (feeds `### Findings`)
@@ -228,7 +238,7 @@ B) 开始或继续 RIPER 工作流任务
     - **CodeMap / Convention Checker subagent** — reads existing CodeMap and project conventions, returns applicable constraints (feeds `### Assumptions`)
   - Each brief MUST paste the current Requirement (from Spec `## Invocation`) and the specific question to investigate. Subagents MUST NOT read the Spec file themselves.
   - Subagents return per Return Schema (`verdict`, `summary ≤ 200 words`, `evidence: [file:line]`). Orchestrator integrates results in main context and writes to Spec `## Research`.
-  - **Requirement Review** (Socratic questioning) and **Requirement Restatement** are NEVER dispatched — they require human dialogue and orchestrator's main synthesis respectively.
+  - **Requirement Review** and **Requirement Restatement** are NEVER dispatched — both are orchestrator's main synthesis (Requirement Review is document-first analysis owned by orchestrator; Restatement is orchestrator's compressed reformulation).
   - **Micro mode**: skip subagent dispatch (Research itself is skipped in micro).
 - **Mandatory output format (4 sections — 按认知层次顺序输出)**:
   1. **Findings** — 先采集原始事实：代码位置、调用链、依赖关系、已确认的行为 → write back to `### Findings`

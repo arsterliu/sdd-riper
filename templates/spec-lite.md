@@ -21,15 +21,21 @@ Lite 模式：适合小改动、轻量 bugfix、熟悉 RIPER 协议的团队。
 
 ## Requirement Review
 <!--
-苏格拉底式追问：不接受需求的字面表述，逐一拆解每个陈述背后的假设。
-追问维度：定义边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 真实目标
+苏格拉底式审视：AI 一次性分析需求，**不实时追问**，把所有发现写入本段，最后门禁决定 STOP / CONTINUE。
 
-操作规则（提问纪律）：
-  - 一次只问一题；"Push once, push again"（追问第二轮才出真信号）
-  - 反对 sycophancy：禁敷衍话术，每次 take a position
-  - Premise Challenge 收口：未显式确认的前提编号列出，让用户逐条 agree/disagree
+分析维度：定义边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 真实目标
 
-结论：列出未被显式回答的问题；有阻碍项时停在此处等待确认。
+输出格式：
+  - 每维度一行 → ✅ Clear / ⚠️ Ambiguous / ❌ Missing
+  - 对 ⚠️/❌：列 Open Question + Tentative Assumption + Impact-if-wrong
+  - Premise List：隐含前提编号（P1/P2/…）+ AI 当前理解
+  - 反对 sycophancy：禁敷衍话术，take a position
+
+门禁（写完触发 AskUserQuestion）：
+  - A) STOP — 需先澄清，Spec 保持 draft
+  - B) CONTINUE — 接受 Tentative Assumptions（复制到 ### Assumptions），进入下阶段
+
+全部 ✅ 时可省略门禁直接进入下阶段，Premise List 仍要写。
 -->
 
 ## Open Questions

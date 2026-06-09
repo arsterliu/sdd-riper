@@ -39,8 +39,9 @@ Spec        = Invocation + Research 收敛后的单一决策链
 
 ### Requirement Review
 <!--
-苏格拉底式追问：不接受需求的字面表述，逐一拆解每个陈述背后的假设。
-追问维度：
+苏格拉底式审视：AI 对需求做一次完整分析，**不进行实时追问**；把所有发现以文档形式写入本区块，最后触发一个门禁让用户决定是否继续。
+
+分析维度（6 项，逐一检查）：
   - 这个词的边界在哪里？（定义不清）
   - 如果 X 发生，期望是什么？（异常路径 / edge case）
   - 这个约束是绝对的还是可商量的？（约束真实性）
@@ -48,13 +49,20 @@ Spec        = Invocation + Research 收敛后的单一决策链
   - 这个需求和已知约束/目标有没有矛盾？（内部冲突）
   - 为什么要这样做？背后的真实问题是什么？（目标验证）
 
-操作规则（提问纪律）：
-  - 一次只问一题，禁止一锅端：每轮 AskUserQuestion 只承载一个维度，等用户回答后再进入下一题
-  - "Push once, push again"：第一轮答案通常是用户事先准备好的话术；至少追问一次（"这个边界在 X 情况下也成立吗？"），逼出未经打磨的真实信号
-  - 反对 sycophancy：禁说"这个方向很有意思"、"有多种思路可考虑"、"也可以这样想"等敷衍话术。每次必须 take a position（"按你这个说法，X 场景会冲突，对吗？"），并说明什么证据能改变 AI 的判断
-  - Premise Challenge 收口：追问完成后，把所有未显式确认的隐含前提编号列出（如 P1/P2/P3），让用户逐条回 agree / disagree / 需要再聊；模糊回答不算结论
+输出格式：
+  1. **维度状态表**：每个维度一行 → ✅ Clear / ⚠️ Ambiguous / ❌ Missing
+  2. **对每个 ⚠️ 或 ❌ 的维度**：列出
+       - Open Question（具体不清的是什么）
+       - Tentative Assumption（AI 当前的暂定理解）
+       - Impact-if-wrong（假设错了会怎样影响后续 Plan/Execute）
+  3. **Premise List**：把从原始需求中识别的隐含前提编号列出（P1/P2/…），每条注明 AI 当前如何理解
+  4. **反对 sycophancy**：禁写"需求很清晰"、"多种可能都可考虑"等敷衍话术；每条结论都要 take a position
 
-结论：列出所有未被显式回答的问题；有阻碍项时停在此处等待确认，不继续后续步骤。
+门禁（写完上面后必须触发，由 orchestrator 用 AskUserQuestion 执行）：
+  - A) **STOP** — 用户需要先线下澄清 / 重新定义；Spec 保持 draft，不进入 Findings
+  - B) **CONTINUE** — 接受当前 Tentative Assumptions（将自动复制到 `### Assumptions` 区块），进入 Findings
+
+全部维度都 ✅ Clear 时，可省略门禁直接进入 Findings，但 Premise List 仍要写。
 -->
 
 ### Findings
