@@ -149,33 +149,25 @@ cat <<EOF
 > Diff source: ${DIFF_SOURCE}
 ${AXIS0_NOTE:-}
 
+> **派发说明** (from protocols/subagent-dispatch.md): 每个 axis 包裹在 <!-- AXIS N BRIEF START/END --> 注释里，可由 orchestrator 用 sed/awk 单独摘取作为 subagent prompt。Final verdict 必须 orchestrator 聚合，不能由单个 axis subagent 越权裁定。
+>
+> **轴角色说明**: Axis 2 是 '[PRIMARY]' — Review 的核心职责，全量 Diff 审计只能在此完成。Axis 0/1/3 是 '[CONFIRMATION]' 安全网。
+
+<!-- AXIS 0 BRIEF START -->
 ### 轴0 — Invocation Integrity [CONFIRMATION]
 Invocation (from Spec):
 ${INVOCATION_CONTENT}
 
+Assessment: 实现是否仍然服务于原始 requirement / constraints？
+Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE
+
+(若作为 subagent 返回：verdict + summary ≤ 200 words + evidence [file:line])
+<!-- AXIS 0 BRIEF END -->
+
+<!-- AXIS 1 BRIEF START -->
 ### 轴1 — Spec Plan Coverage [CONFIRMATION]
 ${PLAN_CONTENT}
 
-### 轴2 — Code Diff Scope [PRIMARY]
-${DIFF_CONTENT}
-
-### 轴3 — Execute Log Fidelity [CONFIRMATION]
-${EXECUTE_LOG}
-
-### 指令
-逐轴分析，输出以下格式：
-
-> **轴角色说明**: Axis 2 是 '[PRIMARY]' — Review 的核心职责，全量 Diff 审计只能在此完成。Axis 0/1/3 是 '[CONFIRMATION]' 安全网。
->
-> ⚠️ **上游门禁失效警告**: 若 Axis 0/1/3 出现 FAIL 判定，在 Verdict 输出中追加：
-> "⚠️ UPSTREAM GATE FAILURE: This Axis [N] failure indicates the corresponding upstream gate (Gate [1/2/3]) did not catch this issue during [Research/Plan/Execute]. Recommend retrospective review of the upstream gate."
-> Verdict 映射: Axis 0 FAIL → FAIL_SPEC | Axis 1 FAIL → FAIL_PLAN | Axis 3 FAIL → FAIL_CODE
-
-#### Axis 0 — Invocation Integrity
-Assessment: [does implementation serve original requirement/constraints?]
-Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE
-
-#### Axis 1 — Spec Plan Coverage
 Step quality check (before coverage): for each Plan step, verify it meets the granularity contract:
 - ✅ Has explicit file path | ⚠️ Missing file path (vague)
 - ✅ Has specific change description | ⚠️ Vague description (e.g. "add validation")
@@ -185,13 +177,34 @@ If any step is ⚠️: note it in the Defect Table as Axis 1 / LOW severity (inf
 Coverage: for each Plan step: ✅ implemented / ❌ missing / ⚠️ partial
 Finding: FULL | PARTIAL | MISSING
 
-#### Axis 2 — Code Diff Scope
+(若作为 subagent 返回：verdict + summary + per-step coverage list)
+<!-- AXIS 1 BRIEF END -->
+
+<!-- AXIS 2 BRIEF START -->
+### 轴2 — Code Diff Scope [PRIMARY]
+${DIFF_CONTENT}
+
 [Within-Plan changes vs. out-of-Plan changes]
 Finding: IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR
 
-#### Axis 3 — Execute Log Fidelity
+(若作为 subagent 返回：verdict + summary ≤ 200 words + evidence [file:line]；PRIMARY 权重最高)
+<!-- AXIS 2 BRIEF END -->
+
+<!-- AXIS 3 BRIEF START -->
+### 轴3 — Execute Log Fidelity [CONFIRMATION]
+${EXECUTE_LOG}
+
 [Log deviations vs. actual code — match?]
 Finding: FAITHFUL | DISCREPANCY
+
+(若作为 subagent 返回：verdict + summary + evidence)
+<!-- AXIS 3 BRIEF END -->
+
+### Aggregation Instructions (orchestrator only — DO NOT delegate)
+
+> ⚠️ **上游门禁失效警告**: 若 Axis 0/1/3 出现 FAIL 判定，在 Verdict 输出中追加：
+> "⚠️ UPSTREAM GATE FAILURE: This Axis [N] failure indicates the corresponding upstream gate (Gate [1/2/3]) did not catch this issue during [Research/Plan/Execute]. Recommend retrospective review of the upstream gate."
+> Verdict 映射: Axis 0 FAIL → FAIL_SPEC | Axis 1 FAIL → FAIL_PLAN | Axis 3 FAIL → FAIL_CODE
 
 #### Defect Table (if any finding is not ALIGNED/FULL/IN_SCOPE/FAITHFUL)
 | Defect | Axis | Severity | Rollback Target |
@@ -202,6 +215,8 @@ Finding: FAITHFUL | DISCREPANCY
 PASS | PASS_WITH_CONCERNS | FAIL_CODE | FAIL_PLAN | FAIL_SPEC
 
 Verdict precedence (if multiple failures): FAIL_SPEC > FAIL_PLAN > FAIL_CODE.
+
+If subagents are dispatched per axis: collect all 4 returns, then apply precedence. For PRIMARY (Axis 2), the orchestrator MUST read evidence pointers itself before issuing the final verdict (Trust But Verify, see protocols/subagent-dispatch.md).
 
 #### Rollback Instruction (if FAIL)
 - FAIL_CODE → Developer reopens Execute. Re-execute steps: [list step numbers]

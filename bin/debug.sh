@@ -97,6 +97,14 @@ ${EXECUTE_LOG}
 ### AI 指令
 请基于上述三项输入，定位根本原因（Root Cause），提出最小修复方案，并说明是否需要回退到 Plan 阶段。
 禁止在未明确 Root Cause 的情况下提出修复方案。
+若作为 subagent 被派发（见 protocols/subagent-dispatch.md），按下方 Expected Return Schema 返回结构化结论；若直接在 orchestrator 主上下文执行，schema 可省略，但仍须先确立 Root Cause。
+
+### Expected Return Schema (when invoked as subagent)
+verdict: ROOT_CAUSE_FOUND | NEEDS_MORE_PROBES | NEEDS_HUMAN
+root_cause: <≤ 200 words 的根因描述>
+fix_points:
+  - <file:line — 需要修改的位置与原因>
+recommended_patch: <optional, 最小修复 diff>
 EOF
 
 exit 0
