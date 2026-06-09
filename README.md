@@ -179,18 +179,18 @@ status: draft
 
 # User Login Spec
 
-## ## Invocation
+## Invocation
 - **Requirement**: 用户可以通过邮箱和密码登录
 - **Goal**: 完成安全的登录流程
 - **Constraints**: 不引入新依赖
 
-## ## Summary
+## Summary
 当前阶段: Research
 目标: 实现邮箱+密码登录功能
 关键约束: 使用现有 AuthService，不引入新依赖
 最新进展: 刚创建 Spec，等待 AI 填写 Research Findings
 
-## ## Research
+## Research
 ### Requirement Review
 （AI 在此审查需求文本：歧义点、边界缺口、隐含假设、约束冲突；有阻碍项时先列出等待确认）
 
@@ -206,17 +206,17 @@ status: draft
 ### Requirement Restatement
 （AI 用自己的话复述需求，确保理解一致）
 
-## ## Innovate Options
+## Innovate Options
 （AI 在此列出 ≥2 个方案并对比）
 
-## ## Plan
+## Plan
 - [ ] Step 1: <文件路径> — <做什么> — <验收条件>
 > Plan Approved By: ___ / At: ___
 
-## ## Execute Log
+## Execute Log
 （每个执行步骤的记录在此追加）
 
-## ## Review Verdict
+## Review Verdict
 （四轴审查结论在此填写）
 ```
 
@@ -529,7 +529,7 @@ DOCS_DIR="mydocs"
 | Coverage Gate | ✅ 全量 | ⚠️ 仅 Invocation | ❌ |
 | Human Gate（Plan 审批） | ✅ | ✅ | ✅ |
 | Execute Log | ✅ | ✅ | ✅ |
-| Review 四轴 | ✅ | ⚠️ Axis1+2 | ⚠️ 仅 Axis2 |
+| Review 四轴 | ✅ | ✅ | ⚠️ 仅 Axis2 |
 | Subagent dispatch（上下文卫生） | ✅ | ✅ | ❌ |
 | debug-before-retry | ✅ | ✅ | ✅ |
 | Archive 摘要 | ✅ 四块 | ⚠️ 一句话 | ❌ 可省 |
@@ -595,6 +595,10 @@ DOCS_DIR="mydocs"
 - `discover`：开始一个新任务，创建首个 Spec
 - `resume`：恢复已有任务，不创建新 Spec
 
+### CLI 不强制 `--requirement` 等字段非空，Skill 会追问吗？
+
+CLI 只做参数存在性校验，不强制业务字段（`--requirement` / `--goal` / `--constraints` 等）非空。空字段会在 Spec 文件里留下 `<!-- 核心目标 -->` 占位符，由 AI 在后续阶段补写。**如果走 OpenCode Skill 路径**（路径 A），Setup Mode 的 AskUserQuestion 会要求一次给齐 5 项（task name / requirement / goal / constraints / mode），少一项会重新追问而不是推断；Workflow Mode 创建新任务时同理。CLI 路径（路径 B）则允许字段分次补齐，由 orchestrator 在每轮中决定是否继续。
+
 ### 为什么归档后修缺陷不能直接再 `discover`？
 
 因为那样会丢失归档任务的上下文链路。`reopen` 的目的就是基于已完成任务的归档材料创建 patch Spec，把修复任务挂回原来的生命周期上。
@@ -629,7 +633,7 @@ Skill 会在每次创建 Spec 前主动询问你是否有这类材料，选"有"
 | **Phase / PHASE_HINT** | 当前所处的工作阶段（Research/Innovate/Plan/Execute/Review/Archive）。`resume` 命令会根据 Spec 内容推断当前阶段，给出下一步建议。 |
 | **Execute Log** | 执行日志，位于 Spec 的 `## Execute Log` 区块。每个步骤的执行结果都记录在此，可追溯、可审计。 |
 | **四轴 Review** | 四维度质量审查：轴0=需求对齐、轴1=计划覆盖、轴2=代码边界、轴3=日志一致性。轴2是主审查，轴0/1/3是安全网。 |
-| **Subagent** | 一次性的"消耗即焚"读取代理。orchestrator 把读取量大或迭代探查的工作派给子 agent，仅接收压缩后的结论（verdict + summary + evidence pointer）。子 agent 不读 Spec、不写文件，仅返回 payload。详见 `protocols/subagent-dispatch.md`。 |
+| **Subagent** | 一次性的**消耗即焚**读取代理。orchestrator 把读取量大或迭代探查的工作派给子 agent，仅接收压缩后的结论（verdict + summary + evidence pointer）。子 agent 不读 Spec、不写文件，仅返回 payload。详见 `protocols/subagent-dispatch.md` 与 `INTEGRATIONS.md` 的"Subagent Dispatch Contract Boundary"小节。 |
 | **上下文卫生 (Context Hygiene)** | Subagent 派发的核心设计原则：让 orchestrator 主上下文保持高信号密度，把噪声（debug 调查、Research 代码扫描、Review 四轴）下沉到子 agent。并行是副产物，不是目标。 |
 | **RIPER** | Research → Innovate → Plan → Execute → Review 的首字母缩写，SDD-RIPER 的核心流程。 |
 | **归档 (Archive)** | 任务完成后，将 Spec 移入 `archive/` 目录并追加摘要，保留完整上下文供后续查阅或 reopen。 |

@@ -47,7 +47,8 @@
 - **核心研发 (Senior)**：
   - 使用 **Standard** 模式运行完整 RIPER 流程。
   - 负责编写和维护 `CodeMap` 和 `ProjectMap`。
-  - 作为 Reviewer 审批其他成员的 Plan。
+  - 作为 Reviewer 审批其他成员的 Plan，并对 Review 四轴中 `Axis 2`（Code Diff Scope）亲自跑 diff 审计，不下放给 subagent。
+  - 在 `## Review Verdict` / `## Review Summary` 区块追加 Review Pass N + ISO-8601 timestamp，不覆盖历史 Pass。
 
 - **初级研发 / 低经验同学**：
   - 建议先从 **Lite** 模式入手，培养“思考后再动手”的习惯。
@@ -110,15 +111,19 @@
 
 2. **坑：把 context 当作 requirement 用**
    - *症结*：把旧的文档丢给 AI 说“按这个改”，结果 AI 把旧文档里的错误也复现了。
-   - *解法*：强制要求在 Spec 中明确写出 `Requirement Restatement`。
+   - *解法*：强制要求在 Spec 中明确写出 `Requirement Restatement`，并先用 Requirement Review（document-first with gate）暴露歧义点再进入 Findings。
+
+3. **坑：Requirement Review 走成实时一次一题追问**
+   - *症结*：老协议默认"Q&A 模式"，但每次追问都污染主上下文，对长任务尤其痛。
+   - *解法*：让 AI 一次性把 6 维度苏格拉底式审视全部写入 `### Requirement Review` 区块，再用 AskUserQuestion 触发 STOP / CONTINUE 门禁。STOP 走线下澄清，CONTINUE 把 Tentative Assumptions 自动复制到 `### Assumptions`。
 
 3. **坑：status 有 WARN 就 Panic**
    - *症略*：追求 status 全 OK，导致在 Spec 里填废话。
    - *解法*：强调 status 仅供提示。真正的质量门禁在人，不在工具。
 
 4. **坑：Archive 简单复制 Spec 原文**
-   - *症结*：为了完成任务而归档。
-   - *解法*：强制区分 `_human.md` (讲故事/讲决策) 和 `_llm.md` (堆数据/堆链路)。
+   - *症结*：为了完成任务而归档，把 Spec 原文搬进 `archive/` 完事，AI 之后无法快速提取关键决策。
+   - *解法*：`sdd archive` 会在原 Spec 末尾追加四个 summary section（目标摘要 / 最终方案 / 关键约束 / 坑点与风险），由开发者 Edit 填实后再 `resume` 验证；不要让 `<!-- (未填充) -->` 占位符遗留。归档的产物是一份**带决策密度的 Spec**，不是 Spec 的副本。
 
 5. **坑：Windows 路径兼容性问题**
    - *症结*：在 PowerShell 下跑脚本，导致路径报错。

@@ -120,6 +120,11 @@ if [[ -d "$SPECS_DIR" ]]; then
       if grep -q "^## Open Questions" "$spec" 2>/dev/null; then
         if _sdd_section_is_empty "$spec" "Open Questions"; then local_warn_research=1; fi
       fi
+    elif [[ "$SPEC_MODE" == "micro" ]]; then
+      # Micro: Research / Innovate are skipped by design. Only ## Invocation and Plan must have content.
+      if grep -q "^## Invocation" "$spec" 2>/dev/null; then
+        if _sdd_section_is_empty "$spec" "Invocation"; then local_warn_research=1; fi
+      fi
     else
       # Standard: ## Research must have content in ### subsections
       if grep -q "^## Research" "$spec" 2>/dev/null; then

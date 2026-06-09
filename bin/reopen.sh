@@ -131,7 +131,7 @@ fi
 new_version="$source_version"
 new_spec="$SPECS_DIR/${new_version}-${task_slug}.md"
 if [[ -f "$new_spec" ]]; then
-  echo "[ERROR] Spec '${new_version}-${task_slug}.md' already exists in specs/. Run 'sdd.sh resume \"$PROJECT_DIR\"' to continue it." >&2
+  echo "[ERROR] Open patch spec already exists: '${new_version}-${task_slug}.md'. Run 'sdd.sh resume \"$PROJECT_DIR\"' to continue it." >&2
   exit 1
 fi
 today_iso="$(date +%Y-%m-%d)"

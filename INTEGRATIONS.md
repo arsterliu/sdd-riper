@@ -45,6 +45,30 @@ this order:
 The AI does not need any special protocol to switch between these — it picks
 the highest-priority option available in its current environment.
 
+## Subagent Dispatch Contract Boundary
+
+The Subagent routing touchpoint above resolves to `subagent-driven-development` from
+superpowers, but **the authoritative dispatch contract for SDD-RIPER is
+`protocols/subagent-dispatch.md`**, not the vendored skill. The boundary is:
+
+- `vendored/superpowers/subagent-driven-development/SKILL.md` — high-level
+  methodology (when to dispatch, subagent lifecycle, review steps). Load for
+  conceptual grounding.
+- `protocols/subagent-dispatch.md` — SDD-RIPER-specific contract. Defines the
+  **brief schema** (task / spec_excerpts / files_to_read / return_schema /
+  constraints), the **return schema** (verdict / summary ≤200 words / evidence
+  pointers / recommendations), the **three constraints** (brief is self-sufficient,
+  no file writes, compressed return), and the **three Trust But Verify
+  exceptions** (Completion Verification Gate / Plan Approval Gate / Final Review
+  Verdict — all owned by orchestrator).
+
+If the AI follows the resolution order in the table above and reads only the
+vendored skill, it will miss the SDD-RIPER-specific brief fields and may
+attempt to read the Spec file itself (violating "brief is self-sufficient") or
+write to Spec (violating "no file writes"). Always read
+`protocols/subagent-dispatch.md` before dispatching, regardless of which
+superpowers layer resolved.
+
 ## Coexistence with Global Superpowers
 
 Users who already have `obra/superpowers` installed globally are NOT forced to
