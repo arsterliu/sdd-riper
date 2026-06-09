@@ -46,6 +46,8 @@ echo "HAS_SDD: $HAS_SDD"
 > ✅ Correct on Windows: `& "C:/Users/liuyl/.config/opencode/skills/sdd-riper/sdd.ps1" resume "D:/workspace/myproject"`
 > ❌ Wrong: `bash "$SDD_ROOT/sdd.sh" resume "$_PROJECT_ROOT"`
 
+> **Superpowers integration**: See `INTEGRATIONS.md` for the SDD ↔ superpowers integration map. The 6 inlined rules below (Step Granularity / Subagent Routing / TDD / Debug / Completion Verification / Pre-Archive Git Gate) are anchored to vendored skills under `vendored/superpowers/`; the inlined text is a fallback summary when neither global nor vendored skill is reachable.
+
 ## Mode Selection
 After the preamble, output the following question in your response (as plain text, no tool call needed) and then END YOUR TURN immediately — do NOT proceed further until the user replies:
 
@@ -219,6 +221,15 @@ B) 开始或继续 RIPER 工作流任务
      - `yes`：读取对应 CodeMap，判断是否仍能正确描述当前模块
      - `no` + 任务涉及陌生或复杂模块：先运行 `create-codemap`，再继续
   > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Requirement Restatement）。
+- **Subagent Routing — 多源调研** (from `protocols/subagent-dispatch.md`):
+  - When Research requires reading > 3 files or > 500 lines of raw code / docs (typical for unfamiliar modules), **do not read them in the main orchestrator context**. Dispatch one or more subagents per source category:
+    - **Codebase Scanner subagent** — greps + reads relevant code files, returns entry points / call chains / external deps (feeds `### Findings`)
+    - **Archive History Reader subagent** — reads related archived specs in `<docs-root>/archive/`, returns historical decisions and known gotchas (feeds `### Findings` and `### Open Questions`)
+    - **CodeMap / Convention Checker subagent** — reads existing CodeMap and project conventions, returns applicable constraints (feeds `### Assumptions`)
+  - Each brief MUST paste the current Requirement (from Spec `## Invocation`) and the specific question to investigate. Subagents MUST NOT read the Spec file themselves.
+  - Subagents return per Return Schema (`verdict`, `summary ≤ 200 words`, `evidence: [file:line]`). Orchestrator integrates results in main context and writes to Spec `## Research`.
+  - **Requirement Review** (Socratic questioning) and **Requirement Restatement** are NEVER dispatched — they require human dialogue and orchestrator's main synthesis respectively.
+  - **Micro mode**: skip subagent dispatch (Research itself is skipped in micro).
 - **Mandatory output format (4 sections — 按认知层次顺序输出)**:
   1. **Findings** — 先采集原始事实：代码位置、调用链、依赖关系、已确认的行为 → write back to `### Findings`
   2. **Open Questions** — 从 Findings 中识别出的未知，阻碍进一步判断的疑点 → write back to `### Open Questions`
@@ -265,7 +276,7 @@ B) 开始或继续 RIPER 工作流任务
   - [ ] Step 1: <file path> — <what to change> — <acceptance condition>
   - [ ] Step 2: ...
   ```
-- **Step Granularity Rule** (from writing-plans):
+- **Step Granularity Rule** (see `vendored/superpowers/writing-plans/SKILL.md` — read on demand; prefer global skill if loaded):
   - 每步粒度为 **2–5 分钟的单一动作**；若步骤超过5分钟，拆分为更小步骤
   - 每步必须包含：① 完整文件路径 ② 具体变更内容（非"加验证"等模糊描述） ③ 验收条件（可运行的命令或可观察的结果）
   - 若任务涉及 TDD：每个"写测试 → 确认红 → 写实现 → 确认绿"四步各为独立 Plan Step，不合并为单步
@@ -293,16 +304,16 @@ B) 开始或继续 RIPER 工作流任务
 
 ## Execute Phase Instructions
 - **Goal**: Strict plan implementation
-- **Subagent Routing** (from subagent-driven-development): 在开始执行前，根据 Plan 规模选择执行模式：
-  - **单 Agent 模式**（默认）：Plan ≤ 5 步且改动集中在单一模块 → 直接在当前上下文按步执行
-  - **Subagent 模式**：Plan > 5 步，或跨越 2 个以上模块/目录 → 按如下方式派发：
+- **Subagent Routing** (see `vendored/superpowers/subagent-driven-development/SKILL.md` and `protocols/subagent-dispatch.md` — read on demand; prefer global skill if loaded): 在开始执行前，根据 Plan 规模或上下文污染风险选择执行模式：
+  - **单 Agent 模式**（默认）：Plan ≤ 5 步且改动集中在单一模块 且 单步实现读取量 ≤ 3 文件 / 500 行 → 直接在当前上下文按步执行
+  - **Subagent 模式**：满足以下任一条件即派发 → Plan > 5 步；或跨越 2 个以上模块/目录；或某步实现需读取 > 3 文件或 > 500 行（上下文污染风险）。按如下方式派发：
     1. 完整读取所有 Plan Steps，创建执行队列
     2. 每步派发独立 implementer subagent，携带：该步完整文本 + 相关文件路径 + 验收条件（不让 subagent 自己读 plan 文件）
     3. 实现完成后，派发 **Spec Compliance Reviewer**（检查该步是否满足 Plan 声明的验收条件）；通过后，再派发 **Code Quality Reviewer**；两轮顺序强制，不得并行或跳过
     4. 某步失败 → 派发 fix subagent 附带具体指令，不在 orchestrator 层直接修（防止上下文污染）
     5. 全部 Steps 完成后调用 **Completion Verification Gate**（见下文）
   - **Micro 模式**：始终使用单 Agent 模式，不派发 subagent
-- **TDD Rule** (from test-driven-development — applies when writing production code):
+- **TDD Rule** (see `vendored/superpowers/test-driven-development/SKILL.md` — read on demand; prefer global skill if loaded; applies when writing production code):
   - **铁律**：没有失败测试，不得写任何生产代码
   - 顺序强制：① 写一个失败测试 → 运行并确认它因正确原因失败（RED） → ② 写最少代码使其通过（GREEN，不过度实现） → ③ 重构清理（不新增行为）
   - 若发现代码是在测试之前写的：**删掉代码重来**，不允许保留为"参考"
@@ -317,10 +328,20 @@ B) 开始或继续 RIPER 工作流任务
     - **Enhancement / New Requirement**: request changes original task intent, expands archived scope, or adds new acceptance criteria → MUST NOT be handled via `BUGFIX`; return to Research / Plan or start a new task
   - **BUGFIX entry**: if the current Step hits a runtime error, assertion failure, test failure, or other defect while the Step goal remains valid, enter `BUGFIX`
   - **BUGFIX Step Scope Rule**: every Plan Step must explicitly declare file paths, directory boundaries, or module boundaries; `BUGFIX` may modify only that declared boundary. If the Step lacks an explicit boundary, the Plan is incomplete → return to Plan before continuing.
+   - **Subagent Routing — Debug Investigation** (from `protocols/subagent-dispatch.md`):
+     - Each `debug` invocation in the BUGFIX loop reads DEBUG PROMPT (error info + ≤100 lines log + Execute Log excerpt) and then performs deep investigation (probing, reading reference implementations, isolating variables). This is **high context pollution**, multiplied by up to 3 retries.
+     - **Dispatch a Debug Investigator subagent** instead of running the investigation in the main orchestrator context. Brief contents (paste, do not reference paths):
+       - Full DEBUG PROMPT text (from `sdd.sh debug` output)
+       - Current Step boundary (file paths / directory / module from Plan)
+       - Failed assertion or error message summary
+       - Spec excerpts of the current Plan Step and last 2-3 Execute Log entries
+     - Subagent returns per schema: `verdict: ROOT_CAUSE_FOUND | NEEDS_MORE_PROBES | NEEDS_HUMAN`, root cause (≤ 200 words), `fix_points: [file:line]`, optional minimal patch.
+     - **Orchestrator verifies** the fix_points by reading them itself before applying any fix, then decides: apply fix → next BUGFIX step | escalate `DEVIATED_MAJOR` | escalate `BUGFIX_ESCALATED`.
+     - **Micro mode**: skip subagent dispatch; run debug investigation in main context.
    - **BUGFIX loop**:
      1. Before **every** retry, run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-     2. Read the `## DEBUG PROMPT` output; trace data flow backward to establish Root Cause **before** proposing any fix (from systematic-debugging):
+     2. Read the `## DEBUG PROMPT` output; trace data flow backward to establish Root Cause **before** proposing any fix (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer global skill if loaded):
         - 在每个组件边界加诊断探针，逐层追踪，不跳过任何层级
         - 找到可工作的参考实现后**完整阅读**（不允许略读），列出每处差异
         - 一次只改**一个变量**验证一个假设
@@ -347,7 +368,7 @@ B) 开始或继续 RIPER 工作流任务
   ```
   Where `{spec-slug}` = current Spec filename without `.md` (e.g. `v1.1-user-login`). Used for log entry headers only — records go into the Spec, not a separate file.
 - **When complete**: summarize Change Summary + Deviations from Plan. DO NOT auto-advance.
-- **Completion Verification Gate** (from verification-before-completion):
+- **Completion Verification Gate** (see `vendored/superpowers/verification-before-completion/SKILL.md` — read on demand; prefer global skill if loaded):
   - 宣布 Execute 完成前，必须完成以下 5 步，不得跳过：
     1. 确认能证明完成的命令（测试套件 / linter / 构建命令）
     2. **新鲜运行**该命令（不使用缓存或之前的输出）
@@ -367,6 +388,20 @@ B) 开始或继续 RIPER 工作流任务
   - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
 - **Trigger**: Run `bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>"`
   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
+- **Subagent Routing — 四轴独立派发** (from `protocols/subagent-dispatch.md`):
+  - The REVIEW EXECUTE PROMPT from `review-execute` can ingest up to 780 lines of structured content (Invocation 80 + Plan 100 + Diff ≤500 + Execute Log 100). **Do not process four axes in a single orchestrator pass**.
+  - Dispatch one subagent per axis (briefs are extractable from the prompt's `<!-- AXIS N BRIEF START/END -->` blocks):
+    - **Axis 0 Investigator** — brief: Invocation excerpts + diff summary. Returns `ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE`.
+    - **Axis 1 Investigator** — brief: Plan steps + diff summary. Returns `FULL | PARTIAL | MISSING` + per-step coverage list.
+    - **Axis 2 Investigator** `[PRIMARY]` — brief: full diff + declared Plan boundaries. Returns `IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR`.
+    - **Axis 3 Investigator** — brief: Execute Log + diff summary. Returns `FAITHFUL | DISCREPANCY`.
+  - The four briefs are independent → may dispatch in parallel; this is a side benefit, not the goal.
+  - **Orchestrator MUST own the final verdict**:
+    1. Collect all four axis findings.
+    2. Apply verdict precedence: FAIL_SPEC > FAIL_PLAN > FAIL_CODE.
+    3. For PRIMARY (Axis 2), read evidence pointers itself to confirm the finding before issuing verdict.
+    4. Write final verdict to Spec `## Review Verdict` (standard) / `## Review Summary` (lite). No axis subagent writes Spec.
+  - **Micro mode**: only Axis 2 is run, so subagent dispatch is optional (single-agent execution is fine).
 - **Mandatory 4-axis output format**:
   ```markdown
   ## Review Report (Pass N — YYYY-MM-DDTHH:MM:SSZ)
@@ -426,7 +461,7 @@ Verdict mapping for upstream FAIL:
 
 #### FAIL_CODE Auto-Remediation Loop
 When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execute phase (targeting only the failed steps identified in the verdict), then re-runs Review:
-1. **Before each retry**: run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" --error "<FAIL_CODE finding summary>"` and read the Debug Prompt output. Do NOT retry Execute without first establishing Root Cause via `debug`.
+1. **Before each retry**: run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" --error "<FAIL_CODE finding summary>"` and read the Debug Prompt output. Do NOT retry Execute without first establishing Root Cause via `debug`. The investigation itself should be dispatched to a **Debug Investigator subagent** per `protocols/subagent-dispatch.md` to preserve orchestrator context (skip dispatch in Micro mode).
    > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
 2. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
 3. After Execute completes the fix, Review runs again (new Pass N+1)
@@ -437,7 +472,7 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
 
 ## Archive Phase Instructions
 1. **缺陷兜底出口**：若收到缺陷反馈（用户描述问题、报错或不符合预期的行为），**暂停归档**，重新进入 Execute → Review 循环修复后再回到 Archive。不要在 Archive 阶段就地修代码。
-2. **Pre-Archive Git Gate** (from finishing-a-development-branch):
+2. **Pre-Archive Git Gate** (see `vendored/superpowers/finishing-a-development-branch/SKILL.md` — read on demand; prefer global skill if loaded):
    - 运行测试套件，若有失败 → **停止归档**，展示失败清单，不得继续
    - 确认无未提交的变更（`git status` 干净）
    - 若测试全部通过，向用户呈现分支处理选项：

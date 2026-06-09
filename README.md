@@ -367,6 +367,36 @@ Execute 阶段有两条执行规则：
 
 这里说的是**任务进行中**的修复重试；任务已 `archive` 完成后再发现缺陷，改用 `reopen` 创建 patch Spec。
 
+### Subagent 上下文卫生
+
+子 agent 在 SDD-RIPER 中**不是为并行**，而是为防止主 orchestrator 上下文腐朽：把读取量大、噪声多的工作（如 debug 调查、Research 代码扫描、Review 四轴）派给一次性子 agent 吸收，主上下文只接收压缩后的结论（verdict + summary + evidence pointer）。
+
+四个高污染阶段当前已纳入派发：
+
+- **Debug 调查**（BUGFIX loop / FAIL_CODE 重试）— Debug Investigator subagent，返回 root cause + fix_points
+- **Research 代码扫描** — Codebase Scanner / Archive History Reader / Convention Checker，返回 Findings 结论
+- **Review 四轴** — 四个 Axis Investigator 各自独立，orchestrator 聚合并自下 final verdict
+- **Execute 大改** — 单步实现需读 > 3 文件或 > 500 行时也走 subagent
+
+派发约定与例外详见 `protocols/subagent-dispatch.md`。orchestrator 永远自己跑三个关键 gate：Completion Verification、Plan Approval、Final Review verdict — 这是 Trust But Verify 原则，子 agent 的成功报告不能替代亲自验证。
+
+### Superpowers Vendoring
+
+SDD-RIPER 把 6 个来自 [obra/superpowers](https://github.com/obra/superpowers) 的方法论 skill **物理 vendor** 到 `vendored/superpowers/` 目录，作为执行质量层的副本。承担的契约关系是：**SDD-RIPER 提供工作流契约**（阶段、门禁、审计），**superpowers 提供关键节点的执行质量**（TDD 怎么写好、debug 怎么定位根因、verification 怎么真验完、等等）。
+
+6 个 skill 与 SDD 触点对应：
+
+- `writing-plans` → Plan > Step Granularity Rule
+- `subagent-driven-development` → Execute > Subagent Routing
+- `test-driven-development` → Execute > TDD Rule
+- `systematic-debugging` → Execute > BUGFIX loop
+- `verification-before-completion` → Execute > Completion Verification Gate
+- `finishing-a-development-branch` → Archive > Pre-Archive Git Gate
+
+**Fallback 顺序**：编辑器若已全局加载 superpowers → 直接 invoke；否则读 `vendored/superpowers/<skill>/SKILL.md`；最后才用 `SKILL.md` 里的内联摘要。详见 `INTEGRATIONS.md`（触点索引）与 `vendored/superpowers/SYNC.md`（维护手册）。
+
+vendored 内容遵循上游 MIT license，原 LICENSE 副本保留在 `vendored/superpowers/LICENSE`。
+
 ### Archive / Reopen：闭环，而不是失忆重开
 
 Spec 的状态机是：
@@ -500,6 +530,7 @@ DOCS_DIR="mydocs"
 | Human Gate（Plan 审批） | ✅ | ✅ | ✅ |
 | Execute Log | ✅ | ✅ | ✅ |
 | Review 四轴 | ✅ | ⚠️ Axis1+2 | ⚠️ 仅 Axis2 |
+| Subagent dispatch（上下文卫生） | ✅ | ✅ | ❌ |
 | debug-before-retry | ✅ | ✅ | ✅ |
 | Archive 摘要 | ✅ 四块 | ⚠️ 一句话 | ❌ 可省 |
 
@@ -594,6 +625,8 @@ Skill 会在每次创建 Spec 前主动询问你是否有这类材料，选"有"
 | **Phase / PHASE_HINT** | 当前所处的工作阶段（Research/Innovate/Plan/Execute/Review/Archive）。`resume` 命令会根据 Spec 内容推断当前阶段，给出下一步建议。 |
 | **Execute Log** | 执行日志，位于 Spec 的 `## Execute Log` 区块。每个步骤的执行结果都记录在此，可追溯、可审计。 |
 | **四轴 Review** | 四维度质量审查：轴0=需求对齐、轴1=计划覆盖、轴2=代码边界、轴3=日志一致性。轴2是主审查，轴0/1/3是安全网。 |
+| **Subagent** | 一次性的"消耗即焚"读取代理。orchestrator 把读取量大或迭代探查的工作派给子 agent，仅接收压缩后的结论（verdict + summary + evidence pointer）。子 agent 不读 Spec、不写文件，仅返回 payload。详见 `protocols/subagent-dispatch.md`。 |
+| **上下文卫生 (Context Hygiene)** | Subagent 派发的核心设计原则：让 orchestrator 主上下文保持高信号密度，把噪声（debug 调查、Research 代码扫描、Review 四轴）下沉到子 agent。并行是副产物，不是目标。 |
 | **RIPER** | Research → Innovate → Plan → Execute → Review 的首字母缩写，SDD-RIPER 的核心流程。 |
 | **归档 (Archive)** | 任务完成后，将 Spec 移入 `archive/` 目录并追加摘要，保留完整上下文供后续查阅或 reopen。 |
 
