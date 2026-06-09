@@ -216,18 +216,15 @@ ${SPEC_OUT}
 - Context（背景）: ${CONTEXT_TEXT:-"(待填充)"}
 
 在 Spec Research 区块中，严格按顺序执行：
-0. **Requirement Review（先于代码调研，苏格拉底式追问）**：不接受需求的字面表述，逐一拆解每个陈述背后的假设：
-   - 这个词的边界在哪里？（定义不清）
-   - 如果 X 发生，期望是什么？（异常路径 / edge case）
-   - 这个约束是绝对的还是可商量的？（约束真实性）
-   - 谁来判断"完成"？标准是什么？（验收标准缺失）
-   - 这个需求和已知约束 / 目标有没有矛盾？（内部冲突）
-   - 为什么要这样做？背后的真实问题是什么？（目标验证）
-   - **有任何未被显式回答的问题，停在此处列出并等待确认，不继续后续步骤**
+0. **Requirement Review（document-first with gate）**：一次性完成 6 维度苏格拉底式审视，把所有发现按格式写入 Spec `### Requirement Review` 区块，**不要实时一次一题追问**（避免主上下文被 Q&A 污染）：
+   - 6 维度（逐一检查）：边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 目标验证
+   - 输出格式：① 维度状态表（每行 ✅/⚠️/❌） ② 对 ⚠️/❌ 列 Open Question + Tentative Assumption + Impact-if-wrong ③ Premise List（隐含前提编号 P1/P2/…）
+   - 写完后**触发门禁** AskUserQuestion：选择 A) STOP（用户线下澄清，Spec 保持 draft） 或 B) CONTINUE（接受 Tentative Assumptions，复制到 ### Assumptions 区块，进入 Findings）
+   - 若 6 维度全 ✅ Clear，可省略门禁直接进入 Findings，但 Premise List 仍要写
 1. 采集 Findings（代码位置 / 调用链 / 依赖关系）
 2. 从 Findings 识别 2-5 个技术 Open Questions
-3. 将 constraints 记录到 Assumptions 区块
-4. 最后基于以上三项写 Requirement Restatement
+3. 将 constraints 与 Tentative Assumptions 记录到 Assumptions 区块
+4. 最后基于以上三项写 Requirement Restatement（首轮为基准版本，后续迭代追加 Revised — Round N，不覆盖）
 
 若当前任务涉及陌生或复杂模块，请在进入深入 Research 前执行以下检查：
 - 先查看 mydocs/codemap/ 是否已有对应模块的 CodeMap，已有则优先复用

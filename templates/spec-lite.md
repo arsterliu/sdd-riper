@@ -10,6 +10,9 @@ context-source: ""
 <!--
 Lite 模式：适合小改动、轻量 bugfix、熟悉 RIPER 协议的团队。
 所有门禁规则与 Standard 一致，区块内容可精简。
+无 ## Research 包裹层；Research 的 5 个子区块（Requirement Review / Findings / Open
+Questions / Assumptions / Requirement Restatement）在 lite 模式下平铺为 5 个 ## 顶层 section。
+Innovate Options / Plan / Execute Log / Review Summary 与 standard 模板结构一致。
 -->
 
 ## Summary
@@ -21,28 +24,28 @@ Lite 模式：适合小改动、轻量 bugfix、熟悉 RIPER 协议的团队。
 
 ## Requirement Review
 <!--
-苏格拉底式审视：AI 一次性分析需求，**不实时追问**，把所有发现写入本段，最后门禁决定 STOP / CONTINUE。
-
-分析维度：定义边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 真实目标
-
-输出格式：
-  - 每维度一行 → ✅ Clear / ⚠️ Ambiguous / ❌ Missing
-  - 对 ⚠️/❌：列 Open Question + Tentative Assumption + Impact-if-wrong
-  - Premise List：隐含前提编号（P1/P2/…）+ AI 当前理解
-  - 反对 sycophancy：禁敷衍话术，take a position
-
-门禁（写完触发 AskUserQuestion）：
-  - A) STOP — 需先澄清，Spec 保持 draft
-  - B) CONTINUE — 接受 Tentative Assumptions（复制到 ### Assumptions），进入下阶段
-
-全部 ✅ 时可省略门禁直接进入下阶段，Premise List 仍要写。
+document-first with gate：
+- 一次性完成 6 维度苏格拉底式审视（边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 目标验证）
+- 维度状态表（每行 ✅/⚠️/❌）；对 ⚠️/❌ 列 Open Question + Tentative Assumption + Impact-if-wrong
+- Premise List（隐含前提编号 P1/P2/…）
+- 写完触发 STOP/CONTINUE 门禁（AskUserQuestion）；6 维度全 ✅ Clear 可省略门禁直接进入 Findings
+- 不要实时一次一题追问（避免主上下文被 Q&A 污染）
 -->
+
+## Findings
+<!-- 代码位置 / 调用链 / 依赖关系 / 已确认的行为 -->
 
 ## Open Questions
 <!-- 当前不确定的点——包含技术未知点和需求层面未解决的问题（必填） -->
 
+## Assumptions
+<!-- 约束填充 + Requirement Review 的 Tentative Assumptions（CONTINUE 后自动复制过来） -->
+
+## Requirement Restatement
+<!-- 基于以上综合判断，用自己的话复述需求（首轮为基准版本，后续追加 Revised — Round N，不覆盖） -->
+
 ## Innovate Options
-<!-- 至少2个方案，或写明：Innovate: Skipped, Reason: [原因] -->
+<!-- 至少2个方案；或写明：Innovate: Skipped, Reason: [原因] -->
 
 ## Plan
 

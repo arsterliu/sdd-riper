@@ -248,7 +248,7 @@ B) 开始或继续 RIPER 工作流任务
 
   > 顺序强制：不得在 Findings 输出前写 Requirement Restatement；不得在 Open Questions 输出前写 Assumptions。
   > **Restatement 冻结规则**：第一轮写入的 `### Requirement Restatement` 视为基准版本，后续轮次**不得覆写**。若有修订，追加为 `### Requirement Restatement (Revised — Round N)`，并注明修订原因。Invocation Alignment Check 永远与**最早一版**对比。
-  > Lite mode has no `## Research` section. Write the four items as named bold paragraphs directly under `## Invocation` for Requirement Restatement / Assumptions / Findings, and under `## Open Questions` for Open Questions. Example: `**Findings**: …` and `**Open Questions**: …` and `**Assumptions**: …` appended first; then `**Requirement Restatement**: …` written last, appended to `## Invocation`.
+  > Lite mode has no `## Research` wrapper. The 5 Research subsections (Requirement Review / Findings / Open Questions / Assumptions / Requirement Restatement) appear as flat `##` top-level sections in the same order as standard. `## Open Questions` stays at top level so status.sh's lite check still matches it. `## Invocation` holds the goal / requirement / constraints summary; `## Innovate Options` / `## Plan` / `## Execute Log` / `## Review Summary` are identical to standard.
   > “Spec Writeback” is not a separate heading — it means actually editing the Spec file with the above content after each Research round.
 - **CodeMap 检查**：若任务涉及陌生或复杂模块，先检查是否已有对应 CodeMap。已有则优先复用；没有且结构复杂，再调用 `create-codemap`。Research 结束时要明确记录”本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
 - **Next steps**: Offer to update the `## Research` section (Spec Findings).
