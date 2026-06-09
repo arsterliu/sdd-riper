@@ -611,6 +611,10 @@ Skill 会在每次创建 Spec 前主动询问你是否有这类材料，选"有"
 
 如果没有外部材料，直接跳过即可——AI 在 Research 阶段可以直接读取 `specs/`、`codemap/`、`archive/` 等目录，不需要先提炼成 bundle。
 
+### 我已经全局装了 superpowers，会不会跟 vendored 副本冲突？
+
+不会。SDD-RIPER 的 fallback 顺序是：**编辑器全局加载的 superpowers > vendored 副本 > SKILL.md 内联摘要**。如果你的编辑器已经有 `obra/superpowers` 全局可用，AI 会优先用全局版本（更新、可能含你的自定义）；只有未装时才回落到 `vendored/superpowers/` 下的 pinned 副本。两条路径都遵循同一份 SDD-RIPER 契约，行为一致。详见 `INTEGRATIONS.md`。
+
 ---
 
 ## 15. 术语解释
@@ -642,3 +646,5 @@ bash tests/run_all.sh
 ```
 
 如果你要改的是协议、模板或命令行为，优先确保 README、SKILL、模板和脚本实现保持一致。
+
+如果你需要把 `vendored/superpowers/` 同步到 upstream 新版本，参考 `vendored/superpowers/SYNC.md` 里的 sync 流程与 license 合规要求；不要直接修改 vendored 副本里的文件（会破坏未来 sync 的字节比对）。
