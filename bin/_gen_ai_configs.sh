@@ -24,10 +24,11 @@ CREATED=0
 SKIPPED=0
 
 # Select protocol source
-if [[ "$MODE" == "lite" ]]; then
-  PROTOCOL_FILE="$SCAFFOLD_ROOT/protocols/sdd-riper-one-light.md"
-else
+# Lite and micro share the compressed protocol; standard gets the full brief.
+if [[ "$MODE" == "standard" ]]; then
   PROTOCOL_FILE="$SCAFFOLD_ROOT/protocols/sdd-riper-one.md"
+else
+  PROTOCOL_FILE="$SCAFFOLD_ROOT/protocols/sdd-riper-one-light.md"
 fi
 
 # Helper: write_config <path> <content-heredoc>
