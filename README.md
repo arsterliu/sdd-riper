@@ -203,7 +203,7 @@ status: draft
 ### Assumptions
 （AI 在此记录暂未验证的假设）
 
-### Requirement Restatement
+### Confirmed Requirement
 （AI 用自己的话复述需求，确保理解一致）
 
 ## Innovate Options
@@ -274,12 +274,19 @@ status: draft
 把这段输出直接粘贴给 AI（或在 Skill 流程里 AI 会自动读取）。AI 会：
 
 1. 读取刚创建的 Spec 文件
-2. 先对需求做 **Requirement Review**——苏格拉底式追问，不接受需求的字面表述，逐一拆解每个陈述背后的假设（边界、异常路径、约束真实性、验收标准、内部冲突、真实目标）。**有未被显式回答的问题，AI 会停下来向你提问，等你确认后才继续**
-3. 调研代码库，填写 Findings / Open Questions / Assumptions / Requirement Restatement
-4. 提出 ≥2 个方案（Innovate），等你选择
-5. 写出 Plan，**等你审批**（这是唯一需要你明确操作的门禁）
+2. 先对需求做 **Requirement Review（document-first with gate）**——一次性把 6 维度（边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 真实目标）的分析结果全部写入 Spec `### Requirement Review` 区块；写完触发 AskUserQuestion 门禁：A) STOP（线下澄清，Spec 保持 draft） B) CONTINUE（接受 Tentative Assumptions，复制到 ### Assumptions，进入 Findings）
+3. 调研代码库，填写 Findings / Open Questions / Assumptions / **Confirmed Requirement**（这是研究校准版，不是用户原始输入）
+4. **Mode Recommendation Gate**（micro 模式跳过）—— AI 用 5 维度（Scope / Architecture impact / Cross-cutting / Test surface / Uncertainty）评估任务复杂度，按 0-2 micro / 3-5 lite / 6+ standard 给出推荐，AskUserQuestion 让用户接受 / 升级 / 降级 / 回 Research；用户选完后 AI 用 Edit 工具更新 Spec frontmatter 的 `mode:` 字段
+5. 提出 ≥2 个方案（Innovate），等你选择
+6. 写出 Plan，**等你审批**（这是唯一需要你明确操作的门禁）
 
-**你在这个阶段只需要**：回答 AI 的需求澄清问题，以及在 Plan 写好后签字审批（在 Spec 里填写 `Plan Approved By` 和 `Approved At`）。
+**你在这个阶段只需要**：在 Requirement Review / Mode Recommendation 门禁处回答 AI 的问题，以及在 Plan 写好后签字审批（在 Spec 里填写 `Plan Approved By` 和 `Approved At`）。
+
+**为什么 mode 跟 spec 挂钩**：
+
+- discover 传 `--mode` 只是**初始建议**（让 Spec frontmatter 有默认值，不至于空着）
+- 真正的 mode 由 Mode Recommendation Gate 在 Research 结束后根据 **Confirmed Requirement 复杂度** 决定
+- 原始 Requirement 可能就一句话，但 Confirmed Requirement 经过 Findings 验证，可能揭示多模块 / 跨切关注 / 架构影响——mode 应该跟随研究后的事实，不是文本长度
 
 ### 第三步：恢复上下文
 
@@ -523,7 +530,7 @@ DOCS_DIR="mydocs"
 | :--- | :---: | :---: | :---: |
 | Requirement Review | ✅ | ✅ | ❌ |
 | Research Pre-load | ✅ | ✅ | ❌ |
-| Findings → Restatement 顺序 | ✅ | ✅ | ❌ |
+| Findings → Confirmed Requirement 顺序 | ✅ | ✅ | ❌ |
 | Alignment Check | ✅ | ⚠️ 可省 | ❌ |
 | Innovate ≥2 方案 | ✅ | ⚠️ 可 Skipped | ❌ |
 | Coverage Gate | ✅ 全量 | ⚠️ 仅 Invocation | ❌ |

@@ -14,7 +14,7 @@
 ## RIPER Phases
 Research → Innovate → Plan → Execute → Review → Archive
 
-- **Research** — Requirement Review (document-first with gate) → Findings → Open Questions → Assumptions → Requirement Restatement
+- **Research** — Requirement Review (document-first with gate) → Findings → Open Questions → Assumptions → Confirmed Requirement
 - **Innovate** — Compare ≥2 solution options (lite may skip)
 - **Plan** — Atomic steps (file path + change + acceptance); Spec Coverage Gate; **human approval required**
 - **Execute** — Strict plan execution; record every deviation in `## Execute Log`; TDD before code

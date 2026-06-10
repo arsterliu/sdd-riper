@@ -54,11 +54,11 @@ if echo "$stderr_out" | grep -q "command not found"; then fail "stderr contains 
 if echo "$out" | grep -q "\[INFO\]"; then fail "stdout should not contain [INFO] noise"; else pass "stdout contains no [INFO] noise"; fi
 cleanup_tmp "$tmp"
 
-# 1b. legacy spec fallback: spec with no Requirement Restatement section → UNVERIFIABLE warning
+# 1b. legacy spec fallback: spec with no Confirmed Requirement section → UNVERIFIABLE warning
 tmp="$(make_tmp)"
-echo "Test: legacy spec fallback (no Requirement Restatement)"
+echo "Test: legacy spec fallback (no Confirmed Requirement)"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-# Create a minimal spec without a Requirement Restatement section
+# Create a minimal spec without a Confirmed Requirement section
 mkdir -p "$tmp/mydocs/specs"
 printf -- '---\ntask-name: legacy-task\nstatus: draft\n---\n\n## Plan\n- [ ] Step 1: do something\n' > "$tmp/mydocs/specs/v1.0-legacy-task.md"
 out=$(bash "$SDD" review-execute "$tmp" 2>&1) && exit_code=0 || exit_code=$?

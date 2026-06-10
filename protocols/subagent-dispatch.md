@@ -26,7 +26,7 @@ Never dispatch subagents for:
 - **Requirement Review** — requires interactive human dialogue (Socratic questioning)
 - **Human Gate handling** — Plan Approval, Setup-mode questions, Pre-Archive Git Gate are orchestrator-only
 - **Innovate option selection** — convergent decision needs full view across options
-- **Requirement Restatement** — orchestrator's main output during Research
+- **Confirmed Requirement** — orchestrator's main output during Research
 - **Archive** — mechanical operation, no benefit
 - **Final verdict aggregation** — orchestrator must own the final call; subagents return per-axis findings, not verdicts
 

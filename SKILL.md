@@ -213,14 +213,14 @@ B) 开始或继续 RIPER 工作流任务
 
 ## Research Phase Instructions
 - **Goal**: Clarify requirements, surface unknowns, align on Spec
-- **Pre-load（Research 开始前必须完成，输出 Requirement Restatement 之前）**:
+- **Pre-load（Research 开始前必须完成，输出 Confirmed Requirement 之前）**:
   1. 读 Spec frontmatter 的 `context-source:` 字段
      - 非空：用 Read tool 加载该 bundle 文件，将其内容作为 Research 的背景底料
      - 空：跳过
   2. 检查 `HAS_CODEMAP`（来自 `resume` 输出）
      - `yes`：读取对应 CodeMap，判断是否仍能正确描述当前模块
      - `no` + 任务涉及陌生或复杂模块：先运行 `create-codemap`，再继续
-  > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Requirement Restatement）。
+  > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Confirmed Requirement）。
 - **Requirement Review — document-first with gate**（Pre-load 后、Findings 前必做）:
   - AI 对原始 requirement 做一次完整苏格拉底式审视，**不进行实时一次一题追问**（避免主上下文被 12 turns 的 Q&A 污染）
   - 6 维度全部分析后，按模板规定格式（维度状态表 / Open Question + Tentative Assumption + Impact-if-wrong / Premise List）写入 Spec `### Requirement Review` 区块
@@ -238,24 +238,55 @@ B) 开始或继续 RIPER 工作流任务
     - **CodeMap / Convention Checker subagent** — reads existing CodeMap and project conventions, returns applicable constraints (feeds `### Assumptions`)
   - Each brief MUST paste the current Requirement (from Spec `## Invocation`) and the specific question to investigate. Subagents MUST NOT read the Spec file themselves.
   - Subagents return per Return Schema (`verdict`, `summary ≤ 200 words`, `evidence: [file:line]`). Orchestrator integrates results in main context and writes to Spec `## Research`.
-  - **Requirement Review** and **Requirement Restatement** are NEVER dispatched — both are orchestrator's main synthesis (Requirement Review is document-first analysis owned by orchestrator; Restatement is orchestrator's compressed reformulation).
+  - **Requirement Review** and **Confirmed Requirement** are NEVER dispatched — both are orchestrator's main synthesis (Requirement Review is document-first analysis owned by orchestrator; Confirmed Requirement is orchestrator's research-validated understanding, written after Findings / Open Questions / Assumptions).
   - **Micro mode**: skip subagent dispatch (Research itself is skipped in micro).
 - **Mandatory output format (4 sections — 按认知层次顺序输出)**:
   1. **Findings** — 先采集原始事实：代码位置、调用链、依赖关系、已确认的行为 → write back to `### Findings`
   2. **Open Questions** — 从 Findings 中识别出的未知，阻碍进一步判断的疑点 → write back to `### Open Questions`
   3. **Assumptions** — Open Questions 暂无答案时的前提填充，需明确标注"待验证" → write back to `### Assumptions`
-  4. **Requirement Restatement** — 基于以上三项的综合判断，用自己的话复述需求 → write back to `### Requirement Restatement`
+  4. **Confirmed Requirement** — 基于以上三项的综合判断，用自己的话复述需求 → write back to `### Confirmed Requirement`
 
-  > 顺序强制：不得在 Findings 输出前写 Requirement Restatement；不得在 Open Questions 输出前写 Assumptions。
-  > **Restatement 冻结规则**：第一轮写入的 `### Requirement Restatement` 视为基准版本，后续轮次**不得覆写**。若有修订，追加为 `### Requirement Restatement (Revised — Round N)`，并注明修订原因。Invocation Alignment Check 永远与**最早一版**对比。
-  > Lite mode has no `## Research` wrapper. The 5 Research subsections (Requirement Review / Findings / Open Questions / Assumptions / Requirement Restatement) appear as flat `##` top-level sections in the same order as standard. `## Open Questions` stays at top level so status.sh's lite check still matches it. `## Invocation` holds the goal / requirement / constraints summary; `## Innovate Options` / `## Plan` / `## Execute Log` / `## Review Summary` are identical to standard.
+  > 顺序强制：不得在 Findings 输出前写 Confirmed Requirement；不得在 Open Questions 输出前写 Assumptions。
+  > **Confirmed Requirement 冻结规则**：第一轮写入的 `### Confirmed Requirement` 视为基准版本，后续轮次**不得覆写**。若有修订，追加为 `### Confirmed Requirement (Revised — Round N)`，并注明修订原因。Invocation Alignment Check 永远与**最早一版**对比。
+  > Lite mode has no `## Research` wrapper. The 5 Research subsections (Requirement Review / Findings / Open Questions / Assumptions / Confirmed Requirement) appear as flat `##` top-level sections in the same order as standard. `## Open Questions` stays at top level so status.sh's lite check still matches it. `## Invocation` holds the goal / requirement / constraints summary; `## Innovate Options` / `## Plan` / `## Execute Log` / `## Review Summary` are identical to standard.
   > “Spec Writeback” is not a separate heading — it means actually editing the Spec file with the above content after each Research round.
-- **CodeMap 检查**：若任务涉及陌生或复杂模块，先检查是否已有对应 CodeMap。已有则优先复用；没有且结构复杂，再调用 `create-codemap`。Research 结束时要明确记录”本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
+- **Mode Recommendation Gate** (Confirmed Requirement 写完、第一轮 Research 末尾必触发;**micro 模式跳过**):
+  - **为什么需要**: mode 应跟随 spec 实际复杂度,不应是项目级默认值。用户的原始 Requirement 可能就一句话,但 Confirmed Requirement 已经综合 Findings / OQ / Assumptions,能更准确反映任务范围
+  - **5 维度复杂度打分**(每维 0/1/2):
+    | 维度 | 0 (low) | 1 (med) | 2 (high) |
+    |:---|:---|:---|:---|
+    | Scope(涉及模块/文件数) | 1 个 | 2-3 个 | 4+ 个 |
+    | Architecture impact(入口点/调用链/外部依赖) | 无 | 间接 | 直接变化 |
+    | Cross-cutting(auth/security/perf/data/API 契约) | 无 | 1 项 | 2+ 项 |
+    | Test surface(新增测试需求) | 现有测试覆盖 | 需补 1-2 测试 | 全新测试套件 |
+    | Uncertainty(未解决的 Open Questions) | 0 | 1-2 | 3+ |
+  - **总分 → mode 映射**: 0-2 micro / 3-5 lite / 6+ standard
+  - **输出格式**:
+    ```
+    ### Mode Recommendation
+    基于 Confirmed Requirement + Findings 评估:
+    - Scope: <具体观察> → N
+    - Architecture impact: <具体观察> → N
+    - Cross-cutting: <具体观察> → N
+    - Test surface: <具体观察> → N
+    - Uncertainty: <具体观察> → N
+    Total: X → 推荐 <mode>
+    理由: <一句话总结>
+    ```
+  - 触发 **AskUserQuestion**:
+    > A) **接受推荐** <mode> — 走该 mode 的默认门禁
+    > B) **升级** → <mode+1> — 任务比评估的更重(需理由)
+    > C) **降级** → <mode-1> — 任务比评估的更轻(需理由)
+    > D) **回 Research** — Confirmed Requirement 不准,需重做
+  - 用户选完后,用 **Edit 工具更新 Spec frontmatter 的 `mode:` 字段**为选定值(micro 模式已是终态,不再回退)
+  - **不依赖 raw `### Requirement` 字符数**: 用户原始输入可能简短,但 Confirmed Requirement 经过 Findings 验证,可能揭示多模块关联;**复杂度信号来自研究结果,不是文本长度**
+  - lite 模式的特例: 触发本门禁时,如果 Recommended 落在 micro 范围(0-2),提示"原始 lite 选择可能过重,考虑降到 micro";反之亦然
+- **CodeMap 检查**:若任务涉及陌生或复杂模块,先检查是否已有对应 CodeMap。已有则优先复用;没有且结构复杂,再调用 `create-codemap`。Research 结束时要明确记录”本次是否依赖了 CodeMap / 是否需要在任务结束后回写 CodeMap”。
 - **Next steps**: Offer to update the `## Research` section (Spec Findings).
-- **Invocation Alignment Check** (从第二轮 Research 开始，每轮结束时输出；第一轮不输出，因为 Requirement Restatement 是本轮产物):
+- **Invocation Alignment Check** (从第二轮 Research 开始，每轮结束时输出；第一轮不输出，因为 Confirmed Requirement 是本轮产物):
   ```
   ### Invocation Alignment Check
-  - **Requirement Restatement 基准（来自 Spec `### Requirement Restatement` 最早一版）**: [复述首轮写入的版本，不引用 Revised 版本]
+  - **Confirmed Requirement 基准（来自 Spec `### Confirmed Requirement` 最早一版）**: [复述首轮写入的版本，不引用 Revised 版本]
   - **Current research direction**: [1-2 sentence summary of what was just researched]
   - **Verdict**: ALIGNED | DRIFTED
   - **If DRIFTED**: [describe the gap; research may continue but deviation is logged]
@@ -263,7 +294,7 @@ B) 开始或继续 RIPER 工作流任务
   Drift does NOT block Research. Log it and continue. No extra human confirmation required.
 - **Completion gate**: 满足以下全部条件才可标记 Research 完成，否则继续迭代。DO NOT auto-advance.
   1. All Open Questions resolved or explicitly deferred（每条须有结论或明确注明"deferred: 原因"）
-  2. Findings 必须覆盖与 Requirement Restatement 直接相关的代码位置 / 调用链 / 依赖关系；若 Findings 仅有泛化描述（如"代码在 src/ 下"）或为空，不得标记完成
+  2. Findings 必须覆盖与 Confirmed Requirement 直接相关的代码位置 / 调用链 / 依赖关系；若 Findings 仅有泛化描述（如"代码在 src/ 下"）或为空，不得标记完成
 
 ## Innovate Phase Instructions
 - **Goal**: Generate and compare solution options

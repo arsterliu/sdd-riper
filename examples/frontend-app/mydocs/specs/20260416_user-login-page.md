@@ -7,7 +7,7 @@ status: done
 
 # User Login Page Spec
 
-> Requirement Restatement:
+> Confirmed Requirement:
 > 用户登录页：提供邮箱+密码的表单输入，调用后端 POST /api/login 获取 JWT 进行身份认证，若认证失败则展示错误提示。
 
 ## Pre-Requisites

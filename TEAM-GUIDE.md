@@ -52,7 +52,7 @@
 
 - **初级研发 / 低经验同学**：
   - 建议先从 **Lite** 模式入手，培养“思考后再动手”的习惯。
-  - 重点关注 `Requirement Restatement`，确保理解不偏航。
+  - 重点关注 `Confirmed Requirement`，确保理解不偏航。
 
 - **TL / 主管 (Team Lead)**：
   - 负责 `Plan Approved` 门禁。
@@ -66,10 +66,13 @@
 ### 意图分类表
 | 协作阶段 | 协作模式 | 关键指令 |
 | :--- | :--- | :--- |
-| **探索 (Research)** | 深度对话 | “基于 context，帮我分析这个 requirement 的潜在风险。” |
+| **探索 (Research)** | 深度对话 | “基于 context，帮我分析这个 requirement 的潜在风险，写到 ### Requirement Review。” |
+| **Mode Recommendation** | 复杂度校准 | “用 5 维度打分评估任务复杂度，推荐 mode；不接受基于 Requirement 字符数的判断。” |
 | **规划 (Plan)** | 结构化输出 | “请将选定的方案拆解为原子步骤，并填入 Spec 的 Plan 区块。” |
 | **执行 (Execute)** | 严格指令 | “严格按照 Plan 第 1 步执行，不要改动其他文件。” |
 | **评审 (Review)** | 对照检查 | “对照原始 Spec 验收清单，检查代码实现是否存在偏差。” |
+
+> **Mode Recommendation Gate** 是 Research 末尾的强制门禁（micro 模式跳过）。它读 **Confirmed Requirement**（不是 raw Requirement）评估复杂度，避免”用户一句话就当小任务”的误判。研发在评审时要看 AI 的 5 维度评分是否站得住脚——这是 mode 校准的关键决策点。
 
 ### 自由度表
 - **Research (研究)**：中（鼓励多问，但目标要明确）。
@@ -111,7 +114,7 @@
 
 2. **坑：把 context 当作 requirement 用**
    - *症结*：把旧的文档丢给 AI 说“按这个改”，结果 AI 把旧文档里的错误也复现了。
-   - *解法*：强制要求在 Spec 中明确写出 `Requirement Restatement`，并先用 Requirement Review（document-first with gate）暴露歧义点再进入 Findings。
+   - *解法*：强制要求在 Spec 中明确写出 `Confirmed Requirement`，并先用 Requirement Review（document-first with gate）暴露歧义点再进入 Findings。
 
 3. **坑：Requirement Review 走成实时一次一题追问**
    - *症结*：老协议默认"Q&A 模式"，但每次追问都污染主上下文，对长任务尤其痛。

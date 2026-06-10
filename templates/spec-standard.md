@@ -21,7 +21,7 @@ Spec        = Invocation + Research 收敛后的单一决策链
 <!-- 核心目标 -->
 
 ### Requirement
-<!-- 我对需求的复述（必填） -->
+<!-- 用户原始输入（必填，AI 不修改）；研究校准版见 ## Research 下的 ### Confirmed Requirement -->
 
 ### Constraints
 <!-- 技术或业务约束 -->
@@ -74,8 +74,9 @@ Spec        = Invocation + Research 收敛后的单一决策链
 ### Assumptions
 <!-- Open Questions 暂无答案时的前提填充，需标注"待验证" -->
 
-### Requirement Restatement
+### Confirmed Requirement
 <!-- 基于以上三项的综合判断，用自己的话复述需求（最后写，必填） -->
+<!-- 写完触发 Mode Recommendation Gate：用 5 维度评估复杂度，推荐 mode，用户确认后 Edit frontmatter mode: 字段 -->
 
 ## Innovate Options
 <!-- 至少2个方案，含 Pros/Cons/风险/推荐理由 -->

@@ -128,7 +128,7 @@ if [[ -d "$SPECS_DIR" ]]; then
     else
       # Standard: ## Research must have content in ### subsections
       if grep -q "^## Research" "$spec" 2>/dev/null; then
-        if _sdd_subsection_is_empty "$spec" "Requirement Restatement"; then local_warn_research=1; fi
+        if _sdd_subsection_is_empty "$spec" "Confirmed Requirement"; then local_warn_research=1; fi
         if _sdd_subsection_is_empty "$spec" "Open Questions"; then local_warn_research=1; fi
       fi
     fi

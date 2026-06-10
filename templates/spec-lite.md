@@ -11,7 +11,7 @@ context-source: ""
 Lite 模式：适合小改动、轻量 bugfix、熟悉 RIPER 协议的团队。
 所有门禁规则与 Standard 一致，区块内容可精简。
 无 ## Research 包裹层；Research 的 5 个子区块（Requirement Review / Findings / Open
-Questions / Assumptions / Requirement Restatement）在 lite 模式下平铺为 5 个 ## 顶层 section。
+Questions / Assumptions / Confirmed Requirement）在 lite 模式下平铺为 5 个 ## 顶层 section。
 Innovate Options / Plan / Execute Log / Review Summary 与 standard 模板结构一致。
 -->
 
@@ -20,7 +20,7 @@ Innovate Options / Plan / Execute Log / Review Summary 与 standard 模板结构
 <!-- 格式：当前阶段 | 核心目标（一句话）| 关键约束 | 最新进展 -->
 
 ## Invocation
-<!-- 需求复述、目标、约束（必填） -->
+<!-- 用户原始输入 + 目标 + 约束（必填，AI 不修改）；研究校准版见 ## Confirmed Requirement -->
 
 ## Requirement Review
 <!--
@@ -41,8 +41,9 @@ document-first with gate：
 ## Assumptions
 <!-- 约束填充 + Requirement Review 的 Tentative Assumptions（CONTINUE 后自动复制过来） -->
 
-## Requirement Restatement
+## Confirmed Requirement
 <!-- 基于以上综合判断，用自己的话复述需求（首轮为基准版本，后续追加 Revised — Round N，不覆盖） -->
+<!-- 写完触发 Mode Recommendation Gate：用 5 维度评估复杂度，推荐 mode，用户确认后 Edit frontmatter mode: 字段 -->
 
 ## Innovate Options
 <!-- 至少2个方案；或写明：Innovate: Skipped, Reason: [原因] -->

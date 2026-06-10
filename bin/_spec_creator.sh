@@ -224,7 +224,9 @@ ${SPEC_OUT}
 1. 采集 Findings（代码位置 / 调用链 / 依赖关系）
 2. 从 Findings 识别 2-5 个技术 Open Questions
 3. 将 constraints 与 Tentative Assumptions 记录到 Assumptions 区块
-4. 最后基于以上三项写 Requirement Restatement（首轮为基准版本，后续迭代追加 Revised — Round N，不覆盖）
+4. 最后基于以上三项写 Confirmed Requirement（首轮为基准版本，后续迭代追加 Revised — Round N，不覆盖）
+5. **Mode Recommendation Gate**（micro 模式跳过）：用 5 维度（Scope / Architecture impact / Cross-cutting / Test surface / Uncertainty）评估任务复杂度（每维 0/1/2），总分映射 mode 0-2 micro / 3-5 lite / 6+ standard；输出评分明细 + 推荐；用 AskUserQuestion 让用户接受 / 升级 / 降级 / 回 Research；用户选完后用 Edit 工具更新 Spec frontmatter 的 `mode:` 字段
+   - **不依赖 raw `### Requirement` 字符数**——复杂度信号来自 Confirmed Requirement + Findings 的实质内容，不是文本长度
 
 若当前任务涉及陌生或复杂模块，请在进入深入 Research 前执行以下检查：
 - 先查看 mydocs/codemap/ 是否已有对应模块的 CodeMap，已有则优先复用
