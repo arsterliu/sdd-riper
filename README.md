@@ -604,7 +604,7 @@ DOCS_DIR="mydocs"
 
 ### CLI 不强制 `--requirement` 等字段非空，Skill 会追问吗？
 
-CLI 只做参数存在性校验，不强制业务字段（`--requirement` / `--goal` / `--constraints` 等）非空。空字段会在 Spec 文件里留下 `<!-- 核心目标 -->` 占位符，由 AI 在后续阶段补写。**如果走 OpenCode Skill 路径**（路径 A），Setup Mode 的 AskUserQuestion 会要求一次给齐 5 项（task name / requirement / goal / constraints / mode），少一项会重新追问而不是推断；Workflow Mode 创建新任务时同理。CLI 路径（路径 B）则允许字段分次补齐，由 orchestrator 在每轮中决定是否继续。
+CLI 只做参数存在性校验，不强制业务字段（`--requirement` / `--goal` / `--constraints` 等）非空。空字段会在 Spec 文件里留下 `<!-- 核心目标 -->` 占位符，由 AI 在后续阶段补写。**如果走 OpenCode Skill 路径**（路径 A），Setup Mode 的 AskUserQuestion 会要求一次给齐 4 项（task name / requirement / goal / constraints），少一项会重新追问而不是推断；Workflow Mode 创建新任务时同理。CLI 路径（路径 B）则允许字段分次补齐，由 orchestrator 在每轮中决定是否继续。
 
 ### 为什么归档后修缺陷不能直接再 `discover`？
 

@@ -76,9 +76,9 @@ B) 开始或继续 RIPER 工作流任务
 > - **STOP and wait** for the user to respond in a new turn.
 > Violating this rule causes all subsequent human gates to be bypassed by `TODO_CONTINUATION`.
 
-1. Use `AskUserQuestion` to ask for target directory (default: current project root) and mode (standard, lite, or micro). Store the user-selected directory as `TARGET_DIR` for all subsequent commands in this flow.
-   > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory and mode before continuing.
-2. Run: `bash "<SDD_ROOT>/sdd.sh" init "<TARGET_DIR>" --mode <mode>` (DO NOT use Write/Edit tools directly to create project files).
+1. Use `AskUserQuestion` to ask for target directory (default: current project root). Store the user-selected directory as `TARGET_DIR` for all subsequent commands in this flow.
+   > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory before continuing.
+2. Run: `bash "<SDD_ROOT>/sdd.sh" init "<TARGET_DIR>"` (DO NOT use Write/Edit tools directly to create project files).
    > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
 3. Show created files.
 4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[SDD-RIPER]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
@@ -96,8 +96,8 @@ B) 开始或继续 RIPER 工作流任务
 5. Use `AskUserQuestion`: "Create your first Spec now?"
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's yes/no response.
    - If yes:
-      a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, constraints (optional), and mode (standard / lite / micro; default: project .sdd-config).
-         > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 5 items (task name, requirement, goal, constraints, mode). If the user provides fewer than 5 items, re-ask for the missing ones — do NOT infer or skip.
+      a. Use `AskUserQuestion` to ask for task name, requirement (what needs to be built), goal, constraints (optional).
+         > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items (task name, requirement, goal, constraints). If the user provides fewer than 4 items, re-ask for the missing ones — do NOT infer or skip.
       b. **Context Bundle 引导**: Use `AskUserQuestion`:
            > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
            > A) 有，请提供目录路径：___
@@ -113,7 +113,7 @@ B) 开始或继续 RIPER 工作流任务
 ---
 
          **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-         - Once user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --mode "<mode>" --version "<user-version>" [--context "<path>"]`
+         - Once user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<path>"]`
            > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
          Read the `## SPEC CREATION PROMPT` output and the created Spec file. Help the user fill in Research Findings and initial Open Questions.
 6. Explain: "Run /sdd-riper again to enter Workflow Mode for this task"
@@ -135,10 +135,9 @@ B) 开始或继续 RIPER 工作流任务
      > - requirement：这次要做什么
      > - goal：最终要达到什么结果
      > - constraints：约束；没有就写 none
-     > - mode：standard / lite / micro（留空沿用项目默认值）
      >
      > C) 暂时不需要，结束本次会话
-     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 5 items or select C. If user selects C: end the session. If fewer than 5 items provided, re-ask for missing ones — do NOT infer or skip.
+     > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide all 4 items or select C. If user selects C: end the session. If fewer than 4 items provided, re-ask for missing ones — do NOT infer or skip.
    - Once all 4 items received: **Context Bundle 引导**: Use `AskUserQuestion`:
      > 开始创建 Spec 前：你是否有外部参考材料（如 PRD、设计稿、会议记录）需要一起带入任务背景？
      > A) 有，请提供目录路径：___
@@ -154,7 +153,7 @@ B) 开始或继续 RIPER 工作流任务
 ---
 
       **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-      - Once user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --mode "<mode>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
+      - Once user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
      Read the created Spec and help fill Research Findings.
 5. Otherwise (active spec found): **按需读取 Spec，不要全量加载**。
