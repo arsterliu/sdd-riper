@@ -102,11 +102,11 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: resume with codemap"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.0 >/dev/null
+bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
 out=$(bash "$SDD" resume "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "resume with codemap exits 0"; else fail "resume with codemap exited $exit_code"; fi
 if echo "$out" | grep -q "HAS_CODEMAP: yes"; then pass "resume has codemap"; else fail "resume missing has codemap"; fi
-if echo "$out" | grep -q "CODEMAP_MODULES: v1.0-auth-flow"; then pass "resume codemap modules listed"; else fail "resume codemap modules missing"; fi
+if echo "$out" | grep -q "CODEMAP_MODULES: auth-flow"; then pass "resume codemap modules listed"; else fail "resume codemap modules missing"; fi
 cleanup_tmp "$tmp"
 
 # 10. resume no args

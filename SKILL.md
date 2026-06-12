@@ -68,9 +68,9 @@ B) 开始或继续 RIPER 工作流任务
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory before continuing.
 2. Run: `npx sdd-riper init "<TARGET_DIR>"` (DO NOT use Write/Edit tools directly to create project files).
    3. Show created files.
-4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[SDD-RIPER]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
-   - If init output does **not** contain `[SDD-RIPER]`, OR `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
-   - If init output **contains** `[SDD-RIPER]` AND `<DOCS_ROOT>/codemap/` has **no** `.md` files: use `AskUserQuestion`:
+4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[HINT]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
+   - If init output does **not** contain `[HINT]`, OR `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
+   - If init output **contains** `[HINT]` AND `<DOCS_ROOT>/codemap/` has **no** `.md` files: use `AskUserQuestion`:
       > 检测到目标项目已有较多源码文件，尚未建立 CodeMap。
       > 是否现在建立 CodeMap 以帮助 AI 快速理解模块结构？
       > （可选）模块名称（留空则扫描整个项目）: ___
@@ -145,7 +145,8 @@ B) 开始或继续 RIPER 工作流任务
    **CodeMap 复用规则**:
    - 若 HAS_CODEMAP=yes：优先读取现有 CodeMap，并判断其是否仍能正确描述当前模块；不要默认重建。
    - 若当前任务复杂且 HAS_CODEMAP=no：在进入深入 Research / Plan 前，建议调用 `create-codemap` 为相关模块补建 CodeMap。
-   - 若已有 CodeMap 但发现入口点、核心调用链、外部依赖或风险描述已失真：在任务收尾时更新现有 CodeMap，而不是新建另一份同模块地图。
+   - 若已有 CodeMap 但发现入口点、模块边界、关键组件、调用链路、依赖或风险描述已失真：在任务收尾时更新现有 CodeMap，而不是新建另一份同模块地图。
+   - **`_project.md` 特殊规则**：此文件不在 `CODEMAP_MODULES` 列表中与模块 CodeMap 并列展示，但 `HAS_CODEMAP: yes` 并不意味着 `_project.md` 存在。Research Pre-load 单独检查。仅在项目技术栈或全局约定发生实质变化时更新 `updated-at` 和 `last-reason`；不要在每个任务中无变更地 touch 此文件。
    **上下文分层加载规则**（热/温/冷三层）:
    - **热层**（每轮必带）: `## Summary` 区块（如存在）+ `SECTIONS_HINT` 指定区块
    - **温层**（切阶段时按需，对应 `SECTIONS_HINT` 的完整定义）:
@@ -198,7 +199,37 @@ B) 开始或继续 RIPER 工作流任务
   2. 检查 `HAS_CODEMAP`（来自 `resume` 输出）
      - `yes`：读取对应 CodeMap，判断是否仍能正确描述当前模块
      - `no` + 任务涉及陌生或复杂模块：先运行 `create-codemap`，再继续
-  > 以上两项完成前，不得输出任何 Research 内容（包括 Findings 和 Confirmed Requirement）。
+  3. 检查 `<docs-root>/codemap/_project.md` 是否存在（`<docs-root>` 来自 `.sdd-config` 或默认 `mydocs/`）
+     - 若存在：Read 该文件，将其内容作为 Research 背景
+     - 若不存在：自动扫描项目，用 Write 工具创建 `_project.md`（仅在第一次 Research 时；后续项目共用）：
+
+       a. **技术栈**：读 `pyproject.toml` / `package.json` / `go.mod` 等，提取语言、框架、关键依赖版本
+       b. **隐性约定**：扫描 linter 配置（.eslintrc, .prettierrc, ruff, .editorconfig）、测试目录和依赖、API 路由命名模式
+       c. **现有规范文档**：检查项目根及 docs/ 下是否有 CONTRIBUTING.md、STYLE_GUIDE.md、architecture 等文档；若有，仅索引路径，不复制内容
+
+     `_project.md` 格式：
+
+     ```markdown
+     ---
+     module: _project
+     updated-at: YYYY-MM-DD
+     last-reason: Initial project context scan
+     ---
+
+     # Project Context
+
+     ## Tech Stack
+     <!-- 语言、框架、关键依赖 -->
+
+     ## Implicit Conventions
+     <!-- 从代码库推断的、未在其他文档中显式声明的约定 -->
+
+     ## Reference Documents
+     <!-- 指向已有规范文档的路径，不复制内容 -->
+     - [](../CONTRIBUTING.md)
+     ```
+
+  > 以上三项完成前，不得输出任何 Research 内容（包括 Findings 和 Confirmed Requirement）。
 - **Requirement Review — document-first with gate**（Pre-load 后、Findings 前必做）:
   - AI 对原始 requirement 做一次完整苏格拉底式审视，**不进行实时一次一题追问**（避免主上下文被 12 turns 的 Q&A 污染）
   - 6 维度全部分析后，按模板规定格式（维度状态表 / Open Question + Tentative Assumption + Impact-if-wrong / Premise List）写入 Spec `### Requirement Review` 区块
@@ -234,7 +265,7 @@ B) 开始或继续 RIPER 工作流任务
     | 维度 | 0 (low) | 1 (med) | 2 (high) |
     |:---|:---|:---|:---|
     | Scope(涉及模块/文件数) | 1 个 | 2-3 个 | 4+ 个 |
-    | Architecture impact(入口点/调用链/外部依赖) | 无 | 间接 | 直接变化 |
+    | Architecture impact(入口点/模块边界/调用链/依赖) | 无 | 间接 | 直接变化 |
     | Cross-cutting(auth/security/perf/data/API 契约) | 无 | 1 项 | 2+ 项 |
     | Test surface(新增测试需求) | 现有测试覆盖 | 需补 1-2 测试 | 全新测试套件 |
     | Uncertainty(未解决的 Open Questions) | 0 | 1-2 | 3+ |
@@ -288,7 +319,7 @@ B) 开始或继续 RIPER 工作流任务
 
 ## Plan Phase Instructions — HUMAN GATE ⚠️
 - **Goal**: Atomic execution plan
-- **CodeMap 检查**：若 Plan 涉及的模块已有 CodeMap，先核对计划是否仍符合该地图；若你预期本次实现会改变入口点、核心调用链、外部依赖或风险项，请在 Plan 中明确加入“更新 CodeMap”的收尾步骤。
+- **CodeMap 检查**：若 Plan 涉及的模块已有 CodeMap，先核对计划是否仍符合该地图；若你预期本次实现会改变入口点、模块边界、关键组件、调用链路、依赖或风险项，请在 Plan 中明确加入”更新 CodeMap”的收尾步骤。
 - **Output format**:
   ```markdown
   ## Plan
@@ -402,7 +433,7 @@ B) 开始或继续 RIPER 工作流任务
 - **Micro 模式**：仅运行 Axis2（Code Diff Scope）。输出简版 Review：改动是否在 Plan 声明边界内，verdict 为 `PASS` / `PASS_WITH_CONCERNS` / `FAIL_CODE`。Axis0 / Axis1 / Axis3 跳过。Archive 摘要可省略，直接归档。
 - **Write permissions during Review**:
   - ✅ MAY write: `## Review Verdict` (standard) or `## Review Summary` (lite) in Spec (verdict + timestamp + pass number, append-only)
-  - ✅ MAY write: CodeMap — ONLY if this task changed entry points, core call chain, external dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
+  - ✅ MAY write: CodeMap — ONLY if this task changed entry points, module boundaries, key components, call chains, dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
   - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
 - **Trigger**: Run `npx sdd-riper review-execute "<PROJECT_ROOT>"`
   - **Subagent Routing — 四轴独立派发** (from `protocols/subagent-dispatch.md`):
@@ -456,7 +487,7 @@ B) 开始或继续 RIPER 工作流任务
   | Risk | Axis | Severity | Mitigation |
   |------|------|----------|------------|
   ```
-- **CodeMap reverse-sync check**: Before issuing verdict, explicitly answer: did this task change entry points, core call chain, external dependencies, or module risks? If yes → update the corresponding CodeMap first, then note the sync in the report.
+- **CodeMap reverse-sync check**: Before issuing verdict, explicitly answer: did this task change entry points, module boundaries, key components, call chains, dependencies, or risks? If yes → update the corresponding CodeMap first, then note the sync in the report.
 - **Forbidden**: vague summaries ("looks good"), auto-fixing code, auto-advancing to Archive
 - **Pass numbering**: Each Review run increments N. Append to `## Review Verdict` (standard) / `## Review Summary` (lite) as `Review Pass N — <ISO-8601 timestamp> — <VERDICT>`. Do NOT overwrite previous passes.
 - **After verdict**: Offer to update `## Review Verdict` / `## Review Summary` with the full report. DO NOT auto-advance to Archive.
@@ -539,19 +570,19 @@ When completing any phase or the full workflow, report status:
 
 ### 产出物命名规则
 
-所有产出物均采用 `v{N}.{M}-{name}.md` 格式（kebab-case），版本号自动递增：
+Spec 与 Context Bundle 采用 `v{N}.{M}-{name}.md` 格式（kebab-case），版本号由用户指定；CodeMap 不版本化：
 
 | 产出物 | 路径 | 命名示例 |
 |---|---|---|
 | Spec | `<docs-root>/specs/` | `v1.0-user-login.md`, `v1.1-user-login.md` |
-| CodeMap | `<docs-root>/codemap/` | `v1.0-auth.md`, `v1.1-auth.md` |
+| CodeMap | `<docs-root>/codemap/` | `auth.md`（无版本号，活文档） |
 | Context Bundle | `<docs-root>/context/` | `v1.0-context-bundle.md` |
 | Archive | `<docs-root>/archive/` | `v1.1-user-login.md`（Spec 移入 + summary 追加） |
 | ProjectMap | `<docs-root>/projectmap.md` | 固定单文件，不版本化 |
 
 - `<docs-root>` 默认为 `mydocs/`；若项目根存在 `.sdd-config` 且声明了 `DOCS_DIR=...`，则应改用该目录。
 
-- **版本由用户指定**：`discover`、`new-codemap`、`build-context-bundle` 均要求 `--version v{N}.{M}`，不自动递增
+- **版本由用户指定**：`discover`、`build-context-bundle` 均要求 `--version v{N}.{M}`，不自动递增
 - **archive**：自动继承来源 Spec 的版本号，无需手动指定
 - **reopen**：patch spec 版本号与来源 archived spec 完全一致（不递增）
 - **旧版保留**：旧文件不删除，历史可追溯
@@ -610,7 +641,7 @@ When completing any phase or the full workflow, report status:
   
 ### new-codemap（P5 空白 CodeMap 模板）
 - **触发时机**：你只想先创建一个空白的版本化 CodeMap 文件，而不是让 AI 立即扫描代码库时
-- **命令**：`npx sdd-riper new-codemap "<PROJECT_ROOT>" "<module>" [--version v{N}.{M}] [--force]`
+- **命令**：`npx sdd-riper new-codemap "<PROJECT_ROOT>" "<module>" [--force]`
   - **AI 行为**：不扫描代码，不生成 Prompt；仅从模板创建空白文件，供后续人工或 AI 填写。
 
 ### new-projectmap（P6 空白 ProjectMap 模板）

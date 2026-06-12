@@ -58,8 +58,8 @@ if [ "$exit_code" -eq 3 ]; then pass "no args exits 3"; else fail "no args expec
 tmp="$(make_tmp)"
 echo "Test: codemap missing last-reason"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.0 >/dev/null
-cm_file=$(ls "$tmp/mydocs/codemap/"*auth-flow*.md 2>/dev/null | head -1 || true)
+bash "$SDD" new-codemap "$tmp" "auth-flow" >/dev/null
+cm_file="$tmp/mydocs/codemap/auth-flow.md"
 grep -v '^last-reason:' "$cm_file" > "$tmp/auth-flow.stripped.md"
 mv "$tmp/auth-flow.stripped.md" "$cm_file"
 out=$(bash "$SDD" status "$tmp") && exit_code=0 || exit_code=$?

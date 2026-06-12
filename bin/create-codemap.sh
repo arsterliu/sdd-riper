@@ -67,28 +67,18 @@ fi
 # Determine output path
 MODULE_SLUG="${MODULE_NAME:-$(basename "$TARGET_DIR")}"
 CODEMAP_DIR="$DOCS_ROOT/codemap"
-
-# Check for legacy unversioned codemap
-if [[ -f "$CODEMAP_DIR/${MODULE_SLUG}.md" ]]; then
-  echo "[WARN] Legacy unversioned codemap found" >&2
-fi
-
-HIGHEST_VERSION_FILE=$(_sdd_find_source_spec "$CODEMAP_DIR" "$MODULE_SLUG")
+OUTPUT_PATH="$CODEMAP_DIR/${MODULE_SLUG}.md"
 
 MODE="CREATE"
 EXISTING_CODEMAP=""
-if [[ -n "$HIGHEST_VERSION_FILE" && -f "$HIGHEST_VERSION_FILE" ]]; then
+if [[ -f "$OUTPUT_PATH" ]]; then
   MODE="UPDATE"
-  OUTPUT_PATH="$HIGHEST_VERSION_FILE"
-  # Guard against embedding a very large existing codemap in the prompt
   _codemap_size=$(wc -c < "$OUTPUT_PATH" | tr -d ' ')
   if [[ "$_codemap_size" -gt 51200 ]]; then
     EXISTING_CODEMAP="[文件过大 (${_codemap_size} bytes)，请直接读取文件：${OUTPUT_PATH}]"
   else
     EXISTING_CODEMAP=$(cat "$OUTPUT_PATH")
   fi
-else
-  OUTPUT_PATH="$CODEMAP_DIR/v{N}.{M}-${MODULE_SLUG}.md"
 fi
 
 if [[ "$MODE" == "UPDATE" ]]; then
@@ -104,10 +94,10 @@ $([ -n "$MODULE_FILES" ] && echo "" && echo "### 模块文件（--module: ${MODU
 
 ### AI 指令（UPDATE 模式）
 此模块已存在 CodeMap。请不要整份重写；先比较已有 CodeMap 与当前文件树，再决定是否需要更新：
-1. 检查入口点、核心调用链、外部依赖、风险项是否发生架构事实变化
+1. 检查入口点、模块边界、关键组件、核心调用链、依赖、风险项是否发生架构事实变化
 2. 若没有架构事实变化，只输出：[NO UPDATE NEEDED] CodeMap 仍然准确，无需修改。不要改写文件。
 3. 若发生变化，仅更新受影响区块，并同步更新 frontmatter 中的 updated-at 与 last-reason
-4. last-reason 应说明本次更新对应的架构变化，而不是简单写“task done”
+4. last-reason 应说明本次更新对应的架构变化，而不是简单写"task done"
 
 仅在第 3 步发生时，将更新后的内容写回：${OUTPUT_PATH}
 EOF
@@ -124,18 +114,19 @@ ${TEMPLATE_EXCERPT}
 
 ### AI 指令
 请分析上述文件树，识别以下内容并按 CodeMap 模板格式输出：
-1. 核心模块列表及其职责
-2. 关键调用链路（入口 → 核心处理 → 输出）
-3. 外部依赖（第三方库、外部 API）
-4. 风险点（复杂度高、依赖脆弱、无测试覆盖的区域）
+1. 入口点（HTTP 路由 / CLI 命令 / 事件监听等触发方式）
+2. 模块边界（本模块负责什么、委托什么给其他模块、对外暴露什么接口）
+3. 关键组件及其职责
+4. 核心调用链路（入口 → 核心处理 → 输出）
+5. 依赖（内部模块依赖 + 外部第三方库 / API / DB / MQ）
+6. 风险点（已知风险、脆弱依赖、需注意的边界条件）
 
 CodeMap 是模块级活文档，供后续任务复用：
 - 请在 frontmatter 中将 updated-at 设为今天日期
 - 将 last-reason 设为 "Initial creation"
 
 完成后请用户运行以下命令创建文件，再将内容写入：
-  sdd new-codemap <project-dir> ${MODULE_SLUG} --version v{N}.{M}
-（请用户自行指定版本号，如 v1.0）
+  sdd new-codemap <project-dir> ${MODULE_SLUG}
 EOF
 fi
 

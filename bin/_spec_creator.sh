@@ -231,7 +231,7 @@ ${SPEC_OUT}
 若当前任务涉及陌生或复杂模块，请在进入深入 Research 前执行以下检查：
 - 先查看 mydocs/codemap/ 是否已有对应模块的 CodeMap，已有则优先复用
 - 若没有现成 CodeMap，且模块结构/调用链较复杂，再运行: ./sdd.sh create-codemap <project-dir> --module <module-name>
-- 任务结束前，如本次实现改变了入口点、核心调用链、外部依赖或风险项，请反向更新对应 CodeMap
+- 任务结束前，如本次实现改变了入口点、模块边界、关键组件、调用链路、依赖或风险项，请反向更新对应 CodeMap
 EOF
 fi
 exit 0

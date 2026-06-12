@@ -8,15 +8,13 @@ source "$SCRIPT_DIR/_common.sh"
 PROJECT_DIR=""
 MODULE_NAME=""
 FORCE=""
-VERSION_OVERRIDE=""
 DOCS_ROOT=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force)   FORCE="1"; shift ;;
-    --version) VERSION_OVERRIDE="${2:-}"; shift 2 ;;
     -*) echo "[ERROR] Unknown option: $1" >&2; exit 3 ;;
-    *) 
+    *)
       if [[ -z "$PROJECT_DIR" ]]; then PROJECT_DIR="$1"
       elif [[ -z "$MODULE_NAME" ]]; then MODULE_NAME="$1"
       fi
@@ -25,7 +23,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ -z "$PROJECT_DIR" ]] || [[ -z "$MODULE_NAME" ]]; then
-  echo "[ERROR] Usage: new-codemap.sh <project-dir> <module-name> --version v{N}.{M} [--force]" >&2
+  echo "[ERROR] Usage: new-codemap.sh <project-dir> <module-name> [--force]" >&2
   exit 3
 fi
 
@@ -38,18 +36,11 @@ fi
 
 DATE_ISO="$(date +%Y-%m-%d)"
 
-if [[ -z "$VERSION_OVERRIDE" ]]; then
-  echo "[ERROR] --version is required (e.g. --version v1.0)" >&2; exit 3
+if [[ -f "$CODEMAP_DIR/${MODULE_NAME}.md" ]] && [[ -z "$FORCE" ]]; then
+  echo "[ERROR] Codemap '${MODULE_NAME}.md' already exists. Use --force to overwrite." >&2; exit 1
 fi
-if [[ ! "$VERSION_OVERRIDE" =~ ^v[0-9]+\.[0-9]+$ ]]; then
-  echo "[ERROR] Invalid --version format: '${VERSION_OVERRIDE}'. Expected: v{N}.{M} (e.g. v1.0)" >&2; exit 3
-fi
-if [[ -f "$CODEMAP_DIR/${VERSION_OVERRIDE}-${MODULE_NAME}.md" ]] && [[ -z "$FORCE" ]]; then
-  echo "[ERROR] Codemap '${VERSION_OVERRIDE}-${MODULE_NAME}.md' already exists. Use --force to overwrite." >&2; exit 1
-fi
-MODULE_VERSION="$VERSION_OVERRIDE"
 
-OUTPUT_FILE="$CODEMAP_DIR/${MODULE_VERSION}-${MODULE_NAME}.md"
+OUTPUT_FILE="$CODEMAP_DIR/${MODULE_NAME}.md"
 
 cp "$SCAFFOLD_ROOT/templates/codemap.md" "$OUTPUT_FILE"
 sed -i.bak "s/updated-at: YYYY-MM-DD/updated-at: ${DATE_ISO}/g" "$OUTPUT_FILE" && rm -f "$OUTPUT_FILE.bak"

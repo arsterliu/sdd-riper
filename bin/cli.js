@@ -76,9 +76,8 @@ program.command('create-projectmap <project-dir>')
 
 program.command('new-codemap <project-dir> <module-name>')
   .description('Create blank CodeMap')
-  .option('--spec-version <ver>', 'version')
   .option('--force', 'overwrite')
-  .action(function(p, m, o) { o.version = o.specVersion; require('../src/commands/new-codemap')(p, m, o); });
+  .action(function(p, m, o) { require('../src/commands/new-codemap')(p, m, o); });
 
 program.command('new-projectmap <project-dir>')
   .description('Create blank ProjectMap')

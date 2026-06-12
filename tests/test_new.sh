@@ -32,23 +32,21 @@ cleanup_tmp "$tmp"
 # 2. new-codemap happy path
 tmp="$(make_tmp)"
 echo "Test: new-codemap happy path"
-bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.0 && exit_code=0 || exit_code=$?
+bash "$SDD" new-codemap "$tmp" "auth-flow" && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "new-codemap exits 0"; else fail "new-codemap exited $exit_code"; fi
 
-cm_file=$(ls "$tmp/mydocs/codemap/"*auth-flow*.md 2>/dev/null || true)
-if [ -n "$cm_file" ] && [ -f "$cm_file" ]; then pass "codemap file created"; else fail "codemap file not created"; fi
+cm_file="$tmp/mydocs/codemap/auth-flow.md"
+if [ -f "$cm_file" ]; then pass "codemap file created"; else fail "codemap file not created"; fi
 
-# 3. new-codemap second call with explicit next version
-echo "Test: new-codemap second version"
-bash "$SDD" new-codemap "$tmp" "auth-flow" --version v1.1 && exit_code=0 || exit_code=$?
-if [ "$exit_code" -eq 0 ]; then pass "codemap v1.1 exits 0"; else fail "codemap v1.1 expected exit 0, got $exit_code"; fi
-v11_file=$(ls "$tmp/mydocs/codemap/v1.1-auth-flow.md" 2>/dev/null || true)
-if [ -n "$v11_file" ] && [ -f "$v11_file" ]; then pass "codemap v1.1 created"; else fail "codemap v1.1 not created"; fi
+# 3. new-codemap duplicate conflict
+echo "Test: new-codemap duplicate"
+bash "$SDD" new-codemap "$tmp" "auth-flow" 2>&1 && exit_code=0 || exit_code=$?
+if [ "$exit_code" -eq 1 ]; then pass "codemap duplicate exits 1"; else fail "codemap duplicate expected exit 1, got $exit_code"; fi
 
-# 3b. new-codemap without --version fails
-echo "Test: new-codemap missing --version"
-out=$(bash "$SDD" new-codemap "$tmp" "auth-flow" 2>&1) && exit_code=0 || exit_code=$?
-if [ "$exit_code" -eq 3 ]; then pass "new-codemap missing version exits 3"; else fail "new-codemap missing version expected exit 3, got $exit_code"; fi
+# 3b. new-codemap --force overwrite
+echo "Test: new-codemap --force"
+bash "$SDD" new-codemap "$tmp" "auth-flow" --force && exit_code=0 || exit_code=$?
+if [ "$exit_code" -eq 0 ]; then pass "codemap --force exits 0"; else fail "codemap --force expected exit 0, got $exit_code"; fi
 cleanup_tmp "$tmp"
 
 # 4. new-projectmap happy path

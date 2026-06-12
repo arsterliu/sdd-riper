@@ -196,13 +196,13 @@ _sdd_should_suggest_codemap() {
     2>/dev/null | wc -l | tr -d ' ')
 
   local has_marker=false
-  for marker in package.json go.mod pyproject.toml pom.xml Cargo.toml build.gradle; do
+  for marker in package.json go.mod pyproject.toml pom.xml Cargo.toml build.gradle requirements.txt manage.py setup.py setup.cfg Gemfile composer.json Makefile Dockerfile; do
     if [[ -f "$dir/$marker" ]]; then has_marker=true; break; fi
   done
 
-  if [[ "$src_count" -gt 20 ]] && [[ "$has_marker" == "true" ]]; then
+  if [[ "$src_count" -gt 10 ]] && [[ "$has_marker" == "true" ]]; then
     echo ""
-    echo "[SDD-RIPER] 检测到目标项目已存在 ${src_count} 个源码文件，且尚未建立 CodeMap。"
+    echo "[HINT] 检测到目标项目已存在 ${src_count} 个源码文件，且尚未建立 CodeMap。"
     echo "  建议先建立 CodeMap 再进入 Research，帮助 AI 快速理解模块结构："
     echo "    ./sdd.sh create-codemap $dir [--module <name>]"
     return 0

@@ -66,7 +66,7 @@ describe('CLI commands', function() {
   it('new-codemap and new-projectmap work', function() {
     var demo = path.join(tmpBase, 'd5');
     run('init ' + demo + ' --mode standard');
-    assert.ok(run('new-codemap ' + demo + ' auth --spec-version v1.0').indexOf('[CREATE]') !== -1);
+    assert.ok(run('new-codemap ' + demo + ' auth').indexOf('[CREATE]') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'auth.md')));
     assert.ok(run('new-projectmap ' + demo).indexOf('[CREATE]') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'projectmap.md')));

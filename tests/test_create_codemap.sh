@@ -35,7 +35,7 @@ cleanup_tmp "$tmp"
 tmp="$(make_tmp)"
 echo "Test: update path"
 bash "$SDD" init "$tmp" --mode standard >/dev/null
-bash "$SDD" new-codemap "$tmp" "$(basename "$tmp")" --version v1.0 >/dev/null
+bash "$SDD" new-codemap "$tmp" "$(basename "$tmp")" >/dev/null
 touch "$tmp/index.js"
 out=$(bash "$SDD" create-codemap "$tmp") && exit_code=0 || exit_code=$?
 if [ "$exit_code" -eq 0 ]; then pass "update path exits 0"; else fail "update path expected exit 0, got $exit_code"; fi

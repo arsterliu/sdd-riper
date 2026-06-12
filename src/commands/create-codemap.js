@@ -15,6 +15,6 @@ function run(projectDir, opts) {
   console.log('### Module: ' + moduleName);
   console.log('### Target: ' + codemapFile);
   if (existing) { console.log('### Existing (UPDATE mode):'); console.log(existing); }
-  console.log('### AI: Fill CodeMap with entry points, call chains, deps, risks.');
+  console.log('### AI: Fill CodeMap with entry points, module boundaries, key components, call chains, dependencies, risks.');
 }
 module.exports = run;
