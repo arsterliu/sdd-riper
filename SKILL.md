@@ -17,34 +17,22 @@ allowed-tools:
 ---
 
 ```bash
-# Locate SDD-RIPER root — project-level override takes priority over global skill
+# SDD-RIPER npm edition — detect project state
 _PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-SDD_ROOT="${CLAUDE_SKILL_DIR:-}"
-[ -d "$_PROJECT_ROOT/.agents/skills/sdd-riper" ] && SDD_ROOT="$_PROJECT_ROOT/.agents/skills/sdd-riper"
-[ -z "$SDD_ROOT" ] && echo "[WARN] SDD_ROOT not found via CLAUDE_SKILL_DIR; using script location" || true
-SDD_ROOT="${SDD_ROOT:-$(cd "$(dirname "$0")" 2>/dev/null && pwd || pwd)}"
-echo "SDD_ROOT: $SDD_ROOT"
 echo "PROJECT_ROOT: $_PROJECT_ROOT"
 HAS_SDD=$([ -d "$_PROJECT_ROOT/mydocs" ] && echo "yes" || echo "no")
-CONFIG_DOCS_DIR=$(grep '^DOCS_DIR=' "$_PROJECT_ROOT/.sdd-config" 2>/dev/null | head -1 | sed 's/^DOCS_DIR=//; s/\r$//' | sed 's/^"//; s/"$//' || true)
+CONFIG_DOCS_DIR=$(grep "^DOCS_DIR=" "$_PROJECT_ROOT/.sdd-config" 2>/dev/null | head -1 | sed "s/^DOCS_DIR=//; s/\r$//" | sed "s/^"//; s/"$//" || true)
 [ -n "$CONFIG_DOCS_DIR" ] && [ -d "$_PROJECT_ROOT/$CONFIG_DOCS_DIR" ] && HAS_SDD=yes
 echo "HAS_SDD: $HAS_SDD"
 ```
 
-> **⚠️ PATH SUBSTITUTION RULE (CRITICAL)**
-> The preamble above runs in an isolated shell. `$SDD_ROOT` and `$_PROJECT_ROOT` are NOT available as shell variables in subsequent Bash tool calls.
+> **⚠️ PATH SUBSTITUTION RULE**
+> The preamble runs in an isolated shell. `$_PROJECT_ROOT` is NOT available as a shell variable in subsequent Bash tool calls.
 > 
-> After running the preamble, read the output values and store them as literal strings:
-> - `SDD_ROOT: <value>` → use this exact path string in all subsequent bash commands
-> - `PROJECT_ROOT: <value>` → use this exact path string in all subsequent bash commands
+> After running the preamble, read the output:
+> - `PROJECT_ROOT: <value>` → store this literal path for use in commands below
 > 
-> **Always substitute the actual path directly into every command. Never use `$SDD_ROOT` or `$_PROJECT_ROOT` as variable references.**
->
-> **Windows launcher rule:** on Windows, do not call `bash "<SDD_ROOT>/sdd.sh" ...` directly. Use `& "<SDD_ROOT>/sdd.ps1" ...` instead. On macOS/Linux, keep using `bash "<SDD_ROOT>/sdd.sh" ...`.
-> 
-> ✅ Correct: `bash "C:/Users/liuyl/.config/opencode/skills/sdd-riper/sdd.sh" resume "D:/workspace/myproject"`
-> ✅ Correct on Windows: `& "C:/Users/liuyl/.config/opencode/skills/sdd-riper/sdd.ps1" resume "D:/workspace/myproject"`
-> ❌ Wrong: `bash "$SDD_ROOT/sdd.sh" resume "$_PROJECT_ROOT"`
+> **All CLI commands use `npx sdd-riper` — cross-platform, no SDD_ROOT needed. Substitute `<PROJECT_ROOT>` with the actual path.**
 
 > **Superpowers integration**: See `INTEGRATIONS.md` for the SDD ↔ superpowers integration map. The 6 inlined rules below (Step Granularity / Subagent Routing / TDD / Debug / Completion Verification / Pre-Archive Git Gate) are anchored to vendored skills under `vendored/superpowers/`; the inlined text is a fallback summary when neither global nor vendored skill is reachable.
 
@@ -78,9 +66,8 @@ B) 开始或继续 RIPER 工作流任务
 
 1. Use `AskUserQuestion` to ask for target directory (default: current project root). Store the user-selected directory as `TARGET_DIR` for all subsequent commands in this flow.
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user to provide target directory before continuing.
-2. Run: `bash "<SDD_ROOT>/sdd.sh" init "<TARGET_DIR>"` (DO NOT use Write/Edit tools directly to create project files).
-   > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
-3. Show created files.
+2. Run: `npx sdd-riper init "<TARGET_DIR>"` (DO NOT use Write/Edit tools directly to create project files).
+   3. Show created files.
 4. **CodeMap 引导（仅当满足条件时）**: Determine the project's docs root from `.sdd-config` if present; otherwise use `mydocs/`. Then check whether the `init` command output contains `[SDD-RIPER]`, and whether `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`).
    - If init output does **not** contain `[SDD-RIPER]`, OR `<DOCS_ROOT>/codemap/` **already has** `.md` files (excluding `.gitkeep`): skip this step and go to step 5.
    - If init output **contains** `[SDD-RIPER]` AND `<DOCS_ROOT>/codemap/` has **no** `.md` files: use `AskUserQuestion`:
@@ -90,9 +77,8 @@ B) 开始或继续 RIPER 工作流任务
       > A) 是，立即建立
       > B) 否，跳过
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's A/B response before running any command.
-    - If user selects A: run `bash "<SDD_ROOT>/sdd.sh" create-codemap "<TARGET_DIR>"` (append `--module <name>` if module name was provided). Show command output. If command fails, explain the error and continue to step 5.
-      > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
-    - If user selects B: continue to step 5.
+    - If user selects A: run `npx sdd-riper create-codemap "<TARGET_DIR>"` (append `--module <name>` if module name was provided). Show command output. If command fails, explain the error and continue to step 5.
+          - If user selects B: continue to step 5.
 5. Use `AskUserQuestion`: "Create your first Spec now?"
    > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's yes/no response.
    - If yes:
@@ -103,9 +89,8 @@ B) 开始或继续 RIPER 工作流任务
            > A) 有，请提供目录路径：___
            > B) 没有，直接继续
            > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's response before running any command.
-             - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<TARGET_DIR>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
-             > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
-             - If B: proceed without `--context`.
+             - If A (user provides path inline or in next message): run `npx sdd-riper build-context-bundle "<TARGET_DIR>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If the command fails, explain the error and proceed without `--context`.
+                          - If B: proceed without `--context`.
       c. Output to user and END YOUR TURN:
 
 ---
@@ -113,21 +98,17 @@ B) 开始或继续 RIPER 工作流任务
 ---
 
          **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-         - Once user provides a version (matches `v\d+\.\d+`): run `bash "<SDD_ROOT>/sdd.sh" discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<path>"]`
-           > ⚠️ Replace `<SDD_ROOT>` and `<TARGET_DIR>` with actual paths from the preamble output / user input.
-         Read the `## SPEC CREATION PROMPT` output and the created Spec file. Help the user fill in Research Findings and initial Open Questions.
+         - Once user provides a version (matches `v\d+\.\d+`): run `npx sdd-riper discover "<TARGET_DIR>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --spec-version "<user-version>" [--context "<path>"]`
+                    Read the `## SPEC CREATION PROMPT` output and the created Spec file. Help the user fill in Research Findings and initial Open Questions.
 6. Explain: "Run /sdd-riper again to enter Workflow Mode for this task"
 
 ## Workflow Mode (if B selected)
-1. Run: `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"`
-   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-2. Read the `LATEST_SPEC` and `PHASE_HINT` values from the resume output.
-3. **Health Check** (optional): Run `bash "<SDD_ROOT>/sdd.sh" status "<PROJECT_ROOT>"` to verify project structure integrity at the start of a workflow session.
-   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-4. **If `PHASE_HINT=new_task` or `LATEST_SPEC=none`**: the previous task is fully archived or no spec exists.
-    - **Defect vs new task routing**：如果是归档后人工发现的缺陷修复，**不要**直接按新任务创建 Spec。唯一入口是 `bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>"`，由它创建 patch Spec 并关联归档上下文。
-      > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-    - 只有在这是一个真正的新需求 / 新任务时，才继续下面的新任务创建流程。
+1. Run: `npx sdd-riper resume "<PROJECT_ROOT>"`
+   2. Read the `LATEST_SPEC` and `PHASE_HINT` values from the resume output.
+3. **Health Check** (optional): Run `npx sdd-riper status "<PROJECT_ROOT>"` to verify project structure integrity at the start of a workflow session.
+   4. **If `PHASE_HINT=new_task` or `LATEST_SPEC=none`**: the previous task is fully archived or no spec exists.
+    - **Defect vs new task routing**：如果是归档后人工发现的缺陷修复，**不要**直接按新任务创建 Spec。唯一入口是 `npx sdd-riper reopen "<PROJECT_ROOT>" "<task-slug>"`，由它创建 patch Spec 并关联归档上下文。
+          - 只有在这是一个真正的新需求 / 新任务时，才继续下面的新任务创建流程。
    - Use `AskUserQuestion`:
      > 上一个任务已归档，准备开始新任务。
      > 请提供以下信息（或选 C 退出）：
@@ -143,9 +124,8 @@ B) 开始或继续 RIPER 工作流任务
      > A) 有，请提供目录路径：___
      > B) 没有，直接继续
      > **← HUMAN GATE**: STOP. Make no further tool calls. Wait for user's response before running any command.
-       - If A (user provides path inline or in next message): run `bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
-         > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-       - If B: proceed without `--context`.
+       - If A (user provides path inline or in next message): run `npx sdd-riper build-context-bundle "<PROJECT_ROOT>" --sources "<path>"`. Parse `SDD_OUTPUT_PATH:` from the output to get `CONTEXT_PATH`. Then follow the AI 指令 printed in the output: read the listed source files and use the Write tool to create the context bundle at `CONTEXT_PATH`. If command fails, proceed without context.
+                - If B: proceed without `--context`.
     - Once context decision is made: output to user and END YOUR TURN:
 
 ---
@@ -153,9 +133,8 @@ B) 开始或继续 RIPER 工作流任务
 ---
 
       **⚠️ HUMAN GATE — END YOUR TURN HERE. Wait for user response.**
-      - Once user provides a version: run `bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --version "<user-version>" [--context "<CONTEXT_PATH>"]`
-        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-     Read the created Spec and help fill Research Findings.
+      - Once user provides a version: run `npx sdd-riper discover "<PROJECT_ROOT>" --task-name "<name>" --requirement "<req>" --goal "<goal>" --constraints "<constraints>" --spec-version "<user-version>" [--context "<CONTEXT_PATH>"]`
+             Read the created Spec and help fill Research Findings.
 5. Otherwise (active spec found): **按需读取 Spec，不要全量加载**。
    - 先只读 `## Summary` 区块（热区，3-5行）确认当前阶段与目标。
    - 再按 `SECTIONS_HINT` 列表读取对应区块（`resume` 输出中的 `SECTIONS_HINT` 字段）。
@@ -371,7 +350,7 @@ B) 开始或继续 RIPER 工作流任务
    - **Subagent Routing — Debug Investigation** (from `protocols/subagent-dispatch.md`):
      - Each `debug` invocation in the BUGFIX loop reads DEBUG PROMPT (error info + ≤100 lines log + Execute Log excerpt) and then performs deep investigation (probing, reading reference implementations, isolating variables). This is **high context pollution**, multiplied by up to 3 retries.
      - **Dispatch a Debug Investigator subagent** instead of running the investigation in the main orchestrator context. Brief contents (paste, do not reference paths):
-       - Full DEBUG PROMPT text (from `sdd.sh debug` output)
+       - Full DEBUG PROMPT text (from `npx sdd-riper debug` output)
        - Current Step boundary (file paths / directory / module from Plan)
        - Failed assertion or error message summary
        - Spec excerpts of the current Plan Step and last 2-3 Execute Log entries
@@ -379,9 +358,8 @@ B) 开始或继续 RIPER 工作流任务
      - **Orchestrator verifies** the fix_points by reading them itself before applying any fix, then decides: apply fix → next BUGFIX step | escalate `DEVIATED_MAJOR` | escalate `BUGFIX_ESCALATED`.
      - **Micro mode**: skip subagent dispatch; run debug investigation in main context.
    - **BUGFIX loop**:
-     1. Before **every** retry, run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
-        > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-     2. Read the `## DEBUG PROMPT` output; trace data flow backward to establish Root Cause **before** proposing any fix (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer global skill if loaded):
+     1. Before **every** retry, run `npx sdd-riper debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
+             2. Read the `## DEBUG PROMPT` output; trace data flow backward to establish Root Cause **before** proposing any fix (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer global skill if loaded):
         - 在每个组件边界加诊断探针，逐层追踪，不跳过任何层级
         - 找到可工作的参考实现后**完整阅读**（不允许略读），列出每处差异
         - 一次只改**一个变量**验证一个假设
@@ -426,9 +404,8 @@ B) 开始或继续 RIPER 工作流任务
   - ✅ MAY write: `## Review Verdict` (standard) or `## Review Summary` (lite) in Spec (verdict + timestamp + pass number, append-only)
   - ✅ MAY write: CodeMap — ONLY if this task changed entry points, core call chain, external dependencies, or risk items (update CodeMap BEFORE issuing verdict, note the sync in the report)
   - ❌ MUST NOT write: code files, new features, bug fixes, Plan steps
-- **Trigger**: Run `bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>"`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **Subagent Routing — 四轴独立派发** (from `protocols/subagent-dispatch.md`):
+- **Trigger**: Run `npx sdd-riper review-execute "<PROJECT_ROOT>"`
+  - **Subagent Routing — 四轴独立派发** (from `protocols/subagent-dispatch.md`):
   - The REVIEW EXECUTE PROMPT from `review-execute` can ingest up to 780 lines of structured content (Invocation 80 + Plan 100 + Diff ≤500 + Execute Log 100). **Do not process four axes in a single orchestrator pass**.
   - Dispatch one subagent per axis (briefs are extractable from the prompt's `<!-- AXIS N BRIEF START/END -->` blocks):
     - **Axis 0 Investigator** — brief: Invocation excerpts + diff summary. Returns `ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE`.
@@ -501,9 +478,8 @@ Verdict mapping for upstream FAIL:
 
 #### FAIL_CODE Auto-Remediation Loop
 When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execute phase (targeting only the failed steps identified in the verdict), then re-runs Review:
-1. **Before each retry**: run `bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" --error "<FAIL_CODE finding summary>"` and read the Debug Prompt output. Do NOT retry Execute without first establishing Root Cause via `debug`. The investigation itself should be dispatched to a **Debug Investigator subagent** per `protocols/subagent-dispatch.md` to preserve orchestrator context (skip dispatch in Micro mode).
-   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-2. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
+1. **Before each retry**: run `npx sdd-riper debug "<PROJECT_ROOT>" --error "<FAIL_CODE finding summary>"` and read the Debug Prompt output. Do NOT retry Execute without first establishing Root Cause via `debug`. The investigation itself should be dispatched to a **Debug Investigator subagent** per `protocols/subagent-dispatch.md` to preserve orchestrator context (skip dispatch in Micro mode).
+   2. Orchestrator re-invokes Execute phase for the specific steps listed in the FAIL_CODE Rollback Instruction
 3. After Execute completes the fix, Review runs again (new Pass N+1)
 4. Maximum **3 auto-remediation retries** (each preceded by `debug`)
 5. If still `FAIL_CODE` after 3 retries → output `FAIL_CODE_ESCALATED` and require human intervention
@@ -524,9 +500,8 @@ When verdict is `FAIL_CODE`, the orchestrator **automatically** re-invokes Execu
    - **← HUMAN GATE**: 等待用户选择后再继续
    - 选 A/B：merge/push 后再次运行测试验证；选 D：须用户明确输入 `discard`
    - **Micro 模式**：若任务仅为单文件修复且无独立分支，跳过分支选项，仅确认测试通过即可
-3. **Run**: `bash "<SDD_ROOT>/sdd.sh" archive "<PROJECT_ROOT>" "<spec-name>"` — marks source Spec as `status: archived`, appends summary scaffolding, then moves the file to `archive/`. Note the `[ARCHIVE]` and `[INDEX]` paths in output.
-   > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-   > **Micro 模式**：`archive` 命令执行后跳过摘要填充（步骤5-6），直接执行步骤7（Verify）和步骤8（Confirm status）。
+3. **Run**: `npx sdd-riper archive "<PROJECT_ROOT>" "<spec-name>"` — marks source Spec as `status: archived`, appends summary scaffolding, then moves the file to `archive/`. Note the `[ARCHIVE]` and `[INDEX]` paths in output.
+      > **Micro 模式**：`archive` 命令执行后跳过摘要填充（步骤5-6），直接执行步骤7（Verify）和步骤8（Confirm status）。
 4. **Read** the archive file (the path printed as `[ARCHIVE] ...`).
 5. **Review and enrich** — the archive file is the original Spec with summary sections appended at the bottom. Use Edit tool to:
    - Replace any remaining `<!-- (未填充) -->` placeholders with real content
@@ -586,69 +561,59 @@ When completing any phase or the full workflow, report status:
 - **触发时机**：进入 Review 阶段时
 - **命令**：
   ```bash
-  bash "<SDD_ROOT>/sdd.sh" review-execute "<PROJECT_ROOT>"
+  npx sdd-riper review-execute "<PROJECT_ROOT>"
   ```
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-  支持可选参数：`--spec <path>`、`--diff-base <rev>`。
+    支持可选参数：`--spec <path>`、`--diff-base <rev>`。
 - **AI 行为**：读取命令输出的结构化 Prompt，执行四轴对照分析，填写 Spec `## Review Verdict`（standard）/ `## Review Summary`（lite）
 - **四轴**：轴0=Invocation Integrity / 轴1=Spec Plan / 轴2=Code Diff / 轴3=Execute Log（来自 Spec `## Execute Log` 区块）
 
 ### discover（P1b 首版 Spec 创建 / Pre-Research 入口）
 - **触发时机**：Setup Mode 中用户选择"创建首个 Spec"时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" discover "<PROJECT_ROOT>" --task-name "<name>" --version v{N}.{M} --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--mode standard|lite|micro]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取命令输出的 `## SPEC CREATION PROMPT`，读取创建的 Spec 文件，填写 Research Findings 区块和初始 Open Questions
+- **命令**：`npx sdd-riper discover "<PROJECT_ROOT>" --task-name "<name>" --version v{N}.{M} --requirement "<req>" --goal "<goal>" --constraints "<constraints>" [--mode standard|lite|micro]`
+  - **AI 行为**：读取命令输出的 `## SPEC CREATION PROMPT`，读取创建的 Spec 文件，填写 Research Findings 区块和初始 Open Questions
 - **注意**：`--task-name` 和 `--version` 均为必填参数；此命令会写入 `<docs-root>/specs/v{N}.{M}-<task-name>.md`（`<docs-root>` 默认为 `mydocs/`，可由 `.sdd-config` 指定）
 
 ### create-codemap（P2a AI 驱动代码库扫描）
 - **触发时机**：Research 或 Plan 阶段，需要建立代码库架构视图时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" create-codemap "<PROJECT_ROOT>" [--module <name>]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取 Prompt 中的文件树和 CodeMap 模板，分析代码库结构，填写 CodeMap 并写入 `<docs-root>/codemap/<module>.md`
+- **命令**：`npx sdd-riper create-codemap "<PROJECT_ROOT>" [--module <name>]`
+  - **AI 行为**：读取 Prompt 中的文件树和 CodeMap 模板，分析代码库结构，填写 CodeMap 并写入 `<docs-root>/codemap/<module>.md`
 - **治理规则**：若目标模块已有 CodeMap，优先进入 UPDATE 模式，对现有地图做增量更新；不要为同一模块重复创建多份 CodeMap。
 
 ### build-context-bundle（P2b AI 提炼上下文包）
 - **触发时机**：任务开始前，用户手头有外部材料（如 UI 稿、PRD、会议记录）需要带入任务背景时；典型触发如”我有设计稿要放进去””PRD 文档怎么带进 context”。Skill 会在每次创建 Spec 前主动询问，用户选择提供路径后触发。
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" build-context-bundle "<PROJECT_ROOT>" --version v{N}.{M} [--out <name>] [--sources <dir>]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本由用户通过 `--version` 指定）
+- **命令**：`npx sdd-riper build-context-bundle "<PROJECT_ROOT>" --version v{N}.{M} [--out <name>] [--sources <dir>]`
+  - **AI 行为**：读取 Prompt 中列出的外部 source materials（若提供 `--sources <dir>`）以及 docs-root 项目背景文件，按 Context Bundle 模板做两层提炼：先吸收外部材料，再补齐项目文档背景，写入 `<docs-root>/context/v{N}.{M}-<bundle-name>.md`（版本由用户通过 `--version` 指定）
 - **跟进引导**：生成完成后，可询问用户是否要把该 Context Bundle 路径回填到当前 Spec 的 `context-source:` 字段；这是 skill 引导动作，不是 CLI 参数。
 
 ### debug（P3a 日志驱动 Bug 定位）
 - **触发时机**：Execute 阶段进入 `BUGFIX`，或 Review 阶段触发 `FAIL_CODE` 自动修复重试时；每次 retry 前都必须先运行 `debug` 定位根本原因
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取输出的 `## DEBUG PROMPT`，分析错误信息、日志和执行步骤，定位 Root Cause 后提出最小修复方案；若无法建立 Root Cause，则不得继续 BUGFIX / FAIL_CODE 重试
+- **命令**：`npx sdd-riper debug "<PROJECT_ROOT>" [--log <log-file>] [--error "<error-msg>"]`
+  - **AI 行为**：读取输出的 `## DEBUG PROMPT`，分析错误信息、日志和执行步骤，定位 Root Cause 后提出最小修复方案；若无法建立 Root Cause，则不得继续 BUGFIX / FAIL_CODE 重试
 - **铁律**：禁止在未明确 Root Cause 的情况下提出修复方案
 
 ### create-projectmap（P3b AI 驱动 ProjectMap 生成）
 - **触发时机**：任务涉及多仓库/多模块，需要建立全局地图时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" create-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：读取输出的 `## CREATE PROJECTMAP PROMPT`，根据项目信息和模板格式，填写 ProjectMap 并写入 `<docs-root>/projectmap.md`
+- **命令**：`npx sdd-riper create-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
+  - **AI 行为**：读取输出的 `## CREATE PROJECTMAP PROMPT`，根据项目信息和模板格式，填写 ProjectMap 并写入 `<docs-root>/projectmap.md`
 - **注意**：若 `<docs-root>/projectmap.md` 已存在，需加 `--force` 才能覆盖（exit 2 提示）
 
 ### reopen（P4 归档后缺陷回溯入口）
 - **触发时机**：任务已 Archive 完成，随后由人工测试或后续验证发现 defect，需要在不改变原始任务意图的前提下创建 patch Spec 继续修复时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" reopen "<PROJECT_ROOT>" "<task-slug>" [--defect "<defect-summary>"] [--mode standard|lite|micro]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **默认模式**：`micro`。patch 任务天然轻量（边界清晰、不需要重新 Innovate），仅在缺陷修复范围较大时才传 `--mode standard` 或 `--mode lite` 覆盖。
+- **命令**：`npx sdd-riper reopen "<PROJECT_ROOT>" "<task-slug>" [--defect "<defect-summary>"] [--mode standard|lite|micro]`
+  - **默认模式**：`micro`。patch 任务天然轻量（边界清晰、不需要重新 Innovate），仅在缺陷修复范围较大时才传 `--mode standard` 或 `--mode lite` 覆盖。
 - **前置条件**：
   - 源 Spec 的 `status` 必须为 `archived`
   - `<docs-root>/archive/` 中必须存在对应的归档文件 `vN.M-<task-slug>.md`
   - `<docs-root>/specs/` 中不得已存在同 slug 的更高版本且 `status != archived` 的 patch Spec；若存在，改为运行 `resume`
 - **AI 行为**：命令成功后，读取新建 patch Spec 的 `reopened-from` 与 `context-source` 元数据，运行 `resume` 载入该 patch Spec，再在 `## Research` 区块中记录归档上下文来源与缺陷来源。`reopen` 只用于 defect patch，不得借此扩大范围或引入新功能。
-- **失败处理**：若输出提示 `Open patch spec already exists`，不要重复 reopen，改为运行 `bash "<SDD_ROOT>/sdd.sh" resume "<PROJECT_ROOT>"` 继续已有 patch Spec。
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-
+- **失败处理**：若输出提示 `Open patch spec already exists`，不要重复 reopen，改为运行 `npx sdd-riper resume "<PROJECT_ROOT>"` 继续已有 patch Spec。
+  
 ### new-codemap（P5 空白 CodeMap 模板）
 - **触发时机**：你只想先创建一个空白的版本化 CodeMap 文件，而不是让 AI 立即扫描代码库时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" new-codemap "<PROJECT_ROOT>" "<module>" [--version v{N}.{M}] [--force]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：不扫描代码，不生成 Prompt；仅从模板创建空白文件，供后续人工或 AI 填写。
+- **命令**：`npx sdd-riper new-codemap "<PROJECT_ROOT>" "<module>" [--version v{N}.{M}] [--force]`
+  - **AI 行为**：不扫描代码，不生成 Prompt；仅从模板创建空白文件，供后续人工或 AI 填写。
 
 ### new-projectmap（P6 空白 ProjectMap 模板）
 - **触发时机**：你只想先创建一个空白的 ProjectMap 文件，而不是让 AI 立即生成完整全局地图时
-- **命令**：`bash "<SDD_ROOT>/sdd.sh" new-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
-  > ⚠️ Replace `<SDD_ROOT>` and `<PROJECT_ROOT>` with actual paths from the preamble output.
-- **AI 行为**：不扫描多仓，不生成 Prompt；仅从模板创建空白 `projectmap.md`。
+- **命令**：`npx sdd-riper new-projectmap "<PROJECT_ROOT>" [--repos <repo1,repo2>] [--force]`
+  - **AI 行为**：不扫描多仓，不生成 Prompt；仅从模板创建空白 `projectmap.md`。

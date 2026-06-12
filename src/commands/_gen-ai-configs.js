@@ -1,0 +1,140 @@
+const fs = require('fs');
+const path = require('path');
+const { SCAFFOLD_ROOT } = require('../../lib/common');
+
+function run(projectDir, mode, force) {
+  if (!mode) mode = 'standard';
+  if (['standard','lite','micro'].indexOf(mode) === -1) {
+    console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
+    process.exit(3);
+  }
+
+  var protocolFile = mode === 'standard'
+    ? path.join(SCAFFOLD_ROOT, 'protocols', 'sdd-riper-one.md')
+    : path.join(SCAFFOLD_ROOT, 'protocols', 'sdd-riper-one-light.md');
+
+  var protocolExcerpt = '(protocol excerpt unavailable)';
+  var protocolExcerpt20 = '(protocol excerpt unavailable)';
+  try {
+    var lines = fs.readFileSync(protocolFile, 'utf-8').split(/\r?\n/);
+    protocolExcerpt = lines.slice(0, 30).join('\n');
+    protocolExcerpt20 = lines.slice(0, 20).join('\n');
+  } catch (e) {}
+
+  var created = 0, skipped = 0;
+
+  function writeConfig(dst, content) {
+    var dir = path.dirname(dst);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    if (fs.existsSync(dst) && !force) {
+      console.log('[SKIP] ' + dst + ' already exists');
+      skipped++;
+      return;
+    }
+    fs.writeFileSync(dst, content, 'utf-8');
+    console.log('[CREATE] ' + dst);
+    created++;
+  }
+
+  var agentsContent = [
+    '# SDD-RIPER Agent Instructions',
+    '',
+    '## Core Rules (No Exceptions)',
+    '- **No Spec, No Code** — Do not write code unless a task Spec exists',
+    '- **Spec is Truth** — The Spec is the single source of truth, not the code',
+    '- **Reverse Sync** — If code diverges from Spec, update the Spec',
+    '- **Plan Approved** gate — Do not execute until Plan is explicitly approved by a human',
+    '- **Debug Before Retry** — When a step fails, run debug to find root cause before retrying',
+    '',
+    '## RIPER Workflow',
+    'Follow the RIPER phases: Research -> Innovate -> Plan -> Execute -> Review',
+    '',
+    '## Context Layers',
+    '- **Spec**: Current task work order (<docs-root>/specs/, defaults to mydocs/specs/)',
+    '- **CodeMap**: Module structure and call chains (<docs-root>/codemap/, defaults to mydocs/codemap/)',
+    '- **ProjectMap**: Cross-repo contracts and ownership (<docs-root>/projectmap.md, defaults to mydocs/projectmap.md)',
+    '',
+    '## Docs Root Configuration',
+    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '',
+    '## Mode: ' + mode,
+    '',
+    '## Protocol Reference',
+    protocolExcerpt
+  ].join('\n');
+  writeConfig(path.join(projectDir, 'AGENTS.md'), agentsContent);
+
+  var claudeContent = [
+    '# Claude Project Instructions — SDD-RIPER',
+    '',
+    '## Memory',
+    '- Always load the latest Spec before starting any task',
+    '- Track RIPER phase transitions explicitly',
+    '',
+    '## Behavior',
+    '- NEVER write code without a Spec',
+    '- NEVER proceed past Plan without "Plan Approved By" being filled',
+    '- ALWAYS record deviations from Plan in Execute Log',
+    '- ALWAYS run debug before retrying a failed step',
+    '',
+    '## RIPER Phase Gate',
+    'Current phase must be explicit. Prohibited: jumping phases silently.',
+    '',
+    '## Entry Commands',
+    '- sdd discover <dir> --task-name <name> ... = start a new task / Research phase',
+    '- sdd resume <dir> = resume an existing task / reload context',
+    '',
+    '## Docs Root Configuration',
+    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '',
+    '## Mode: ' + mode,
+    '',
+    '## Protocol Reference',
+    protocolExcerpt
+  ].join('\n');
+  writeConfig(path.join(projectDir, 'CLAUDE.md'), claudeContent);
+
+  var cursorContent = [
+    '# SDD-RIPER Rules for Cursor',
+    '',
+    'RULE: Never write code unless a task Spec exists in <docs-root>/specs/ (defaults to mydocs/specs/)',
+    'RULE: RIPER phases are Research -> Innovate -> Plan -> Execute -> Review',
+    'RULE: Plan Approved By must be filled before Execute phase',
+    'RULE: Spec is Truth — code must match Spec, not the other way around',
+    'RULE: Debug before retry — when a step fails, run debug to find root cause first',
+    'RULE: ProjectMap defines cross-repo contracts — always check before touching APIs',
+    'RULE: Docs root defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...)',
+    'RULE: mode=' + mode,
+    '',
+    '## Protocol Reference',
+    protocolExcerpt20
+  ].join('\n');
+  writeConfig(path.join(projectDir, '.cursorrules'), cursorContent);
+
+  var copilotContent = [
+    '# GitHub Copilot Instructions — SDD-RIPER',
+    '',
+    '## Workflow',
+    'Always follow the SDD-RIPER methodology when generating code suggestions.',
+    '',
+    '## Key Rules',
+    '- No Spec, No Code: Check <docs-root>/specs/ (defaults to mydocs/specs/) before suggesting code',
+    '- RIPER phases: Research -> Innovate -> Plan -> Execute -> Review',
+    '- Plan Approved gate: Do not suggest implementation code until Plan is approved',
+    '- Debug before retry: When code fails, run debug to find root cause before retrying',
+    '- ProjectMap: Cross-repo interfaces are documented in <docs-root>/projectmap.md (defaults to mydocs/projectmap.md)',
+    '',
+    '## Docs Root Configuration',
+    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '',
+    '## Mode: ' + mode,
+    '',
+    '## Protocol Reference',
+    protocolExcerpt20
+  ].join('\n');
+  writeConfig(path.join(projectDir, '.github', 'copilot-instructions.md'), copilotContent);
+
+  return { created: created, skipped: skipped };
+}
+
+module.exports = { run: run };

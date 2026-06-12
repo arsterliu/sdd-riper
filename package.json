@@ -1,0 +1,34 @@
+{
+  "name": "sdd-riper",
+  "version": "2.0.0",
+  "description": "SDD-RIPER: Structured Driven Development CLI — Research, Innovate, Plan, Execute, Review",
+  "license": "MIT",
+  "author": "liuying",
+  "bin": {
+    "sdd": "./bin/cli.js"
+  },
+  "files": [
+    "bin/cli.js",
+    "lib/",
+    "src/commands/",
+    "templates/",
+    "protocols/",
+    "vendored/"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "sdd",
+    "riper",
+    "structured-development",
+    "ai-assisted",
+    "specification"
+  ]
+}

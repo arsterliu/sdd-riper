@@ -75,8 +75,8 @@ SDD-RIPER 的做法是：把任务收敛成 **Spec**，把架构事实沉淀成 
 
 - **macOS / Linux**：原生可用。
 - **Windows**：推荐安装 [Git for Windows](https://git-scm.com/download/win)。
-  - 可以直接用 **Git Bash** 跑 `./sdd.sh`
-  - 也可以用仓库自带的 `sdd.ps1`
+  - 可以直接用 **Git Bash** 跑 `npx sdd-riper`
+  - 也可以用仓库自带的 `npx sdd-riper`
 
 ### OpenCode Skill（可选）
 
@@ -114,7 +114,7 @@ Skill 会先判断项目是否已初始化：
 - 没初始化 → 引导你走 Setup
 - 已初始化 → 走 Workflow，读取当前 Spec 和阶段提示
 
-它本质上还是在调用 `sdd.sh`，但会把人类 gate、阶段切换和 debug-before-retry 这些规则一起执行起来。
+它本质上还是在调用 `npx sdd-riper`，但会把人类 gate、阶段切换和 debug-before-retry 这些规则一起执行起来。
 
 ### 路径 B：Shell CLI
 
@@ -123,158 +123,19 @@ Skill 会先判断项目是否已初始化：
 第一次上手的最短路径就是两步：
 
 ```bash
-./sdd.sh init my-project
-./sdd.sh discover my-project --task-name my-task --requirement "我要做什么"
+npx sdd-riper init my-project
+npx sdd-riper discover my-project --task-name my-task --requirement "我要做什么"
 ```
 
 如果任务中断，再用：
 
 ```bash
-./sdd.sh resume my-project
+npx sdd-riper resume my-project
 ```
 
-### 路径 C：Windows PowerShell
+### 路径 C：npx（跨平台）
 
-如果你在 PowerShell 里工作，优先用：
-
-```powershell
-.\sdd.ps1 init my-project
-.\sdd.ps1 discover my-project --task-name my-task --requirement "我要做什么"
-```
-
-`sdd.ps1` 会优先从 Windows Registry 自动定位 Git Bash；找不到时再尝试 `Get-Command bash`。你不需要手动把路径转换成 MINGW 形式。
-
----
-
-## 5.1 快速参考卡
-
-| 场景 | 命令 |
-| :--- | :--- |
-| **初始化项目** | `./sdd.sh init <dir>` |
-| **开始新任务** | `./sdd.sh discover <dir> --task-name xxx --requirement "..."` |
-| **继续已有任务** | `./sdd.sh resume <dir>` |
-| **检查项目健康度** | `./sdd.sh status <dir>` |
-| **归档已完成任务** | `./sdd.sh archive <dir> <spec-name>` |
-| **修复归档后的缺陷** | `./sdd.sh reopen <dir> <task-slug> --defect "..."` |
-
-**核心规则速记**：
-- `Plan 未批准` → 你需要先找人审批
-- `Plan 已批准，无 Review 结论` → 进入开发阶段
-- `任务完成，有 Review 结论` → 可以归档
-- `遇到 bug` → 先跑 `debug` 定位根因，再决定是否重试
-
----
-
-## 5.2 看看效果：一个真实的 Spec 文件
-
-运行 `./sdd.sh discover` 后，会在 `mydocs/specs/` 下创建一个 Spec 文件，例如：
-
-```markdown
----
-date: 2026-05-15
-task-name: user-login
-mode: standard
-status: draft
----
-
-# User Login Spec
-
-## Invocation
-- **Requirement**: 用户可以通过邮箱和密码登录
-- **Goal**: 完成安全的登录流程
-- **Constraints**: 不引入新依赖
-
-## Summary
-当前阶段: Research
-目标: 实现邮箱+密码登录功能
-关键约束: 使用现有 AuthService，不引入新依赖
-最新进展: 刚创建 Spec，等待 AI 填写 Research Findings
-
-## Research
-### Requirement Review
-（AI 在此审查需求文本：歧义点、边界缺口、隐含假设、约束冲突；有阻碍项时先列出等待确认）
-
-### Findings
-（AI 在此填入调研结论：代码位置、调用链、依赖关系）
-
-### Open Questions
-（AI 在此列出技术未知点）
-
-### Assumptions
-（AI 在此记录暂未验证的假设）
-
-### Confirmed Requirement
-（AI 用自己的话复述需求，确保理解一致）
-
-## Innovate Options
-（AI 在此列出 ≥2 个方案并对比）
-
-## Plan
-- [ ] Step 1: <文件路径> — <做什么> — <验收条件>
-> Plan Approved By: ___ / At: ___
-
-## Execute Log
-（每个执行步骤的记录在此追加）
-
-## Review Verdict
-（四轴审查结论在此填写）
-```
-
-**一个 Spec 解决什么问题**：
-- 所有参与者（人、AI）都以 Spec 为准，不用翻聊天记录
-- 执行过程全部留痕，出了问题是可追溯的
-- 人工审批必须明确，不能"AI 自己过了"
-
----
-
-## 6. 5 分钟上手：真实主路径
-
-> **如果你用的是 OpenCode Skill（路径 A），直接输入 `/sdd` 即可——AI 会引导你完成下面所有步骤，不需要手动执行这些命令。**  
-> 本节面向路径 B/C（CLI 手动操作）或希望理解底层发生了什么的用户。
-
-### 第一步：初始化项目
-
-```bash
-./sdd.sh init my-project --mode standard
-```
-
-这一步会做几件事：
-
-- 创建 docs 根目录（默认 `mydocs/`）及其子目录：`specs/`、`codemap/`、`context/`、`archive/`
-- 写入 `.sdd-config`，保存 docs 目录名
-- 生成 AI 侧规则文件：
-  - `AGENTS.md`
-  - `CLAUDE.md`
-  - `.cursorrules`
-  - `.github/copilot-instructions.md`
-
-如果目标项目已经有较多源码文件且存在项目标记文件（例如 `package.json`、`go.mod`、`pyproject.toml`），`init` 还会提示你先创建 CodeMap。
-
-### 第二步：开始一个新任务
-
-```bash
-./sdd.sh discover my-project \
-  --task-name "user-login" \
-  --requirement "用户可以通过邮箱和密码登录" \
-  --goal "完成安全的登录流程" \
-  --constraints "不引入新依赖" \
-  --context "项目已有 UserService"
-```
-
-这一步会：
-
-- 在 `<docs-root>/specs/` 下创建版本化 Spec，例如 `v1.0-user-login.md`
-- 自动填充你传入的 requirement / goal / constraints / context
-- 输出 `## SPEC CREATION PROMPT`
-
-版本号通过 `--version` 自行指定（必填），例如 `--version v1.0`。同名同版本已存在时会报错。
-
-**`SPEC CREATION PROMPT` 输出后，你该做什么**：
-
-把这段输出直接粘贴给 AI（或在 Skill 流程里 AI 会自动读取）。AI 会：
-
-1. 读取刚创建的 Spec 文件
-2. 先对需求做 **Requirement Review（document-first with gate）**——一次性把 6 维度（边界 / 异常路径 / 约束真实性 / 验收标准 / 内部冲突 / 真实目标）的分析结果全部写入 Spec `### Requirement Review` 区块；写完触发 AskUserQuestion 门禁：A) STOP（线下澄清，Spec 保持 draft） B) CONTINUE（接受 Tentative Assumptions，复制到 ### Assumptions，进入 Findings）
+使用 npm 安装后，直接在 PowerShell / cmd / Git Bash 中运行 npx sdd-riper 即可，不再需要平台特定的启动脚本。 STOP（线下澄清，Spec 保持 draft） B) CONTINUE（接受 Tentative Assumptions，复制到 ### Assumptions，进入 Findings）
 3. 调研代码库，填写 Findings / Open Questions / Assumptions / **Confirmed Requirement**（这是研究校准版，不是用户原始输入）
 4. **Mode Recommendation Gate**（micro 模式跳过）—— AI 用 5 维度（Scope / Architecture impact / Cross-cutting / Test surface / Uncertainty）评估任务复杂度，按 0-2 micro / 3-5 lite / 6+ standard 给出推荐，AskUserQuestion 让用户接受 / 升级 / 降级 / 回 Research；用户选完后 AI 用 Edit 工具更新 Spec frontmatter 的 `mode:` 字段
 5. 提出 ≥2 个方案（Innovate），等你选择
@@ -291,7 +152,7 @@ status: draft
 ### 第三步：恢复上下文
 
 ```bash
-./sdd.sh resume my-project
+npx sdd-riper resume my-project
 ```
 
 `resume` 会输出：
@@ -421,14 +282,14 @@ draft → archived
 归档后发现缺陷，不应该重新 `discover` 一个新任务，而应该用：
 
 ```bash
-./sdd.sh reopen <project-dir> <task-slug> --defect "缺陷描述"
+npx sdd-riper reopen <project-dir> <task-slug> --defect "缺陷描述"
 ```
 
 `reopen` 会读取 archive 里的上下文，创建新的 patch Spec，并写入 `reopened-from` 与 `context-source`。如果来源任务还没有归档，`reopen` 会直接失败，并提示你改用 `resume` 继续当前任务。
 
 ## 8. CLI 命令总览
 
-`sdd.sh` 当前调度 13 个子命令：
+`npx sdd-riper` 当前调度 13 个子命令：
 
 | 命令 | 作用 | 关键参数 / 说明 |
 | :--- | :--- | :--- |
@@ -507,7 +368,7 @@ DOCS_DIR="mydocs"
 如果你希望换目录名，可以在初始化时指定：
 
 ```bash
-./sdd.sh init my-project --docs-dir docsx
+npx sdd-riper init my-project --docs-dir docsx
 ```
 
 此后 `resume`、`status`、`review-execute`、`archive`、`reopen`、`build-context-bundle`、`create-codemap`、`create-projectmap`、`new-codemap`、`new-projectmap` 等命令都会按 `.sdd-config` 解析 docs 根目录，而不是硬编码只认 `mydocs/`。
@@ -547,21 +408,21 @@ DOCS_DIR="mydocs"
 
 如果你在 Windows 下工作：
 
-- **推荐**：安装 Git for Windows，直接用 Git Bash 跑 `./sdd.sh`
-- **PowerShell**：使用 `sdd.ps1`
+- **推荐**：安装 Git for Windows，直接用 Git Bash 跑 `npx sdd-riper`
+- **PowerShell**：使用 `npx sdd-riper`
 
 例如：
 
 ```powershell
-.\sdd.ps1 init my-project
-.\sdd.ps1 resume my-project
+.\npx sdd-riper init my-project
+.\npx sdd-riper resume my-project
 ```
 
-`sdd.ps1` 的行为不是简单转发，它会：
+`npx sdd-riper` 的行为不是简单转发，它会：
 
 1. 先从 `HKLM:\SOFTWARE\GitForWindows` / `HKCU:\SOFTWARE\GitForWindows` 查 Git Bash 安装路径
 2. 如果注册表没找到，再尝试 `Get-Command bash`
-3. 自动把 `sdd.sh` 转成 Git Bash 可执行的 Unix 风格路径
+3. 自动把 `npx sdd-riper` 转成 Git Bash 可执行的 Unix 风格路径
 
 这也是 Windows 路径下的推荐入口。
 
@@ -652,7 +513,7 @@ Skill 会在每次创建 Spec 前主动询问你是否有这类材料，选"有"
 欢迎提 Issue 和 PR。提交前至少建议做两件事：
 
 ```bash
-./sdd.sh status <target-dir>
+npx sdd-riper status <target-dir>
 bash tests/run_all.sh
 ```
 

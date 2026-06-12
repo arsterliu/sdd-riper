@@ -30,7 +30,7 @@
 ### Day 5-7: 全面推广
 - **目标**：建立常态化机制。
 - **行动**：全组开始使用。启用 `ProjectMap` 进行跨仓库联动。
-- **观察点**：通过 `sdd status` 观察全员任务进度。
+- **观察点**：通过 `npx sdd-riper status` 观察全员任务进度。
 
 ---
 
@@ -56,7 +56,7 @@
 
 - **TL / 主管 (Team Lead)**：
   - 负责 `Plan Approved` 门禁。
-  - 定期查看 `sdd status` 报告，识别进度风险。
+  - 定期查看 `npx sdd-riper status` 报告，识别进度风险。
   - 不必介入每一行代码，但必须把控“方案方向”。
 
 ---
@@ -87,13 +87,13 @@
 
 ### sdd_discover 的艺术
 `sdd_discover` 动作要求同时接收 **requirement** (你要做什么) 和 **context** (你以前是怎么做的)。
-- CLI 推荐入口：`sdd discover <dir> --task-name <name> ...`
+- CLI 推荐入口：`npx sdd-riper discover <dir> --task-name <name> ...`
 - 常见错误：只给 requirement，导致 AI 重新发明轮子；只给 context，导致 AI 无所适从。
 - 正确做法：requirement 定义任务底色，context 填充细节，Spec 最终收敛为单一真相。
 
 ### 治理的折中策略
 - **Standard vs Lite**：这是管理成本与交付质量的平衡。对于高风险核心模块，严禁使用 Lite。
-- **Status 的角色**：`sdd status` 仅作为辅助提醒。它检查“你有没有做功课”，但不代你做决定。如果 status 报 WARN，你应该去检查 Spec 内容是否充实，而不是简单地为了消除 WARN 而填垃圾内容。
+- **Status 的角色**：`npx sdd-riper status` 仅作为辅助提醒。它检查“你有没有做功课”，但不代你做决定。如果 status 报 WARN，你应该去检查 Spec 内容是否充实，而不是简单地为了消除 WARN 而填垃圾内容。
 
 ---
 
@@ -126,8 +126,8 @@
 
 4. **坑：Archive 简单复制 Spec 原文**
    - *症结*：为了完成任务而归档，把 Spec 原文搬进 `archive/` 完事，AI 之后无法快速提取关键决策。
-   - *解法*：`sdd archive` 会在原 Spec 末尾追加四个 summary section（目标摘要 / 最终方案 / 关键约束 / 坑点与风险），由开发者 Edit 填实后再 `resume` 验证；不要让 `<!-- (未填充) -->` 占位符遗留。归档的产物是一份**带决策密度的 Spec**，不是 Spec 的副本。
+   - *解法*：`npx sdd-riper archive` 会在原 Spec 末尾追加四个 summary section（目标摘要 / 最终方案 / 关键约束 / 坑点与风险），由开发者 Edit 填实后再 `resume` 验证；不要让 `<!-- (未填充) -->` 占位符遗留。归档的产物是一份**带决策密度的 Spec**，不是 Spec 的副本。
 
 5. **坑：Windows 路径兼容性问题**
-   - *症结*：在 PowerShell 下跑脚本，导致路径报错。
-   - *解法*：全员统一使用 **Git Bash**。
+   - *症结*：旧 shell 版本在 PowerShell 下可能有路径问题。
+   - *解法*：全员使用 **npm/npx** 命令。
