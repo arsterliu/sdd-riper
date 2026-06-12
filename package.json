@@ -8,12 +8,17 @@
     "sdd": "./bin/cli.js"
   },
   "files": [
-    "bin/cli.js",
+    "bin/",
     "lib/",
     "src/commands/",
     "templates/",
     "protocols/",
-    "vendored/"
+    "vendored/",
+    "sdd.sh",
+    "SKILL.md",
+    "GUIDE.md",
+    "TEAM-GUIDE.md",
+    "INTEGRATIONS.md"
   ],
   "scripts": {
     "test": "node --test tests/*.test.js"
