@@ -234,12 +234,17 @@ B) 开始或继续 RIPER 工作流任务
   - AI 对原始 requirement 做一次完整苏格拉底式审视，**不进行实时一次一题追问**（避免主上下文被 12 turns 的 Q&A 污染）
   - 6 维度全部分析后，按模板规定格式（维度状态表 / Open Question + Tentative Assumption + Impact-if-wrong / Premise List）写入 Spec `### Requirement Review` 区块
   - 写入完成后，**触发门禁** `AskUserQuestion`：
-    > Requirement Review identified N open issues (⚠️ M dimensions, ❌ K dimensions).
-    > A) STOP — 我去线下澄清/重定义需求，Spec 保持 draft
-    > B) CONTINUE — 接受当前 Tentative Assumptions，自动复制到 ### Assumptions，进入 Findings
-  - 若所有 6 维度都为 ✅ Clear，可省略门禁直接进入 Findings；但 Premise List 仍要写入
-  - 用户选 STOP → END YOUR TURN，等待用户更新 Spec 后再回到 Research
-  - 用户选 CONTINUE → orchestrator 把 Tentative Assumptions 复制到 `### Assumptions`，然后进入 Findings
+    - 若所有 6 维度都为 ✅ Clear：可省略门禁直接进入 Findings；但 Premise List 仍要写入
+    - 若 ⚠️/❌ 合计 ≤ 2 个：逐条追问关键问题，用户回答后更新 Spec，进入 Findings
+    - 若 ⚠️/❌ 合计 ≥ 3 个：挑出影响最大的 2-3 个核心问题，让用户选择：
+      > Requirement Review identified N open issues (⚠️ M dimensions, ❌ K dimensions).
+      > 最关键的待澄清问题：[简述 2-3 个核心不确定性]
+      > A) CLARIFY — 先澄清上述关键问题（逐条追问），其余接受 Tentative Assumptions
+      > B) CONTINUE — 全部接受 Tentative Assumptions，进入 Findings
+      > C) STOP — 问题太多，我去线下重定义需求，Spec 保持 draft
+    - 用户选 CLARIFY → 逐条追问关键问题（≤ 3 轮），根据回答更新 Spec 中的对应 Open Questions 和 Tentative Assumptions，然后进入 Findings
+    - 用户选 CONTINUE → orchestrator 把 Tentative Assumptions 复制到 `### Assumptions`，然后进入 Findings
+    - 用户选 STOP → END YOUR TURN，等待用户更新 Spec 后再回到 Research
 - **Subagent Routing — 多源调研** (from `protocols/subagent-dispatch.md`):
   - When Research requires reading > 3 files or > 500 lines of raw code / docs (typical for unfamiliar modules), **do not read them in the main orchestrator context**. Dispatch one or more subagents per source category:
     - **Codebase Scanner subagent** — greps + reads relevant code files, returns entry points / call chains / external deps (feeds `### Findings`)
@@ -319,6 +324,7 @@ B) 开始或继续 RIPER 工作流任务
 
 ## Plan Phase Instructions — HUMAN GATE ⚠️
 - **Goal**: Atomic execution plan
+- **Assumptions 校验**：Plan 第一步必须先回看 `### Assumptions` 区块。若存在标注”待验证”且 Impact-if-wrong 为 HIGH 的假设，**必须先验证再写 Plan**——读相关代码、查文档、或向用户确认。不得基于未验证的高影响假设出 Plan。若验证后发现假设错误，回到 Research 更新 Findings 和 Confirmed Requirement。
 - **CodeMap 检查**：若 Plan 涉及的模块已有 CodeMap，先核对计划是否仍符合该地图；若你预期本次实现会改变入口点、模块边界、关键组件、调用链路、依赖或风险项，请在 Plan 中明确加入”更新 CodeMap”的收尾步骤。
 - **Output format**:
   ```markdown
