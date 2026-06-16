@@ -16,6 +16,8 @@ allowed-tools:
   - AskUserQuestion
 ---
 
+<!-- 以下为工作流规则。禁止逐条复述给用户。直接根据当前项目状态执行对应阶段的行为。 -->
+
 ```bash
 # SDD-RIPER npm edition — detect project state
 _PROJECT_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
