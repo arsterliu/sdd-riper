@@ -20,7 +20,7 @@
 npm install -g https://github.com/arsterliu/sdd-riper.git
 ```
 
-安装后即可使用 `sdd` 命令，或通过 `npx sdd-riper` 调用。
+安装后即可使用 `sdd` 命令。
 
 ### 注册 Skill
 
@@ -98,14 +98,14 @@ AI 会先判断项目是否已初始化：
 ### 路径 B：CLI（手动控制每一步）
 
 ```bash
-npx sdd-riper init my-project
-npx sdd-riper discover my-project --task-name my-task --requirement "我要做什么"
+sdd init my-project
+sdd discover my-project --task-name my-task --requirement "我要做什么"
 ```
 
 任务中断后恢复：
 
 ```bash
-npx sdd-riper resume my-project
+sdd resume my-project
 ```
 
 ---
@@ -177,7 +177,7 @@ Research → Innovate → Plan → Execute → Review
 欢迎提 Issue 和 PR。提交前建议：
 
 ```bash
-npx sdd-riper status <target-dir>
+sdd status <target-dir>
 bash tests/run_all.sh
 ```
 

@@ -57,7 +57,7 @@ Axis 2 是 primary，另外三轴是安全网。
 归档后发现缺陷，不要重新 `discover`，用 `sdd reopen`：
 
 ```bash
-npx sdd-riper reopen <project-dir> <task-slug> --defect "缺陷描述"
+sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 ```
 
 `reopen` 会读取归档上下文，创建新的 patch Spec，把修复任务挂回原来的生命周期上。如果来源任务还没归档，`reopen` 会失败并提示你改用 `resume`。
@@ -93,7 +93,7 @@ Fallback 顺序：编辑器全局 superpowers > vendored 副本 > SKILL.md 内�
 
 ## CLI 命令全集
 
-所有命令通过 `npx sdd-riper` 或 `sdd` 调用。
+所有命令通过 `sdd` 或 `sdd` 调用。
 
 | 命令 | 作用 | 主要参数 |
 | :--- | :--- | :--- |
@@ -223,7 +223,7 @@ DOCS_DIR="mydocs"
 如需自定义 docs 目录名：
 
 ```bash
-npx sdd-riper init my-project --docs-dir docsx
+sdd init my-project --docs-dir docsx
 ```
 
 此后所有命令都会按 `.sdd-config` 解析 docs 根目录。`--docs-dir` 必须是普通目录名，不能带路径分隔符。
@@ -251,9 +251,7 @@ npx sdd-riper init my-project --docs-dir docsx
 
 ## Windows 使用
 
-推荐安装 [Git for Windows](https://git-scm.com/download/win)，用 Git Bash 运行所有命令。
-
-`npx sdd-riper` 在 Windows 下的行为不是简单转发——它会自动查找 Git Bash 安装路径（先查注册表，再查 `bash` 命令），将命令转为 Git Bash 可执行的 Unix 风格路径。
+推荐安装 [Git for Windows](https://git-scm.com/download/win)，用 Git Bash 运行所有命令。部分 shell 命令底层依赖 bash，Git Bash 环境即可满足。
 
 如果在 PowerShell 中运行 `.ps1` 报权限错误，先执行：
 
