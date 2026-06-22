@@ -46,6 +46,7 @@ sdd install-skill --target codex
 
 ```text
 sdd install-skill --target codex
+sdd install-skill --target cc-switch
 sdd install-skill --target claude
 sdd install-skill --target opencode
 sdd install-skill --target all
@@ -154,7 +155,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archiv
 | `sdd resume <dir>` | 恢复当前任务上下文。 |
 | `sdd status <dir>` | 检查结构和流程健康度。 |
 | `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
-| `sdd install-skill --target codex\|claude\|opencode\|all [--clean]` | 把当前已安装包携带的完整 Skill 注册到 agent 环境。 |
+| `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean]` | 把当前已安装包携带的完整 Skill 注册到 agent 环境。 |
 | `sdd validate <dir> --archive-ready` | 归档前门禁校验。 |
 | `sdd review-execute <dir>` | 生成四轴 Review Prompt。 |
 | `sdd archive <dir> <spec-name>` | 归档完成任务及引用产物。 |

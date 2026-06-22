@@ -23,6 +23,7 @@ var COPY_ENTRIES = [
 function targetRoots(homeDir) {
   return {
     codex: path.join(homeDir, '.codex', 'skills'),
+    'cc-switch': path.join(homeDir, '.cc-switch', 'skills'),
     claude: path.join(homeDir, '.claude', 'skills'),
     opencode: process.platform === 'win32'
       ? path.join(homeDir, '.config', 'opencode', 'skills')
@@ -36,7 +37,7 @@ function resolveTargets(target, homeDir) {
     return { name: name, root: roots[name], dir: path.join(roots[name], SKILL_NAME) };
   });
   if (!roots[target]) {
-    throw new Error('Invalid --target: ' + target + ' (expected codex|claude|opencode|all)');
+    throw new Error('Invalid --target: ' + target + ' (expected codex|cc-switch|claude|opencode|all)');
   }
   return [{ name: target, root: roots[target], dir: path.join(roots[target], SKILL_NAME) }];
 }
@@ -73,7 +74,7 @@ function run(opts) {
   opts = opts || {};
   var target = opts.target || '';
   if (!target) {
-    console.error('[ERROR] --target is required (codex|claude|opencode|all)');
+    console.error('[ERROR] --target is required (codex|cc-switch|claude|opencode|all)');
     process.exit(3);
   }
   var homeDir = opts.homeDir || os.homedir();

@@ -52,7 +52,7 @@ program.command('console [project-dir]')
 
 program.command('install-skill')
   .description('Install bundled SDD-RIPER skill into an agent skill directory')
-  .requiredOption('--target <target>', 'codex | claude | opencode | all')
+  .requiredOption('--target <target>', 'codex | cc-switch | claude | opencode | all')
   .option('--clean', 'remove the existing target skill directory before copying')
   .action(function(o) { require('../src/commands/install-skill')(o); });
 

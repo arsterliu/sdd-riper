@@ -367,7 +367,7 @@ Use these as design supports, not as mandatory ceremony:
 - `sdd resume <dir>`
 - `sdd status <dir>`
 - `sdd console [dir] [--port <port>]`
-- `sdd install-skill --target codex|claude|opencode|all [--clean]`
+- `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
 - `sdd validate <dir> --archive-ready`
 - `sdd review-execute <dir>`
 - `sdd debug <dir> --error <msg>`

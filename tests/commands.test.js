@@ -316,9 +316,15 @@ describe('CLI commands', function() {
     var installer = require('../src/commands/install-skill')._private;
     var targetRoot = path.join(tmpBase, 'skill-targets');
     var targets = installer.resolveTargets('codex', targetRoot);
+    var ccSwitchTargets = installer.resolveTargets('cc-switch', targetRoot);
+    var allTargets = installer.resolveTargets('all', targetRoot);
     var stale = path.join(targets[0].dir, 'stale.txt');
     fs.mkdirSync(targets[0].dir, { recursive: true });
     fs.writeFileSync(stale, 'old', 'utf-8');
+
+    assert.equal(ccSwitchTargets[0].name, 'cc-switch');
+    assert.equal(ccSwitchTargets[0].dir, path.join(targetRoot, '.cc-switch', 'skills', 'sdd-riper'));
+    assert.ok(allTargets.some(function(item) { return item.name === 'cc-switch'; }));
 
     var result = installer.installOne(targets[0], { clean: true });
     assert.equal(result.target, 'codex');
@@ -528,6 +534,7 @@ describe('CLI commands', function() {
   it('help and version', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);
+    assert.ok(run('install-skill --help').indexOf('cc-switch') !== -1);
     assert.ok(run('--version').indexOf('2.0.0') !== -1);
   });
 });
