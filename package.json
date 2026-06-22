@@ -10,12 +10,12 @@
   "files": [
     "bin/",
     "lib/",
-    "src/commands/",
+    "src/",
     "templates/",
     "protocols/",
     "vendored/",
-    "sdd.sh",
     "SKILL.md",
+    "README.md",
     "GUIDE.md",
     "TEAM-GUIDE.md",
     "INTEGRATIONS.md"

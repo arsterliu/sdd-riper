@@ -8,7 +8,12 @@ function run(projectDir, opts) {
   if (!fs.existsSync(docsRoot)) { console.error('[ERROR] Not initialized.'); process.exit(1); }
   var contextDir = path.join(docsRoot, 'context');
   if (!fs.existsSync(contextDir)) fs.mkdirSync(contextDir, { recursive: true });
-  var bundleVersion = opts.version || 'v1.0';
+  if (!opts.version) { console.error('[ERROR] --spec-version/--version is required'); process.exit(3); }
+  if (!/^v\d+\.\d+$/.test(opts.version)) {
+    console.error('[ERROR] Invalid version format. Expected: v{N}.{M}');
+    process.exit(3);
+  }
+  var bundleVersion = opts.version;
   var bundleName = opts.out || 'context-bundle';
   var outFile = path.join(contextDir, bundleVersion + '-' + bundleName + '.md');
   console.log('SDD_OUTPUT_PATH: ' + outFile);

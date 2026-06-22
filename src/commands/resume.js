@@ -48,9 +48,9 @@ function run(projectDir) {
   var sectionsHint;
   switch (phaseHint) {
     case 'new_task': sectionsHint = '(none)'; break;
-    case 'research_or_plan': sectionsHint = 'Summary,Invocation,Research,Innovate Options'; break;
-    case 'execute': sectionsHint = 'Summary,Plan,Execute Log'; break;
-    case 'archive': sectionsHint = 'Summary,Execute Log,Review Verdict,Review Summary'; break;
+    case 'research_or_plan': sectionsHint = 'Summary,Invocation,Research,Innovate Options,Design Reference,Acceptance Criteria,Plan'; break;
+    case 'execute': sectionsHint = 'Summary,Plan,Execute Log Reference'; break;
+    case 'archive': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Review Verdict,Review Summary'; break;
     default: sectionsHint = 'Summary,Invocation,Plan'; break;
   }
   console.log('[SDD Resume] ' + projectDir);

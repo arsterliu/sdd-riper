@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SDD Console</title>
+  <link rel="stylesheet" href="/console.css">
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="mark">SDD</div>
+      <div>
+        <h1>Spec Control Console</h1>
+        <p id="project-path">Select a project to begin</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="last-sync" class="sync-status">Not synced</span>
+      <button id="refresh" class="primary-action" type="button">Refresh Current</button>
+    </div>
+  </header>
+
+  <main id="main-content" class="app-shell">
+    <aside class="project-rail" aria-label="Project board">
+      <section id="project-picker" class="current-project" aria-label="Current project selector">
+        <div>
+          <span>Current Project</span>
+          <strong id="project-state">No project selected</strong>
+        </div>
+        <input id="project-input" type="text" placeholder="Choose an SDD project folder" autocomplete="off" readonly>
+        <div class="project-actions">
+          <button id="choose-folder" class="primary-action" type="button">Choose Folder</button>
+          <button id="use-current" type="button">Load Launch Folder</button>
+        </div>
+        <p id="project-error" class="project-error"></p>
+      </section>
+
+      <section class="project-board" aria-label="Tracked projects">
+        <div class="section-head">
+          <div>
+            <h2>Projects</h2>
+            <p id="project-board-summary">0 projects tracked</p>
+          </div>
+          <button id="refresh-project-board" type="button">Refresh</button>
+        </div>
+        <div id="project-board-list" class="project-board-list"></div>
+      </section>
+    </aside>
+
+    <section class="workbench" aria-label="Current project workbench">
+      <section class="overview" aria-label="Current project health">
+        <div class="metric">
+          <span>Total Specs</span>
+          <strong id="metric-total">0</strong>
+        </div>
+        <div class="metric">
+          <span>Active Work</span>
+          <strong id="metric-active">0</strong>
+        </div>
+        <div class="metric">
+          <span>Blocked Gates</span>
+          <strong id="metric-blocked">0</strong>
+        </div>
+        <div class="metric">
+          <span>Archive Ready</span>
+          <strong id="metric-ready">0</strong>
+        </div>
+      </section>
+
+      <section class="workspace">
+        <aside class="spec-panel" aria-label="Spec inventory">
+          <div class="panel-head">
+            <div>
+              <h2>Specs</h2>
+              <p id="spec-total">0 total</p>
+            </div>
+            <select id="sort-order" aria-label="Sort specs">
+              <option value="updated">Updated</option>
+              <option value="phase">Phase</option>
+              <option value="issues">Issues</option>
+              <option value="name">Name</option>
+            </select>
+          </div>
+
+          <div class="search-row">
+            <input id="search" type="search" placeholder="Search task, path, mode, phase" autocomplete="off">
+          </div>
+
+          <div id="phase-tabs" class="phase-tabs" aria-label="Phase filters"></div>
+          <div id="spec-list" class="spec-list"></div>
+        </aside>
+
+        <section class="detail" aria-label="Spec detail">
+          <div id="empty-detail" class="empty-detail">
+            <strong>No spec selected</strong>
+            <span>Select a spec to inspect its phase, artifacts, and archive gates.</span>
+          </div>
+
+          <article id="spec-detail" class="spec-detail hidden">
+            <div class="detail-head">
+              <div>
+                <div class="eyebrow" id="detail-eyebrow"></div>
+                <h2 id="detail-title"></h2>
+                <p id="detail-path"></p>
+              </div>
+              <div class="detail-actions">
+                <button id="validate" class="primary-action" type="button">Validate</button>
+              </div>
+            </div>
+
+            <div class="status-strip">
+              <div>
+                <span>Mode</span>
+                <strong id="detail-mode"></strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong id="detail-status"></strong>
+              </div>
+              <div>
+                <span>Current Phase</span>
+                <strong id="detail-phase"></strong>
+              </div>
+              <div>
+                <span>Updated</span>
+                <strong id="detail-updated"></strong>
+              </div>
+            </div>
+
+            <div id="next-blocker" class="next-blocker"></div>
+
+            <section class="detail-section">
+              <div class="section-title">
+                <h3>Phase Progress</h3>
+                <span id="gate-score"></span>
+              </div>
+              <div id="gate-list" class="gate-list"></div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-title">
+                <h3>Artifacts</h3>
+                <span>Source of truth references</span>
+              </div>
+              <div id="artifact-list" class="artifact-list"></div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-title">
+                <h3>Archive Validation</h3>
+                <span id="validation-summary"></span>
+              </div>
+              <div id="validation-result" class="validation-result"></div>
+            </section>
+          </article>
+        </section>
+      </section>
+    </section>
+  </main>
+
+  <script src="/console.js"></script>
+</body>
+</html>

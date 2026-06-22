@@ -21,14 +21,18 @@ function run(projectDir, opts) {
   }
   var executeLog = '(no Execute Log)';
   if (latestSpec && fs.existsSync(latestSpec)) {
-    var el = common.extractSection(latestSpec, 'Execute Log', 50);
+    var logRef = common.getFrontmatterField(latestSpec, 'execute-log-file');
+    var logPath = logRef ? common.resolveProjectPath(projectDir, logRef) : '';
+    var el = logPath && fs.existsSync(logPath)
+      ? common.extractSection(logPath, 'Execute Log', 50)
+      : common.extractSection(latestSpec, 'Execute Log', 50);
     if (el) executeLog = el;
   }
   console.log('## DEBUG PROMPT');
   console.log('### Error: ' + errorMsg);
   console.log('### Log (<=100 lines):');
   console.log(logContent);
-  console.log('### Execute Log (from Spec):');
+  console.log('### Execute Log:');
   console.log(executeLog);
   console.log('### AI: Find root cause before proposing fix.');
 }

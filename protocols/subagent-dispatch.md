@@ -2,112 +2,98 @@
 
 ## Purpose
 
-In SDD-RIPER, subagents are not "parallel workers" — they are **single-use read agents** whose job is to absorb noisy context (long file reads, debug investigations, diff audits) and return compressed signal to the main orchestrator.
+In SDD-RIPER, subagents are not general parallel workers. They are single-use evidence or work-package agents whose job is to absorb noisy context and return compressed signal to the orchestrator.
 
-The primary design goal is **context hygiene**: keeping the orchestrator's main context at high signal density. Parallelism, when it happens, is a side benefit, not the driver.
+The primary design goal is context hygiene. Parallelism is a side benefit.
 
-This protocol is referenced by SKILL.md in phases where context pollution is highest: Debug (BUGFIX loop) / Research (multi-source codebase scanning) / Review (4-axis evidence audit) / Execute (when a single step requires reading many files).
+## When To Dispatch
 
-## When to Dispatch
+Dispatch a subagent when any condition is true:
 
-Dispatch a subagent if the task meets ANY of:
+1. **Read volume**: the task requires reading more than 3 files or more than 500 lines of raw content.
+2. **Iterative probing**: debug work requires probes, reference implementation checks, or variable isolation.
+3. **Independent evidence**: the output is a bounded evidence report, such as one Review axis or one Research source.
+4. **Large Execute work package**: a Plan step spans multiple modules or would pollute the orchestrator context.
 
-1. **Read volume** — requires reading > 3 files OR > 500 lines of raw content
-2. **Iterative probing** — requires adding diagnostic probes, trying multiple variables, or reading reference implementations (e.g. debug investigation)
-3. **Independent evidence** — produces a verdict against an independent evidence source (e.g. one of the 4 Review axes; one of multiple Research sources)
-
-Within Execute phase, the existing trigger ("Plan > 5 steps or cross 2+ modules") remains valid; the criteria above are additional triggers.
-
-## When NOT to Dispatch
+## When Not To Dispatch
 
 Never dispatch subagents for:
 
-- **Plan writing** — Plan is the orchestrator's primary artifact; needs full Spec visibility
-- **Requirement Review** — requires interactive human dialogue (Socratic questioning)
-- **Human Gate handling** — Plan Approval, Setup-mode questions, Pre-Archive Git Gate are orchestrator-only
-- **Innovate option selection** — convergent decision needs full view across options
-- **Confirmed Requirement** — orchestrator's main output during Research
-- **Archive** — mechanical operation, no benefit
-- **Final verdict aggregation** — orchestrator must own the final call; subagents return per-axis findings, not verdicts
+- Requirement Review that requires human dialogue.
+- Confirmed Requirement finalization.
+- Innovate option selection.
+- Plan writing.
+- Plan Approval.
+- Completion Verification.
+- Final Review verdict aggregation.
+- Archive execution.
 
-## Brief Schema (orchestrator → subagent)
+Subagents may produce evidence or recommendations. They do not own final decisions.
 
-The orchestrator MUST fill `templates/subagent-brief.md` before dispatch. Required fields:
+## Brief Schema
+
+The orchestrator must provide a self-contained brief.
 
 ```yaml
-task: <one sentence — what the subagent must find / verify / produce>
+task: <one sentence: what the subagent must find, verify, or produce>
 
 spec_excerpts:
   <section_name>: |
-    <pasted content from Spec, NOT a path reference>
-  # paste only the sections the subagent needs
+    <pasted content from Spec, not a path reference>
+
+artifact_excerpts:
+  design: |
+    <pasted Design excerpt when needed>
+  execute_log: |
+    <pasted Execute Log excerpt when needed>
 
 files_to_read:
   - path: <absolute path>
     reason: <why this file is relevant>
 
-return_schema: <expected return shape — typically inherits from Return Schema below>
+return_schema: <expected return shape>
 
 constraints:
-  - <task-specific constraints; the three core constraints below are always implicit>
+  - <task-specific constraints>
 ```
 
-**Why brief must be self-sufficient**: if the subagent reads the Spec file or other state itself, the pollution simply transfers from orchestrator to subagent — the goal is to minimize total noise, not relocate it. The orchestrator paying the cost of paste-and-trim guarantees the subagent's context is minimal.
+Briefs should paste only what the subagent needs. Do not ask the subagent to discover the whole Spec or project state independently.
 
-## Return Schema (subagent → orchestrator)
-
-Subagent MUST return:
+## Return Schema
 
 ```yaml
-verdict: <phase-specific enum, e.g. PASS|FAIL|ROOT_CAUSE_FOUND|NEEDS_MORE_PROBES|NEEDS_HUMAN>
-
-summary: <≤ 200 words — what was found, in plain language>
-
+verdict: <phase-specific enum>
+summary: <compressed finding>
 evidence:
-  - <file:line — what was observed>
-  # evidence is pointers, not content snippets
-
-recommendations: <optional, ≤ 100 words — what the orchestrator should do next>
+  - <file:line and observation>
+recommendations: <optional next action>
 ```
 
-**Forbidden in returns**:
-- Raw file contents (use file:line pointers)
-- Long quoted excerpts (> 10 lines)
-- Verbose reasoning trace ("I read X, then Y, then Z...")
-- Multi-paragraph essays (respect the summary cap)
+Forbidden in returns:
+
+- Raw file dumps.
+- Long quoted excerpts.
+- Verbose reasoning trace.
+- Unbounded essays.
 
 ## Three Constraints
 
-1. **Brief is self-sufficient** — orchestrator MUST paste relevant Spec sections into the brief. Subagent MUST NOT read the Spec file directly, nor list project files outside `files_to_read`.
+1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log excerpts.
+2. **Subagent does not write files**: the orchestrator writes to the correct artifact: Spec for control-plane decisions, Design for technical design, Execute Log for execution facts, CodeMap / ProjectMap for architecture facts.
+3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
 
-2. **Subagent does not write files** — subagent returns payload only. The orchestrator writes to Spec, CodeMap, or any other artifact. This preserves the single-source-of-truth invariant ("Spec is truth") and ensures the audit trail stays in the main conversation.
+## Trust But Verify
 
-3. **Return is compressed** — verdict + summary + evidence pointers + optional recommendations. No raw content. If the orchestrator needs to inspect raw content, it reads the file itself via the evidence pointer.
+The orchestrator must not take a subagent verdict at face value for these gates:
 
-## Trust But Verify Exceptions
+- **Completion Verification Gate**: run tests / lint / build directly and inspect output.
+- **Plan Approval Gate**: ask and read the user's approval directly.
+- **Final Review Verdict**: subagents return per-axis findings; the orchestrator applies verdict precedence and writes the final verdict to Spec.
 
-The orchestrator MUST NOT take a subagent verdict at face value for the following gates — even when the subagent returns PASS, the orchestrator runs the gate itself:
+## Mode Policy
 
-- **Completion Verification Gate** (Execute phase) — orchestrator must freshly run tests / linter / build commands itself and read full output. Forbidden to rely on a subagent's success report. This rule predates this protocol; see SKILL.md `## Execute Phase Instructions`.
+- **standard**: recommended for Research evidence, large Execute packages, debug investigation, and Review axes.
+- **lite**: optional; dispatch only when context volume or evidence independence justifies it.
+- **micro**: default to no subagents.
 
-- **Plan Approval Gate** (Plan phase) — orchestrator must call `AskUserQuestion` itself and read the user's response. Subagents cannot ask for human approval.
-
-- **Final Review Verdict** (Review phase) — subagents return per-axis findings; the orchestrator applies verdict precedence (FAIL_SPEC > FAIL_PLAN > FAIL_CODE), reads evidence pointers for the PRIMARY axis (Axis 2), and writes the final verdict to the Spec itself.
-
-This is the antidote to the failure mode warned about in SKILL.md: *"依赖 subagent 的成功报告而不自行验证"*.
-
-## Relationship to Existing Context Layering
-
-SKILL.md already defines hot / warm / cold context loading (orchestrator chooses what to read). This protocol complements that: when even the warm layer is too noisy, dispatch a subagent to read on the orchestrator's behalf and return only the warm-layer signal.
-
-```
-Hot layer (orchestrator always loads)
-   ↓
-Subagent brief (orchestrator pastes)
-   ↓
-Subagent reads + summarizes
-   ↓
-Compressed return (orchestrator integrates)
-```
-
-The orchestrator's main context stays focused on decisions, gates, and Spec writes — not raw file inspection.
+The orchestrator's main context stays focused on decisions, gates, and artifact consistency.

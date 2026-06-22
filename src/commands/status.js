@@ -2,6 +2,41 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 
+function extractSectionText(filePath, pattern) {
+  return common.extractSection(filePath, pattern, 400);
+}
+
+function firstRealLine(section) {
+  var visible = stripHtmlComments(section);
+  return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
+    return line &&
+      !line.startsWith('|') &&
+      !/^#+\s/.test(line) &&
+      !/^[-:]+$/.test(line);
+  }) || '';
+}
+
+function sectionHasRealContent(filePath, pattern) {
+  return !!firstRealLine(extractSectionText(filePath, pattern));
+}
+
+function stripHtmlComments(text) {
+  return text.replace(/<!--[\s\S]*?-->/g, '');
+}
+
+function planHasMicroAcceptance(filePath) {
+  var plan = stripHtmlComments(extractSectionText(filePath, 'Plan'));
+  return /(^|\n)Acceptance:[\s\S]*?(^|\n)Verification:/i.test(plan) && /(^|\n)Verification:[\s\S]*\S/i.test(plan);
+}
+
+function artifactHasContent(projectDir, specPath, field, sectionPattern) {
+  var ref = common.getFrontmatterField(specPath, field);
+  if (!ref) return false;
+  var artifactPath = common.resolveProjectPath(projectDir, ref);
+  if (!fs.existsSync(artifactPath)) return false;
+  return sectionHasRealContent(artifactPath, sectionPattern);
+}
+
 function run(projectDir) {
   var docsDir = common.getDocsDir(projectDir);
   var docsRoot = path.join(projectDir, docsDir);
@@ -9,7 +44,7 @@ function run(projectDir) {
   console.log('[SDD Status] ' + projectDir);
 
   var missingDirs = [];
-  ['specs','codemap','context','archive'].forEach(function(d) {
+  ['specs','design','logs','codemap','context','archive'].forEach(function(d) {
     if (!fs.existsSync(path.join(docsRoot, d))) missingDirs.push(docsDir + '/' + d);
   });
   if (missingDirs.length === 0) console.log('  Structure:    OK');
@@ -45,7 +80,7 @@ function run(projectDir) {
 
   var specsDir = path.join(docsRoot, 'specs');
   var total = 0, draft = 0;
-  var warnResearch = [], warnInnovate = [], warnPlan = [], warnReview = [];
+  var warnResearch = [], warnInnovate = [], warnDesign = [], warnAcceptance = [], warnPlan = [], warnExecuteLog = [], warnReview = [];
   if (fs.existsSync(specsDir)) {
     fs.readdirSync(specsDir).forEach(function(f) {
       if (f === '.gitkeep' || !f.endsWith('.md')) return;
@@ -63,6 +98,16 @@ function run(projectDir) {
       if (common.sectionIsEmpty(sp, 'Innovate Options')) {
         try { var c = fs.readFileSync(sp, 'utf-8'); if (/^## Innovate Options/m.test(c) && !/Innovate: Skipped/.test(c)) warnInnovate.push(f); } catch (e) {}
       }
+      if (sm === 'standard') {
+        if (!artifactHasContent(projectDir, sp, 'design-file', 'Technical Design')) warnDesign.push(f);
+        if (!sectionHasRealContent(sp, 'Acceptance Criteria')) warnAcceptance.push(f);
+      } else if (sm === 'lite') {
+        if (!artifactHasContent(projectDir, sp, 'design-file', 'Design Note')) warnDesign.push(f);
+        if (!sectionHasRealContent(sp, 'Acceptance Criteria')) warnAcceptance.push(f);
+      } else if (sm === 'micro') {
+        if (!planHasMicroAcceptance(sp)) warnAcceptance.push(f);
+      }
+      if (!artifactHasContent(projectDir, sp, 'execute-log-file', 'Execute Log')) warnExecuteLog.push(f);
       try { var c2 = fs.readFileSync(sp, 'utf-8'); if (/Plan Approved By:/.test(c2) && /^Plan Approved By:[ \t]*$/m.test(c2)) warnPlan.push(f); } catch (e) {}
       if (common.sectionIsEmpty(sp, 'Review (Verdict|Summary)')) {
         try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## (Review Verdict|Review Summary)/m.test(c3)) warnReview.push(f); } catch (e) {}
@@ -72,7 +117,10 @@ function run(projectDir) {
   console.log('  Specs:        ' + total + ' total (' + draft + ' active)');
   console.log('  Research:     ' + (warnResearch.length ? 'WARN (empty/pending in: ' + warnResearch.join(' ') + ')' : 'OK'));
   console.log('  Innovate:     ' + (warnInnovate.length ? 'WARN (empty in: ' + warnInnovate.join(' ') + ')' : 'OK'));
+  console.log('  Design:       ' + (warnDesign.length ? 'WARN (empty in: ' + warnDesign.join(' ') + ')' : 'OK'));
+  console.log('  Acceptance:   ' + (warnAcceptance.length ? 'WARN (empty/incomplete in: ' + warnAcceptance.join(' ') + ')' : 'OK'));
   console.log('  Plan:         ' + (warnPlan.length ? 'WARN (missing approval in: ' + warnPlan.join(' ') + ')' : 'OK'));
+  console.log('  Execute Log:  ' + (warnExecuteLog.length ? 'WARN (empty/missing in: ' + warnExecuteLog.join(' ') + ')' : 'OK'));
   console.log('  Review:       ' + (warnReview.length ? 'WARN (empty verdict in: ' + warnReview.join(' ') + ')' : 'OK'));
   process.exit(exitCode);
 }

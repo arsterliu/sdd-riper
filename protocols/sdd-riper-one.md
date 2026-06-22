@@ -1,45 +1,48 @@
 # SDD-RIPER Protocol (Standard)
 
-> **Brief reference for AI config files** (AGENTS.md / CLAUDE.md / .cursorrules / copilot-instructions.md).
-> **Full protocol**: load SKILL.md in your editor's skill system, or read `<SDD-RIPER-repo>/SKILL.md`.
+> Brief reference for AI config files. Full rules live in `SKILL.md`.
 
-## 6 Core Rules (No Exceptions)
-- **No Spec, No Code** — Never write code without a task Spec
-- **Spec is Truth** — Spec is the single source of truth, not the code
-- **Reverse Sync** — When code diverges from Spec, update the Spec
-- **Plan Approved gate** — Never enter Execute without `Plan Approved By: <user>` filled
-- **Debug Before Retry** — When a step fails, run `sdd debug` to find root cause before retrying
-- **No Claim Without Verification** — Freshly run tests / linter / build before declaring done
+## Core Rules
 
-## RIPER Phases
-Research → Innovate → Plan → Execute → Review → Archive
+- **No Spec, No Code**: never write code without an active task Spec.
+- **Spec is Control Plane**: Spec owns goal, gates, plan, verdict, and references to Design / Execute Log.
+- **Design Is Separate**: standard mode writes Technical Design in `design-file`; Plan cannot replace it.
+- **Execute Log Is Separate**: every Plan step and deviation is recorded in `execute-log-file`.
+- **Plan Approved Gate**: never enter Execute without `Plan Approved By:` and `Approved At:`.
+- **Debug Before Retry**: failed steps go through `sdd debug` before retry.
+- **No Claim Without Verification**: run fresh tests / lint / build before declaring done.
 
-- **Research** — Requirement Review (document-first with gate) → Findings → Open Questions → Assumptions → Confirmed Requirement
-- **Innovate** — Compare ≥2 solution options (lite may skip)
-- **Plan** — Atomic steps (file path + change + acceptance); Spec Coverage Gate; **human approval required**
-- **Execute** — Strict plan execution; record every deviation in `## Execute Log`; TDD before code
-- **Review** — 4-axis audit (Invocation / Plan / Code Diff / Execute Log); orchestrator owns final verdict
-- **Archive** — Finalize and move Spec to `<docs-root>/archive/`
+## Phases
 
-## 6 Superpowers Touchpoints (Vendored)
-- Plan: `writing-plans` — step granularity (2–5 min, file + change + acceptance)
-- Execute: `subagent-driven-development` — context-hygiene subagent dispatch (see `protocols/subagent-dispatch.md` for SDD-RIPER-specific contract)
-- Execute: `test-driven-development` — RED → GREEN → REFACTOR; no failing test, no production code
-- Execute: `systematic-debugging` — BUGFIX loop, 4 phases (root cause before fix)
-- Execute: `verification-before-completion` — freshly run before claiming done
-- Archive: `finishing-a-development-branch` — pre-archive git gate
+```text
+Research -> Innovate -> Design -> Acceptance -> Plan -> Execute -> Review -> Archive
+```
 
-Resolution order: global superpowers > vendored (`vendored/superpowers/<skill>/SKILL.md`) > SKILL.md inlined summary. See `INTEGRATIONS.md`.
+- **Research**: Requirement Review, Findings, Open Questions, Assumptions, Confirmed Requirement.
+- **Innovate**: compare at least two options and record rejected options.
+- **Design**: write Technical Design in the external `design-file`; include selected option, traceability, boundary, architecture view, contracts, state, failure modes, security, observability, test strategy, risks.
+- **Acceptance**: write AC-### criteria in Spec; BDD / Gherkin is recommended for observable behavior.
+- **Plan**: atomic steps derived from Design and Acceptance Criteria; human approval required.
+- **Execute**: follow Plan strictly; append each step result to the external Execute Log.
+- **Review**: 4-axis audit: Invocation, Design/Acceptance/Plan, Code Diff, Execute Log.
+- **Archive**: run `sdd validate <dir> --archive-ready`; `archive` moves Spec plus referenced Design / Execute Log into archive.
+
+## Subagent Policy
+
+Do not make every key phase a subagent decision owner.
+
+- Subagents may own evidence gathering, local work packages, debug investigations, or individual review axes.
+- The orchestrator owns requirement boundary, selected option, Plan gate, final verdict, completion verification, and archive consistency.
+- A subagent PASS never replaces fresh orchestrator verification.
 
 ## Context Layers
-- **Hot** (always): active phase section of Spec + Plan
-- **Warm** (per phase): CodeMap, ProjectMap, related Spec sections
-- **Cold** (on demand): historical Specs, archive files, context bundles
 
-## Docs Root
-Default `<docs-root>` = `mydocs/`. Override via `.sdd-config` (`DOCS_DIR=...`).
+- **Hot**: active Spec phase section, Plan, and referenced artifact path.
+- **Warm**: Design file, Execute Log file, CodeMap, ProjectMap, relevant historical Specs.
+- **Cold**: full archive files, external context bundles, long source reads.
 
-## Mode
-- `standard` — full RIPER, all gates
-- `lite` — Innovate can Skipped; Coverage Gate checks Invocation only; Review still runs all 4 axes
-- `micro` — Research / Innovate skipped; Review runs Axis 2 only; default mode for `reopen` patches
+## Mode Summary
+
+- `standard`: full flow; external Technical Design required; external Execute Log required; subagents recommended for evidence/work packages/review axes.
+- `lite`: external Design Note required; external Execute Log required; subagents optional.
+- `micro`: no standalone Design; Plan must include Acceptance and Verification; external Execute Log required; avoid subagents by default.

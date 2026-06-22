@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 var program = require('commander').program;
 
+function normalizeCommandAliases(argv) {
+  var out = argv.slice();
+  var command = out[2];
+  if (command !== 'discover' && command !== 'build-context-bundle') return out;
+  for (var i = 3; i < out.length; i++) {
+    if (out[i] === '--version') out[i] = '--spec-version';
+  }
+  return out;
+}
+
 program
   .name('sdd')
   .description('SDD-RIPER: Structured Driven Development')
@@ -17,13 +27,14 @@ program.command('init <project-dir>')
 program.command('discover <project-dir>')
   .description('Create a new task Spec')
   .requiredOption('--task-name <name>', 'task name')
-  .requiredOption('--spec-version <ver>', 'spec version vN.M')
+  .option('--spec-version <ver>', 'spec version vN.M')
   .option('--requirement <text>', 'requirement')
   .option('--goal <text>', 'goal')
   .option('--constraints <text>', 'constraints')
   .option('--context <text>', 'context')
   .option('--mode <mode>', 'spec mode')
-  .action(function(p, o) { o.version = o.specVersion; require('../src/commands/discover')(p, o); });
+  .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
+  .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/discover')(p, o); });
 
 program.command('resume <project-dir>')
   .description('Resume existing task')
@@ -33,13 +44,32 @@ program.command('status <project-dir>')
   .description('Check project health')
   .action(function(p) { require('../src/commands/status')(p); });
 
+program.command('console [project-dir]')
+  .description('Start local read-only Web Console')
+  .option('--port <port>', 'port', '4789')
+  .option('--host <host>', 'host', '127.0.0.1')
+  .action(function(p, o) { require('../src/commands/console')(p, o); });
+
+program.command('install-skill')
+  .description('Install bundled SDD-RIPER skill into an agent skill directory')
+  .requiredOption('--target <target>', 'codex | claude | opencode | all')
+  .option('--clean', 'remove the existing target skill directory before copying')
+  .action(function(o) { require('../src/commands/install-skill')(o); });
+
+program.command('validate <project-dir>')
+  .description('Validate active Spec gates')
+  .option('--spec <path>', 'spec file')
+  .option('--name <slug>', 'spec task slug')
+  .option('--archive-ready', 'require archive readiness gates')
+  .action(function(p, o) { require('../src/commands/validate')(p, o); });
+
 program.command('archive <project-dir> <spec-name>')
   .description('Archive completed Spec')
   .option('--force', 'overwrite')
   .action(function(p, n, o) { require('../src/commands/archive')(p, n, o); });
 
 program.command('reopen <project-dir> <task-slug>')
-  .description('Reopen archived task as patch')
+  .description('Reopen an archived spec as a new patch spec')
   .requiredOption('--defect <text>', 'defect description')
   .option('--mode <mode>', 'patch mode', 'micro')
   .action(function(p, s, o) { require('../src/commands/reopen')(p, s, o); });
@@ -60,7 +90,8 @@ program.command('build-context-bundle <project-dir>')
   .option('--sources <dir>', 'sources dir')
   .option('--out <name>', 'bundle name')
   .option('--spec-version <ver>', 'bundle version')
-  .action(function(p, o) { require('../src/commands/build-context-bundle')(p, o); });
+  .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
+  .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/build-context-bundle')(p, o); });
 
 program.command('debug <project-dir>')
   .description('Generate Debug prompt')
@@ -85,4 +116,4 @@ program.command('new-projectmap <project-dir>')
   .option('--force', 'overwrite')
   .action(function(p, o) { require('../src/commands/new-projectmap')(p, o); });
 
-program.parse();
+program.parse(normalizeCommandAliases(process.argv));

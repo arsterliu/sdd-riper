@@ -1,190 +1,191 @@
 # SDD-RIPER
 
-一套把 AI 协作开发落到文件系统的工作流——用 Spec 管任务边界，用 CodeMap 管模块认知，用阶段门禁管质量。
+SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **CodeMap / ProjectMap** 管架构认知。
 
-解决三个反复出现的问题：
+核心目标不是多写文档，而是让每个任务都能被追踪、审查和归档：
 
-- **方案漂移**：对话长了，AI 逐渐偏离原始目标
-- **上下文爆炸**：关键约束被淹没在长聊天里
-- **质量不可追**：改动为什么发生、有没有偏离计划，事后很难追溯
-
-核心思路很简单：**把任务收敛成 Spec，把架构事实沉淀成 CodeMap / ProjectMap，把执行痕迹写入 Execute Log，让 AI 带着你按阶段走。**
-
-使用方式：在支持 Skill 的 AI 工具里输入 `/sdd`，由 AI 带着你一步步走——你的主要工作是回答问题和审批 Plan，其余由 AI 承担。
-
----
+- 需求不会在长对话里漂移。
+- 方案选择有证据和取舍。
+- Plan 不能替代技术设计。
+- Execute 的真实行为可以被 Review 审计。
+- 归档后可以 reopen，而不是重新 discover 丢失上下文。
 
 ## 安装
 
-```bash
+统一从 GitHub 安装 CLI：
+
+```text
 npm install -g https://github.com/arsterliu/sdd-riper.git
 ```
 
-安装后即可使用 `sdd` 命令。
+需要 Node.js 18+。安装后检查：
 
-### 注册 Skill
-
-把仓库注册到 AI 工具的技能系统，才能让 AI 带着你走流程。
-
-**Claude Code：**
-
-```bash
-cp -r sdd-riper ~/.claude/skills/sdd-riper
+```text
+sdd --version
+where sdd
 ```
 
-**OpenCode：**
+## 注册 Skill
 
-```bash
-cp -r sdd-riper ~/.config/opencode/skills/sdd-riper
+CLI 和 Skill 是两层：
+
+```text
+npm global 目录      -> sdd 命令
+Codex/Claude skills -> SKILL.md、templates、protocols、src 等配套文件
 ```
 
-> 注意：复制的是**完整仓库目录**，不是单独的 SKILL.md。Skill 执行过程中会引用同仓库下的协议、模板等文件。
+安装 CLI 后，用当前已安装的 `sdd` 命令把完整 Skill 内容注册到 agent 环境：
 
-### 一行安装
-
-把 clone、安装、Skill 注册合为一条命令。
-
-**macOS / Linux / Git Bash：**
-
-```bash
-git clone https://github.com/arsterliu/sdd-riper.git ~/sdd-riper && cd ~/sdd-riper && npm install -g . && ln -s ~/sdd-riper ~/.claude/skills/sdd-riper
+```text
+sdd install-skill --target codex
 ```
 
-**Windows PowerShell：**
+可选目标：
 
-```powershell
-git clone https://github.com/arsterliu/sdd-riper.git ~/sdd-riper; cd ~/sdd-riper; npm install -g .; New-Item -ItemType SymbolicLink -Path ~/.claude/skills/sdd-riper -Target ~/sdd-riper -Force
+```text
+sdd install-skill --target codex
+sdd install-skill --target claude
+sdd install-skill --target opencode
+sdd install-skill --target all
 ```
 
-### 更新
+如果是升级或大版本变更，建议清理旧 Skill 目录，避免已删除文件残留：
 
-推荐用符号链接注册 Skill，更新只需 `git pull`：
-
-```bash
-cd ~/sdd-riper
-git pull
-npm install -g .
+```text
+sdd install-skill --target codex --clean
 ```
 
-如果之前是拷贝的，更新时多一步重新覆盖：
+更新后重启 Codex / Claude / OpenCode 会话，以及正在运行的 `sdd console`。
 
-```bash
-cd ~/sdd-riper
-git pull
-npm install -g .
-cp -r . ~/.claude/skills/sdd-riper
+## 更新
+
+日常更新：
+
+```text
+npm install -g https://github.com/arsterliu/sdd-riper.git
+sdd install-skill --target codex --clean
 ```
 
-### 环境要求
+多 agent 环境：
 
-macOS / Linux 原生可用。Windows 需安装 [Git for Windows](https://git-scm.com/download/win)，用 Git Bash 运行。
+```text
+npm install -g https://github.com/arsterliu/sdd-riper.git
+sdd install-skill --target all --clean
+```
 
----
+通常不需要先 `npm uninstall -g sdd-riper`。只有在 `where sdd` 指向旧路径、命令 shim 异常、安装来源变化或更新后仍是旧行为时，才做干净重装：
+
+```text
+npm uninstall -g sdd-riper
+npm install -g https://github.com/arsterliu/sdd-riper.git
+sdd install-skill --target codex --clean
+```
 
 ## 30 秒上手
 
-### 路径 A：Skill（推荐，让 AI 带着你走）
-
-在对话中输入：
+Skill 触发：
 
 ```text
 /sdd
 ```
 
-AI 会先判断项目是否已初始化：
-- 没初始化 → 引导你走 Setup
-- 已初始化 → 读取当前 Spec 和阶段提示，回到上次中断的地方
+CLI：
 
-### 路径 B：CLI（手动控制每一步）
-
-```bash
-sdd init my-project
-sdd discover my-project --task-name my-task --requirement "我要做什么"
-```
-
-任务中断后恢复：
-
-```bash
+```text
+sdd init my-project --mode standard
+sdd discover my-project --task-name my-task --version v1.0 --requirement "我要做什么"
 sdd resume my-project
 ```
 
----
+`discover` 会创建一组任务产物：
 
-## 核心概念
+- `mydocs/specs/v1.0-my-task.md`
+- `mydocs/design/v1.0-my-task.design.md`，micro 模式不创建
+- `mydocs/logs/v1.0-my-task.execute.md`
 
-SDD-RIPER 围绕三个产物和一个流程运转。记住这几个就够了。
+Spec 的 frontmatter 会写入 `design-file` 和 `execute-log-file`，后续命令都从这两个引用读取独立产物。
 
-### 三个产物
+## 核心产物
 
-| 产物 | 一句话 | 什么时候要 |
-| :--- | :--- | :--- |
-| **Spec** | 当前任务的单一真相源。需求、约束、研究、计划、执行日志、评审结论全在这里 | 每个任务都要 |
-| **CodeMap** | 模块级架构地图。入口点、边界、组件、调用链、依赖、风险 | 模块复杂时再建 |
-| **ProjectMap** | 多仓协作的全局地图。边界、接口契约、职责分工 | 跨仓库协作时再建 |
+| 产物 | 责任 |
+| :--- | :--- |
+| **Spec** | 控制面。保存 Invocation、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log。 |
+| **Design** | 技术设计产物。standard 写 `Technical Design`，lite 写 `Design Note`，micro 不单独写设计。 |
+| **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
+| **CodeMap** | 模块级架构地图，记录入口、边界、依赖、风险。 |
+| **ProjectMap** | 多仓或多团队协作地图，记录系统边界、接口契约和职责。 |
 
-Spec 存放在 `<docs-root>/specs/`，CodeMap 在 `<docs-root>/codemap/`，ProjectMap 在 `<docs-root>/projectmap.md`。默认 `<docs-root>` 是 `mydocs/`，可通过 `.sdd-config` 修改。
-
-### RIPER 五阶段
+## 流程
 
 ```text
-Research → Innovate → Plan → Execute → Review
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archive
 ```
 
-- **Research**：搞清楚要做什么。读代码、查依赖、确认需求边界
-- **Innovate**：列出 ≥2 个方案，对比优劣
-- **Plan**：写出原子步骤（文件路径 + 具体改动 + 验收条件），**等你审批**
-- **Execute**：按 Plan 严格执行，所有偏差记入 Execute Log
-- **Review**：四轴审查（需求对齐、计划覆盖、代码边界、日志一致性）
+- **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。
+- **Innovate**：至少比较两个方案；lite 可跳过，但必须写明 Reason。
+- **Design/Acceptance**：standard/lite 在独立 Design 文件写设计，验收标准仍留在 Spec；micro 把 `Acceptance` / `Verification` 写入 Plan。
+- **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须等待人工审批。
+- **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。
+- **Review**：四轴审查 Invocation、Design/Acceptance/Plan、Code Diff、Execute Log。
+- **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log 一起归档。
 
-核心门禁只有一个：**Plan 没经你批准，AI 不能进入 Execute**。
+## 三种模式
 
-### 常用命令
+| 模式 | 适用场景 | Design | Execute Log | Subagent |
+| :--- | :--- | :--- | :--- | :--- |
+| `standard` | 新功能、重构、多模块、风险较高任务 | 独立 Technical Design | 独立文件，必填 | 推荐作为 evidence / work-package owner |
+| `lite` | 中小改动、上下文明确任务 | 独立 Design Note | 独立文件，必填 | 可选 |
+| `micro` | 单文件 bugfix、文案、低风险配置 | 不单独创建，写入 Plan | 独立文件，必填 | 默认不用 |
+
+组合策略：
+
+- **Design / Execute Log 独立产物化是强制策略**。
+- **Subagent 不是所有关键环节的 decision owner**；它只做 evidence owner、work-package owner、review axis owner。
+- **Orchestrator 永远负责最终目标、门禁、裁决和归档一致性**。
+
+## 常用命令
 
 | 命令 | 作用 |
 | :--- | :--- |
-| `sdd init <dir>` | 初始化项目结构 |
-| `sdd discover <dir> --task-name <name> --requirement <text>` | 创建新任务 |
-| `sdd resume <dir>` | 恢复上次任务上下文 |
-| `sdd status <dir>` | 检查结构完整性和流程健康度 |
-| `sdd archive <dir> <spec-name>` | 归档已完成任务 |
-| `sdd reopen <dir> <slug> --defect <text>` | 基于归档任务创建修复 Spec |
+| `sdd init <dir>` | 初始化项目结构。 |
+| `sdd discover <dir> --task-name <name> --version v1.0 --requirement <text>` | 创建 Spec、Design、Execute Log。 |
+| `sdd resume <dir>` | 恢复当前任务上下文。 |
+| `sdd status <dir>` | 检查结构和流程健康度。 |
+| `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
+| `sdd install-skill --target codex\|claude\|opencode\|all [--clean]` | 把当前已安装包携带的完整 Skill 注册到 agent 环境。 |
+| `sdd validate <dir> --archive-ready` | 归档前门禁校验。 |
+| `sdd review-execute <dir>` | 生成四轴 Review Prompt。 |
+| `sdd archive <dir> <spec-name>` | 归档完成任务及引用产物。 |
+| `sdd reopen <dir> <slug> --defect <text>` | 基于归档任务创建修复 Spec。 |
 
-更多命令和工作流细节见 [GUIDE.md](./GUIDE.md)。
+## Web Console
 
----
+```text
+sdd console [project-dir]
+```
+
+Console 用于观测和诊断，不替代 agent 执行 SDD。它支持：
+
+- 页面里选择项目目录。
+- 多项目看板预览。
+- 查看 Spec 阶段、状态、产物和归档门禁。
+- 每个产物按 `Spec / Design / Execute Log` 独立 Preview。
+- Preview 新开浏览器 tab，只读显示 Markdown 原文。
+- Preview 页提供 `Edit`，用本机默认程序打开对应文件。
 
 ## 目录结构
 
-初始化后项目会得到：
-
 ```text
 <project>/
-├─ .sdd-config              # 配置文件（docs 目录名、模式等）
-├─ AGENTS.md / CLAUDE.md    # AI 配置文件
-├─ .cursorrules
-├─ .github/copilot-instructions.md
-└─ mydocs/                  # 或 .sdd-config 指定的目录
-   ├─ specs/                # 活跃任务 Spec
-   ├─ codemap/              # 模块架构地图
-   ├─ context/              # 上下文包
-   └─ archive/              # 已归档任务
+├── .sdd-config
+├── AGENTS.md / CLAUDE.md
+└── mydocs/
+    ├── specs/       # 活跃 Spec
+    ├── design/      # Technical Design / Design Note
+    ├── logs/        # Execute Log
+    ├── codemap/     # 模块地图
+    ├── context/     # Context Bundle
+    └── archive/     # 已归档 Spec / Design / Execute Log
 ```
 
----
-
-## 贡献
-
-欢迎提 Issue 和 PR。提交前建议：
-
-```bash
-sdd status <target-dir>
-bash tests/run_all.sh
-```
-
----
-
-## 更多
-
-- [GUIDE.md](./GUIDE.md) — 工作流深入、CLI 命令全集、模式选择、FAQ
-- [TEAM-GUIDE.md](./TEAM-GUIDE.md) — 团队协作指南
-- [INTEGRATIONS.md](./INTEGRATIONS.md) — 与外部 Skill 的集成细节
+更多细节见 [GUIDE.md](./GUIDE.md)。

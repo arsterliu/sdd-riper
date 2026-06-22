@@ -1,34 +1,58 @@
 # SDD-RIPER Protocol (Lite / Micro)
 
-> **Brief reference for AI config files generated for lite / micro mode projects.**
-> **Full protocol**: load SKILL.md in your editor's skill system, or read `<SDD-RIPER-repo>/SKILL.md`.
+> Brief reference for AI config files generated for lite / micro projects. Full rules live in `SKILL.md`.
 
-## 6 Core Rules (No Exceptions)
-- **No Spec, No Code** — Never write code without a task Spec
-- **Spec is Truth** — Spec is the single source of truth
-- **Reverse Sync** — Code diverges from Spec → update Spec
-- **Plan Approved gate** — Never enter Execute without `Plan Approved By: <user>`
-- **Debug Before Retry** — Fail → `sdd debug` → root cause → fix
-- **No Claim Without Verification** — Freshly run tests / build before "done"
+## Core Rules
 
-## Mode Differences
-- **standard** — full RIPER, all gates
-- **lite** (this file) — Innovate can Skipped; Coverage Gate checks Invocation only; Review runs all 4 axes
-- **micro** — Research / Innovate skipped; Review runs Axis 2 (Code Diff Scope) only; default mode for `reopen` patches
+- **No Spec, No Code**.
+- **Spec is Control Plane**: Spec references Design / Execute Log instead of embedding them.
+- **Plan Approved Gate**: Execute requires `Plan Approved By:` and `Approved At:`.
+- **Execute Log Required**: every mode writes step results to the external `execute-log-file`.
+- **Debug Before Retry**.
+- **No Claim Without Verification**.
 
-## RIPER Phases
-Research → Innovate → Plan → Execute → Review → Archive
+## Lite Mode
 
-**Three gates are non-negotiable in all modes**:
-- Human Gate (Plan 审批) — must have explicit `Plan Approved By: <user>` in Spec before Execute
-- Execute Log — every Plan step recorded in `## Execute Log`
-- debug-before-retry — when a step fails, run `sdd debug` first, then form a hypothesis, then patch (max 3 retries per defect)
+Flow:
 
-## 6 Superpowers Touchpoints (Vendored)
-Same as standard: `writing-plans` / `subagent-driven-development` / `test-driven-development` / `systematic-debugging` / `verification-before-completion` / `finishing-a-development-branch`. See `INTEGRATIONS.md`.
+```text
+Research -> Innovate/Skip -> Design Note -> Acceptance -> Plan -> Execute -> Review -> Archive
+```
 
-## Context Loading (Lite / Micro)
-Default = **hot layer only** (active phase section of Spec). CodeMap / ProjectMap / context bundles load on demand.
+Required artifacts:
 
-## Docs Root
-Default `<docs-root>` = `mydocs/`. Override via `.sdd-config` (`DOCS_DIR=...`).
+- Spec with Confirmed Requirement, Innovate Options or explicit skip reason, Acceptance Criteria, Plan, approval, Review Summary.
+- External Design Note in `design-file`.
+- External Execute Log in `execute-log-file`.
+
+Design Note must cover Approach, Impact Scope, Compatibility, Risks, and Test Strategy.
+
+## Micro Mode
+
+Flow:
+
+```text
+Plan -> Execute -> Review -> Archive
+```
+
+Micro skips Research, Innovate, and standalone Design. Plan must include:
+
+- Scope.
+- Touched Files.
+- Change.
+- Acceptance.
+- Verification.
+- Blast Radius.
+
+Micro still requires an external Execute Log and the human Plan gate.
+
+## Review
+
+- Lite uses the 4-axis review: Invocation, Design/Acceptance/Plan, Code Diff, Execute Log.
+- Micro defaults to Axis 2, but archive validation still requires Plan approval, Execute Log, and PASS review summary.
+
+## Subagent Policy
+
+- Lite may use subagents for large reads, debug investigation, or review axes.
+- Micro defaults to single-agent execution.
+- The orchestrator owns final decisions, Plan approval, completion verification, and final verdict.

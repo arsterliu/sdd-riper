@@ -5,92 +5,88 @@ mode: standard
 status: draft   # draft | archived
 reopened-from: ""
 context-source: ""
+diff-base: ""
+design-file: ""
+execute-log-file: ""
 ---
 
 <!--
-Requirement = 当前执行口径（任务定义，是锚）
-Context     = 背景材料包（历史资料、旧Spec、CodeMap等，不替代Requirement）
-Spec        = Invocation + Research 收敛后的单一决策链
+Spec is the control plane for this task. It references external Design and Execute Log artifacts.
+Normative truth: Invocation / Confirmed Requirement / Design Reference / Acceptance Criteria / Plan.
+Descriptive truth: Findings / Assumptions / CodeMap / risk notes.
+Do not rewrite normative truth to justify implementation results without a human gate.
 -->
 
 ## Summary
-<!-- 热区：3-5行，每次阶段变更后由 AI 更新；resume 时优先读此块 -->
-<!-- 格式：当前阶段 | 核心目标（一句话）| 关键约束 | 最新进展 -->
+<!-- 3-5 lines updated at phase changes: current phase, goal, key constraints, latest progress. -->
 
 ## Invocation
-<!-- 核心目标 -->
+<!-- Original user input and task constraints. Do not treat context-source as a replacement for requirement. -->
 
 ### Requirement
-<!-- 用户原始输入（必填，AI 不修改）；研究校准版见 ## Research 下的 ### Confirmed Requirement -->
+<!-- SDD_REQUIREMENT -->
 
 ### Constraints
-<!-- 技术或业务约束 -->
+<!-- SDD_CONSTRAINTS -->
 
 ### Scope
-<!-- 影响的范围和边界 -->
+<!-- Impacted area and boundaries. -->
 
 ### Risks
-<!-- 风险及应对措施 -->
+<!-- Initial risks and mitigations. -->
 
-### Checklist
-<!-- 可验证的验收标准 -->
+### Initial Acceptance Notes
+<!-- Acceptance hints from the raw request. Formal acceptance criteria live in ## Acceptance Criteria. -->
 
 ## Research
 
 ### Requirement Review
-<!--
-苏格拉底式审视：AI 对需求做一次完整分析，**不进行实时追问**；把所有发现以文档形式写入本区块，最后触发一个门禁让用户决定是否继续。
-
-分析维度（6 项，逐一检查）：
-  - 这个词的边界在哪里？（定义不清）
-  - 如果 X 发生，期望是什么？（异常路径 / edge case）
-  - 这个约束是绝对的还是可商量的？（约束真实性）
-  - 谁来判断"完成"？标准是什么？（验收标准缺失）
-  - 这个需求和已知约束/目标有没有矛盾？（内部冲突）
-  - 为什么要这样做？背后的真实问题是什么？（目标验证）
-
-输出格式：
-  1. **维度状态表**：每个维度一行 → ✅ Clear / ⚠️ Ambiguous / ❌ Missing
-  2. **对每个 ⚠️ 或 ❌ 的维度**：列出
-       - Open Question（具体不清的是什么）
-       - Tentative Assumption（AI 当前的暂定理解）
-       - Impact-if-wrong（假设错了会怎样影响后续 Plan/Execute）
-  3. **Premise List**：把从原始需求中识别的隐含前提编号列出（P1/P2/…），每条注明 AI 当前如何理解
-  4. **反对 sycophancy**：禁写"需求很清晰"、"多种可能都可考虑"等敷衍话术；每条结论都要 take a position
-
-门禁（写完上面后必须触发，由 orchestrator 用 AskUserQuestion 执行）：
-  - A) **STOP** — 用户需要先线下澄清 / 重新定义；Spec 保持 draft，不进入 Findings
-  - B) **CONTINUE** — 接受当前 Tentative Assumptions（将自动复制到 `### Assumptions` 区块），进入 Findings
-
-全部维度都 ✅ Clear 时，可省略门禁直接进入 Findings，但 Premise List 仍要写。
--->
+<!-- Document-first review of ambiguity, assumptions, contradictions, and acceptance gaps. -->
 
 ### Findings
-<!-- 代码出处、调用链、依赖关系、已确认行为（必填） -->
+<!-- Facts from code, docs, dependencies, CodeMap, ProjectMap, and archive history. -->
 
 ### Open Questions
-<!-- 从 Findings 中识别的技术未知点，阻碍进一步判断的疑点（必填） -->
+<!-- Questions that block confident design or planning. -->
 
 ### Assumptions
-<!-- Open Questions 暂无答案时的前提填充，需标注"待验证" -->
+<!-- Temporary assumptions; mark items that still need verification. -->
 
 ### Confirmed Requirement
-<!-- 基于以上三项的综合判断，用自己的话复述需求（最后写，必填） -->
-<!-- 写完触发 Mode Recommendation Gate：用 5 维度评估复杂度，推荐 mode，用户确认后 Edit frontmatter mode: 字段 -->
+<!-- Calibrated requirement after review and findings. -->
 
 ## Innovate Options
-<!-- 至少2个方案，含 Pros/Cons/风险/推荐理由 -->
+<!-- At least two options with pros, cons, risks, rejected rationale, and selected option. -->
+
+## Design Reference
+<!-- Technical Design is an external artifact. Write complete design in design-file. -->
+design-file:
+
+## Acceptance Criteria
+<!--
+Use observable, verifiable, traceable criteria. BDD / Gherkin is recommended:
+
+### AC-001: <observable behavior>
+Requirement: <requirement id or statement>
+Type: functional | non-functional | compatibility | safety
+Automated: yes | no
+Test: <test file / command / manual verification>
+
+Scenario: <scenario name>
+  Given <initial context>
+  When <trigger action>
+  Then <observable result>
+-->
 
 ## Plan
-<!-- 文件路径 + 函数签名 + 步骤，需人工批准后才能进入 Execute -->
+<!-- Derived from Design Reference and Acceptance Criteria. Each step should include file path, concrete change, linked AC, and verification. -->
 
 Plan Approved By:
 Approved At:
 
-## Execute Log
-<!-- append-only；每个 Plan step 完成后追加一条记录 -->
-<!-- 格式：Step N: <描述> | Status: DONE/BUGFIX/… | Deviation: none/<说明> | Timestamp: ISO-8601 -->
+## Execute Log Reference
+<!-- Execute Log is an external artifact. Append every Plan step result to execute-log-file. -->
+execute-log-file:
 
 ## Review Verdict
-<!-- Spec vs Code 对比结论 -->
-<!-- 格式：Review Pass N — <ISO-8601> — <VERDICT> -->
+<!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
