@@ -15,7 +15,7 @@ SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **
 统一从 GitHub 安装 CLI：
 
 ```text
-npm install -g https://github.com/arsterliu/sdd-riper.git
+npm install -g git+https://github.com/arsterliu/sdd-riper.git
 ```
 
 需要 Node.js 18+。安装后检查：
@@ -24,6 +24,8 @@ npm install -g https://github.com/arsterliu/sdd-riper.git
 sdd --version
 where sdd
 ```
+
+使用 `git+https` 是为了避免某些 Git 配置把 GitHub HTTPS 地址重写成 SSH，导致没有 SSH key 的环境安装失败。
 
 ## 注册 Skill
 
@@ -62,14 +64,14 @@ sdd install-skill --target codex --clean
 日常更新：
 
 ```text
-npm install -g https://github.com/arsterliu/sdd-riper.git
+npm install -g git+https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target codex --clean
 ```
 
 多 agent 环境：
 
 ```text
-npm install -g https://github.com/arsterliu/sdd-riper.git
+npm install -g git+https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target all --clean
 ```
 
@@ -77,7 +79,7 @@ sdd install-skill --target all --clean
 
 ```text
 npm uninstall -g sdd-riper
-npm install -g https://github.com/arsterliu/sdd-riper.git
+npm install -g git+https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target codex --clean
 ```
 
