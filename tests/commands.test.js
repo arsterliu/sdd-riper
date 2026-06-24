@@ -25,11 +25,42 @@ function artifactPath(projectDir, specFile, field) {
   return path.isAbsolute(ref) ? ref : path.join(projectDir, ref);
 }
 
+function headingNames(heading) {
+  return [heading];
+}
+
 function insertSectionContent(file, heading, body) {
   var content = fs.readFileSync(file, 'utf-8');
-  var marker = '## ' + heading + '\n';
-  assert.ok(content.indexOf(marker) !== -1, file + ' missing section ' + heading);
+  var marker = headingNames(heading).map(function(name) { return '## ' + name + '\n'; })
+    .find(function(candidate) { return content.indexOf(candidate) !== -1; });
+  assert.ok(marker, file + ' missing section ' + heading);
   fs.writeFileSync(file, content.replace(marker, marker + body + '\n'), 'utf-8');
+}
+
+function replaceSectionStart(content, heading, body) {
+  var marker = headingNames(heading).map(function(name) { return '## ' + name + '\n'; })
+    .find(function(candidate) { return content.indexOf(candidate) !== -1; });
+  assert.ok(marker, 'missing section ' + heading);
+  return content.replace(marker, marker + body + '\n');
+}
+
+function fillApproval(content) {
+  return content
+    .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
+    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
+}
+
+function standardDesignContent() {
+  return [
+    'Selected Option / ADR: 选择方案 A，原因是边界清晰且可回滚。',
+    'Requirement Traceability: AC-001 覆盖归档门禁和设计合同。',
+    'Impact Scope: 影响 CLI validate/archive 流程和测试夹具，不影响运行时业务逻辑。',
+    'Architecture View: validate 作为归档门禁读取 Spec、Design、Execute Log 并输出阻断项。',
+    'Data Model / Schema: 不新增持久化表结构，仅读取 markdown frontmatter 和章节字段。',
+    'Interface Contract: CLI 输入保持 sdd validate <dir> --archive-ready，输出仍为 RESULT 和 issue 列表。',
+    'Compatibility / Rollback: 新 spec 使用更严格字段；回滚方式是恢复旧模板和字段列表。',
+    'Test Strategy: node:test command suite.'
+  ].join('\n');
 }
 
 function requestJson(server, requestPath, method) {
@@ -149,13 +180,12 @@ function makeStandardArchiveReady(demo, specFile) {
   var logFile = artifactPath(demo, specFile, 'execute-log-file');
   var content = fs.readFileSync(specFile, 'utf-8');
   content = content
-    .replace('### Confirmed Requirement\n', '### Confirmed Requirement\nShip a test archive flow with validated gates.\n')
-    .replace('## Innovate Options\n', '## Innovate Options\nOption A: keep validated archive flow. Pros: simple. Cons: test-only.\nOption B: skip archive. Pros: none. Cons: no coverage.\nSelected: Option A.\n')
-    .replace('## Acceptance Criteria\n', '## Acceptance Criteria\n### AC-001: archive accepts a complete standard spec\nRequirement: archive-flow\nType: functional\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Valid standard spec\n  Given a standard spec with design, AC, approval, execute log, and PASS review\n  When archive runs\n  Then the spec is moved to archive\n')
-    .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
-    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
+    .replace(/^(### Confirmed Requirement\n)/m, '$1交付一个通过门禁校验的归档流程。\n');
+  content = replaceSectionStart(content, 'Innovate Options', 'Option A: 保留校验后的归档流程。Pros: 简单。Cons: 仅测试覆盖。\nOption B: 跳过归档。Pros: 无。Cons: 无法覆盖。\nSelected: 方案 A。');
+  content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: 完整 standard spec 可以归档\nRequirement: archive-flow\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: 有效 standard spec\n  Given standard spec 包含设计、AC、审批、执行日志和 PASS 评审\n  When archive 执行\n  Then spec 被移动到 archive');
+  content = fillApproval(content);
   fs.writeFileSync(specFile, content, 'utf-8');
-  insertSectionContent(designFile, 'Technical Design', 'Selected Option: Option A.\nRequirement Traceability: archive-ready validation covers this test.\nTest Strategy: node:test command suite.');
+  insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
   insertSectionContent(specFile, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
   return { designFile: designFile, logFile: logFile };
@@ -178,6 +208,12 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'specs', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'design', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'logs', '.gitkeep')));
+    assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'learnings', '.gitkeep')));
+    var agentsText = fs.readFileSync(path.join(tmpBase, 'demo', 'AGENTS.md'), 'utf-8');
+    var claudeText = fs.readFileSync(path.join(tmpBase, 'demo', 'CLAUDE.md'), 'utf-8');
+    assert.ok(agentsText.indexOf('Chinese Artifact Content') !== -1);
+    assert.ok(agentsText.indexOf('Plan Approved By') !== -1);
+    assert.ok(claudeText.indexOf('filled artifact content in Chinese') !== -1);
   });
 
   it('discover creates spec, design, and execute log artifacts', function() {
@@ -193,6 +229,20 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(logFile));
     assert.strictEqual(artifactPath(demo, sf, 'design-file'), designFile);
     assert.strictEqual(artifactPath(demo, sf, 'execute-log-file'), logFile);
+    assert.match(fs.readFileSync(sf, 'utf-8'), /^learning-file:\s*$/m);
+    var specText = fs.readFileSync(sf, 'utf-8');
+    var designText = fs.readFileSync(designFile, 'utf-8');
+    var logText = fs.readFileSync(logFile, 'utf-8');
+    assert.ok(specText.indexOf('### Confirmed Requirement') !== -1);
+    assert.ok(specText.indexOf('## Innovate Options') !== -1);
+    assert.ok(specText.indexOf('## Acceptance Criteria') !== -1);
+    assert.ok(specText.indexOf('Plan Approved By:') !== -1);
+    assert.ok(designText.indexOf('## Technical Design') !== -1);
+    assert.ok(designText.indexOf('Selected Option / ADR') !== -1);
+    assert.ok(designText.indexOf('Impact Scope') !== -1);
+    assert.ok(designText.indexOf('Data Model / Schema') !== -1);
+    assert.ok(designText.indexOf('Compatibility / Rollback') !== -1);
+    assert.ok(logText.indexOf('## Execute Log') !== -1);
   });
 
   it('discover accepts --version alias and fills structured invocation fields', function() {
@@ -238,6 +288,46 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(artifactPath(demo, patchSpec, 'execute-log-file')));
   });
 
+  it('archive requires and moves learning records when execution produced reusable lessons', function() {
+    var demo = path.join(tmpBase, 'd4l');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name lessoned --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-lessoned.md');
+    var artifacts = makeStandardArchiveReady(demo, sf);
+    var logContent = fs.readFileSync(artifacts.logFile, 'utf-8')
+      .replace('Status: DONE', 'Status: DEVIATED_MINOR');
+    fs.writeFileSync(artifacts.logFile, logContent, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Learning Record is required') !== -1);
+    var specIndex = require('../src/core/spec-index');
+    specIndex.clearCache();
+    var indexed = specIndex.listSpecs(demo);
+    assert.equal(indexed.specs[0].phase, 'learning');
+    assert.equal(indexed.counts.learning, 1);
+
+    var created = run('new-learning ' + demo + ' lessoned');
+    assert.ok(created.indexOf('[LEARNING]') !== -1);
+    var learningFile = artifactPath(demo, sf, 'learning-file');
+    assert.ok(fs.existsSync(learningFile));
+    var learningText = fs.readFileSync(learningFile, 'utf-8');
+    assert.ok(learningText.indexOf('## Learning Record') !== -1);
+    assert.ok(learningText.indexOf('Source Spec:') !== -1);
+
+    var stillBlocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(stillBlocked.indexOf('Learning Record is empty') !== -1);
+
+    insertSectionContent(learningFile, 'Learning Record', 'Source Spec: mydocs/specs/v1.0-lessoned.md\nTrigger: DEVIATED_MINOR in Execute Log\nObserved Problem: implementation deviated from the approved plan boundary.\nRoot Cause: plan step did not capture the lower-level file boundary.\nDecision Rule: when a step changes implementation approach, record the reusable boundary rule before archive.\nApplies When: future work touches the same boundary.\nDoes Not Apply When: the deviation is only wording or comments.\nRecommended Action: tighten Plan steps with explicit file boundaries.\nEvidence: tests/commands.test.js covers the learning archive gate.\nRelated Artifacts: mydocs/logs/v1.0-lessoned.execute.md');
+    var ok = run('validate ' + demo + ' --archive-ready');
+    assert.ok(ok.indexOf('RESULT: OK') !== -1);
+
+    var archived = run('archive ' + demo + ' lessoned');
+    assert.ok(archived.indexOf('[LEARNING]') !== -1);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.0-lessoned.learning.md')));
+    var archivedSpec = fs.readFileSync(path.join(demo, 'mydocs', 'archive', 'v1.0-lessoned.md'), 'utf-8');
+    assert.ok(archivedSpec.indexOf('learning-file: "mydocs/archive/v1.0-lessoned.learning.md"') !== -1);
+  });
+
   it('validate blocks archive when required gates are missing', function() {
     var demo = path.join(tmpBase, 'd4b');
     run('init ' + demo + ' --mode standard');
@@ -249,6 +339,30 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.0-blocked.md')));
   });
 
+  it('validate enforces standard technical design contract fields', function() {
+    var demo = path.join(tmpBase, 'd4s');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name strict-design --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-strict-design.md');
+    var artifacts = makeStandardArchiveReady(demo, sf);
+    fs.writeFileSync(artifacts.designFile, [
+      '# Technical Design',
+      '',
+      '## Technical Design',
+      '',
+      'Selected Option / ADR: 选择方案 A。',
+      'Requirement Traceability: AC-001 覆盖归档门禁。',
+      'Test Strategy: node:test command suite.'
+    ].join('\n'), 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Technical Design missing required fields') !== -1);
+    assert.ok(blocked.indexOf('Impact Scope') !== -1);
+    assert.ok(blocked.indexOf('Data Model / Schema') !== -1);
+    assert.ok(blocked.indexOf('Interface Contract') !== -1);
+    assert.ok(blocked.indexOf('Compatibility / Rollback') !== -1);
+  });
+
   it('validate enforces lite design note and acceptance criteria', function() {
     var demo = path.join(tmpBase, 'd4c');
     run('init ' + demo + ' --mode lite');
@@ -257,11 +371,9 @@ describe('CLI commands', function() {
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c
-      .replace('## Confirmed Requirement\n', '## Confirmed Requirement\nLite task must enforce design and acceptance before archive.\n')
-      .replace('## Innovate Options\n', '## Innovate Options\nInnovate: Skipped, Reason: reuses existing validate/archive pattern.\n')
-      .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
-      .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
+    c = replaceSectionStart(c, 'Confirmed Requirement', 'Lite task must enforce design and acceptance before archive.');
+    c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: 复用现有 validate/archive pattern.');
+    c = fillApproval(c);
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
 
@@ -270,13 +382,62 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Acceptance Criteria is empty') !== -1);
     assert.ok(blocked.indexOf('Execute Log is empty') !== -1);
 
-    c = fs.readFileSync(sf, 'utf-8')
-      .replace('## Acceptance Criteria\n', '## Acceptance Criteria\n- AC-001: validate --archive-ready passes only when lite design and acceptance are present; verification: node tests.\n');
+    c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: validate archive-ready gates\nRequirement: lite validation\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Lite archive readiness\n  Given lite design, acceptance, approval, execute log, and PASS review are present\n  When validate --archive-ready runs\n  Then validation reports OK');
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(designFile, 'Design Note', 'Approach: reuse the standard validate path.\nImpact Scope: CLI validation only.\nCompatibility: no format break.\nRisks: missing AC would block archive.\nTest Strategy: node test validates this behavior.');
+    insertSectionContent(designFile, 'Design Note', 'Approach: 复用 standard validate path.\nImpact Scope: CLI validation only.\nInterface / Data Impact: 不改变外部接口和持久化数据。\nCompatibility: no format break.\nRisks: missing AC would block archive.\nTest Strategy: node test validates this behavior.');
     insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1);
+  });
+
+  it('validate requires acceptance verification metadata', function() {
+    var demo = path.join(tmpBase, 'd4v');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-verification --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-verification.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1Standard AC must declare verification metadata.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: require verification metadata. Pros: traceable. Cons: more structure.\nOption B: free text AC. Pros: flexible. Cons: weaker archive gates.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: missing verification is blocked\nRequirement: ac-verification\nType: functional\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Missing verification\n  Given an AC without Verification metadata\n  When validate runs\n  Then archive readiness is blocked');
+    c = fillApproval(c);
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(sf, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Standard Acceptance Criteria missing Verification for: AC-001') !== -1);
+
+    c = fs.readFileSync(sf, 'utf-8')
+      .replace('Automated: yes\nTest: tests/commands.test.js\n', 'Verification: e2e\nAutomated: yes\n');
+    fs.writeFileSync(sf, c, 'utf-8');
+    var e2eBlocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(e2eBlocked.indexOf('Standard E2E Acceptance Criteria require Test or Manual Evidence for: AC-001') !== -1);
+
+    c = fs.readFileSync(sf, 'utf-8')
+      .replace('Verification: e2e', 'Verification: unit');
+    fs.writeFileSync(sf, c, 'utf-8');
+    var automatedBlocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(automatedBlocked.indexOf('Standard Automated Acceptance Criteria require Test for: AC-001') !== -1);
+  });
+
+  it('generated artifacts keep English labels and request Chinese content', function() {
+    var demo = path.join(tmpBase, 'd4e');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name english-labels --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-english-labels.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var specText = fs.readFileSync(sf, 'utf-8');
+    var designText = fs.readFileSync(designFile, 'utf-8');
+    var logText = fs.readFileSync(logFile, 'utf-8');
+    assert.ok(specText.indexOf('## Acceptance Criteria') !== -1);
+    assert.ok(specText.indexOf('Plan Approved By:') !== -1);
+    assert.ok(designText.indexOf('Selected Option / ADR:') !== -1);
+    assert.ok(logText.indexOf('Status: DONE') !== -1);
+    assert.ok(specText.indexOf('write') !== -1 || specText.indexOf('Chinese') !== -1);
   });
 
   it('validate enforces micro plan acceptance and verification labels', function() {
@@ -286,19 +447,20 @@ describe('CLI commands', function() {
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-micro-task.md');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c
-      .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
-      .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
+    c = fillApproval(c);
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Micro Plan must include Impact Scope') !== -1);
+    assert.ok(blocked.indexOf('Micro Plan must include Data Impact') !== -1);
+    assert.ok(blocked.indexOf('Micro Plan must include Interface Impact') !== -1);
     assert.ok(blocked.indexOf('Micro Plan must include Acceptance') !== -1);
     assert.ok(blocked.indexOf('Micro Plan must include Verification') !== -1);
     assert.ok(blocked.indexOf('Execute Log is empty') !== -1);
 
     c = fs.readFileSync(sf, 'utf-8')
-      .replace(/^Approved At: 2026-01-01T00:00:00Z$/m, 'Approved At: 2026-01-01T00:00:00Z\n\nScope: single-file test fixture\nTouched Files: none\nChange: validate micro gates\nAcceptance: validate reports OK\nVerification: node --test tests/*.test.js\nBlast Radius: micro only');
+      .replace(/^Approved At: 2026-01-01T00:00:00Z$/m, 'Approved At: 2026-01-01T00:00:00Z\n\nScope: single-file test fixture\nTouched Files: none\nChange: validate micro gates\nImpact Scope: micro validation only\nData Impact: none\nInterface Impact: none\nAcceptance: validate reports OK\nVerification: node --test tests/*.test.js\nBlast Radius: micro only');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
     var ok = run('validate ' + demo + ' --archive-ready');
@@ -362,14 +524,13 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name review-design --spec-version v1.0 --requirement x');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-review-design.md');
     var designFile = artifactPath(demo, sf, 'design-file');
-    var c = fs.readFileSync(sf, 'utf-8')
-      .replace('## Acceptance Criteria\n', '## Acceptance Criteria\n### AC-001: review prompt includes acceptance evidence\n');
+    var c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: review prompt includes acceptance evidence');
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(designFile, 'Technical Design', 'Selected Option: include design evidence in review.');
+    insertSectionContent(designFile, 'Technical Design', 'Selected Option / ADR: include design evidence in review.');
     var out = run('review-execute ' + demo);
     assert.ok(out.indexOf('Design / Acceptance / Plan Coverage') !== -1);
     assert.ok(out.indexOf('#### Design Brief') !== -1);
-    assert.ok(out.indexOf('Selected Option: include design evidence in review') !== -1);
+    assert.ok(out.indexOf('Selected Option / ADR: include design evidence in review') !== -1);
     assert.ok(out.indexOf('#### Acceptance Brief') !== -1);
     assert.ok(out.indexOf('AC-001') !== -1);
   });
@@ -378,6 +539,7 @@ describe('CLI commands', function() {
     var demo = path.join(tmpBase, 'd7');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name console-task --spec-version v1.0 --requirement x');
+    run('new-learning ' + demo + ' console-task');
     var openedFiles = [];
     var server = require('../src/commands/console').createServer(demo, {
       openFile: function(filePath, callback) {
@@ -398,10 +560,12 @@ describe('CLI commands', function() {
       assert.equal(detail.body.taskName, 'console-task');
       assert.ok(detail.body.artifacts.design.ref.endsWith('v1.0-console-task.design.md'));
       assert.ok(detail.body.artifacts.executeLog.ref.endsWith('v1.0-console-task.execute.md'));
+      assert.ok(detail.body.artifacts.learning.ref.endsWith('v1.0-console-task.learning.md'));
 
       var specPreview = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/artifact?artifact=spec');
       var designPreview = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/artifact?artifact=design');
       var logPreview = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/artifact?artifact=executeLog');
+      var learningPreview = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/artifact?artifact=learning');
       assert.equal(specPreview.statusCode, 200);
       assert.equal(specPreview.body.label, 'Spec');
       assert.ok(specPreview.body.content.indexOf('console-task') !== -1);
@@ -411,6 +575,9 @@ describe('CLI commands', function() {
       assert.equal(logPreview.statusCode, 200);
       assert.equal(logPreview.body.label, 'Execute Log');
       assert.ok(logPreview.body.relativePath.endsWith('v1.0-console-task.execute.md'));
+      assert.equal(learningPreview.statusCode, 200);
+      assert.equal(learningPreview.body.label, 'Learning');
+      assert.ok(learningPreview.body.relativePath.endsWith('v1.0-console-task.learning.md'));
 
       var previewPage = await requestText(server, '/preview.html');
       assert.equal(previewPage.statusCode, 200);
@@ -419,12 +586,15 @@ describe('CLI commands', function() {
       var openSpec = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'spec' });
       var openDesign = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'design' });
       var openLog = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'executeLog' });
+      var openLearning = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'learning' });
       assert.equal(openSpec.statusCode, 200);
       assert.equal(openDesign.statusCode, 200);
       assert.equal(openLog.statusCode, 200);
+      assert.equal(openLearning.statusCode, 200);
       assert.ok(openedFiles.some(function(filePath) { return filePath.endsWith('v1.0-console-task.md'); }));
       assert.ok(openedFiles.some(function(filePath) { return filePath.endsWith('v1.0-console-task.design.md'); }));
       assert.ok(openedFiles.some(function(filePath) { return filePath.endsWith('v1.0-console-task.execute.md'); }));
+      assert.ok(openedFiles.some(function(filePath) { return filePath.endsWith('v1.0-console-task.learning.md'); }));
 
       var validation = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/validate', 'POST');
       assert.equal(validation.statusCode, 200);

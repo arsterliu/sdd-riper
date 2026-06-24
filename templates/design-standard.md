@@ -8,25 +8,25 @@ source-spec: ""
 
 # Technical Design
 
-<!--
-Standard design artifact. This file is the normative technical design for the task.
-Keep execution steps in the Spec Plan, not here.
--->
+<!-- Keep headings and labels in English. Fill all design content in Chinese. -->
 
 ## Technical Design
-<!--
-Required fields:
 
-Selected Option:
+Selected Option / ADR:
 Requirement Traceability:
+Impact Scope:
 Context / Boundary:
 Domain Model:
 Architecture View:
+Data Model / Schema:
+Data Migration / Backfill:
 Interface Contract:
-Data / State:
+API Protocol:
+State / Concurrency:
 Failure Modes:
 Security / Permission:
 Observability:
+Performance / Capacity:
+Compatibility / Rollback:
 Test Strategy:
 Risks / Trade-offs:
--->

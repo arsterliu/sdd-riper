@@ -26,7 +26,7 @@ function run(projectDir, opts) {
 
   var created = 0, skipped = 0;
 
-  ['specs','design','logs','codemap','context','archive'].forEach(function(subdir) {
+  ['specs','design','logs','learnings','codemap','context','archive'].forEach(function(subdir) {
     var d = path.join(projectDir, docsDir, subdir);
     if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
     var gk = path.join(d, '.gitkeep');

@@ -7,20 +7,16 @@ source-spec: ""
 
 # Execute Log
 
-<!--
-Append-only execution record. Do not move this back into the Spec.
-Each completed Plan step gets one entry.
--->
+<!-- Append-only execution facts. Keep labels and status enums in English; write explanations in Chinese. -->
 
 ## Execute Log
-<!--
-Format:
 
+<!--
 Step N:
-Status: DONE | BUGFIX | DEVIATED_MINOR | DEVIATED_MAJOR
+Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
 Command:
-Files Changed:
+Files:
 Verification:
-Deviation: none | <explain>
+Deviation: none | <Chinese explanation>
 Timestamp: ISO-8601
 -->

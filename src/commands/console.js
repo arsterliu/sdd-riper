@@ -157,6 +157,7 @@ function artifactLabel(artifactType) {
   if (artifactType === 'spec') return 'Spec';
   if (artifactType === 'design') return 'Design';
   if (artifactType === 'executeLog') return 'Execute Log';
+  if (artifactType === 'learning') return 'Learning';
   return 'Artifact';
 }
 
@@ -168,7 +169,7 @@ function resolveArtifactTarget(projectDir, specId, artifactType) {
   if (artifactType === 'spec') {
     relativePath = spec.relativePath;
     targetPath = path.join(projectDir, relativePath);
-  } else if (artifactType === 'design' || artifactType === 'executeLog') {
+  } else if (artifactType === 'design' || artifactType === 'executeLog' || artifactType === 'learning') {
     var artifact = spec.artifacts && spec.artifacts[artifactType];
     if (artifact && artifact.notRequired) throw new Error('Artifact is not required for this spec.');
     relativePath = artifact && artifact.relativePath ? artifact.relativePath : '';

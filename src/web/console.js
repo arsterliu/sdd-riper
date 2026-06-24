@@ -22,6 +22,7 @@ var phases = [
   ['plan', 'Plan'],
   ['execute', 'Execute'],
   ['review', 'Review'],
+  ['learning', 'Learning'],
   ['ready', 'Ready'],
   ['archived', 'Archived']
 ];
@@ -34,6 +35,7 @@ var gateDefinitions = [
   ['plan', 'Plan Approval', 'Human approval recorded'],
   ['executeLog', 'Execute Log', 'Execution facts recorded'],
   ['review', 'Review', 'Review section filled'],
+  ['learning', 'Learning', 'Reusable lesson recorded when required'],
   ['reviewPass', 'PASS Verdict', 'Final verdict allows archive']
 ];
 
@@ -45,6 +47,7 @@ var blockerText = {
   plan: 'Plan approval is missing. Fill Plan Approved By and Approved At before Execute.',
   execute: 'Execute Log is missing or empty. Record the execution facts before Review.',
   review: 'Review is missing or does not contain a PASS verdict.',
+  learning: 'Learning Check is required. Record the reusable lesson before Archive.',
   ready: 'All archive gates pass. This spec is ready to archive.',
   archived: 'This spec is archived.'
 };
@@ -189,7 +192,7 @@ function projectSpark(summary) {
   var counts = summary.counts || {};
   var complete = summary.ready || 0;
   var progress = (counts.research || 0) + (counts.innovate || 0) + (counts.design || 0) +
-    (counts.acceptance || 0) + (counts.execute || 0) + (counts.review || 0);
+    (counts.acceptance || 0) + (counts.execute || 0) + (counts.review || 0) + (counts.learning || 0);
   var waiting = counts.plan || 0;
   var notStarted = counts.archived || 0;
   return [
@@ -385,10 +388,13 @@ function renderGateList(spec) {
 
 function artifactHtml(name, type, artifact) {
   if (artifact && artifact.notRequired) {
+    var note = name === 'Design'
+      ? 'micro mode keeps design intent inside Plan'
+      : 'no learning record is required by current archive signals';
     return [
       '<div class="artifact">',
       '<div class="artifact-top"><strong>' + esc(name) + '</strong><span class="pill not-started">Not required</span></div>',
-      '<div class="path">micro mode keeps design intent inside Plan</div>',
+      '<div class="path">' + esc(note) + '</div>',
       '<div class="artifact-actions">',
       '<button type="button" disabled>Preview</button>',
       '<button type="button" disabled>Edit</button>',
@@ -423,7 +429,8 @@ function renderArtifacts(spec) {
       relativePath: spec.relativePath
     }),
     artifactHtml('Design', 'design', artifacts.design || {}),
-    artifactHtml('Execute Log', 'executeLog', artifacts.executeLog || {})
+    artifactHtml('Execute Log', 'executeLog', artifacts.executeLog || {}),
+    artifactHtml('Learning', 'learning', artifacts.learning || {})
   ].join('');
   Array.prototype.forEach.call(document.querySelectorAll('[data-preview-artifact]'), function(button) {
     button.addEventListener('click', function() {

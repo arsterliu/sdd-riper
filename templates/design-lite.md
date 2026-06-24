@@ -8,17 +8,13 @@ source-spec: ""
 
 # Design Note
 
-<!--
-Lite design artifact. Keep it short, but make the approach and verification clear.
--->
+<!-- Keep headings and labels in English. Fill all design content in Chinese. -->
 
 ## Design Note
-<!--
-Required fields:
 
 Approach:
 Impact Scope:
+Interface / Data Impact:
 Compatibility:
 Risks:
 Test Strategy:
--->

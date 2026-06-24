@@ -2,6 +2,26 @@ var execSync = require('child_process').execSync;
 var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
+var learning = require('../core/learning');
+
+var SECTION = {
+  invocation: 'Invocation',
+  technicalDesign: 'Technical Design',
+  designNote: 'Design Note',
+  acceptanceCriteria: 'Acceptance Criteria',
+  plan: 'Plan',
+  executeLog: 'Execute Log'
+};
+
+function learningBrief(projectDir) {
+  var files = learning.listLearningFiles(projectDir, 5);
+  if (!files.length) return '(no Learning Records found)';
+  return files.map(function(filePath) {
+    var rel = common.relativeToProject(projectDir, filePath);
+    var content = common.extractSection(filePath, 'Learning Record', 80) || '(empty Learning Record)';
+    return '### ' + rel + '\n' + content;
+  }).join('\n\n');
+}
 
 function resolveDiffBase(projectDir, explicitBase) {
   if (explicitBase) return explicitBase;
@@ -48,7 +68,7 @@ function run(projectDir, opts) {
   var mode = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'mode') || 'standard' : 'standard';
   var invocationContent = '(section not found)';
   var axis0Note = '';
-  if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, 'Invocation', 80); if (ic) invocationContent = ic; }
+  if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, SECTION.invocation, 80); if (ic) invocationContent = ic; }
   if (!invocationContent || invocationContent === '(section not found)') axis0Note = '[WARN] Invocation not found.';
   var designContent = '(not applicable)';
   if (specPath && fs.existsSync(specPath)) {
@@ -56,12 +76,12 @@ function run(projectDir, opts) {
     var designPath = designRef ? common.resolveProjectPath(projectDir, designRef) : '';
     if (mode === 'standard') {
       designContent = designPath && fs.existsSync(designPath)
-        ? common.extractSection(designPath, 'Technical Design', 120) || '(empty Technical Design)'
-        : common.extractSection(specPath, 'Technical Design', 120) || '(missing Technical Design file)';
+        ? common.extractSection(designPath, SECTION.technicalDesign, 120) || '(empty Technical Design)'
+        : common.extractSection(specPath, SECTION.technicalDesign, 120) || '(missing Technical Design file)';
     } else if (mode === 'lite') {
       designContent = designPath && fs.existsSync(designPath)
-        ? common.extractSection(designPath, 'Design Note', 80) || '(empty Design Note)'
-        : common.extractSection(specPath, 'Design Note', 80) || '(missing Design Note file)';
+        ? common.extractSection(designPath, SECTION.designNote, 80) || '(empty Design Note)'
+        : common.extractSection(specPath, SECTION.designNote, 80) || '(missing Design Note file)';
     } else {
       designContent = '(micro mode: design and acceptance are embedded in Plan)';
     }
@@ -69,13 +89,13 @@ function run(projectDir, opts) {
   var acceptanceContent = '(not applicable)';
   if (specPath && fs.existsSync(specPath)) {
     if (mode === 'standard' || mode === 'lite') {
-      acceptanceContent = common.extractSection(specPath, 'Acceptance Criteria', 120) || '(empty Acceptance Criteria)';
+      acceptanceContent = common.extractSection(specPath, SECTION.acceptanceCriteria, 120) || '(empty Acceptance Criteria)';
     } else {
-      acceptanceContent = '(micro mode: verify Acceptance and Verification labels in Plan)';
+      acceptanceContent = '(micro mode: verify Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification labels in Plan)';
     }
   }
   var planContent = '(no spec)';
-  if (specPath && fs.existsSync(specPath)) { var pc = common.extractSection(specPath, 'Plan', 100); planContent = pc || '(empty)'; }
+  if (specPath && fs.existsSync(specPath)) { var pc = common.extractSection(specPath, SECTION.plan, 100); planContent = pc || '(empty)'; }
   var storedDiffBase = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'diff-base') : '';
   var diffBase = resolveDiffBase(projectDir, opts.diffBase || storedDiffBase || '');
   var diffContent = '(no git diff)';
@@ -93,10 +113,11 @@ function run(projectDir, opts) {
     var logRef = common.getFrontmatterField(specPath, 'execute-log-file');
     var logPath = logRef ? common.resolveProjectPath(projectDir, logRef) : '';
     var el = logPath && fs.existsSync(logPath)
-      ? common.extractSection(logPath, 'Execute Log', 100)
-      : common.extractSection(specPath, 'Execute Log', 100);
+      ? common.extractSection(logPath, SECTION.executeLog, 100)
+      : common.extractSection(specPath, SECTION.executeLog, 100);
     if (el) executeLog = el;
   }
+  var learningContent = learningBrief(projectDir);
 
   console.log('## REVIEW EXECUTE PROMPT (4-Axis)');
   console.log('> Diff source: ' + diffSource);
@@ -126,6 +147,11 @@ function run(projectDir, opts) {
   console.log(executeLog);
   console.log('Finding: FAITHFUL | DISCREPANCY');
   console.log('<!-- AXIS 3 BRIEF END -->');
+  console.log('<!-- LEARNING BRIEF START -->');
+  console.log('### Learning Brief');
+  console.log(learningContent);
+  console.log('Finding: NEW_LESSON_REQUIRED | EXISTING_RULE_APPLIES | NO_REUSABLE_LESSON');
+  console.log('<!-- LEARNING BRIEF END -->');
   console.log('### Verdict: PASS | PASS_WITH_CONCERNS | FAIL_CODE | FAIL_PLAN | FAIL_SPEC');
 }
 module.exports = run;

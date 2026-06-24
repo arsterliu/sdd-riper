@@ -74,6 +74,11 @@ program.command('reopen <project-dir> <task-slug>')
   .option('--mode <mode>', 'patch mode', 'micro')
   .action(function(p, s, o) { require('../src/commands/reopen')(p, s, o); });
 
+program.command('new-learning <project-dir> [spec-name]')
+  .description('Create and bind a Learning Record for a spec')
+  .option('--force', 'overwrite existing learning record')
+  .action(function(p, s, o) { require('../src/commands/new-learning')(p, s, o); });
+
 program.command('review-execute <project-dir>')
   .description('Generate 4-axis Review prompt')
   .option('--spec <path>', 'spec file')

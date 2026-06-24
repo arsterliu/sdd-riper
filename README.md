@@ -1,6 +1,6 @@
 # SDD-RIPER
 
-SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **CodeMap / ProjectMap** 管架构认知。
+SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **Learning Record** 管可复用经验，用 **CodeMap / ProjectMap** 管架构认知。
 
 核心目标不是多写文档，而是让每个任务都能被追踪、审查和归档：
 
@@ -8,6 +8,7 @@ SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **
 - 方案选择有证据和取舍。
 - Plan 不能替代技术设计。
 - Execute 的真实行为可以被 Review 审计。
+- 偏差、返工和 concern 会沉淀为后续可复用的判断规则。
 - 归档后可以 reopen，而不是重新 discover 丢失上下文。
 
 ## 安装
@@ -106,22 +107,25 @@ sdd resume my-project
 - `mydocs/design/v1.0-my-task.design.md`，micro 模式不创建
 - `mydocs/logs/v1.0-my-task.execute.md`
 
-Spec 的 frontmatter 会写入 `design-file` 和 `execute-log-file`，后续命令都从这两个引用读取独立产物。
+Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-file`，后续命令都从这些引用读取独立产物。
+
+阶段产物的模板结构保持英文，包括 Spec 阶段标题、Design 字段、Execute Log 字段、Learning Record 字段、frontmatter 键、文件引用键、命令名、状态枚举、验证枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
 ## 核心产物
 
 | 产物 | 责任 |
 | :--- | :--- |
-| **Spec** | 控制面。保存 Invocation、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log。 |
+| **Spec** | 控制面。保存 Invocation、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log / Learning。 |
 | **Design** | 技术设计产物。standard 写 `Technical Design`，lite 写 `Design Note`，micro 不单独写设计。 |
 | **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
+| **Learning Record** | 经验沉淀产物。把偏差、BUGFIX、concern、reopen 暴露出的规律写成可复用决策规则。 |
 | **CodeMap** | 模块级架构地图，记录入口、边界、依赖、风险。 |
 | **ProjectMap** | 多仓或多团队协作地图，记录系统边界、接口契约和职责。 |
 
 ## 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
 ```
 
 - **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。
@@ -130,7 +134,16 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archiv
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须等待人工审批。
 - **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。
 - **Review**：四轴审查 Invocation、Design/Acceptance/Plan、Code Diff、Execute Log。
-- **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log 一起归档。
+- **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
+- **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
+
+Acceptance Criteria 使用 `AC-###` 编号，并必须声明 `Verification: unit | integration | e2e | manual`。BDD / Gherkin 的场景描述用中文表达可观察行为；E2E AC 必须提供 `Test:` 或 `Manual Evidence:`，manual AC 必须提供 `Manual Evidence:`。
+
+Design 按模式分层约束：
+
+- `standard` 的 `Technical Design` 是技术设计合同，归档门禁强制检查 `Requirement Traceability`、`Impact Scope`、`Architecture View`、`Data Model / Schema`、`Interface Contract`、`Compatibility / Rollback` 和 `Test Strategy` 等核心字段。
+- `lite` 的 `Design Note` 保持轻量，但必须说明 `Impact Scope` 和 `Interface / Data Impact`。
+- `micro` 不创建独立 Design，但 Plan 必须包含 `Impact Scope`、`Data Impact`、`Interface Impact`、`Acceptance` 和 `Verification`。
 
 ## 三种模式
 
@@ -152,6 +165,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archiv
 | :--- | :--- |
 | `sdd init <dir>` | 初始化项目结构。 |
 | `sdd discover <dir> --task-name <name> --version v1.0 --requirement <text>` | 创建 Spec、Design、Execute Log。 |
+| `sdd new-learning <dir> [spec-name]` | 创建并绑定 Learning Record。 |
 | `sdd resume <dir>` | 恢复当前任务上下文。 |
 | `sdd status <dir>` | 检查结构和流程健康度。 |
 | `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
@@ -172,7 +186,7 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它支持：
 - 页面里选择项目目录。
 - 多项目看板预览。
 - 查看 Spec 阶段、状态、产物和归档门禁。
-- 每个产物按 `Spec / Design / Execute Log` 独立 Preview。
+- 每个产物按 `Spec / Design / Execute Log / Learning` 独立 Preview。
 - Preview 新开浏览器 tab，只读显示 Markdown 原文。
 - Preview 页提供 `Edit`，用本机默认程序打开对应文件。
 
@@ -186,9 +200,10 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它支持：
     ├── specs/       # 活跃 Spec
     ├── design/      # Technical Design / Design Note
     ├── logs/        # Execute Log
+    ├── learnings/   # Learning Record
     ├── codemap/     # 模块地图
     ├── context/     # Context Bundle
-    └── archive/     # 已归档 Spec / Design / Execute Log
+    └── archive/     # 已归档 Spec / Design / Execute Log / Learning
 ```
 
 更多细节见 [GUIDE.md](./GUIDE.md)。

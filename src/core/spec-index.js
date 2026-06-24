@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var validate = require('../commands/validate');
+var learning = require('./learning');
 var specCache = new Map();
 
 var PHASES = [
@@ -12,9 +13,22 @@ var PHASES = [
   'plan',
   'execute',
   'review',
+  'learning',
   'ready',
   'archived'
 ];
+
+var SECTION = {
+  confirmedRequirement: 'Confirmed Requirement',
+  innovateOptions: 'Innovate Options',
+  technicalDesign: 'Technical Design',
+  designNote: 'Design Note',
+  acceptanceCriteria: 'Acceptance Criteria',
+  plan: 'Plan',
+  executeLog: 'Execute Log',
+  review: 'Review (Verdict|Summary)',
+  invocation: 'Invocation'
+};
 
 function stripHtmlComments(text) {
   return String(text || '').replace(/<!--[\s\S]*?-->/g, '');
@@ -27,6 +41,7 @@ function firstRealLine(text) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
@@ -58,10 +73,10 @@ function labelHasContent(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z ]+:[ \t]*/.test(next)) return false;
+      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
       return true;
     }
-    return false;
+    continue;
   }
   return false;
 }
@@ -131,11 +146,13 @@ function fileSignature(filePath) {
 function cacheKey(projectDir, specPath, location, lightweight) {
   var frontmatter = parseFrontmatter(specPath);
   var mode = frontmatter.mode || 'standard';
-  var designPattern = mode === 'lite' ? 'Design Note' : 'Technical Design';
+  var designPattern = mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign;
   var designRef = common.getFrontmatterField(specPath, 'design-file');
   var logRef = common.getFrontmatterField(specPath, 'execute-log-file');
+  var learningRef = common.getFrontmatterField(specPath, 'learning-file');
   var designPath = mode === 'micro' || !designRef ? '' : common.resolveProjectPath(projectDir, designRef);
   var logPath = logRef ? common.resolveProjectPath(projectDir, logRef) : '';
+  var learningPath = learningRef ? common.resolveProjectPath(projectDir, learningRef) : '';
   return [
     projectDir,
     specPath,
@@ -143,29 +160,39 @@ function cacheKey(projectDir, specPath, location, lightweight) {
     lightweight ? 'light' : 'full',
     fileSignature(specPath),
     mode === 'micro' ? 'micro-design' : designPattern + ':' + fileSignature(designPath),
-    'log:' + fileSignature(logPath)
+    'log:' + fileSignature(logPath),
+    'learning:' + fileSignature(learningPath)
   ].join('|');
 }
 
 function completionState(projectDir, specPath, mode) {
-  var designPattern = mode === 'lite' ? 'Design Note' : 'Technical Design';
+  var designPattern = mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign;
   var design = mode === 'micro'
     ? { ref: common.getFrontmatterField(specPath, 'design-file'), path: '', relativePath: '', exists: true, hasContent: true, notRequired: true }
     : artifactState(projectDir, specPath, 'design-file', designPattern);
-  var executeLog = artifactState(projectDir, specPath, 'execute-log-file', 'Execute Log');
-  var plan = sectionText(specPath, 'Plan');
-  var review = sectionText(specPath, 'Review (Verdict|Summary)');
+  var executeLog = artifactState(projectDir, specPath, 'execute-log-file', SECTION.executeLog);
+  var learningArtifact = learning.learningArtifact(projectDir, specPath);
+  var learningContent = learningArtifact.content;
+  var plan = sectionText(specPath, SECTION.plan);
+  var review = sectionText(specPath, SECTION.review);
   var reviewLine = firstRealLine(review);
   var content = fs.readFileSync(specPath, 'utf-8');
+  var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), reviewLine);
+  var learningRequired = learningTriggers.length > 0;
+  learningArtifact.hasContent = learningArtifact.exists ? !!learning.firstRealLine(learningContent) : false;
+  learningArtifact.required = learningRequired;
+  learningArtifact.triggers = learningTriggers;
+  delete learningArtifact.content;
+  if (!learningRequired && !learningArtifact.ref) learningArtifact.notRequired = true;
   var acceptance = mode === 'micro'
     ? labelHasContent(plan, 'Acceptance') && labelHasContent(plan, 'Verification')
-    : sectionHasContent(specPath, 'Acceptance Criteria');
+    : sectionHasContent(specPath, SECTION.acceptanceCriteria);
   var research = mode === 'standard'
-    ? subsectionHasContent(specPath, 'Confirmed Requirement')
+    ? subsectionHasContent(specPath, SECTION.confirmedRequirement)
     : mode === 'lite'
-      ? sectionHasContent(specPath, 'Confirmed Requirement')
-      : sectionHasContent(specPath, 'Invocation');
-  var innovate = mode === 'micro' ? true : sectionHasContent(specPath, 'Innovate Options');
+      ? sectionHasContent(specPath, SECTION.confirmedRequirement)
+      : sectionHasContent(specPath, SECTION.invocation);
+  var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
   var planApproved = /^[ \t]*Plan Approved By:[ \t]*[^\s].*/m.test(content) &&
     /^[ \t]*Approved At:[ \t]*[^\s].*/m.test(content);
   return {
@@ -176,10 +203,13 @@ function completionState(projectDir, specPath, mode) {
     plan: planApproved,
     executeLog: executeLog.hasContent,
     review: !!reviewLine,
-    reviewPass: /\bPASS\b/.test(reviewLine),
+    reviewPass: /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(reviewLine),
     reviewLine: reviewLine,
     designArtifact: design,
-    executeLogArtifact: executeLog
+    executeLogArtifact: executeLog,
+    learningArtifact: learningArtifact,
+    learningRequired: learningRequired,
+    learning: !learningRequired || learningArtifact.hasContent
   };
 }
 
@@ -192,6 +222,7 @@ function inferPhase(status, mode, completion) {
   if (!completion.plan) return 'plan';
   if (!completion.executeLog) return 'execute';
   if (!completion.review || !completion.reviewPass) return 'review';
+  if (!completion.learning) return 'learning';
   return 'ready';
 }
 
@@ -223,7 +254,8 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
     frontmatter: frontmatter,
     artifacts: {
       design: completion.designArtifact,
-      executeLog: completion.executeLogArtifact
+      executeLog: completion.executeLogArtifact,
+      learning: completion.learningArtifact
     },
     completion: {
       research: completion.research,
@@ -233,7 +265,9 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       plan: completion.plan,
       executeLog: completion.executeLog,
       review: completion.review,
-      reviewPass: completion.reviewPass
+      reviewPass: completion.reviewPass,
+      learning: completion.learning,
+      learningRequired: completion.learningRequired
     },
     reviewVerdict: completion.reviewLine,
     validate: {
@@ -270,7 +304,7 @@ function listSpecs(projectDir, opts) {
     return parseSpec(projectDir, file, 'active', opts);
   });
   var archived = listMarkdown(path.join(docsRoot, 'archive')).filter(function(file) {
-    return !/\.design\.md$|\.execute\.md$/.test(file);
+    return !/\.design\.md$|\.execute\.md$|\.learning\.md$/.test(file);
   }).map(function(file) {
     return parseSpec(projectDir, file, 'archive', opts);
   });

@@ -49,12 +49,12 @@ function fillInvocation(specContent, mode, opts) {
 
 function workflowHint(mode) {
   if (mode === 'micro') {
-    return '### AI: Run Plan with Acceptance/Verification -> Execute using the external Execute Log -> Review. Wait for Plan Approved before Execute.';
+    return '### AI: Follow Plan -> Execute Log -> Review -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
   }
   if (mode === 'lite') {
-    return '### AI: Run Research -> Innovate or explicit skip -> Design Note file -> Acceptance Criteria -> Plan. Wait for Plan Approved before Execute.';
+    return '### AI: Follow Research -> Innovate/Skip -> Design Note -> Acceptance Criteria -> Plan -> Execute -> Review -> Learning Check. Lite Design Note must cover Approach, Impact Scope, Interface / Data Impact, Compatibility, Risks, and Test Strategy. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
   }
-  return '### AI: Run Research -> Innovate -> Technical Design file -> Acceptance Criteria -> Plan. Wait for Plan Approved before Execute.';
+  return '### AI: Follow Research -> Innovate -> Technical Design -> Acceptance Criteria -> Plan -> Execute -> Review -> Learning Check. Standard Technical Design is a design contract: fill Impact Scope, Architecture View, Data Model / Schema, Interface Contract, Compatibility / Rollback, and Test Strategy before Plan. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
 }
 
 function fillArtifactTemplate(templatePath, taskName, mode, specRelPath) {
@@ -129,6 +129,7 @@ function run(projectDir, opts) {
   var specContent = fs.readFileSync(specTemplate, 'utf-8');
   specContent = specContent.replace(/task-name: "Task Name Placeholder"/g, 'task-name: "' + taskName + '"');
   specContent = specContent.replace(/date: YYYY-MM-DD/, 'date: ' + todayIso());
+  specContent = specContent.replace(/^mode:.*/m, 'mode: ' + mode);
   specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(opts.context || '') + '"');
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
   specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');

@@ -3,8 +3,8 @@ name: sdd-riper
 version: 2.0.0
 description: |
   SDD-RIPER: Structured development workflow for AI-assisted delivery.
-  Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archive.
-  Uses Spec as control plane, external Design as technical design, and external Execute Log as audit trail.
+  Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive.
+  Uses Spec as control plane, external Design as technical design, external Execute Log as audit trail, and Learning Record as reusable decision memory.
   Trigger with: /sdd-riper, /sdd, "setup SDD", "start sdd task".
 allowed-tools:
   - Read
@@ -25,10 +25,12 @@ Do not recite this file to the user. Use it to drive the workflow.
 2. **Spec is the control plane**: Spec owns goal, Research, Innovate, Acceptance Criteria, Plan, human approval, Review verdict, and references to external artifacts.
 3. **Design is an independent artifact**: standard/lite must write Design in `design-file`. Plan cannot substitute for Design.
 4. **Execute Log is an independent artifact**: every mode writes execution facts to `execute-log-file`.
-5. **Human Plan Gate**: do not enter Execute until `Plan Approved By:` and `Approved At:` are filled by or on behalf of the user.
-6. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
-7. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
-8. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Review verdict, and Archive consistency.
+5. **Learning is a reusable decision asset**: when execution produces deviations, bugfixes, concerns, or reopen lessons, write a Learning Record in `learning-file` before archive.
+6. **Chinese Filled Content**: keep artifact template headings and human-readable field labels in English. Write the filled requirement analysis, option rationale, design explanations, plan steps, execution notes, evidence, and learning rules in Chinese.
+7. **Human Plan Gate**: do not enter Execute until `Plan Approved By:` and `Approved At:` are filled by or on behalf of the user.
+8. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
+9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
+10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Review verdict, Learning decision, and Archive consistency.
 
 ## CLI Rule
 
@@ -41,15 +43,17 @@ After `discover`, a task has:
 - Spec: `<docs-root>/specs/vN.M-task.md`
 - Design: `<docs-root>/design/vN.M-task.design.md` for standard/lite only
 - Execute Log: `<docs-root>/logs/vN.M-task.execute.md`
+- Learning Record: `<docs-root>/learnings/vN.M-task.learning.md` when required
 
 Spec frontmatter contains:
 
 ```yaml
 design-file: "mydocs/design/vN.M-task.design.md"
 execute-log-file: "mydocs/logs/vN.M-task.execute.md"
+learning-file: ""
 ```
 
-Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, or `## Execute Log` sections inside Spec.
+Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.
 
 ## Activation
 
@@ -87,7 +91,7 @@ Use `PHASE_HINT`:
 - `new_task`: ask whether to run `discover`.
 - `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.
 - `execute`: enter Execute only if Plan approval is present.
-- `archive`: run Review / Archive checks.
+- `archive`: run Review / Learning Check / Archive checks.
 
 For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
 
@@ -97,7 +101,7 @@ For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unles
 | :--- | :--- | :--- | :--- | :--- |
 | standard | New features, refactors, cross-module work, security, permissions, billing, migrations, public APIs | external Technical Design | external required | recommended for evidence/work packages/review axes |
 | lite | Medium/small scoped changes with known codebase | external Design Note | external required | optional |
-| micro | Single-file, low-risk, reversible changes | no standalone Design; Plan contains Acceptance and Verification | external required | default no |
+| micro | Single-file, low-risk, reversible changes | no standalone Design; Plan contains impact analysis, Acceptance, and Verification | external required | default no |
 
 Upgrade from micro to lite/standard for security, permission, billing, data migration, public API, cross-module side effects, irreversible change, or high uncertainty.
 
@@ -142,41 +146,55 @@ This phase happens after Innovate and before Plan.
 
 ### Standard
 
-Write Technical Design in `design-file`, not in Spec. It must cover at least:
+Write technical design in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It is a technical design contract. It must cover these required core fields:
 
 - Selected Option / ADR
 - Requirement Traceability
-- Context / Boundary
+- Impact Scope
 - Architecture View
+- Data Model / Schema
 - Interface Contract
-- Data / State
+- Compatibility / Rollback
+- Test Strategy
+
+It should also cover these fields when relevant:
+
+- Context / Boundary
+- Domain Model
+- Data Migration / Backfill
+- API Protocol
+- State / Concurrency
 - Failure Modes
 - Security / Permission
 - Observability
-- Test Strategy
+- Performance / Capacity
 - Risks / Trade-offs
 
-Write Acceptance Criteria in Spec with AC-### items. BDD / Gherkin scenarios are recommended for observable behavior.
+Write acceptance criteria in Spec with `AC-###` ids. Keep labels such as `Requirement:` / `Type:` / `Verification:` / `Automated:` / `Test:` / `Manual Evidence:` in English. The verification value remains one of `unit | integration | e2e | manual`. BDD / Gherkin scenario descriptions should be written in Chinese. E2E ACs must reference `Test:` or `Manual Evidence:`; manual ACs must include `Manual Evidence:`.
 
 ### Lite
 
-Write Design Note in `design-file`, not in Spec. It must cover:
+Write design note in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It must cover:
 
 - Approach
 - Impact Scope
+- Interface / Data Impact
 - Compatibility
 - Risks
 - Test Strategy
 
-Write lightweight Acceptance Criteria in Spec.
+Write lightweight acceptance criteria in Spec. Keep them compact, but each AC must still use `AC-###` and include `Verification:` metadata.
 
 ### Micro
 
-No standalone Design. Plan must include:
+No standalone Design. Plan must include English labels for:
 
 - Scope
 - Touched Files
 - Change
+- Impact Scope
+- Data Impact
+- Interface Impact
 - Acceptance
 - Verification
 - Blast Radius
@@ -219,9 +237,9 @@ After each step, append to the external Execute Log referenced by `execute-log-f
 Step: <N and summary>
 Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
 Files: <paths>
-Result: <what changed>
+Result: <what changed in Chinese>
 Verification: <command/result>
-Deviation: <none or explanation>
+Deviation: none | <Chinese explanation>
 Timestamp: <ISO 8601>
 ---
 ```
@@ -291,6 +309,37 @@ Forbidden Review writes:
 - Plan steps
 - silent Design rewrites to justify code
 
+## Learning Check Phase
+
+Run Learning Check after Review and before Archive.
+
+Create a Learning Record when any of these are true:
+
+- Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
+- Review verdict is `PASS_WITH_CONCERNS`.
+- The task was reopened from archived work.
+- Acceptance criteria were found insufficient during Execute or Review.
+- The same failure pattern has appeared before.
+
+Use:
+
+```text
+sdd new-learning "<PROJECT_ROOT>" "<spec-name>"
+```
+
+Fill the generated `learning-file` with reusable decision rules in Chinese, not narrative status updates. Keep field labels in English:
+
+- Source Spec
+- Trigger
+- Observed Problem
+- Root Cause
+- Decision Rule
+- Applies When
+- Recommended Action
+- Evidence
+
+Subagents may collect evidence for a Learning Record, but the orchestrator owns whether a lesson is required and writes the final rule.
+
 ## Archive Phase
 
 Before archive:
@@ -312,6 +361,7 @@ Archive moves:
 - Spec into `<docs-root>/archive/`
 - referenced Design into `<docs-root>/archive/`
 - referenced Execute Log into `<docs-root>/archive/`
+- referenced Learning Record into `<docs-root>/archive/` when present
 
 Archive also updates the archived Spec references to archive-relative paths.
 
@@ -344,6 +394,7 @@ Subagents are not:
 - selected-option owners
 - Plan approval owners
 - final verdict owners
+- learning decision owners
 - archive owners
 
 The orchestrator writes all final artifacts and verifies all gates.
@@ -358,7 +409,8 @@ Use these as design supports, not as mandatory ceremony:
 - arc42: complete standard-mode technical design structure.
 - TOGAF: business/data/application/technology views for enterprise scope.
 - Phoenix Architecture: reliability, distributed systems, evolutionary architecture, failure modes.
-- BDD / Gherkin: observable acceptance criteria.
+- BDD / Gherkin: observable acceptance criteria; in SDD-RIPER this is expressed as `AC-###` plus `Verification:` metadata.
+- Learning Record: reusable post-review decision rules derived from execution evidence.
 
 ## Command Reference
 
@@ -369,6 +421,7 @@ Use these as design supports, not as mandatory ceremony:
 - `sdd console [dir] [--port <port>]`
 - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
 - `sdd validate <dir> --archive-ready`
+- `sdd new-learning <dir> [spec-name]`
 - `sdd review-execute <dir>`
 - `sdd debug <dir> --error <msg>`
 - `sdd archive <dir> <spec-name>`

@@ -54,9 +54,10 @@ function run(projectDir, specName, opts) {
   var archiveSpecRel = common.relativeToProject(projectDir, archiveFile);
   var designArtifact = prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSpec, 'design-file', force);
   var logArtifact = prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSpec, 'execute-log-file', force);
+  var learningArtifact = prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSpec, 'learning-file', force);
   var sourceContent = fs.readFileSync(sourceSpec, 'utf-8');
   sourceContent = sourceContent.replace(/^status:[ \t]*[^\s#]*/m, 'status: archived');
-  [designArtifact, logArtifact].forEach(function(artifact) {
+  [designArtifact, logArtifact, learningArtifact].forEach(function(artifact) {
     if (!artifact) return;
     var escaped = artifact.rel.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
     var replacement = artifact.field + ': "' + escaped + '"';
@@ -64,7 +65,7 @@ function run(projectDir, specName, opts) {
   });
   var summary = '\n---\n<!-- Archive summary on ' + dateIso + ' -->\n\n## 目标摘要\n<!-- (not filled) -->\n\n## 最终方案\n<!-- (not filled) -->\n\n## 关键约束\n<!-- (not filled) -->\n\n## 坑点与风险\n<!-- (not filled) -->\n';
   fs.writeFileSync(archiveFile, sourceContent + summary, 'utf-8');
-  [designArtifact, logArtifact].forEach(function(artifact) {
+  [designArtifact, logArtifact, learningArtifact].forEach(function(artifact) {
     if (!artifact) return;
     fs.writeFileSync(artifact.dst, artifact.content, 'utf-8');
     if (path.resolve(artifact.src) !== path.resolve(artifact.dst)) fs.unlinkSync(artifact.src);
@@ -84,6 +85,7 @@ function run(projectDir, specName, opts) {
   console.log('[ARCHIVE] ' + archiveFile);
   if (designArtifact) console.log('[DESIGN]  ' + designArtifact.dst);
   if (logArtifact) console.log('[LOG]     ' + logArtifact.dst);
+  if (learningArtifact) console.log('[LEARNING] ' + learningArtifact.dst);
   console.log('[INDEX]   ' + indexFile);
   console.log('[MOVED] ' + sourceBname + ' -> archive/' + path.basename(archiveFile));
 }

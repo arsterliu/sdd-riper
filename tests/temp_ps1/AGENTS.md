@@ -5,8 +5,9 @@
 - **Spec is Control Plane** - Spec owns task gates and references Design / Execute Log artifacts.
 - **Design is Separate** - standard/lite write technical design in design-file; Plan cannot replace it.
 - **Execute Log is Separate** - record step results and deviations in execute-log-file.
+- **Chinese Artifact Content** - keep artifact headings and field labels in English; write filled content in Chinese.
 - **Reverse Sync** - sync descriptive facts only; normative requirement/design/plan changes require a human gate.
-- **Plan Approved** gate - do not execute until Plan is explicitly approved by a human.
+- **Plan Approved** gate - do not execute until Plan Approved By and Approved At are filled by a human.
 - **Debug Before Retry** - when a step fails, run debug to find root cause before retrying.
 
 ## RIPER Workflow

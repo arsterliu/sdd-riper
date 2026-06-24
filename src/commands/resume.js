@@ -1,6 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
+var learning = require('../core/learning');
 
 function run(projectDir) {
   var docsDir = common.getDocsDir(projectDir);
@@ -45,6 +46,8 @@ function run(projectDir) {
     if (cmFiles.length > 0) { hasCodeMap = 'yes'; codeMapModules = cmFiles.map(function(f) { return f.replace(/\.md$/, ''); }).join(','); }
   }
   var hasProjectMap = fs.existsSync(path.join(docsRoot, 'projectmap.md')) ? 'yes' : 'no';
+  var learningCount = learning.listLearningFiles(projectDir, 10000).length;
+  var hasLearnings = learningCount > 0 ? 'yes' : 'no';
   var sectionsHint;
   switch (phaseHint) {
     case 'new_task': sectionsHint = '(none)'; break;
@@ -61,6 +64,8 @@ function run(projectDir) {
   console.log('HAS_CODEMAP: ' + hasCodeMap);
   if (hasCodeMap === 'yes') console.log('CODEMAP_MODULES: ' + codeMapModules);
   console.log('HAS_PROJECTMAP: ' + hasProjectMap);
+  console.log('HAS_LEARNINGS: ' + hasLearnings);
+  if (hasLearnings === 'yes') console.log('LEARNING_RECORDS: ' + learningCount);
   console.log('PHASE_HINT: ' + phaseHint);
   console.log('SECTIONS_HINT: ' + sectionsHint);
 }

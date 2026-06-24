@@ -2,6 +2,18 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 
+var SECTION = {
+  invocation: 'Invocation',
+  confirmedRequirement: 'Confirmed Requirement',
+  openQuestions: 'Open Questions',
+  innovateOptions: 'Innovate Options',
+  technicalDesign: 'Technical Design',
+  designNote: 'Design Note',
+  acceptanceCriteria: 'Acceptance Criteria',
+  executeLog: 'Execute Log',
+  review: 'Review (Verdict|Summary)'
+};
+
 function extractSectionText(filePath, pattern) {
   return common.extractSection(filePath, pattern, 400);
 }
@@ -12,6 +24,7 @@ function firstRealLine(section) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
@@ -26,7 +39,8 @@ function stripHtmlComments(text) {
 
 function planHasMicroAcceptance(filePath) {
   var plan = stripHtmlComments(extractSectionText(filePath, 'Plan'));
-  return /(^|\n)Acceptance:[\s\S]*?(^|\n)Verification:/i.test(plan) && /(^|\n)Verification:[\s\S]*\S/i.test(plan);
+  return /(^|\n)Acceptance:[\s\S]*?(^|\n)Verification:/i.test(plan) &&
+    /(^|\n)Verification:[\s\S]*\S/i.test(plan);
 }
 
 function artifactHasContent(projectDir, specPath, field, sectionPattern) {
@@ -44,7 +58,7 @@ function run(projectDir) {
   console.log('[SDD Status] ' + projectDir);
 
   var missingDirs = [];
-  ['specs','design','logs','codemap','context','archive'].forEach(function(d) {
+  ['specs','design','logs','learnings','codemap','context','archive'].forEach(function(d) {
     if (!fs.existsSync(path.join(docsRoot, d))) missingDirs.push(docsDir + '/' + d);
   });
   if (missingDirs.length === 0) console.log('  Structure:    OK');
@@ -90,27 +104,27 @@ function run(projectDir) {
       if (st !== 'archived') draft++;
       var sm = common.getFrontmatterField(sp, 'mode') || 'standard';
       var lw = 0;
-      if (sm === 'lite') { if (common.sectionIsEmpty(sp, 'Invocation')) lw = 1; if (common.sectionIsEmpty(sp, 'Open Questions')) lw = 1; }
-      else if (sm === 'micro') { if (common.sectionIsEmpty(sp, 'Invocation')) lw = 1; }
-      else { if (common.subsectionIsEmpty(sp, 'Confirmed Requirement')) lw = 1; if (common.subsectionIsEmpty(sp, 'Open Questions')) lw = 1; }
+      if (sm === 'lite') { if (common.sectionIsEmpty(sp, SECTION.invocation)) lw = 1; if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
+      else if (sm === 'micro') { if (common.sectionIsEmpty(sp, SECTION.invocation)) lw = 1; }
+      else { if (common.subsectionIsEmpty(sp, SECTION.confirmedRequirement)) lw = 1; if (common.subsectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
       try { if (/\[待确认\]/.test(fs.readFileSync(sp, 'utf-8'))) lw = 1; } catch (e) {}
       if (lw) warnResearch.push(f);
-      if (common.sectionIsEmpty(sp, 'Innovate Options')) {
+      if (common.sectionIsEmpty(sp, SECTION.innovateOptions)) {
         try { var c = fs.readFileSync(sp, 'utf-8'); if (/^## Innovate Options/m.test(c) && !/Innovate: Skipped/.test(c)) warnInnovate.push(f); } catch (e) {}
       }
       if (sm === 'standard') {
-        if (!artifactHasContent(projectDir, sp, 'design-file', 'Technical Design')) warnDesign.push(f);
-        if (!sectionHasRealContent(sp, 'Acceptance Criteria')) warnAcceptance.push(f);
+        if (!artifactHasContent(projectDir, sp, 'design-file', SECTION.technicalDesign)) warnDesign.push(f);
+        if (!sectionHasRealContent(sp, SECTION.acceptanceCriteria)) warnAcceptance.push(f);
       } else if (sm === 'lite') {
-        if (!artifactHasContent(projectDir, sp, 'design-file', 'Design Note')) warnDesign.push(f);
-        if (!sectionHasRealContent(sp, 'Acceptance Criteria')) warnAcceptance.push(f);
+        if (!artifactHasContent(projectDir, sp, 'design-file', SECTION.designNote)) warnDesign.push(f);
+        if (!sectionHasRealContent(sp, SECTION.acceptanceCriteria)) warnAcceptance.push(f);
       } else if (sm === 'micro') {
         if (!planHasMicroAcceptance(sp)) warnAcceptance.push(f);
       }
-      if (!artifactHasContent(projectDir, sp, 'execute-log-file', 'Execute Log')) warnExecuteLog.push(f);
+      if (!artifactHasContent(projectDir, sp, 'execute-log-file', SECTION.executeLog)) warnExecuteLog.push(f);
       try { var c2 = fs.readFileSync(sp, 'utf-8'); if (/Plan Approved By:/.test(c2) && /^Plan Approved By:[ \t]*$/m.test(c2)) warnPlan.push(f); } catch (e) {}
-      if (common.sectionIsEmpty(sp, 'Review (Verdict|Summary)')) {
-        try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## (Review Verdict|Review Summary)/m.test(c3)) warnReview.push(f); } catch (e) {}
+      if (common.sectionIsEmpty(sp, SECTION.review)) {
+        try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## Review (Verdict|Summary)/m.test(c3)) warnReview.push(f); } catch (e) {}
       }
     });
   }

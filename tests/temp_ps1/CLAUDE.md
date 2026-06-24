@@ -10,6 +10,7 @@
 - NEVER proceed past Plan without "Plan Approved By" being filled.
 - NEVER use Plan as a substitute for standard/lite Design.
 - ALWAYS record deviations from Plan in the Execute Log file referenced by execute-log-file.
+- ALWAYS keep artifact headings and field labels in English, and write filled artifact content in Chinese.
 - ALWAYS run debug before retrying a failed step.
 
 ## RIPER Phase Gate

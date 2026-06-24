@@ -78,8 +78,8 @@ Forbidden in returns:
 
 ## Three Constraints
 
-1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log excerpts.
-2. **Subagent does not write files**: the orchestrator writes to the correct artifact: Spec for control-plane decisions, Design for technical design, Execute Log for execution facts, CodeMap / ProjectMap for architecture facts.
+1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log / Learning excerpts.
+2. **Subagent does not write files**: the orchestrator writes to the correct artifact: Spec for control-plane decisions, Design for technical design, Execute Log for execution facts, Learning Record for reusable decision rules, CodeMap / ProjectMap for architecture facts.
 3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
 
 ## Trust But Verify

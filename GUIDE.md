@@ -4,22 +4,25 @@
 
 ## 一、产物边界
 
-当前版本采用 **Spec 控制面 + 独立 Design + 独立 Execute Log**。
+当前版本采用 **Spec 控制面 + 独立 Design + 独立 Execute Log + 条件 Learning Record**。
 
 | 产物 | 存放位置 | 职责 |
 | :--- | :--- | :--- |
-| Spec | `<docs-root>/specs/` | 需求、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，以及 `design-file` / `execute-log-file` 引用。 |
+| Spec | `<docs-root>/specs/` | 需求、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，以及 `design-file` / `execute-log-file` / `learning-file` 引用。 |
 | Design | `<docs-root>/design/` | standard 的 `Technical Design` 或 lite 的 `Design Note`。micro 不创建独立 Design。 |
 | Execute Log | `<docs-root>/logs/` | 执行步骤、偏差、验证结果，append-only。 |
+| Learning Record | `<docs-root>/learnings/` | 偏差、BUGFIX、concern、reopen 暴露出的可复用决策规则。 |
 | CodeMap | `<docs-root>/codemap/` | 模块级架构事实。 |
 | ProjectMap | `<docs-root>/projectmap.md` | 多仓、多团队或跨系统契约。 |
 
-Spec 是控制面，不再承载完整技术设计和执行日志。这样 Review 和 Archive 可以分别审查规范、设计和执行事实。
+Spec 是控制面，不再承载完整技术设计、执行日志和经验库。这样 Review 和 Archive 可以分别审查规范、设计、执行事实和可复用经验。
+
+阶段产物的模板结构保持英文，包括章节标题、人工字段标签、frontmatter 键、`design-file` / `execute-log-file` / `learning-file` 引用键、CLI 命令名、状态枚举、验证类型枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
 ## 二、RIPER 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
 ```
 
 ### Research
@@ -49,24 +52,35 @@ lite 可以跳过 Innovate，但必须写 `Innovate: Skipped, Reason: ...`。
 
 Design 在 Innovate 之后、Plan 之前完成。
 
-standard 写独立 `Technical Design`，至少覆盖：
+standard 写独立 `Technical Design`。它不是方案说明，而是技术设计合同。归档门禁强制检查核心字段：
 
 - Selected Option / ADR。
 - Requirement Traceability。
-- Context / Boundary。
+- Impact Scope。
 - Architecture View，必要时用 C4。
+- Data Model / Schema。
 - Interface Contract。
-- Data / State。
+- Compatibility / Rollback。
+- Test Strategy。
+
+以下字段按需填写，但涉及对应风险时不应省略：
+
+- Context / Boundary。
+- Domain Model。
+- Data Migration / Backfill。
+- API Protocol。
+- State / Concurrency。
 - Failure Modes。
 - Security / Permission。
 - Observability。
-- Test Strategy。
+- Performance / Capacity。
 - Risks / Trade-offs。
 
 lite 写独立 `Design Note`，至少覆盖：
 
 - Approach。
 - Impact Scope。
+- Interface / Data Impact。
 - Compatibility。
 - Risks。
 - Test Strategy。
@@ -76,6 +90,9 @@ micro 不写独立 Design，但 Plan 必须有：
 - Scope。
 - Touched Files。
 - Change。
+- Impact Scope。
+- Data Impact。
+- Interface Impact。
 - Acceptance。
 - Verification。
 - Blast Radius。
@@ -86,16 +103,17 @@ Acceptance Criteria 留在 Spec。推荐使用 AC 编号和 BDD 场景：
 ### AC-001: 用户可以用正确凭证登录
 Requirement: login
 Type: functional
+Verification: e2e
 Automated: yes
 Test: tests/auth/login.test.ts
 
-Scenario: Valid login
-  Given a registered user
-  When the user submits a valid email and password
-  Then the system creates an authenticated session
+Scenario: 有效登录
+  Given 一个已注册用户
+  When 用户提交有效邮箱和密码
+  Then 系统创建已认证会话
 ```
 
-好的验收标准必须可观察、可验证、可追踪到需求，不应写成“代码实现完成”。
+好的验收标准必须可观察、可验证、可追踪到需求，不应写成“代码实现完成”。`Verification:` 是归档门禁字段，取值为 `unit` / `integration` / `e2e` / `manual`。E2E AC 必须提供 `Test:` 或 `Manual Evidence:`；manual AC 必须提供 `Manual Evidence:`。
 
 ### Plan
 
@@ -142,6 +160,26 @@ Review 是四轴审查：
 
 Axis 2 是 primary axis。Axis 0、1、3 是确认轴，任何一轴失败都应阻止归档或触发修正。
 
+### Learning Check
+
+Learning Check 在 Review 之后、Archive 之前执行。它不是复盘作文，而是把本次任务暴露出的可复用判断沉淀成规则。
+
+以下情况必须创建 Learning Record：
+
+- Execute Log 出现 `BUGFIX`、`BUGFIX_ESCALATED`、`DEVIATED_MINOR` 或 `DEVIATED_MAJOR`。
+- Review verdict 是 `PASS_WITH_CONCERNS`。
+- 任务来自 archived spec 的 reopen。
+- Execute 或 Review 发现验收标准本身不充分。
+- 同类失败模式重复出现。
+
+创建命令：
+
+```text
+sdd new-learning <project-dir> [spec-name]
+```
+
+生成的 `learning-file` 必须填充 `Source Spec`、`Trigger`、`Observed Problem`、`Root Cause`、`Decision Rule`、`Applies When`、`Recommended Action` 和 `Evidence`。字段值和规则正文使用中文。`validate --archive-ready` 会在需要 Learning Record 时检查这些字段。
+
 ### Archive / Reopen
 
 归档前运行：
@@ -150,7 +188,7 @@ Axis 2 是 primary axis。Axis 0、1、3 是确认轴，任何一轴失败都应
 sdd validate <project-dir> --archive-ready
 ```
 
-`archive` 会再次执行同一套校验，通过后把 Spec、Design、Execute Log 一起移动到 `<docs-root>/archive/`，并更新归档 Spec 内的引用。
+`archive` 会再次执行同一套校验，通过后把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起移动到 `<docs-root>/archive/`，并更新归档 Spec 内的引用。
 
 修复已归档任务时使用：
 
@@ -170,6 +208,7 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 | Acceptance | AC-###，推荐 BDD | 轻量 AC | Plan 中的 Acceptance |
 | Plan Approval | 必须 | 必须 | 必须 |
 | Execute Log | 独立文件，必填 | 独立文件，必填 | 独立文件，必填 |
+| Learning | 条件必填 | 条件必填 | 条件必填 |
 | Review | 四轴 | 四轴 | 默认 Axis 2 |
 | Subagent | 推荐 | 可选 | 默认不用 |
 
@@ -210,6 +249,7 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 | DDD | 业务规则、领域模型、限界上下文、统一语言。 |
 | C4 Model | 系统、容器、组件边界和依赖关系。 |
 | ADR | 重要技术取舍和长期影响决策。 |
+| Learning Record | 执行后沉淀可复用判断规则，反哺后续 Research / Design / Plan / Review。 |
 | arc42 | standard 模式下完整技术设计结构。 |
 | TOGAF | 多系统、多团队、企业级视角，按需借鉴业务/数据/应用/技术维度。 |
 | 凤凰架构 | 分布式、可靠性、演进式架构、故障模式和权衡。 |
@@ -221,6 +261,7 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 | :--- | :--- |
 | `init` | 初始化目录、配置和 AI 指令。 |
 | `discover` | 创建 Spec、Design、Execute Log。 |
+| `new-learning` | 创建并绑定 Learning Record。 |
 | `resume` | 输出当前任务和阶段提示。 |
 | `status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
 | `console` | 启动本地只读 Web Console，查看 Spec 阶段、状态、产物健康度和归档门禁。 |
@@ -237,15 +278,15 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 
 ## 七、Web Console
 
-`sdd console [project-dir]` 会启动一个本地只读控制台，用于查看每个 Spec 的阶段、状态、Design / Execute Log 引用健康度和 `validate --archive-ready` 门禁问题。`project-dir` 可选；不传时在页面里输入或加载项目目录。
+`sdd console [project-dir]` 会启动一个本地只读控制台，用于查看每个 Spec 的阶段、状态、Design / Execute Log / Learning 引用健康度和 `validate --archive-ready` 门禁问题。`project-dir` 可选；不传时在页面里输入或加载项目目录。
 
 Web Console 是文件系统产物的 projection，不是新的 source of truth：
 
-- 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/archive/`。
+- 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/learnings/`、`<docs-root>/archive/`。
 - 项目看板和 Spec 列表读取后台内存索引快照；首次加载或刷新时可能短暂显示 indexing，再自动更新。
-- 阶段由最早未满足门禁推导：Research、Innovate、Design、Acceptance、Plan、Execute、Review、Ready、Archived。
+- 阶段由最早未满足门禁推导：Research、Innovate、Design、Acceptance、Plan、Execute、Review、Learning、Ready、Archived。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
-- 当前版本只读展示和校验，不直接编辑 Spec、Design 或 Execute Log。
+- 当前版本只读展示和校验，不直接编辑 Spec、Design、Execute Log 或 Learning；Edit 按钮只调用本机默认程序打开文件。
 - 后续如加入 archive / reopen / discover 操作，也应调用现有命令，而不是在 Web 层直接改文件。
 
 ## 八、FAQ
@@ -260,7 +301,7 @@ Web Console 是文件系统产物的 projection，不是新的 source of truth�
 
 ### Spec 还是单一真相源吗？
 
-Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execute Log、CodeMap 等共同构成。Review 和 Archive 必须沿引用读取，而不是只读 Spec 文件本身。
+Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execute Log、Learning、CodeMap 等共同构成。Review 和 Archive 必须沿引用读取，而不是只读 Spec 文件本身。
 
 ### 什么时候创建 CodeMap？
 

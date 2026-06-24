@@ -2,44 +2,40 @@
 date: YYYY-MM-DD
 task-name: "Task Name Placeholder"
 mode: micro
-status: draft   # draft | archived
+status: draft
 reopened-from: ""
 context-source: ""
 diff-base: ""
 design-file: ""
 execute-log-file: ""
+learning-file:
 ---
 
-<!--
-Micro mode is for low-risk, reversible, small changes.
-It skips Research, Innovate, and standalone Design. Plan must contain Acceptance and Verification.
-Execute Log is still an external artifact.
--->
+<!-- Keep template headings and labels in English. Fill actual narrative content in Chinese. -->
 
 ## Summary
-<!-- 3-5 lines updated at phase changes. -->
 
 ## Invocation
-<!-- SDD_INVOCATION -->
+<!-- Micro skips Research, Innovate, and standalone Design. -->
 
 ## Plan
+<!-- Required labels below stay English; fill values in Chinese where possible. -->
+
+Scope:
+Touched Files:
+Change:
+Impact Scope:
+Data Impact:
+Interface Impact:
+Acceptance:
+Verification:
+Blast Radius:
 
 Plan Approved By:
 Approved At:
 
-<!--
-Required micro Plan labels:
-Scope:
-Touched Files:
-Change:
-Acceptance:
-Verification:
-Blast Radius:
--->
-
 ## Execute Log Reference
-<!-- Execute Log is an external artifact. Append every Plan step result to execute-log-file. -->
 execute-log-file:
 
 ## Review Summary
-<!-- Axis 2 focused review. Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE> -->
+<!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
