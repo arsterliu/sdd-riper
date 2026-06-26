@@ -26,7 +26,7 @@ function run(projectDir, opts) {
 
   var created = 0, skipped = 0;
 
-  ['specs','design','logs','learnings','codemap','context','archive'].forEach(function(subdir) {
+  ['specs','design','logs','learnings','runs','codemap','context','archive'].forEach(function(subdir) {
     var d = path.join(projectDir, docsDir, subdir);
     if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
     var gk = path.join(d, '.gitkeep');
@@ -34,7 +34,15 @@ function run(projectDir, opts) {
   });
 
   var configFile = path.join(projectDir, '.sdd-config');
-  var configContent = 'DOCS_DIR="' + docsDir + '"\nMODE="' + mode + '"\nSDD_VERSION="' + SDD_PROTOCOL_VERSION + '"\n';
+  var configContent = [
+    'DOCS_DIR="' + docsDir + '"',
+    'MODE="' + mode + '"',
+    'SDD_VERSION="' + SDD_PROTOCOL_VERSION + '"',
+    'GATE_POLICY="auto"',
+    'CRUISE_POLICY="autonomous"',
+    'CRUISE_MAX_ITERATIONS="5"',
+    ''
+  ].join('\n');
 
   if (fs.existsSync(configFile) && !force) {
     var existingDocs = getDocsDir(projectDir);

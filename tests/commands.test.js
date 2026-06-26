@@ -50,6 +50,12 @@ function fillApproval(content) {
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
 }
 
+function fillAutoApproval(content) {
+  return content
+    .replace(/^Plan Approved By:$/m, 'Plan Approved By: auto-gate')
+    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.');
+}
+
 function standardDesignContent() {
   return [
     'Selected Option / ADR: 选择方案 A，原因是边界清晰且可回滚。',
@@ -205,10 +211,15 @@ describe('CLI commands', function() {
     var out = run('init ' + path.join(tmpBase, 'demo') + ' --mode standard');
     assert.ok(out.indexOf('[CREATE]') !== -1);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', '.sdd-config')));
+    var configText = fs.readFileSync(path.join(tmpBase, 'demo', '.sdd-config'), 'utf-8');
+    assert.match(configText, /^GATE_POLICY="auto"$/m);
+    assert.match(configText, /^CRUISE_POLICY="autonomous"$/m);
+    assert.match(configText, /^CRUISE_MAX_ITERATIONS="5"$/m);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'specs', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'design', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'logs', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'learnings', '.gitkeep')));
+    assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'runs', '.gitkeep')));
     var agentsText = fs.readFileSync(path.join(tmpBase, 'demo', 'AGENTS.md'), 'utf-8');
     var claudeText = fs.readFileSync(path.join(tmpBase, 'demo', 'CLAUDE.md'), 'utf-8');
     assert.ok(agentsText.indexOf('Chinese Artifact Content') !== -1);
@@ -361,6 +372,36 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Data Model / Schema') !== -1);
     assert.ok(blocked.indexOf('Interface Contract') !== -1);
     assert.ok(blocked.indexOf('Compatibility / Rollback') !== -1);
+  });
+
+  it('validate supports auto gate approval only with gate evidence', function() {
+    var demo = path.join(tmpBase, 'd4g');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name auto-gate --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-auto-gate.md');
+    makeStandardArchiveReady(demo, sf);
+    var content = fs.readFileSync(sf, 'utf-8')
+      .replace('Plan Approved By: Tester', 'Plan Approved By: auto-gate');
+    fs.writeFileSync(sf, content, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Gate Evidence is required for auto-gate approval') !== -1);
+
+    fs.writeFileSync(sf, content.replace('Approved At: 2026-01-01T00:00:00Z', 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.'), 'utf-8');
+    var ok = run('validate ' + demo + ' --archive-ready');
+    assert.ok(ok.indexOf('RESULT: OK') !== -1);
+  });
+
+  it('validate blocks archive when adversarial challenge failed', function() {
+    var demo = path.join(tmpBase, 'd4h');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-fail --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-fail.md');
+    makeStandardArchiveReady(demo, sf);
+    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: FAIL_DESIGN\nChallenge Summary: design contract missed interface impact.');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Adversarial Challenge failed: FAIL_DESIGN') !== -1);
   });
 
   it('validate enforces lite design note and acceptance criteria', function() {
@@ -518,6 +559,195 @@ describe('CLI commands', function() {
     assert.ok(run('debug ' + demo + ' --error e').indexOf('DEBUG PROMPT') !== -1);
   });
 
+  it('next, challenge, and cruise expose autonomous workflow prompts', function() {
+    var demo = path.join(tmpBase, 'd6c');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name cruise-task --spec-version v1.0 --requirement x');
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: repair_research') !== -1);
+    assert.ok(next.indexOf('BACKTRACK_TARGET: Research') !== -1);
+    assert.ok(next.indexOf('GATE_POLICY: auto') !== -1);
+    assert.ok(next.indexOf('CRUISE_POLICY: autonomous') !== -1);
+
+    var challenge = run('challenge ' + demo);
+    assert.ok(challenge.indexOf('ADVERSARIAL REVIEW PROMPT') !== -1);
+    assert.ok(challenge.indexOf('Research Challenge') !== -1);
+    assert.ok(challenge.indexOf('Design Challenge') !== -1);
+    assert.ok(challenge.indexOf('Acceptance Challenge') !== -1);
+    assert.ok(challenge.indexOf('Plan Challenge') !== -1);
+    assert.ok(challenge.indexOf('Execute Challenge') !== -1);
+    assert.ok(challenge.indexOf('Archive Challenge') !== -1);
+    assert.ok(challenge.indexOf('FAIL_DESIGN') !== -1);
+
+    var cruise = run('cruise ' + demo);
+    assert.ok(cruise.indexOf('AUTONOMOUS CRUISE PROMPT') !== -1);
+    assert.ok(cruise.indexOf('ENGINE: auto') !== -1);
+    assert.ok(cruise.indexOf('REUSE_NATIVE_LOOP: yes-when-available') !== -1);
+    assert.ok(cruise.indexOf('MAX_ITERATIONS: 5') !== -1);
+    assert.ok(cruise.indexOf('repair loop') !== -1);
+    assert.ok(cruise.indexOf('sdd validate') !== -1);
+    assert.ok(cruise.indexOf('sdd challenge') !== -1);
+  });
+
+  it('cruise can target native host loop engines', function() {
+    var demo = path.join(tmpBase, 'd6e');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name native-loop --spec-version v1.0 --requirement x');
+
+    var claude = run('cruise ' + demo + ' --engine claude-code');
+    assert.ok(claude.indexOf('ENGINE: claude-code') !== -1);
+    assert.ok(claude.indexOf('Claude Code Dynamic Workflows') !== -1);
+    assert.ok(claude.indexOf('fallback to the prompt loop') !== -1);
+
+    var codex = run('cruise ' + demo + ' --engine codex');
+    assert.ok(codex.indexOf('ENGINE: codex') !== -1);
+    assert.ok(codex.indexOf('Codex native loop') !== -1);
+    assert.ok(codex.indexOf('SDD remains the control protocol') !== -1);
+
+    var opencode = run('cruise ' + demo + ' --engine opencode');
+    assert.ok(opencode.indexOf('ENGINE: opencode') !== -1);
+    assert.ok(opencode.indexOf('opencode native loop') !== -1);
+    assert.ok(opencode.indexOf('SDD remains the control protocol') !== -1);
+  });
+
+  it('next does not let stale PASS challenge verdict override validation blockers', function() {
+    var demo = path.join(tmpBase, 'd6h');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name stale-pass --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-stale-pass.md');
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
+      .replace(/^Challenge Summary:$/m, 'Challenge Summary: stale prior pass');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('CHALLENGE_VERDICT: FAIL_SPEC') !== -1);
+    assert.ok(out.indexOf('BACKTRACK_TARGET: Research') !== -1);
+    assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
+    assert.ok(out.indexOf('Confirmed Requirement is empty.') !== -1);
+  });
+
+  it('cruise respects off and assisted cruise policies', function() {
+    var offDemo = path.join(tmpBase, 'd6i');
+    run('init ' + offDemo + ' --mode standard');
+    run('discover ' + offDemo + ' --task-name cruise-off --spec-version v1.0 --requirement x');
+    fs.writeFileSync(path.join(offDemo, '.sdd-config'),
+      'DOCS_DIR="mydocs"\nMODE="standard"\nCRUISE_POLICY="off"\n', 'utf-8');
+
+    var off = run('cruise ' + offDemo + ' --record-run');
+    var offLedger = path.join(offDemo, 'mydocs', 'runs', 'v1.0-cruise-off.cruise.jsonl');
+    assert.ok(off.indexOf('CRUISE_DISABLED: true') !== -1);
+    assert.equal(off.indexOf('### Autonomous repair loop'), -1);
+    assert.ok(!fs.existsSync(offLedger));
+
+    var assistedDemo = path.join(tmpBase, 'd6j');
+    run('init ' + assistedDemo + ' --mode standard');
+    run('discover ' + assistedDemo + ' --task-name cruise-assisted --spec-version v1.0 --requirement x');
+    fs.writeFileSync(path.join(assistedDemo, '.sdd-config'),
+      'DOCS_DIR="mydocs"\nMODE="standard"\nCRUISE_POLICY="assisted"\n', 'utf-8');
+
+    var assisted = run('cruise ' + assistedDemo + ' --engine auto');
+    assert.ok(assisted.indexOf('## ASSISTED CRUISE PROMPT') !== -1);
+    assert.ok(assisted.indexOf('ASSISTED_REVIEW_REQUIRED: true') !== -1);
+    assert.ok(assisted.indexOf('REUSE_NATIVE_LOOP: no') !== -1);
+  });
+
+  it('cruise reports local-loop as prompt-loop compensation', function() {
+    var demo = path.join(tmpBase, 'd6k');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name local-loop-copy --spec-version v1.0 --requirement x');
+
+    var out = run('cruise ' + demo + ' --engine local-loop');
+    assert.ok(out.indexOf('prompt-loop compensation') !== -1);
+    assert.equal(out.indexOf('local bounded loop wrapper'), -1);
+  });
+
+  it('cruise rejects invalid engines instead of falling back to auto', function() {
+    var demo = path.join(tmpBase, 'd6l');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name bad-engine --spec-version v1.0 --requirement x');
+
+    var out = run('cruise ' + demo + ' --engine typo-engine');
+    assert.ok(out.indexOf('Invalid cruise engine: typo-engine') !== -1);
+    assert.ok(out.indexOf('exit:') !== -1);
+  });
+
+  it('cruise emits Claude ultracode prompt and records run ledger', function() {
+    var demo = path.join(tmpBase, 'd6f');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name workflow-run --spec-version v1.0 --requirement x');
+
+    var emitted = run('cruise ' + demo + ' --engine claude-code --emit-claude-prompt');
+    var workflowFile = path.join(demo, '.claude', 'workflows', 'sdd-cruise.md');
+    assert.ok(emitted.indexOf('[CLAUDE_PROMPT]') !== -1);
+    assert.ok(emitted.indexOf('ultracode:') !== -1);
+    assert.ok(emitted.indexOf('/effort ultracode') !== -1);
+    assert.ok(emitted.indexOf('sdd next') !== -1);
+    assert.ok(emitted.indexOf('sdd validate') !== -1);
+    assert.ok(emitted.indexOf('sdd challenge') !== -1);
+    assert.ok(emitted.indexOf('--record-run') !== -1);
+    assert.ok(!fs.existsSync(workflowFile));
+
+    var recorded = run('cruise ' + demo + ' --engine local-loop --record-run --iteration 3');
+    var ledgerFile = path.join(demo, 'mydocs', 'runs', 'v1.0-workflow-run.cruise.jsonl');
+    assert.ok(recorded.indexOf('[RUN_LEDGER]') !== -1);
+    assert.ok(fs.existsSync(ledgerFile));
+    var lines = fs.readFileSync(ledgerFile, 'utf-8').trim().split(/\r?\n/);
+    assert.equal(lines.length, 1);
+    var entry = JSON.parse(lines[0]);
+    assert.equal(entry.iteration, 3);
+    assert.equal(entry.engine, 'local-loop');
+    assert.equal(entry.nextAction, 'repair_research');
+    assert.equal(entry.backtrackTarget, 'Research');
+    assert.equal(entry.challengeVerdict, 'FAIL_SPEC');
+    assert.equal(entry.stopReason, 'continue');
+  });
+
+  it('console spec detail exposes latest cruise run ledger entry', async function() {
+    var demo = path.join(tmpBase, 'd6g');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name console-run --spec-version v1.0 --requirement x');
+    fs.writeFileSync(path.join(demo, 'mydocs', 'runs', 'v1.0-console-run.cruise.jsonl'), 'bad-json\n', 'utf-8');
+    run('cruise ' + demo + ' --engine local-loop --record-run --iteration 2');
+
+    var server = require('../src/commands/console').createServer(demo);
+    await new Promise(function(resolve) { server.listen(0, '127.0.0.1', resolve); });
+    try {
+      var list = await waitForSpecs(server, 1);
+      var detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+      assert.equal(detail.statusCode, 200);
+      assert.equal(detail.body.cruiseRun.count, 1);
+      assert.equal(detail.body.cruiseRun.malformedCount, 1);
+      assert.equal(detail.body.cruiseRun.latest.iteration, 2);
+      assert.equal(detail.body.cruiseRun.latest.engine, 'local-loop');
+      assert.equal(detail.body.cruiseRun.latest.nextAction, 'repair_research');
+    } finally {
+      await new Promise(function(resolve) { server.close(resolve); });
+    }
+  });
+
+  it('next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack', function() {
+    var demo = path.join(tmpBase, 'd6d');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name acceptance-backtrack --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-acceptance-backtrack.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1Requirement is confirmed.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: keep current path.\nOption B: reject.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: missing verification metadata');
+    c = fillAutoApproval(c);
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('CHALLENGE_VERDICT: FAIL_ACCEPTANCE') !== -1);
+    assert.ok(out.indexOf('BACKTRACK_TARGET: Acceptance') !== -1);
+  });
+
   it('review-execute includes design and acceptance evidence in Axis 1', function() {
     var demo = path.join(tmpBase, 'd6b');
     run('init ' + demo + ' --mode standard');
@@ -558,6 +788,12 @@ describe('CLI commands', function() {
       var detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
       assert.equal(detail.statusCode, 200);
       assert.equal(detail.body.taskName, 'console-task');
+      assert.equal(detail.body.workflow.gatePolicy, 'auto');
+      assert.equal(detail.body.workflow.cruisePolicy, 'autonomous');
+      assert.equal(detail.body.workflow.maxIterations, 5);
+      assert.equal(detail.body.workflow.nextAction, 'repair_research');
+      assert.equal(detail.body.workflow.backtrackTarget, 'Research');
+      assert.equal(detail.body.workflow.challengeVerdict, 'FAIL_SPEC');
       assert.ok(detail.body.artifacts.design.ref.endsWith('v1.0-console-task.design.md'));
       assert.ok(detail.body.artifacts.executeLog.ref.endsWith('v1.0-console-task.execute.md'));
       assert.ok(detail.body.artifacts.learning.ref.endsWith('v1.0-console-task.learning.md'));
@@ -682,6 +918,15 @@ describe('CLI commands', function() {
   it('console hidden utility overrides detail empty-state display', function() {
     var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
     assert.match(css, /\.hidden\s*{\s*display:\s*none\s*!important;\s*}/);
+  });
+
+  it('console copy matches gate and cruise control-plane semantics', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    assert.ok(js.indexOf('Configured approval gate') !== -1);
+    assert.ok(js.indexOf('auto-gate also needs Gate Evidence') !== -1);
+    assert.ok(js.indexOf('next: ') !== -1);
+    assert.ok(js.indexOf('gate evidence: ') !== -1);
+    assert.equal(js.indexOf('Human approval recorded'), -1);
   });
 
   it('console phase tabs wrap instead of forcing horizontal scroll', function() {

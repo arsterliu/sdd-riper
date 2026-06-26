@@ -80,6 +80,24 @@ describe('common.js utilities', function() {
     assert.equal(common.getMode(emptyDir), 'standard');
   });
 
+  it('reads gate and cruise policy defaults and configured values', function() {
+    assert.equal(common.getGatePolicy(projectDir), 'auto');
+    assert.equal(common.getCruisePolicy(projectDir), 'autonomous');
+    assert.equal(common.getCruiseMaxIterations(projectDir), 5);
+
+    fs.writeFileSync(path.join(projectDir, '.sdd-config'),
+      'DOCS_DIR="mydocs"\nMODE="standard"\nGATE_POLICY="manual"\nCRUISE_POLICY="assisted"\nCRUISE_MAX_ITERATIONS="9"\n', 'utf-8');
+    assert.equal(common.getGatePolicy(projectDir), 'manual');
+    assert.equal(common.getCruisePolicy(projectDir), 'assisted');
+    assert.equal(common.getCruiseMaxIterations(projectDir), 9);
+
+    fs.writeFileSync(path.join(projectDir, '.sdd-config'),
+      'DOCS_DIR="mydocs"\nMODE="standard"\nGATE_POLICY="bad"\nCRUISE_POLICY="bad"\nCRUISE_MAX_ITERATIONS="0"\n', 'utf-8');
+    assert.equal(common.getGatePolicy(projectDir), 'auto');
+    assert.equal(common.getCruisePolicy(projectDir), 'autonomous');
+    assert.equal(common.getCruiseMaxIterations(projectDir), 5);
+  });
+
   it('versionExists detects existing spec', function() {
     var specsDir = path.join(docsDir, 'specs');
     assert.ok(!common.versionExists(specsDir, 'my-task', 'v1.0'));

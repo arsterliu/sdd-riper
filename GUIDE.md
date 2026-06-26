@@ -1,6 +1,6 @@
 # SDD-RIPER 使用指南
 
-这份指南补充 README，说明流程细节、三种模式、产物边界、subagent 策略和验收标准写法。
+这份指南补充 README，说明流程细节、三种模式、产物边界、subagent 策略和验收标准写法。当前版本的 SDD-RIPER 是 Node CLI 和文件系统产物协议，不是模型执行 runtime；它通过 prompt、门禁和账本引导宿主 agent 或人工推进。
 
 ## 一、产物边界
 
@@ -12,6 +12,7 @@
 | Design | `<docs-root>/design/` | standard 的 `Technical Design` 或 lite 的 `Design Note`。micro 不创建独立 Design。 |
 | Execute Log | `<docs-root>/logs/` | 执行步骤、偏差、验证结果，append-only。 |
 | Learning Record | `<docs-root>/learnings/` | 偏差、BUGFIX、concern、reopen 暴露出的可复用决策规则。 |
+| Cruise Run | `<docs-root>/runs/` | 巡航 iteration、engine、verdict、回跳目标和停止原因，属于可观测性账本，不替代核心产物。 |
 | CodeMap | `<docs-root>/codemap/` | 模块级架构事实。 |
 | ProjectMap | `<docs-root>/projectmap.md` | 多仓、多团队或跨系统契约。 |
 
@@ -19,11 +20,71 @@ Spec 是控制面，不再承载完整技术设计、执行日志和经验库。
 
 阶段产物的模板结构保持英文，包括章节标题、人工字段标签、frontmatter 键、`design-file` / `execute-log-file` / `learning-file` 引用键、CLI 命令名、状态枚举、验证类型枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
-## 二、RIPER 流程
+## 二、流程架构图
+
+```mermaid
+flowchart TD
+  User[User / Orchestrator] --> CLI[sdd Node CLI]
+  Agent[Host Agent<br/>Codex / Claude Code / opencode] --> CLI
+
+  CLI --> Init[init / discover / resume]
+  CLI --> Status[status / next<br/>read-only detectors]
+  CLI --> Prompt[debug / review-execute / challenge / cruise<br/>prompt generators]
+  CLI --> Gate[validate / archive / reopen<br/>file-system operations]
+  CLI --> Console[sdd console<br/>read-only web projection]
+
+  Init --> Spec[(Spec<br/>control plane)]
+  Spec --> Design[(Design)]
+  Spec --> ExecuteLog[(Execute Log)]
+  Spec --> Learning[(Learning Record)]
+  Spec --> Runs[(Cruise Run Ledger)]
+  Spec --> Maps[(CodeMap / ProjectMap)]
+
+  Status --> Prompt
+  Prompt --> Agent
+  Agent --> Code[Code changes<br/>and local commands]
+  Agent --> Spec
+  Agent --> Design
+  Agent --> ExecuteLog
+  Agent --> Learning
+
+  Code --> Gate
+  Spec --> Gate
+  Design --> Gate
+  ExecuteLog --> Gate
+  Learning --> Gate
+  Gate --> Archive[(Archive)]
+  Gate --> Spec
+
+  Console --> Spec
+  Console --> Design
+  Console --> ExecuteLog
+  Console --> Learning
+  Console --> Runs
+  Console --> Archive
+```
+
+这张图的关键边界是：
+
+- `sdd next` / `status` 只读分析文件系统产物，不修改代码或文档。
+- `sdd debug` / `review-execute` / `challenge` / `cruise` 生成 prompt，不直接调用模型 API。
+- `sdd cruise --record-run` 只把当前巡航状态追加到 `<docs-root>/runs/*.cruise.jsonl`，不会自动执行下一轮。
+- `sdd console` 是只读 projection，可打开和预览产物，但不是新的 source of truth。
+- `validate` / `archive` 是真正的机器门禁和文件归档操作。
+
+## 三、RIPER 流程
 
 ```text
 Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
 ```
+
+巡航能力不会取消 RIPER 产物合同。`sdd next` 用于判断下一步和回跳目标，`sdd challenge` 用于生成独立对抗评审 prompt，`sdd cruise` 用于生成有预算的巡航控制 prompt。
+
+loop 的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Workflows，Codex / opencode 如果当前运行面支持原生自主循环，也应直接复用。SDD 不自建模型执行 runtime；它只提供状态机、门禁、回跳映射和产物真相链。宿主不支持原生 loop 时，退回 `prompt` 或 `local-loop` prompt-loop 补偿模式；SDD 只记录 iteration 快照，不执行模型循环。
+
+`CRUISE_POLICY="off"` 会禁用巡航 prompt 和 run ledger；`assisted` 要求人在每轮修复之间确认；`autonomous` 才允许宿主原生 loop。
+
+`sdd cruise --engine claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，用于 Console 和人工审计查看巡航状态。
 
 ### Research
 
@@ -129,7 +190,11 @@ Plan 是执行契约，不是技术设计的替代品。Plan 必须从 Design �
 ```text
 Plan Approved By: <user>
 Approved At: <timestamp>
+Gate Policy: manual | auto | advisory
+Gate Evidence: <auto-gate 时必填>
 ```
+
+默认 `GATE_POLICY="auto"`。auto gate 不是无门禁；只有 `Plan Approved By: auto-gate`、`Approved At:` 和 `Gate Evidence:` 都存在时，才允许作为自动门禁通过。
 
 ### Execute
 
@@ -159,6 +224,32 @@ Review 是四轴审查：
 | Axis 3 | Execute Log 是否忠实反映真实改动。 |
 
 Axis 2 是 primary axis。Axis 0、1、3 是确认轴，任何一轴失败都应阻止归档或触发修正。
+
+### Challenge / Cruise
+
+对抗评审建议由独立 challenge agent 执行。standard/lite 默认要求独立角色；micro 可以内联执行，但必须按独立评审者输出 verdict。
+
+```text
+sdd next <project-dir>
+sdd challenge <project-dir>
+sdd cruise <project-dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+```
+
+Challenge verdict 枚举：
+
+- `PASS`
+- `PASS_WITH_CONCERNS`
+- `FAIL_SPEC`
+- `FAIL_DESIGN`
+- `FAIL_ACCEPTANCE`
+- `FAIL_PLAN`
+- `FAIL_CODE`
+- `FAIL_LOG`
+- `FAIL_LEARNING`
+
+任何 `FAIL_*` 都会阻止 archive，并作为 `sdd cruise` 的回跳信号：需求问题回 Research，设计问题回 Design，验收问题回 Acceptance，计划问题回 Plan，代码问题回 Execute / Debug，日志问题回 Execute Log，经验沉淀问题回 Learning Check。巡航超过 `CRUISE_MAX_ITERATIONS` 或遇到安全、权限、计费、数据迁移、公共 API、不可逆变更时必须停止并要求人工介入。
+
+`--engine auto` 是默认值。它的策略是：先复用宿主原生 loop；没有原生 loop 时，要求宿主 agent 或人工把同一套 `sdd next -> repair -> validate -> review/challenge -> backtrack` 作为普通 prompt loop 执行。无论使用哪个 engine，`Spec / Design / Plan / Execute Log / Learning` 都不能被宿主 workflow 文件替代。
 
 ### Learning Check
 
@@ -198,7 +289,7 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 不要重新 `discover`，否则会切断历史上下文。
 
-## 三、三种模式
+## 四、三种模式
 
 | 门禁 / 产物 | standard | lite | micro |
 | :--- | :---: | :---: | :---: |
@@ -220,7 +311,7 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 当任务涉及安全、权限、计费、数据迁移、公共接口、跨模块副作用或不可逆变更，即使只改一个文件，也应升级到 lite 或 standard。
 
-## 四、Subagent 策略
+## 五、Subagent 策略
 
 不采用“关键环节全部 subagent owner 化”。
 
@@ -240,7 +331,7 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染风险高时派发。standard 推荐在 Research、复杂 Execute、Review 轴审查中使用。
 
-## 五、理论与最佳实践参考
+## 六、理论与最佳实践参考
 
 这些参考不是固定模板，而是按复杂度进入 Design 或 Acceptance：
 
@@ -255,7 +346,7 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 | 凤凰架构 | 分布式、可靠性、演进式架构、故障模式和权衡。 |
 | BDD / Gherkin | 用户行为、CLI 行为、错误处理、状态变化验收。 |
 
-## 六、CLI 命令
+## 七、CLI 命令
 
 | 命令 | 作用 |
 | :--- | :--- |
@@ -264,6 +355,9 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 | `new-learning` | 创建并绑定 Learning Record。 |
 | `resume` | 输出当前任务和阶段提示。 |
 | `status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
+| `next` | 输出当前 workflow 状态、下一步和回跳目标。 |
+| `challenge` | 生成独立对抗评审 Prompt。 |
+| `cruise` | 生成巡航控制 Prompt；支持 `--engine`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
 | `console` | 启动本地只读 Web Console，查看 Spec 阶段、状态、产物健康度和归档门禁。 |
 | `validate` | 机器校验归档门禁。 |
 | `review-execute` | 生成四轴 Review Prompt。 |
@@ -276,20 +370,22 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 
 安装后使用 `sdd` 命令执行所有操作。
 
-## 七、Web Console
+## 八、Web Console
 
 `sdd console [project-dir]` 会启动一个本地只读控制台，用于查看每个 Spec 的阶段、状态、Design / Execute Log / Learning 引用健康度和 `validate --archive-ready` 门禁问题。`project-dir` 可选；不传时在页面里输入或加载项目目录。
 
 Web Console 是文件系统产物的 projection，不是新的 source of truth：
 
-- 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/learnings/`、`<docs-root>/archive/`。
+- 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/learnings/`、`<docs-root>/runs/`、`<docs-root>/archive/`。
 - 项目看板和 Spec 列表读取后台内存索引快照；首次加载或刷新时可能短暂显示 indexing，再自动更新。
 - 阶段由最早未满足门禁推导：Research、Innovate、Design、Acceptance、Plan、Execute、Review、Learning、Ready、Archived。
+- 详情页展示 gate policy、cruise policy、challenge verdict 和 backtrack target。
+- 详情页展示最新 cruise run 的 iteration、engine 和 stop reason。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
 - 当前版本只读展示和校验，不直接编辑 Spec、Design、Execute Log 或 Learning；Edit 按钮只调用本机默认程序打开文件。
 - 后续如加入 archive / reopen / discover 操作，也应调用现有命令，而不是在 Web 层直接改文件。
 
-## 八、FAQ
+## 九、FAQ
 
 ### Plan 能替代技术设计吗？
 

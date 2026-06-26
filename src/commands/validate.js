@@ -186,6 +186,34 @@ function validateLearningRecord(projectDir, specPath, triggers, issues) {
   });
 }
 
+function validatePlanGate(content, gatePolicy, archiveReady, issues) {
+  var approvedBy = labelValue(content, 'Plan Approved By');
+  var approvedAt = labelValue(content, 'Approved At');
+  var gateEvidence = labelValue(content, 'Gate Evidence');
+  if (!approvedBy) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Plan Approved By is empty.');
+    return;
+  }
+  if (!approvedAt) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Approved At is empty.');
+  }
+  if (/^auto-gate$/i.test(approvedBy)) {
+    if (gatePolicy === 'manual') {
+      issues.push('Manual gate policy requires human Plan Approved By.');
+    }
+    if (!gateEvidence) {
+      issues.push('Gate Evidence is required for auto-gate approval.');
+    }
+  }
+}
+
+function validateChallengeVerdict(content, issues) {
+  var verdict = labelValue(content, 'Challenge Verdict');
+  if (/^FAIL_/i.test(verdict)) {
+    issues.push('Adversarial Challenge failed: ' + verdict.toUpperCase() + '.');
+  }
+}
+
 function validateModeArtifacts(projectDir, specPath, mode, issues) {
   if (mode === 'standard') {
     if (common.subsectionIsEmpty(specPath, SECTION.confirmedRequirement)) {
@@ -281,12 +309,8 @@ function validateSpec(specPath, opts) {
   if (/<!-- \(not filled\) -->|\[TBD\]/.test(content)) {
     issues.push('Spec still contains unresolved placeholders.');
   }
-  if (!/^[ \t]*Plan Approved By:[ \t]*[^\s].*/m.test(content)) {
-    issues.push('Plan Approved By is empty.');
-  }
-  if (!/^[ \t]*Approved At:[ \t]*[^\s].*/m.test(content)) {
-    issues.push('Approved At is empty.');
-  }
+  validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
+  validateChallengeVerdict(content, issues);
 
   if (opts.archiveReady) {
     validateModeArtifacts(projectDir, specPath, mode, issues);

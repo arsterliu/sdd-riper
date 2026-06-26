@@ -41,9 +41,14 @@ design-file:
 
 Plan Approved By:
 Approved At:
+Gate Policy:
+Gate Evidence:
 
 ## Execute Log Reference
 execute-log-file:
 
 ## Review Summary
 <!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
+Challenge Verdict:
+Backtrack Target:
+Challenge Summary:

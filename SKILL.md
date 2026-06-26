@@ -27,10 +27,11 @@ Do not recite this file to the user. Use it to drive the workflow.
 4. **Execute Log is an independent artifact**: every mode writes execution facts to `execute-log-file`.
 5. **Learning is a reusable decision asset**: when execution produces deviations, bugfixes, concerns, or reopen lessons, write a Learning Record in `learning-file` before archive.
 6. **Chinese Filled Content**: keep artifact template headings and human-readable field labels in English. Write the filled requirement analysis, option rationale, design explanations, plan steps, execution notes, evidence, and learning rules in Chinese.
-7. **Human Plan Gate**: do not enter Execute until `Plan Approved By:` and `Approved At:` are filled by or on behalf of the user.
+7. **Configured Plan Gate**: do not enter Execute until the configured gate is satisfied. Manual gates require human approval; auto gates require `Plan Approved By: auto-gate`, `Approved At:`, and `Gate Evidence:`.
 8. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
 9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
 10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Review verdict, Learning decision, and Archive consistency.
+11. **Challenge Failures Backtrack**: adversarial challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
 
 ## CLI Rule
 
@@ -44,6 +45,7 @@ After `discover`, a task has:
 - Design: `<docs-root>/design/vN.M-task.design.md` for standard/lite only
 - Execute Log: `<docs-root>/logs/vN.M-task.execute.md`
 - Learning Record: `<docs-root>/learnings/vN.M-task.learning.md` when required
+- Cruise Run Ledger: `<docs-root>/runs/vN.M-task.cruise.jsonl` when autonomous cruise is recorded
 
 Spec frontmatter contains:
 
@@ -94,6 +96,39 @@ Use `PHASE_HINT`:
 - `archive`: run Review / Learning Check / Archive checks.
 
 For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
+
+Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is unclear. Use `sdd cruise "<PROJECT_ROOT>"` to generate an autonomous repair-loop prompt. Use `sdd challenge "<PROJECT_ROOT>"` for independent adversarial review.
+
+When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
+
+## Gate / Cruise Policy
+
+`.sdd-config` may contain:
+
+```text
+GATE_POLICY="auto"              # manual | auto | advisory
+CRUISE_POLICY="autonomous"      # off | assisted | autonomous
+CRUISE_MAX_ITERATIONS="5"
+```
+
+Default is `auto` / `autonomous` / `5` when fields are missing.
+
+- `manual`: requires a human `Plan Approved By:` and `Approved At:`.
+- `auto`: allows `Plan Approved By: auto-gate` only when `Gate Evidence:` explains the automatic evidence.
+- `advisory`: may continue non-archive exploration with warnings, but archive readiness still reports risks.
+
+Cruise engine options:
+
+- `auto`: default. Prefer host-native loop, then fallback to prompt loop.
+- `claude-code`: generate instructions for Claude Code Dynamic Workflows when available.
+- `codex`: generate instructions for the Codex native loop when the current Codex surface supports it.
+- `opencode`: generate instructions for opencode native loop support when available.
+- `prompt`: generic prompt loop.
+- `local-loop`: prompt-loop compensation for hosts without native loop support; SDD records snapshots but does not run a model executor.
+
+Never move Spec, Design, Plan, Execute Log, Learning, or Review state into a host-specific workflow file as the source of truth.
+
+Use `sdd cruise "<PROJECT_ROOT>" --engine claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
 
 ## Mode Policy
 
@@ -210,14 +245,16 @@ Every step should include:
 - linked AC or acceptance condition
 - verification command or check
 
-Before Execute, ask for approval and then write:
+Before Execute, satisfy the configured gate and write:
 
 ```text
 Plan Approved By: <user>
 Approved At: <ISO timestamp>
+Gate Policy: manual | auto | advisory
+Gate Evidence: <required for auto-gate>
 ```
 
-Do not self-approve.
+Do not self-approve. `auto-gate` is allowed only when the evidence is explicit and verifiable.
 
 ## Execute Phase
 
@@ -296,6 +333,36 @@ For standard/lite, dispatching one subagent per axis is allowed and often useful
 4. Write final verdict to Spec `Review Verdict` / `Review Summary`.
 
 micro normally runs only Axis 2.
+
+## Challenge Phase
+
+Run:
+
+```text
+sdd challenge "<PROJECT_ROOT>"
+```
+
+standard/lite should use an independent challenge agent when available. micro may run the challenge inline, but it must keep the adversarial role separate from implementation.
+
+Challenge agents are read-only. They return:
+
+```text
+Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
+Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
+Challenge Summary: <evidence>
+```
+
+Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
+
+## Cruise Phase
+
+Run:
+
+```text
+sdd cruise "<PROJECT_ROOT>" [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+```
+
+The command generates a bounded repair-loop prompt according to `CRUISE_POLICY`. `off` disables cruise output and run recording, `assisted` requires human confirmation between iterations, and `autonomous` may reuse host-native loops. With `--engine auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The agent should repair only the artifact indicated by `BACKTRACK_TARGET`, run `sdd validate`, then run `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
 
 Allowed Review writes:
 
@@ -418,6 +485,9 @@ Use these as design supports, not as mandatory ceremony:
 - `sdd discover <dir> --task-name <slug> --version vN.M --requirement <text> [--mode ...]`
 - `sdd resume <dir>`
 - `sdd status <dir>`
+- `sdd next <dir>`
+- `sdd challenge <dir>`
+- `sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
 - `sdd console [dir] [--port <port>]`
 - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
 - `sdd validate <dir> --archive-ready`

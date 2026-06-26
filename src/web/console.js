@@ -32,7 +32,7 @@ var gateDefinitions = [
   ['innovate', 'Innovate', 'Options or explicit skip reason'],
   ['design', 'Design', 'Technical design or design note'],
   ['acceptance', 'Acceptance', 'Observable acceptance criteria'],
-  ['plan', 'Plan Approval', 'Human approval recorded'],
+  ['plan', 'Plan Gate', 'Configured approval gate, with Gate Evidence for auto-gate'],
   ['executeLog', 'Execute Log', 'Execution facts recorded'],
   ['review', 'Review', 'Review section filled'],
   ['learning', 'Learning', 'Reusable lesson recorded when required'],
@@ -44,7 +44,7 @@ var blockerText = {
   innovate: 'Innovate needs options, or a documented skip reason in lite mode.',
   design: 'Design is missing or empty. Standard and lite specs need an external design artifact.',
   acceptance: 'Acceptance criteria are missing or incomplete.',
-  plan: 'Plan approval is missing. Fill Plan Approved By and Approved At before Execute.',
+  plan: 'Plan gate is missing. Fill Plan Approved By and Approved At; auto-gate also needs Gate Evidence.',
   execute: 'Execute Log is missing or empty. Record the execution facts before Review.',
   review: 'Review is missing or does not contain a PASS verdict.',
   learning: 'Learning Check is required. Record the reusable lesson before Archive.',
@@ -353,14 +353,35 @@ function nextBlocker(spec) {
   return spec.phase || 'research';
 }
 
+function gateEvidenceState(workflow) {
+  if (!workflow) return '-';
+  return workflow.gateEvidence ? 'present' : 'missing';
+}
+
 function renderBlocker(spec) {
   var phase = nextBlocker(spec);
   var tone = phaseTone(phase);
+  var workflow = spec.workflow || {};
+  var run = spec.cruiseRun || {};
+  var latestRun = run.latest || {};
+  var runText = run.count
+    ? ' / run: #' + esc(latestRun.iteration || '-') +
+      ' ' + esc(latestRun.engine || '-') +
+      ' ' + esc(latestRun.stopReason || '-')
+    : ' / run: none';
+  var controlText = 'gate: ' + esc(workflow.gatePolicy || '-') +
+    ' / cruise: ' + esc(workflow.cruisePolicy || '-') +
+    ' / next: ' + esc(workflow.nextAction || '-') +
+    ' / challenge: ' + esc(workflow.challengeVerdict || '-') +
+    ' / backtrack: ' + esc(workflow.backtrackTarget || '-') +
+    ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
+    runText;
   qs('next-blocker').innerHTML = [
     '<div class="blocker-card">',
     '<span class="pill ' + tone + '">' + esc(phase) + '</span>',
     '<div><strong>' + (phase === 'ready' ? 'Ready to archive' : phase === 'archived' ? 'Archived' : 'Next blocker') + '</strong>',
-    '<span>' + esc(blockerText[phase] || 'Review this spec before moving forward.') + '</span></div>',
+    '<span>' + esc(blockerText[phase] || 'Review this spec before moving forward.') + '</span>',
+    '<span>' + controlText + '</span></div>',
     '</div>'
   ].join('');
 }

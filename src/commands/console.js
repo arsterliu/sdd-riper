@@ -37,6 +37,9 @@ function projectInfo(projectDir) {
     docsDir: common.getDocsDir(resolved),
     docsRoot: docsRoot,
     configured: fs.existsSync(docsRoot),
+    gatePolicy: common.getGatePolicy(resolved),
+    cruisePolicy: common.getCruisePolicy(resolved),
+    maxIterations: common.getCruiseMaxIterations(resolved),
     cwd: process.cwd()
   };
 }
@@ -84,6 +87,9 @@ function summarizeProject(projectDir, opts) {
     projectDir: info.projectDir || path.resolve(projectDir || ''),
     name: path.basename(path.resolve(projectDir || '.')),
     docsDir: info.docsDir,
+    gatePolicy: info.gatePolicy,
+    cruisePolicy: info.cruisePolicy,
+    maxIterations: info.maxIterations,
     configured: info.configured,
     total: 0,
     active: 0,

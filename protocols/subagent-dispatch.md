@@ -14,6 +14,7 @@ Dispatch a subagent when any condition is true:
 2. **Iterative probing**: debug work requires probes, reference implementation checks, or variable isolation.
 3. **Independent evidence**: the output is a bounded evidence report, such as one Review axis or one Research source.
 4. **Large Execute work package**: a Plan step spans multiple modules or would pollute the orchestrator context.
+5. **Adversarial challenge**: standard/lite work needs an independent reviewer to attack requirement, design, acceptance, plan, execution, or archive readiness.
 
 ## When Not To Dispatch
 
@@ -27,6 +28,7 @@ Never dispatch subagents for:
 - Completion Verification.
 - Final Review verdict aggregation.
 - Archive execution.
+- Repairing artifacts after a failed challenge verdict.
 
 Subagents may produce evidence or recommendations. They do not own final decisions.
 
@@ -63,6 +65,7 @@ Briefs should paste only what the subagent needs. Do not ask the subagent to dis
 
 ```yaml
 verdict: <phase-specific enum>
+backtrack_target: <Research|Design|Acceptance|Plan|Execute / Debug|Execute Log|Learning Check|Ready>
 summary: <compressed finding>
 evidence:
   - <file:line and observation>
@@ -81,6 +84,22 @@ Forbidden in returns:
 1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log / Learning excerpts.
 2. **Subagent does not write files**: the orchestrator writes to the correct artifact: Spec for control-plane decisions, Design for technical design, Execute Log for execution facts, Learning Record for reusable decision rules, CodeMap / ProjectMap for architecture facts.
 3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
+
+## Challenge Verdicts
+
+Use these verdicts for adversarial review:
+
+- PASS
+- PASS_WITH_CONCERNS
+- FAIL_SPEC
+- FAIL_DESIGN
+- FAIL_ACCEPTANCE
+- FAIL_PLAN
+- FAIL_CODE
+- FAIL_LOG
+- FAIL_LEARNING
+
+Any `FAIL_*` verdict is a backtrack signal for `sdd cruise`. The challenge agent must not repair the failure.
 
 ## Trust But Verify
 

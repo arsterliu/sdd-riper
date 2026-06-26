@@ -74,6 +74,8 @@ Scenario: <scenario name in Chinese>
 
 Plan Approved By:
 Approved At:
+Gate Policy:
+Gate Evidence:
 
 ## Execute Log Reference
 <!-- Execute Log is an independent artifact. Append execution facts to execute-log-file. -->
@@ -81,3 +83,6 @@ execute-log-file:
 
 ## Review Verdict
 <!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
+Challenge Verdict:
+Backtrack Target:
+Challenge Summary:

@@ -7,7 +7,8 @@
 - **No Spec, No Code**.
 - **Spec is Control Plane**: Spec references Design / Execute Log / Learning instead of embedding them.
 - **Chinese Filled Content**: keep artifact headings and human-readable labels in English; write filled analysis, decisions, plan steps, evidence, and learning rules in Chinese.
-- **Plan Approved Gate**: Execute requires `Plan Approved By:` and `Approved At:`.
+- **Gate Policy**: default policy is auto. Manual approval uses a human `Plan Approved By:`; auto approval uses `Plan Approved By: auto-gate` plus `Gate Evidence:`.
+- **Autonomous Cruise**: use `sdd next`, `sdd challenge`, and `sdd cruise` for routing, adversarial review, and bounded repair prompts. Prefer host-native loops with `sdd cruise --engine auto` only when `CRUISE_POLICY="autonomous"`; fallback to prompt-loop compensation when native loop support is unavailable. Use `--emit-claude-prompt` for Claude Code ultracode/workflow guidance and `--record-run` for `<docs-root>/runs/*.cruise.jsonl`. `CRUISE_POLICY="off"` disables cruise output and run recording.
 - **Execute Log Required**: every mode writes step results to the external `execute-log-file`.
 - **Learning Conditional**: deviations, bugfixes, concerns, and reopen lessons require an external `learning-file`.
 - **Debug Before Retry**.
@@ -50,15 +51,17 @@ Micro skips Research, Innovate, and standalone Design. Plan must include:
 - Verification.
 - Blast Radius.
 
-Micro still requires an external Execute Log, conditional Learning Record, and the human Plan gate.
+Micro still requires an external Execute Log, conditional Learning Record, and the configured Plan gate.
 
 ## Review
 
 - Lite uses the 4-axis review: Invocation, Design/Acceptance/Plan, Code Diff, Execute Log.
 - Micro defaults to Axis 2, but archive validation still requires Plan approval, Execute Log, and PASS review summary.
+- Challenge review is read-only. FAIL_* verdicts backtrack to the mapped phase and block archive.
 
 ## Subagent Policy
 
 - Lite may use subagents for large reads, debug investigation, or review axes.
+- Lite should use an independent challenge agent when available.
 - Micro defaults to single-agent execution.
 - The orchestrator owns final decisions, Plan approval, completion verification, and final verdict.

@@ -44,6 +44,28 @@ program.command('status <project-dir>')
   .description('Check project health')
   .action(function(p) { require('../src/commands/status')(p); });
 
+program.command('next <project-dir>')
+  .description('Analyze current workflow state and next action')
+  .option('--spec <path>', 'spec file')
+  .option('--name <slug>', 'spec task slug')
+  .action(function(p, o) { require('../src/commands/next')(p, o); });
+
+program.command('challenge <project-dir>')
+  .description('Generate adversarial review prompt')
+  .option('--spec <path>', 'spec file')
+  .option('--name <slug>', 'spec task slug')
+  .action(function(p, o) { require('../src/commands/challenge')(p, o); });
+
+program.command('cruise <project-dir>')
+  .description('Generate autonomous cruise prompt')
+  .option('--spec <path>', 'spec file')
+  .option('--name <slug>', 'spec task slug')
+  .option('--engine <engine>', 'auto | prompt | local-loop | claude-code | codex | opencode', 'auto')
+  .option('--emit-claude-prompt', 'emit a Claude Code ultracode workflow prompt')
+  .option('--record-run', 'append current cruise state to the run ledger')
+  .option('--iteration <n>', 'current cruise iteration', '1')
+  .action(function(p, o) { require('../src/commands/cruise')(p, o); });
+
 program.command('console [project-dir]')
   .description('Start local read-only Web Console')
   .option('--port <port>', 'port', '4789')

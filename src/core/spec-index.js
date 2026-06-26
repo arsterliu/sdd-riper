@@ -3,6 +3,8 @@ var path = require('path');
 var common = require('../../lib/common');
 var validate = require('../commands/validate');
 var learning = require('./learning');
+var workflow = require('./workflow');
+var cruiseRun = require('./cruise-run');
 var specCache = new Map();
 
 var PHASES = [
@@ -161,7 +163,8 @@ function cacheKey(projectDir, specPath, location, lightweight) {
     fileSignature(specPath),
     mode === 'micro' ? 'micro-design' : designPattern + ':' + fileSignature(designPath),
     'log:' + fileSignature(logPath),
-    'learning:' + fileSignature(learningPath)
+    'learning:' + fileSignature(learningPath),
+    'cruise:' + fileSignature(cruiseRun.ledgerPath(projectDir, specPath))
   ].join('|');
 }
 
@@ -193,8 +196,10 @@ function completionState(projectDir, specPath, mode) {
       ? sectionHasContent(specPath, SECTION.confirmedRequirement)
       : sectionHasContent(specPath, SECTION.invocation);
   var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
-  var planApproved = /^[ \t]*Plan Approved By:[ \t]*[^\s].*/m.test(content) &&
-    /^[ \t]*Approved At:[ \t]*[^\s].*/m.test(content);
+  var approvedBy = labelHasContent(content, 'Plan Approved By');
+  var approvedAt = labelHasContent(content, 'Approved At');
+  var autoGate = /^auto-gate$/i.test((content.match(/^[ \t]*Plan Approved By:[ \t]*(.*)$/m) || [])[1] || '');
+  var planApproved = approvedBy && approvedAt && (!autoGate || labelHasContent(content, 'Gate Evidence'));
   return {
     research: research,
     innovate: innovate,
@@ -239,6 +244,16 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
   var archiveReady = opts.lightweight
     ? null
     : validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
+  var workflowState = opts.lightweight
+    ? {
+      gatePolicy: common.getGatePolicy(projectDir),
+      cruisePolicy: common.getCruisePolicy(projectDir),
+      maxIterations: common.getCruiseMaxIterations(projectDir),
+      challengeVerdict: '',
+      backtrackTarget: '',
+      nextAction: ''
+    }
+    : workflow.analyzeSpec(projectDir, specPath, { validation: archiveReady });
   return {
     id: makeId(projectDir, specPath),
     fileName: fileName,
@@ -270,6 +285,8 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       learningRequired: completion.learningRequired
     },
     reviewVerdict: completion.reviewLine,
+    workflow: workflowState,
+    cruiseRun: cruiseRun.readLedger(projectDir, specPath),
     validate: {
       ok: archiveReady ? archiveReady.ok : phase === 'ready',
       issueCount: archiveReady ? archiveReady.issues.length : 0,
