@@ -55,7 +55,7 @@ Micro still requires an external Execute Log, conditional Learning Record, and t
 
 ## Review
 
-- Lite uses the 4-axis review: Invocation, Design/Acceptance/Plan, Code Diff, Execute Log.
+- Lite uses the 4-axis review: Intake, Design/Acceptance/Plan, Code Diff, Execute Log.
 - Micro defaults to Axis 2, but archive validation still requires Plan approval, Execute Log, and PASS review summary.
 - Challenge review is read-only. FAIL_* verdicts backtrack to the mapped phase and block archive.
 

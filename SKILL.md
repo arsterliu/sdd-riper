@@ -318,7 +318,7 @@ Review is a judge, not a programmer. Do not fix code during Review.
 
 standard/lite use four axes:
 
-- Axis 0: Invocation Integrity
+- Axis 0: Intake Alignment
 - Axis 1: Design / Acceptance / Plan Coverage
 - Axis 2: Code Diff Scope
 - Axis 3: Execute Log Fidelity

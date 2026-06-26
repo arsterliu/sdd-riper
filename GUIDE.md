@@ -218,7 +218,7 @@ Review 是四轴审查：
 
 | 轴 | 检查内容 |
 | :--- | :--- |
-| Axis 0 | Invocation 是否仍然对齐原始目标。 |
+| Axis 0 | Intake 是否仍然对齐原始目标。 |
 | Axis 1 | Design / Acceptance / Plan 是否覆盖完整。 |
 | Axis 2 | Code Diff 是否越界。 |
 | Axis 3 | Execute Log 是否忠实反映真实改动。 |

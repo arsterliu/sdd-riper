@@ -134,8 +134,8 @@ describe('common.js utilities', function() {
 
   it('sectionIsEmpty detects empty sections', function() {
     var specFile = path.join(docsDir, 'specs', 'v1.0-test.md');
-    fs.writeFileSync(specFile, '## Invocation\n<!-- comment -->\n\n## Other\ncontent here\n', 'utf-8');
-    assert.ok(common.sectionIsEmpty(specFile, 'Invocation'));
+    fs.writeFileSync(specFile, '## Intake\n<!-- comment -->\n\n## Other\ncontent here\n', 'utf-8');
+    assert.ok(common.sectionIsEmpty(specFile, 'Intake'));
     assert.ok(!common.sectionIsEmpty(specFile, 'Other'));
   });
 
@@ -150,9 +150,9 @@ describe('common.js utilities', function() {
   it('extractSection extracts content between headings', function() {
     var specFile = path.join(docsDir, 'specs', 'v1.0-test.md');
     fs.writeFileSync(specFile,
-      '## Invocation\ninvocation content line 1\ninvocation content line 2\n\n## Next Section\nother\n', 'utf-8');
-    var result = common.extractSection(specFile, 'Invocation', 50);
-    assert.ok(result.indexOf('invocation content line 1') !== -1);
+      '## Intake\nintake content line 1\nintake content line 2\n\n## Next Section\nother\n', 'utf-8');
+    var result = common.extractSection(specFile, 'Intake', 50);
+    assert.ok(result.indexOf('intake content line 1') !== -1);
     assert.ok(result.indexOf('other') === -1, 'Should not include next section');
   });
 });

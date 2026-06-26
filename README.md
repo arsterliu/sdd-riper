@@ -117,7 +117,7 @@ Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-
 
 | 产物 | 责任 |
 | :--- | :--- |
-| **Spec** | 控制面。保存 Invocation、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log / Learning。 |
+| **Spec** | 控制面。保存 Intake、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log / Learning。 |
 | **Design** | 技术设计产物。standard 写 `Technical Design`，lite 写 `Design Note`，micro 不单独写设计。 |
 | **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
 | **Learning Record** | 经验沉淀产物。把偏差、BUGFIX、concern、reopen 暴露出的规律写成可复用决策规则。 |
@@ -177,7 +177,7 @@ flowchart TD
 - **Design/Acceptance**：standard/lite 在独立 Design 文件写设计，验收标准仍留在 Spec；micro 把 `Acceptance` / `Verification` 写入 Plan。
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。
 - **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。
-- **Review**：四轴审查 Invocation、Design/Acceptance/Plan、Code Diff、Execute Log。
+- **Review**：四轴审查 Intake、Design/Acceptance/Plan、Code Diff、Execute Log。
 - **Challenge**：独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。
 - **Cruise**：在配置策略内生成巡航控制 prompt，引导宿主 agent 按 next/challenge/validate 结果回跳；`sdd cruise` 本身不执行模型循环，也不直接修复代码。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。

@@ -19,7 +19,7 @@ When filling narrative content, write the actual analysis, decisions, plans, and
 ## Summary
 <!-- 3-5 lines in Chinese: current phase, goal, key constraints, latest progress. -->
 
-## Invocation
+## Intake
 
 ### Requirement
 <!-- SDD_REQUIREMENT -->

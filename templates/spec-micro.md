@@ -15,7 +15,8 @@ learning-file:
 
 ## Summary
 
-## Invocation
+## Intake
+<!-- SDD_INTAKE -->
 <!-- Micro skips Research, Innovate, and standalone Design. -->
 
 ## Plan

@@ -59,7 +59,7 @@ function explicitChallengeVerdict(content) {
 }
 
 function classifyIssue(issue) {
-  if (/Confirmed Requirement|Invocation|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
+  if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
   if (/Acceptance Criteria|Verification|Automated Acceptance|E2E Acceptance|Manual Acceptance/i.test(issue)) return 'FAIL_ACCEPTANCE';

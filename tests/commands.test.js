@@ -256,7 +256,7 @@ describe('CLI commands', function() {
     assert.ok(logText.indexOf('## Execute Log') !== -1);
   });
 
-  it('discover accepts --version alias and fills structured invocation fields', function() {
+  it('discover accepts --version alias and fills structured intake fields', function() {
     var demo = path.join(tmpBase, 'd2b');
     run('init ' + demo + ' --mode standard');
     var out = run('discover ' + demo + ' --task-name my-login --version v1.0 --requirement login --goal auth --constraints none');
@@ -265,6 +265,8 @@ describe('CLI commands', function() {
     var c = fs.readFileSync(sf, 'utf-8');
     assert.match(c, /^date: \d{4}-\d{2}-\d{2}$/m);
     assert.match(c, /^diff-base:/m);
+    assert.ok(c.indexOf('## Intake') !== -1);
+    assert.ok(c.indexOf('## ' + 'Invoc' + 'ation') === -1);
     assert.ok(c.indexOf('### Requirement\nrequirement: login\ngoal: auth') !== -1);
     assert.ok(c.indexOf('### Constraints\nconstraints: none') !== -1);
   });

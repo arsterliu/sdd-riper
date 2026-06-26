@@ -27,7 +27,7 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute -> Review -> Lea
 - **Acceptance**: write `AC-###` criteria in Spec; keep metadata labels such as `Requirement:`, `Verification:`, `Test:`, and `Manual Evidence:` in English, and write BDD / Gherkin scenario descriptions in Chinese.
 - **Plan**: atomic steps derived from Design and Acceptance Criteria; gate evidence required before Execute.
 - **Execute**: follow Plan strictly; append each step result to the external Execute Log.
-- **Review**: 4-axis audit: Invocation, Design/Acceptance/Plan, Code Diff, Execute Log.
+- **Review**: 4-axis audit: Intake, Design/Acceptance/Plan, Code Diff, Execute Log.
 - **Challenge**: independent adversarial review; FAIL_* verdicts backtrack to the mapped phase and block archive.
 - **Learning Check**: create `learning-file` when execution produced reusable lessons.
 - **Cruise Run**: append run ledger entries for observable autonomous iterations when cruise is recorded.

@@ -3,7 +3,7 @@ var path = require('path');
 var common = require('../../lib/common');
 
 var SECTION = {
-  invocation: 'Invocation',
+  intake: 'Intake',
   confirmedRequirement: 'Confirmed Requirement',
   openQuestions: 'Open Questions',
   innovateOptions: 'Innovate Options',
@@ -104,8 +104,8 @@ function run(projectDir) {
       if (st !== 'archived') draft++;
       var sm = common.getFrontmatterField(sp, 'mode') || 'standard';
       var lw = 0;
-      if (sm === 'lite') { if (common.sectionIsEmpty(sp, SECTION.invocation)) lw = 1; if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
-      else if (sm === 'micro') { if (common.sectionIsEmpty(sp, SECTION.invocation)) lw = 1; }
+      if (sm === 'lite') { if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1; if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
+      else if (sm === 'micro') { if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1; }
       else { if (common.subsectionIsEmpty(sp, SECTION.confirmedRequirement)) lw = 1; if (common.subsectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
       try { if (/\[待确认\]/.test(fs.readFileSync(sp, 'utf-8'))) lw = 1; } catch (e) {}
       if (lw) warnResearch.push(f);

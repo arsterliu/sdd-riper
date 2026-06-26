@@ -28,7 +28,7 @@ var phases = [
 ];
 
 var gateDefinitions = [
-  ['research', 'Research', 'Confirmed requirement or invocation baseline'],
+  ['research', 'Research', 'Confirmed requirement or intake baseline'],
   ['innovate', 'Innovate', 'Options or explicit skip reason'],
   ['design', 'Design', 'Technical design or design note'],
   ['acceptance', 'Acceptance', 'Observable acceptance criteria'],
@@ -40,7 +40,7 @@ var gateDefinitions = [
 ];
 
 var blockerText = {
-  research: 'Research still needs a confirmed requirement or usable invocation baseline.',
+  research: 'Research still needs a confirmed requirement or usable intake baseline.',
   innovate: 'Innovate needs options, or a documented skip reason in lite mode.',
   design: 'Design is missing or empty. Standard and lite specs need an external design artifact.',
   acceptance: 'Acceptance criteria are missing or incomplete.',
