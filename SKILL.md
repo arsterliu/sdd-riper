@@ -499,7 +499,7 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 
 - DDD: domain model, ubiquitous language, bounded context.
 - C4: system/container/component architecture view.
-- ADR: selected option and trade-off record.
+- ADR: selected option and trade-off record (see `protocols/adr.md`).
 - arc42: complete standard-mode technical design structure.
 - TOGAF: business/data/application/technology views for enterprise scope.
 - Phoenix Architecture: reliability, distributed systems, evolutionary architecture, failure modes.

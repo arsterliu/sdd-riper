@@ -971,6 +971,15 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('arc42') !== -1);
   });
 
+  it('ADR method doc exists and is wired into SKILL.md', function() {
+    assert.ok(fs.existsSync(path.resolve('protocols', 'adr.md')));
+    var adr = fs.readFileSync(path.resolve('protocols', 'adr.md'), 'utf-8');
+    assert.ok(adr.indexOf('Selected Option / ADR') !== -1);
+    assert.ok(adr.indexOf('Alternatives') !== -1);
+    var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
+    assert.ok(skill.indexOf('protocols/adr.md') !== -1);
+  });
+
   it('help and version', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);
