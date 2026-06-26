@@ -95,6 +95,55 @@ function riskFlags(content) {
   return flags;
 }
 
+// Advisory method router: maps mode + riskFlags to the Design fields worth
+// emphasizing and the techniques worth applying. Advisory only — the
+// orchestrator decides. Deterministic so cruise/console/challenge can consume it.
+var DESIGN_RISK_MAP = {
+  migration: { fields: ['Data Model / Schema', 'Data Migration / Backfill'], note: 'migration risk: detail schema changes and a backfill/rollback path.' },
+  'public-api': { fields: ['Interface Contract', 'Compatibility / Rollback'], note: 'public-api risk: pin the interface contract and a versioning/compatibility strategy.' },
+  security: { fields: ['Security / Permission'], note: 'security risk: add a threat / permission-boundary pass (consider a STRIDE-style review).' },
+  billing: { fields: ['Data Model / Schema', 'Failure Modes'], note: 'billing risk: model money/state carefully and enumerate failure modes.' },
+  irreversible: { fields: ['Compatibility / Rollback', 'Failure Modes'], note: 'irreversible risk: require an explicit rollback/abort plan before Execute.' }
+};
+
+function designMethodHint(mode, flags) {
+  mode = mode || 'standard';
+  flags = flags || [];
+  if (mode === 'micro') {
+    return { applies: false, adr: false, methods: [], focusFields: [], notes: ['micro mode keeps design intent inside Plan; no standalone design methodology.'] };
+  }
+  var hint = { applies: true, adr: true, methods: [], focusFields: [], notes: [] };
+  if (mode === 'lite') {
+    hint.methods = ['ADR (lightweight option record)'];
+    hint.notes.push('lite: record the selected option as an ADR; keep the Design Note focused on Approach and Impact.');
+  } else {
+    hint.methods = ['ADR', 'arc42 field structure', 'C4 context/container for Architecture View'];
+    hint.notes.push('standard: anchor the Technical Design on its required fields; use C4 context/container views for Architecture View and an ADR for the selected option.');
+  }
+  flags.forEach(function(flag) {
+    var r = DESIGN_RISK_MAP[flag];
+    if (!r) return;
+    r.fields.forEach(function(f) { if (hint.focusFields.indexOf(f) === -1) hint.focusFields.push(f); });
+    hint.notes.push(r.note);
+  });
+  if (mode === 'standard') {
+    hint.notes.push('if the domain has multiple bounded contexts or a rich model, consider DDD (advisory; orchestrator decides).');
+  }
+  return hint;
+}
+
+function formatDesignMethodLines(dm) {
+  if (!dm || !dm.applies) {
+    return ['DESIGN_METHOD: n/a' + (dm && dm.notes && dm.notes[0] ? ' (' + dm.notes[0] + ')' : '')];
+  }
+  var lines = [
+    'DESIGN_METHOD: ' + (dm.methods.join('; ') || 'baseline'),
+    'DESIGN_FOCUS_FIELDS: ' + (dm.focusFields.length ? dm.focusFields.join('; ') : 'required Technical Design fields (no extra emphasis)')
+  ];
+  dm.notes.forEach(function(n) { lines.push('- ' + n); });
+  return lines;
+}
+
 function nextAction(verdict) {
   if (verdict === 'PASS') return 'archive_ready';
   return 'repair_' + String(VERDICT_TO_TARGET[verdict] || 'Research')
@@ -117,10 +166,13 @@ function analyzeSpec(projectDir, specPath, opts) {
       backtrackTarget: 'Research',
       nextAction: 'discover_spec',
       blockers: ['Spec file not found.'],
-      riskFlags: []
+      riskFlags: [],
+      designMethod: { applies: false, adr: false, methods: [], focusFields: [], notes: ['no active spec; run discover first.'] }
     };
   }
   var content = fs.readFileSync(specPath, 'utf-8');
+  var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
+  var flags = riskFlags(content);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var explicit = explicitChallengeVerdict(content);
   var validationVerdict = challengeVerdictFromIssues(validation.issues);
@@ -136,7 +188,8 @@ function analyzeSpec(projectDir, specPath, opts) {
     backtrackTarget: target,
     nextAction: nextAction(verdict),
     blockers: validation.issues || [],
-    riskFlags: riskFlags(content),
+    riskFlags: flags,
+    designMethod: designMethodHint(mode, flags),
     gateEvidence: labelValue(content, 'Gate Evidence'),
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
@@ -156,5 +209,7 @@ module.exports = {
   normalizeCruiseEngine: normalizeCruiseEngine,
   analyzeSpec: analyzeSpec,
   analyzeProject: analyzeProject,
-  challengeVerdictFromIssues: challengeVerdictFromIssues
+  challengeVerdictFromIssues: challengeVerdictFromIssues,
+  designMethodHint: designMethodHint,
+  formatDesignMethodLines: formatDesignMethodLines
 };

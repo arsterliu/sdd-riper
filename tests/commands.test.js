@@ -948,6 +948,29 @@ describe('CLI commands', function() {
     assert.doesNotMatch(source, /Start-Process -LiteralPath/);
   });
 
+  it('design method router maps mode and risk to advisory hints', function() {
+    var workflow = require('../src/core/workflow');
+    var micro = workflow.designMethodHint('micro', []);
+    assert.equal(micro.applies, false);
+    assert.match(workflow.formatDesignMethodLines(micro)[0], /DESIGN_METHOD: n\/a/);
+    var lite = workflow.designMethodHint('lite', []);
+    assert.equal(lite.applies, true);
+    assert.ok(lite.methods.join(' ').indexOf('ADR') !== -1);
+    var std = workflow.designMethodHint('standard', []);
+    assert.ok(std.methods.join(' ').indexOf('arc42') !== -1);
+    assert.ok(std.methods.join(' ').indexOf('C4') !== -1);
+    assert.equal(std.focusFields.length, 0);
+    var mig = workflow.designMethodHint('standard', ['migration']);
+    assert.ok(mig.focusFields.indexOf('Data Migration / Backfill') !== -1);
+
+    var demo = path.join(tmpBase, 'dmr');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name method-route --spec-version v1.0 --requirement x');
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('DESIGN_METHOD:') !== -1);
+    assert.ok(out.indexOf('arc42') !== -1);
+  });
+
   it('help and version', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);

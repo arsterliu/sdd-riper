@@ -32,6 +32,10 @@ function run(projectDir, opts) {
   console.log('');
   console.log('### Design Challenge');
   console.log('- Challenge architecture, data model, interface contract, impact scope, compatibility, rollback, and failure modes.');
+  console.log('- Methodology the task should be using (advisory router; challenge under-use of these):');
+  workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
+    console.log('  ' + line);
+  });
   console.log('');
   console.log('### Acceptance Challenge');
   console.log('- Challenge whether AC-### items are observable, verifiable, and traceable to requirements.');

@@ -185,7 +185,22 @@ micro skips Innovate.
 
 This phase happens after Innovate and before Plan.
 
-Use the design-methodology supports in Reference Methods (DDD / C4 / ADR / arc42 / TOGAF / Phoenix Architecture) when shaping the Technical Design. They are the design-layer counterpart to the vendored execution-quality skills; pick what fits the task and skip the rest.
+### Method Routing (advisory)
+
+Do not spread every methodology over every task. SDD routes design methodology from `mode` + `riskFlags`. `sdd next` and `sdd cruise` print `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` as advisory hints — follow them, but the orchestrator owns the final call.
+
+| Signal | Suggested methodology / focus |
+| :--- | :--- |
+| micro | none — design intent stays inside Plan |
+| lite | ADR for the selected option; Design Note covers Approach + Impact |
+| standard (baseline) | ADR + arc42 field structure; C4 context/container for Architecture View |
+| + risk: migration | emphasize `Data Model / Schema` + `Data Migration / Backfill` |
+| + risk: public-api | emphasize `Interface Contract` + `Compatibility / Rollback` |
+| + risk: security | add a threat / permission-boundary pass |
+| + risk: billing / irreversible | model state + failure modes; require a rollback/abort plan |
+| complex domain (multiple bounded contexts) | consider DDD (advisory — orchestrator judges; no automatic signal) |
+
+The methods catalog lives in Reference Methods. Load a specific method's detail on demand (a global skill, or a vendored copy where available); SDD does not bundle DDD / C4 / arc42 as required reading.
 
 ### Standard
 

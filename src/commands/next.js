@@ -12,6 +12,9 @@ function run(projectDir, opts) {
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
+  workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
+    console.log(line);
+  });
   console.log('BLOCKERS:');
   (state.blockers.length ? state.blockers : ['none']).forEach(function(issue) {
     console.log('- ' + issue);

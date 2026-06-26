@@ -85,6 +85,9 @@ function run(projectDir, opts) {
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
+  workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
+    console.log(line);
+  });
   console.log('');
   printEngineAdapter(engine, projectDir, state);
   console.log(state.cruisePolicy === 'assisted' ? '### Assisted repair loop' : '### Autonomous repair loop');
