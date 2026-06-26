@@ -1,9 +1,10 @@
 # Superpowers Vendoring — Sync Manual
 
-This directory contains **vendored copies** of six skills from the upstream
+This directory contains **vendored copies** of seven skills from the upstream
 [obra/superpowers](https://github.com/obra/superpowers) project. SDD-RIPER
 provides the workflow contract layer; these vendored skills provide the
-execution-quality layer (TDD, systematic debugging, verification, etc.).
+execution-quality layer (TDD, systematic debugging, verification, etc.) plus the
+up-front design-clarification method (`brainstorming`).
 
 This file is the operations manual for maintainers. The integration-map for
 AI consumption is in `INTEGRATIONS.md` at the repo root.
@@ -13,15 +14,16 @@ AI consumption is in `INTEGRATIONS.md` at the repo root.
 - **Upstream**: https://github.com/obra/superpowers
 - **License**: MIT (Copyright © 2025 Jesse Vincent — see `LICENSE` in this directory)
 - **Vendored at commit**: see `.upstream-commit` in this directory
-- **Last sync date**: 2026-06-09 (initial import)
+- **Last sync date**: 2026-06-09 (initial six); 2026-06-26 (added `brainstorming`, same pinned commit)
 
 ## Scope
 
-Only six skills are vendored, matching the six integration touchpoints SDD-RIPER
+Only seven skills are vendored, matching the integration touchpoints SDD-RIPER
 declares in `SKILL.md`:
 
 | Vendored skill | SDD-RIPER touchpoint |
 |:---|:---|
+| `brainstorming/` | Innovate > Design clarification |
 | `test-driven-development/` | Execute > TDD Rule |
 | `systematic-debugging/` | Execute > BUGFIX loop |
 | `verification-before-completion/` | Execute > Completion Verification Gate |
@@ -30,8 +32,22 @@ declares in `SKILL.md`:
 | `finishing-a-development-branch/` | Archive > Pre-Archive Git Gate |
 
 The upstream repo's other skills, plugin metadata (`.claude-plugin/`,
-`.opencode/`, `.codex-plugin/`), scripts, hooks, and tests are NOT vendored.
-SDD-RIPER owns its own plugin packaging and workflow infrastructure.
+`.opencode/`, `.codex-plugin/`), per-skill executable components (`scripts/`),
+and `hooks/` are NOT vendored. SDD-RIPER owns its own packaging, and it does not
+ship runnable third-party code inside its own repo.
+
+This is an **intentional capability trade-off, not an oversight**. The rule
+matters for exactly one skill: only `brainstorming` ships a `scripts/` component
+(its browser-based visual companion), so in vendored-only mode that one
+*optional, consent-gated* visualization degrades to text-only — its core flow
+(one-question-at-a-time intent, 2-3 options, sectioned design, written spec) does
+not depend on the script. Every other vendored skill has no `scripts/` or
+`hooks/` upstream, so nothing is dropped. Users who need the visualization run
+the global superpowers skill (fallback order below).
+
+Skill-internal supporting markdown (reviewer prompts, worked examples such as
+`systematic-debugging/test-*.md`, `brainstorming/visual-companion.md`) **is**
+kept, because the methodology in `SKILL.md` references it.
 
 ## Sync Procedure
 
@@ -43,11 +59,13 @@ git clone --depth 1 --quiet https://github.com/obra/superpowers.git "$TMPDIR"
 UPSTREAM_COMMIT=$(git -C "$TMPDIR" rev-parse HEAD)
 
 # Re-vendor each skill (overwrite in place)
-for skill in test-driven-development systematic-debugging \
+for skill in brainstorming test-driven-development systematic-debugging \
              verification-before-completion subagent-driven-development \
              writing-plans finishing-a-development-branch; do
   rm -rf "vendored/superpowers/$skill"
   cp -r "$TMPDIR/skills/$skill" "vendored/superpowers/"
+  # Strip runtime components per the scope policy above (keeps support markdown).
+  rm -rf "vendored/superpowers/$skill/scripts" "vendored/superpowers/$skill/hooks"
 done
 
 # Refresh LICENSE and commit-hash marker

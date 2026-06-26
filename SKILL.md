@@ -160,6 +160,10 @@ Use CodeMap / ProjectMap / archive only when relevant. If Research requires read
 
 Goal: define viable approaches before choosing.
 
+Drive option exploration and design clarification with `brainstorming` (see `vendored/superpowers/brainstorming/SKILL.md` — read on demand; prefer the global skill if loaded): explore intent one question at a time, propose 2-3 approaches with a recommendation, and present the design in sections for approval before any implementation.
+
+SDD adaptation: keep artifacts in SDD's control plane. Write options into the Spec `Innovate Options` section and the design into the external `design-file` — not into `brainstorming`'s default `docs/superpowers/specs/` path. Do not auto-invoke `writing-plans` at the end; SDD's Plan phase and configured gate own that transition.
+
 standard requires at least two options:
 
 - option summary

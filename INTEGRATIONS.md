@@ -3,7 +3,8 @@
 SDD-RIPER provides the **workflow contract** (phases, gates, audit trail, file-system
 state). The [obra/superpowers](https://github.com/obra/superpowers) project provides
 the **execution-quality methodology** (how to actually do TDD well, debug
-systematically, verify before claiming completion, etc.).
+systematically, verify before claiming completion, etc.) plus the up-front
+**design-clarification method** (`brainstorming`) used in the Innovate phase.
 
 This file is the bridge: it lists every SDD-RIPER touchpoint that calls into
 superpowers, what skill is invoked, where to find the vendored fallback, and the
@@ -13,6 +14,7 @@ preferred resolution order at runtime.
 
 | SDD touchpoint | SKILL.md section | superpowers skill | vendored path | Fallback order |
 |:---|:---|:---|:---|:---|
+| Design clarification | Innovate Phase | `brainstorming` | `vendored/superpowers/brainstorming/` | global → vendored → inlined (artifacts land in SDD's Spec/`design-file`, not `brainstorming`'s default path; visual companion needs the global skill — its `scripts/` are not vendored) |
 | Plan step granularity | Plan Phase | `writing-plans` | `vendored/superpowers/writing-plans/` | global → vendored → inlined |
 | Subagent routing | Subagent Policy | `subagent-driven-development` | `vendored/superpowers/subagent-driven-development/` | global → vendored → inlined (also see `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract) |
 | TDD enforcement | Execute Phase (TDD) | `test-driven-development` | `vendored/superpowers/test-driven-development/` | global → vendored → inlined |
