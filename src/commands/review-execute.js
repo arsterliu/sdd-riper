@@ -1,11 +1,24 @@
-var execSync = require('child_process').execSync;
+var execFileSync = require('child_process').execFileSync;
 var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var learning = require('../core/learning');
 
+// A git revision/ref safe to pass as an argument. Rejects shell metacharacters,
+// whitespace, and leading '-' (which git would treat as an option).
+function isSafeGitRef(ref) {
+  return typeof ref === 'string' && /^[A-Za-z0-9_./~^@-]+$/.test(ref) && !/^-/.test(ref);
+}
+
+function git(projectDir, args, capture) {
+  var opts = capture
+    ? { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }
+    : { cwd: projectDir, stdio: 'ignore' };
+  return execFileSync('git', args, opts);
+}
+
 var SECTION = {
-  invocation: 'Invocation',
+  intake: 'Intake',
   technicalDesign: 'Technical Design',
   designNote: 'Design Note',
   acceptanceCriteria: 'Acceptance Criteria',
@@ -24,27 +37,30 @@ function learningBrief(projectDir) {
 }
 
 function resolveDiffBase(projectDir, explicitBase) {
-  if (explicitBase) return explicitBase;
+  if (explicitBase) {
+    if (isSafeGitRef(explicitBase)) return explicitBase;
+    console.error('[WARN] Ignoring unsafe diff-base value: ' + explicitBase);
+  }
   try {
-    var headCommit = execSync('git rev-parse HEAD', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    var headCommit = git(projectDir, ['rev-parse', 'HEAD'], true).trim();
     var currentBranch = '';
-    try { currentBranch = execSync('git rev-parse --abbrev-ref HEAD', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(); } catch (e) {}
+    try { currentBranch = git(projectDir, ['rev-parse', '--abbrev-ref', 'HEAD'], true).trim(); } catch (e) {}
     var candidates = ['origin/main','origin/master','main','master','trunk'];
     for (var i = 0; i < candidates.length; i++) {
       if (candidates[i] === currentBranch) continue;
       try {
-        execSync('git rev-parse --verify ' + candidates[i], { cwd: projectDir, stdio: 'ignore' });
-        var mb = execSync('git merge-base HEAD ' + candidates[i], { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+        git(projectDir, ['rev-parse', '--verify', candidates[i]], false);
+        var mb = git(projectDir, ['merge-base', 'HEAD', candidates[i]], true).trim();
         if (mb && mb !== headCommit) return mb;
       } catch (e) {}
     }
-    var cc = parseInt(execSync('git rev-list --count HEAD', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim(), 10);
+    var cc = parseInt(git(projectDir, ['rev-list', '--count', 'HEAD'], true).trim(), 10);
     if (cc > 1) {
       try {
-        var root = execSync('git rev-list --max-parents=0 HEAD', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim().split(/\r?\n/).pop();
+        var root = git(projectDir, ['rev-list', '--max-parents=0', 'HEAD'], true).trim().split(/\r?\n/).pop();
         if (root && root !== headCommit) return root;
       } catch (e) {}
-      try { execSync('git rev-parse --verify HEAD~1', { cwd: projectDir, stdio: 'ignore' }); return 'HEAD~1'; } catch (e) {}
+      try { git(projectDir, ['rev-parse', '--verify', 'HEAD~1'], false); return 'HEAD~1'; } catch (e) {}
     }
   } catch (e) {}
   return '';
@@ -66,10 +82,10 @@ function run(projectDir, opts) {
     }
   }
   var mode = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'mode') || 'standard' : 'standard';
-  var invocationContent = '(section not found)';
+  var intakeContent = '(section not found)';
   var axis0Note = '';
-  if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, SECTION.invocation, 80); if (ic) invocationContent = ic; }
-  if (!invocationContent || invocationContent === '(section not found)') axis0Note = '[WARN] Invocation not found.';
+  if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, SECTION.intake, 80); if (ic) intakeContent = ic; }
+  if (!intakeContent || intakeContent === '(section not found)') axis0Note = '[WARN] Intake not found.';
   var designContent = '(not applicable)';
   if (specPath && fs.existsSync(specPath)) {
     var designRef = common.getFrontmatterField(specPath, 'design-file');
@@ -100,8 +116,8 @@ function run(projectDir, opts) {
   var diffBase = resolveDiffBase(projectDir, opts.diffBase || storedDiffBase || '');
   var diffContent = '(no git diff)';
   var diffSource = 'unavailable';
-  if (diffBase) {
-    try { diffContent = execSync('git diff ' + diffBase + ' HEAD', { cwd: projectDir, encoding: 'utf-8' }); diffSource = diffBase + '..HEAD'; } catch (e) {}
+  if (diffBase && isSafeGitRef(diffBase)) {
+    try { diffContent = execFileSync('git', ['diff', diffBase, 'HEAD'], { cwd: projectDir, encoding: 'utf-8' }); diffSource = diffBase + '..HEAD'; } catch (e) {}
   }
   var diffLines = diffContent.split(/\r?\n/).length;
   if (diffLines > 500) {
@@ -123,8 +139,8 @@ function run(projectDir, opts) {
   console.log('> Diff source: ' + diffSource);
   if (axis0Note) console.log(axis0Note);
   console.log('<!-- AXIS 0 BRIEF START -->');
-  console.log('### Axis 0 — Invocation Integrity [CONFIRMATION]');
-  console.log(invocationContent);
+  console.log('### Axis 0 — Intake Alignment [CONFIRMATION]');
+  console.log(intakeContent);
   console.log('Finding: ALIGNED | DRIFTED | VIOLATED | UNVERIFIABLE');
   console.log('<!-- AXIS 0 BRIEF END -->');
   console.log('<!-- AXIS 1 BRIEF START -->');

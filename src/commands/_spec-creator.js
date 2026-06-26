@@ -1,6 +1,6 @@
 var fs = require('fs');
 var path = require('path');
-var execSync = require('child_process').execSync;
+var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
 
 function todayIso() {
@@ -13,7 +13,7 @@ function yamlQuote(value) {
 
 function getCurrentCommit(projectDir) {
   try {
-    return execSync('git rev-parse HEAD', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return execFileSync('git', ['rev-parse', 'HEAD'], { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
   } catch (e) {
     return '';
   }
@@ -24,7 +24,7 @@ function replaceFirst(content, needle, replacement) {
   return content.replace(needle, replacement);
 }
 
-function fillInvocation(specContent, mode, opts) {
+function fillIntake(specContent, mode, opts) {
   var req = opts.requirement || '';
   var goal = opts.goal || '';
   var constraints = opts.constraints || '';
@@ -42,9 +42,9 @@ function fillInvocation(specContent, mode, opts) {
   if (req) lines.push('requirement: ' + req);
   if (goal) lines.push('goal: ' + goal);
   if (constraints) lines.push('constraints: ' + constraints);
-  var invocationContent = lines.join('\n');
-  if (!invocationContent) return specContent;
-  return specContent.replace('<!-- SDD_INVOCATION -->', invocationContent);
+  var intakeContent = lines.join('\n');
+  if (!intakeContent) return specContent;
+  return specContent.replace('<!-- SDD_INTAKE -->', intakeContent);
 }
 
 function workflowHint(mode) {
@@ -134,7 +134,7 @@ function run(projectDir, opts) {
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
   specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');
   specContent = specContent.replace(/^execute-log-file:.*/gm, 'execute-log-file: "' + yamlQuote(logRel) + '"');
-  specContent = fillInvocation(specContent, mode, opts);
+  specContent = fillIntake(specContent, mode, opts);
 
   fs.writeFileSync(specOut, specContent, 'utf-8');
   if (designOut) {

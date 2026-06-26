@@ -1,8 +1,23 @@
 var fs = require('fs');
 var path = require('path');
-var execSync = require('child_process').execSync;
+var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
 var learning = require('../core/learning');
+
+var gitRepoCache = new Map();
+
+function isInsideGitRepo(projectDir) {
+  var key = path.resolve(projectDir);
+  if (gitRepoCache.has(key)) return gitRepoCache.get(key);
+  var result = false;
+  try {
+    result = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
+      cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore']
+    }).trim() === 'true';
+  } catch (e) {}
+  gitRepoCache.set(key, result);
+  return result;
+}
 
 var SECTION = {
   confirmedRequirement: 'Confirmed Requirement',
@@ -78,6 +93,14 @@ function sectionHasContent(specPath, pattern) {
 
 function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// A verdict line counts as PASS only when it carries a PASS token and no FAIL_
+// token, so a failing line that merely mentions the word "PASS" is not archived.
+function isPassVerdict(line) {
+  var s = String(line || '');
+  if (/\bFAIL_/i.test(s)) return false;
+  return /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(s);
 }
 
 function labelHasContent(section, label) {
@@ -298,10 +321,7 @@ function validateSpec(specPath, opts) {
   var status = common.getFrontmatterField(specPath, 'status') || 'draft';
   var reviewSectionName = mode === 'standard' ? 'Review Verdict' : 'Review Summary';
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
-  var isGitRepo = false;
-  try {
-    isGitRepo = execSync('git rev-parse --is-inside-work-tree', { cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore'] }).trim() === 'true';
-  } catch (e) {}
+  var isGitRepo = isInsideGitRepo(projectDir);
 
   if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {
     issues.push('Missing diff-base frontmatter; Review cannot reliably know the task diff range.');
@@ -326,7 +346,7 @@ function validateSpec(specPath, opts) {
   var reviewLine = firstRealLine(review);
   if (!reviewLine) {
     issues.push(reviewSectionName + ' is empty.');
-  } else if (!/\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(reviewLine)) {
+  } else if (!isPassVerdict(reviewLine)) {
     issues.push(reviewSectionName + ' must contain a PASS verdict before archive.');
   }
 

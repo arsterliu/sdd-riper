@@ -29,7 +29,7 @@ var SECTION = {
   plan: 'Plan',
   executeLog: 'Execute Log',
   review: 'Review (Verdict|Summary)',
-  invocation: 'Invocation'
+  intake: 'Intake'
 };
 
 function stripHtmlComments(text) {
@@ -62,6 +62,14 @@ function subsectionHasContent(filePath, pattern) {
 
 function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// A verdict line counts as PASS only when it carries a PASS token and no FAIL_
+// token, so a failing line that merely mentions the word "PASS" is not archived.
+function isPassVerdict(line) {
+  var s = String(line || '');
+  if (/\bFAIL_/i.test(s)) return false;
+  return /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(s);
 }
 
 function labelHasContent(section, label) {
@@ -194,7 +202,7 @@ function completionState(projectDir, specPath, mode) {
     ? subsectionHasContent(specPath, SECTION.confirmedRequirement)
     : mode === 'lite'
       ? sectionHasContent(specPath, SECTION.confirmedRequirement)
-      : sectionHasContent(specPath, SECTION.invocation);
+      : sectionHasContent(specPath, SECTION.intake);
   var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
   var approvedBy = labelHasContent(content, 'Plan Approved By');
   var approvedAt = labelHasContent(content, 'Approved At');
@@ -208,7 +216,7 @@ function completionState(projectDir, specPath, mode) {
     plan: planApproved,
     executeLog: executeLog.hasContent,
     review: !!reviewLine,
-    reviewPass: /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(reviewLine),
+    reviewPass: isPassVerdict(reviewLine),
     reviewLine: reviewLine,
     designArtifact: design,
     executeLogArtifact: executeLog,

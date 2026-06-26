@@ -11,13 +11,35 @@ var projectIndexer = require('../core/project-indexer');
 
 var WEB_ROOT = path.resolve(__dirname, '..', 'web');
 
-function readRequestBody(req, callback) {
+function readRequestBody(req, res, callback) {
   var body = '';
+  var aborted = false;
   req.on('data', function(chunk) {
+    if (aborted) return;
     body += chunk;
-    if (body.length > 1024 * 1024) req.destroy();
+    if (body.length > 1024 * 1024) {
+      aborted = true;
+      sendJson(res, 413, { error: 'Request body too large.' });
+      req.destroy();
+    }
   });
-  req.on('end', function() { callback(body); });
+  req.on('end', function() { if (!aborted) callback(body); });
+}
+
+// Reject requests whose Host header is a domain name (DNS-rebinding / CSRF
+// guard). Direct access via localhost or a literal IP is allowed; a malicious
+// page that rebinds its own domain to 127.0.0.1 sends its domain as Host and
+// is refused.
+function hostAllowed(req) {
+  var name = String(req.headers.host || '')
+    .replace(/:\d+$/, '')
+    .replace(/^\[|\]$/g, '')
+    .toLowerCase();
+  if (!name) return false;
+  if (name === 'localhost') return true;
+  if (/^[0-9.]+$/.test(name)) return true;
+  if (name.indexOf(':') !== -1 && /^[0-9a-f:]+$/.test(name)) return true;
+  return false;
 }
 
 function projectInfo(projectDir) {
@@ -222,12 +244,16 @@ function createServer(projectDir, opts) {
     var parsed = url.parse(req.url, true);
     var pathname = parsed.pathname || '/';
     try {
+      if (!hostAllowed(req)) {
+        sendJson(res, 403, { error: 'Forbidden host. Access the console via localhost or a literal IP address.' });
+        return;
+      }
       if (req.method === 'GET' && pathname === '/api/project') {
         sendJson(res, 200, projectInfo(currentProjectDir));
         return;
       }
       if (req.method === 'POST' && pathname === '/api/projects/summary') {
-        readRequestBody(req, function(body) {
+        readRequestBody(req, res, function(body) {
           try {
             var payload = body ? JSON.parse(body) : {};
             var dirs = Array.isArray(payload.projectDirs) ? payload.projectDirs : [];
@@ -270,7 +296,7 @@ function createServer(projectDir, opts) {
         return;
       }
       if (req.method === 'POST' && pathname === '/api/project') {
-        readRequestBody(req, function(body) {
+        readRequestBody(req, res, function(body) {
           try {
             var payload = body ? JSON.parse(body) : {};
             var requested = payload.projectDir ? path.resolve(String(payload.projectDir)) : '';
@@ -329,7 +355,7 @@ function createServer(projectDir, opts) {
       if (req.method === 'POST' && openMatch) {
         var openProject = requireProject(currentProjectDir, res);
         if (!openProject) return;
-        readRequestBody(req, function(body) {
+        readRequestBody(req, res, function(body) {
           try {
             var payload = body ? JSON.parse(body) : {};
             var target = resolveArtifactTarget(openProject.projectDir, openMatch[1], payload.artifact || 'spec');
