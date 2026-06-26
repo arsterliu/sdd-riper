@@ -13,12 +13,12 @@ preferred resolution order at runtime.
 
 | SDD touchpoint | SKILL.md section | superpowers skill | vendored path | Fallback order |
 |:---|:---|:---|:---|:---|
-| Plan step granularity | Plan > Step Granularity Rule | `writing-plans` | `vendored/superpowers/writing-plans/` | global → vendored → inlined |
-| Subagent routing | Execute > Subagent Routing | `subagent-driven-development` | `vendored/superpowers/subagent-driven-development/` | global → vendored → inlined (also see `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract) |
-| TDD enforcement | Execute > TDD Rule | `test-driven-development` | `vendored/superpowers/test-driven-development/` | global → vendored → inlined |
-| Debug investigation | Execute > BUGFIX loop (step 2) | `systematic-debugging` | `vendored/superpowers/systematic-debugging/` | global → vendored → inlined |
-| Completion verification | Execute > Completion Verification Gate | `verification-before-completion` | `vendored/superpowers/verification-before-completion/` | global → vendored → inlined |
-| Pre-archive git gate | Archive > Pre-Archive Git Gate | `finishing-a-development-branch` | `vendored/superpowers/finishing-a-development-branch/` | global → vendored → inlined |
+| Plan step granularity | Plan Phase | `writing-plans` | `vendored/superpowers/writing-plans/` | global → vendored → inlined |
+| Subagent routing | Subagent Policy | `subagent-driven-development` | `vendored/superpowers/subagent-driven-development/` | global → vendored → inlined (also see `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract) |
+| TDD enforcement | Execute Phase (TDD) | `test-driven-development` | `vendored/superpowers/test-driven-development/` | global → vendored → inlined |
+| Debug investigation | Execute Phase (debug) | `systematic-debugging` | `vendored/superpowers/systematic-debugging/` | global → vendored → inlined |
+| Completion verification | Execute Phase (Completion Verification Gate) | `verification-before-completion` | `vendored/superpowers/verification-before-completion/` | global → vendored → inlined |
+| Pre-archive git gate | Archive Phase | `finishing-a-development-branch` | `vendored/superpowers/finishing-a-development-branch/` | global → vendored → inlined |
 
 ## Resolution Semantics
 

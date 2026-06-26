@@ -19,6 +19,8 @@ allowed-tools:
 
 Do not recite this file to the user. Use it to drive the workflow.
 
+The execution-quality methods referenced below (`writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `subagent-driven-development`, `finishing-a-development-branch`) are vendored under `vendored/superpowers/`. See `INTEGRATIONS.md` for the full touchpoint map. Resolution order at each touchpoint: global skill if your editor has it loaded → the vendored copy → the inlined summary kept here as fallback.
+
 ## Non-Negotiable Rules
 
 1. **No Spec, No Code**: never write implementation code without an active task Spec.
@@ -179,6 +181,8 @@ micro skips Innovate.
 
 This phase happens after Innovate and before Plan.
 
+Use the design-methodology supports in Reference Methods (DDD / C4 / ADR / arc42 / TOGAF / Phoenix Architecture) when shaping the Technical Design. They are the design-layer counterpart to the vendored execution-quality skills; pick what fits the task and skip the rest.
+
 ### Standard
 
 Write technical design in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It is a technical design contract. It must cover these required core fields:
@@ -245,6 +249,8 @@ Every step should include:
 - linked AC or acceptance condition
 - verification command or check
 
+Follow `writing-plans` for step granularity (see `vendored/superpowers/writing-plans/SKILL.md` — read on demand; prefer the global skill if loaded).
+
 Before Execute, satisfy the configured gate and write:
 
 ```text
@@ -260,7 +266,7 @@ Do not self-approve. `auto-gate` is allowed only when the evidence is explicit a
 
 Follow approved Plan steps in order.
 
-For production code, use TDD when applicable:
+For production code, use TDD when applicable, following `test-driven-development` (see `vendored/superpowers/test-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded):
 
 1. Write a failing test.
 2. Run and confirm it fails for the right reason.
@@ -294,9 +300,9 @@ When a retry is needed, run:
 sdd debug "<PROJECT_ROOT>" --error "<error summary>"
 ```
 
-For standard/lite, dispatch a Debug Investigator subagent when investigation would pollute context. Micro runs debug in the main context.
+For standard/lite, dispatch a Debug Investigator subagent when investigation would pollute context. Micro runs debug in the main context. Drive the investigation with `systematic-debugging` (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer the global skill if loaded): establish root cause before proposing a fix.
 
-Completion Verification Gate:
+Completion Verification Gate (see `vendored/superpowers/verification-before-completion/SKILL.md` — read on demand; prefer the global skill if loaded):
 
 1. Identify the proof command.
 2. Run it freshly.
@@ -417,6 +423,8 @@ sdd validate "<PROJECT_ROOT>" --archive-ready
 
 If validation fails, fix listed gates first.
 
+Before archiving, finish the development branch cleanly — commits, branch hygiene, no stray work-in-progress — following `finishing-a-development-branch` (see `vendored/superpowers/finishing-a-development-branch/SKILL.md` — read on demand; prefer the global skill if loaded).
+
 Then run:
 
 ```text
@@ -446,7 +454,7 @@ Default mode is micro. Reopen creates a new active Spec and a new Execute Log; s
 
 ## Subagent Policy
 
-Use `protocols/subagent-dispatch.md`.
+Use `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract, and `subagent-driven-development` for general routing technique (see `vendored/superpowers/subagent-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded).
 
 Subagents are:
 
@@ -468,7 +476,7 @@ The orchestrator writes all final artifacts and verifies all gates.
 
 ## Reference Methods
 
-Use these as design supports, not as mandatory ceremony:
+SDD-RIPER draws on two methodology layers. The **execution-quality** layer is the six vendored superpowers skills wired into Plan / Execute / Subagent / Archive above (see `INTEGRATIONS.md`). The **design-methodology** layer below is anchored in the Design / Acceptance / Learning phases. Use these as design supports, not as mandatory ceremony:
 
 - DDD: domain model, ubiquitous language, bounded context.
 - C4: system/container/component architecture view.
