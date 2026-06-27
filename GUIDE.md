@@ -2,6 +2,25 @@
 
 这份指南补充 README，说明流程细节、三种模式、产物边界、subagent 策略和验收标准写法。当前版本的 SDD-RIPER 是 Node CLI 和文件系统产物协议，不是模型执行 runtime；它通过 prompt、门禁和账本引导宿主 agent 或人工推进。
 
+## 设计理念
+
+### SDD 是控制协议层，不是 harness
+
+harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳，负责工具调用、权限、上下文窗口和模型执行循环。SDD 不做这些，也不该做。SDD 是骑在 harness 之上的**控制协议层**：它定义“做什么、何时停、出问题回退到哪”，以及一条由 Spec / Design / Execute Log / Learning 组成的产物真相链；真正的模型执行和代码修改由宿主 harness 完成。
+
+用“是不是完备 harness”衡量 SDD 是用错了标尺。该问的是：作为 AI 交付的控制协议，它是否覆盖了 意图捕获 → 设计 → 计划 → 执行审计 → 验证门禁 → 复盘沉淀 → 归档复用 的完整链路，并在 advisory / autonomous 两种模式下都成立。
+
+### 四个核心组件的关系
+
+| 组件 | 角色 | 比喻 |
+| :--- | :--- | :--- |
+| `workflow`（内部状态引擎） | 只读分析 Spec + 门禁，输出 verdict / 回跳目标 / 下一步 / risk flags / 方法论建议 | 大脑读数 |
+| `cruise`（自主巡航） | 把状态包装成循环契约：每轮修哪块、何时停、FAIL 回退到哪；自己不跑 | 循环契约书 |
+| 宿主原生 loop（Claude Dynamic Workflows / Codex / opencode） | 真正一轮一轮执行 | 借来的发动机 |
+| `challenge`（对抗审核） | 独立只读 reviewer，给出真正裁决 | 每轮裁判 |
+
+关键解耦：`workflow` 只发“应该用 ADR / 回退到 Design”这类**信号/指针**，不持有方法论实体和执行循环；方法论实体在 `SKILL.md` / `protocols/` / `vendored/`，执行循环借宿主，challenge 的裁决独立于实现 agent（裁判不能是运动员）。这就是“SDD 是控制协议、不是执行器”的落地方式。
+
 ## 一、产物边界
 
 当前版本采用 **Spec 控制面 + 独立 Design + 独立 Execute Log + 条件 Learning Record**。
@@ -109,9 +128,13 @@ loop 的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Wo
 
 lite 可以跳过 Innovate，但必须写 `Innovate: Skipped, Reason: ...`。
 
+方案探索与设计澄清可借助 vendored 的 `brainstorming` 方法（见第六节）：一次一问澄清意图、提出 2-3 个方案并给推荐、分段呈现设计并逐段确认，且“无设计批准不进实现”。注意 SDD 适配——产物落到 Spec 的 `Innovate Options` 和外部 `design-file`，不走 brainstorming 默认的 `docs/superpowers/specs/` 路径，也不自动转入 writing-plans（交给 SDD 自己的 Plan 门禁）。
+
 ### Design / Acceptance
 
 Design 在 Innovate 之后、Plan 之前完成。
+
+设计方法论按 `mode` + 风险**路由**，不是把所有方法论铺到每个任务。`sdd next` / `sdd cruise` 会输出 `DESIGN_METHOD` 和 `DESIGN_FOCUS_FIELDS` 作为 advisory 建议：micro 无独立设计；lite 用 ADR；standard 用 ADR + arc42 字段结构 + C4 视图；命中 `migration` / `public-api` / `security` / `billing` / `irreversible` 风险时点亮对应的 Design 重点字段；领域复杂时建议考虑 DDD。建议是 advisory，最终由 orchestrator 判断（机制见第六节）。
 
 standard 写独立 `Technical Design`。它不是方案说明，而是技术设计合同。归档门禁强制检查核心字段：
 
@@ -331,20 +354,46 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染风险高时派发。standard 推荐在 Research、复杂 Execute、Review 轴审查中使用。
 
-## 六、理论与最佳实践参考
+## 六、两层方法论与方法论路由
 
-这些参考不是固定模板，而是按复杂度进入 Design 或 Acceptance：
+SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可加载的方法论。
+
+### 执行质量层（vendored superpowers）
+
+`vendored/superpowers/` 物理内置了 7 个来自 [obra/superpowers](https://github.com/obra/superpowers) 的方法论 skill，绑定到 RIPER 各阶段动作。触点映射见仓库根的 `INTEGRATIONS.md`；加载顺序为：宿主全局 skill → vendored 副本 → `SKILL.md` 内联摘要。
+
+| Skill | 接入阶段 |
+| :--- | :--- |
+| `brainstorming` | Innovate（方案探索 / 设计澄清） |
+| `writing-plans` | Plan（步骤粒度） |
+| `test-driven-development` | Execute（TDD） |
+| `systematic-debugging` | Execute（debug / BUGFIX，先定根因） |
+| `verification-before-completion` | Execute（完成验证门禁） |
+| `subagent-driven-development` | Subagent 派发 |
+| `finishing-a-development-branch` | Archive（收尾分支） |
+
+按 scope 政策只 vendor 方法论 markdown，不带 `scripts/` / `hooks/`（仅 `brainstorming` 的浏览器可视化伴侣因此降级为纯文本，需要时用宿主全局 superpowers）。维护流程见 `vendored/superpowers/SYNC.md`。
+
+### 设计方法层
+
+设计 / 架构方法论按复杂度进入 Design 或 Acceptance，不是固定模板：
 
 | 参考 | 用在哪里 |
 | :--- | :--- |
 | DDD | 业务规则、领域模型、限界上下文、统一语言。 |
 | C4 Model | 系统、容器、组件边界和依赖关系。 |
-| ADR | 重要技术取舍和长期影响决策。 |
-| Learning Record | 执行后沉淀可复用判断规则，反哺后续 Research / Design / Plan / Review。 |
+| ADR | 重要技术取舍和长期影响决策；写法见 `protocols/adr.md`。 |
 | arc42 | standard 模式下完整技术设计结构。 |
 | TOGAF | 多系统、多团队、企业级视角，按需借鉴业务/数据/应用/技术维度。 |
 | 凤凰架构 | 分布式、可靠性、演进式架构、故障模式和权衡。 |
 | BDD / Gherkin | 用户行为、CLI 行为、错误处理、状态变化验收。 |
+| Learning Record | 执行后沉淀可复用判断规则，反哺后续 Research / Design / Plan / Review。 |
+
+与执行质量层不同，设计方法层目前多为文字指引；只有 ADR 做成了本地可加载资源 `protocols/adr.md`（Nygard 极简格式，填进 Design 的 `Selected Option / ADR` 字段）。DDD / C4 / arc42 维持按需指引，不内置——符合 SDD“抽象、不绑定技术栈”的定位。
+
+### 方法论路由
+
+不要把所有方法论铺到每个任务。SDD 复用已有的 `mode` + `riskFlags` 信号路由设计方法：`sdd next` / `sdd cruise` / `sdd challenge` 输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议（micro 无 / lite→ADR / standard→ADR + arc42 + C4 / 各 risk 点亮对应 Design 字段 / 复杂领域提示 DDD）。路由是建议性的，信号确定、可被 cruise 和 Console 消费，最终由 orchestrator 拍板。
 
 ## 七、CLI 命令
 
@@ -367,8 +416,9 @@ micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染
 | `create-codemap` / `new-codemap` | 生成或创建模块地图。 |
 | `create-projectmap` / `new-projectmap` | 生成或创建项目地图。 |
 | `build-context-bundle` | 把外部材料压缩成上下文包。 |
+| `install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
 
-安装后使用 `sdd` 命令执行所有操作。
+安装后使用 `sdd` 命令执行所有操作。`next` / `cruise` / `challenge` 的输出已包含 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 方法论路由建议（见第三、六节）。
 
 ## 八、Web Console
 
