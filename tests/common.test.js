@@ -123,6 +123,38 @@ describe('common.js utilities', function() {
     assert.ok(result.endsWith('v1.1-test-task.md'), 'Expected v1.1, got: ' + result);
   });
 
+  it('findLatestSpec prefers non-archived over a newer-mtime archived spec (AC-001)', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    var draft = path.join(specsDir, 'v1.0-alpha.md');
+    var arch = path.join(specsDir, 'v2.0-beta.md');
+    fs.writeFileSync(draft, '---\nstatus: draft\ndate: 2026-06-01\n---\n', 'utf-8');
+    fs.writeFileSync(arch, '---\nstatus: archived\ndate: 2026-06-20\n---\n', 'utf-8');
+    var oldT = new Date(Date.now() - 100000), newT = new Date();
+    fs.utimesSync(draft, oldT, oldT); // non-archived has the older mtime
+    fs.utimesSync(arch, newT, newT);  // archived has the newer mtime
+    assert.equal(common.findLatestSpec(specsDir), draft);
+  });
+
+  it('findLatestSpec orders non-archived by date, not mtime (AC-002)', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    var older = path.join(specsDir, 'v1.0-older.md');
+    var newer = path.join(specsDir, 'v1.0-newer.md');
+    fs.writeFileSync(older, '---\nstatus: draft\ndate: 2026-06-01\n---\n', 'utf-8');
+    fs.writeFileSync(newer, '---\nstatus: draft\ndate: 2026-06-25\n---\n', 'utf-8');
+    var oldT = new Date(Date.now() - 100000), newT = new Date();
+    fs.utimesSync(newer, oldT, oldT); // newer date but older mtime (simulates git checkout)
+    fs.utimesSync(older, newT, newT);
+    assert.equal(common.findLatestSpec(specsDir), newer);
+  });
+
+  it('findLatestSpec breaks date ties by version (AC-003)', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    fs.writeFileSync(path.join(specsDir, 'v1.0-x.md'), '---\nstatus: draft\ndate: 2026-06-10\n---\n', 'utf-8');
+    var hi = path.join(specsDir, 'v1.2-x.md');
+    fs.writeFileSync(hi, '---\nstatus: draft\ndate: 2026-06-10\n---\n', 'utf-8');
+    assert.equal(common.findLatestSpec(specsDir), hi);
+  });
+
   it('getFrontmatterField reads YAML frontmatter', function() {
     var specFile = path.join(docsDir, 'specs', 'v1.0-test.md');
     fs.writeFileSync(specFile, '---\ndate: 2026-06-11\ntask-name: "my-task"\nmode: standard\nstatus: draft\n---\n\n# Spec\n', 'utf-8');
