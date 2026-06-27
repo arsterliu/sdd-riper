@@ -73,7 +73,7 @@ Use plain user-facing text for the activation choice, then stop and wait if the 
 When the user chooses setup:
 
 1. Ask target directory if unclear.
-2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise default to standard.
+2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
 3. Do not manually create the scaffold with Write/Edit.
 4. Offer to create CodeMap only when the command output or project complexity indicates it is useful.
 5. To create the first task, run:
@@ -141,6 +141,8 @@ Use `sdd cruise "<PROJECT_ROOT>" --engine claude-code --emit-claude-prompt` to o
 | micro | Single-file, low-risk, reversible changes | no standalone Design; Plan contains impact analysis, Acceptance, and Verification | external required | default no |
 
 Upgrade from micro to lite/standard for security, permission, billing, data migration, public API, cross-module side effects, irreversible change, or high uncertainty.
+
+Default to `micro` and escalate only on a named signal — `standard` must be earned (an interface contract, irreversibility, risk class, or three or more stacked signals), not chosen "to be safe". Full rubric: `protocols/mode-selection.md`. The rubric is advisory; it guides the mode chosen at `init` / `discover` and does not change `--mode` behavior.
 
 ## Research Phase
 

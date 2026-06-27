@@ -812,6 +812,18 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('(no git diff)') !== -1, 'expected (no git diff) outside repo: ' + out.slice(0, 200));
   });
 
+  it('discover prints the mode-selection advisory and escalates the nudge for standard', function() {
+    var demo = path.join(tmpBase, 'd6mode');
+    run('init ' + demo + ' --mode lite');
+    var lite = run('discover ' + demo + ' --task-name mode-lite --spec-version v1.0 --mode lite');
+    assert.ok(lite.indexOf('[MODE] lite') !== -1, 'expected MODE advisory: ' + lite.slice(0, 300));
+    assert.ok(lite.indexOf('protocols/mode-selection.md') !== -1, 'expected rubric pointer');
+    assert.ok(lite.indexOf('standard is the heaviest') === -1, 'lite should not get the standard nudge');
+    var std = run('discover ' + demo + ' --task-name mode-std --spec-version v1.0 --mode standard');
+    assert.ok(std.indexOf('[MODE] standard') !== -1);
+    assert.ok(std.indexOf('standard is the heaviest') !== -1, 'standard should get the heavier nudge: ' + std.slice(0, 300));
+  });
+
   it('console API exposes spec list, detail, and archive validation', async function() {
     var demo = path.join(tmpBase, 'd7');
     run('init ' + demo + ' --mode standard');

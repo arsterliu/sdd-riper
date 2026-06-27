@@ -47,6 +47,18 @@ function fillIntake(specContent, mode, opts) {
   return specContent.replace('<!-- SDD_INTAKE -->', intakeContent);
 }
 
+// Advisory nudge toward the mode-selection rubric. Does not change --mode
+// behavior; just reminds the chooser that micro is the default and standard
+// must be earned. See protocols/mode-selection.md.
+function modeAdvisory(mode, explicit) {
+  var lines = ['[MODE] ' + mode + (explicit ? ' (from --mode)' : ' (from project default)') +
+    ' — rubric: protocols/mode-selection.md (default micro; escalate only on a named signal).'];
+  if (mode === 'standard') {
+    lines.push('  standard is the heaviest mode: confirm a real signal earns it (interface contract, irreversibility, risk, or 3+ stacked signals); otherwise prefer lite/micro.');
+  }
+  return lines.join('\n');
+}
+
 function workflowHint(mode) {
   if (mode === 'micro') {
     return '### AI: Follow Plan -> Execute Log -> Review -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
@@ -146,6 +158,8 @@ function run(projectDir, opts) {
 
   var suggestion = common.shouldSuggestCodeMap(projectDir, docsDir);
   if (suggestion) console.log(suggestion);
+
+  console.log(modeAdvisory(mode, !!opts.mode));
 
   console.log('');
   console.log('## SPEC CREATION PROMPT');
