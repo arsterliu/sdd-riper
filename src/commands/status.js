@@ -58,7 +58,7 @@ function run(projectDir) {
   console.log('[SDD Status] ' + projectDir);
 
   var missingDirs = [];
-  ['specs','design','logs','learnings','codemap','context','archive'].forEach(function(d) {
+  ['specs','design','logs','learnings','runs','codemap','context','archive'].forEach(function(d) {
     if (!fs.existsSync(path.join(docsRoot, d))) missingDirs.push(docsDir + '/' + d);
   });
   if (missingDirs.length === 0) console.log('  Structure:    OK');
