@@ -111,6 +111,12 @@ program.command('review-execute <project-dir>')
   .option('--diff-base <rev>', 'git diff base')
   .action(function(p, o) { require('../src/commands/review-execute')(p, o); });
 
+program.command('learnings [project-dir]')
+  .description('Show project-level learnings, or relevance-ranked recall for a spec (--for)')
+  .option('--for <spec>', 'spec path/name to recall relevant learnings for')
+  .option('--limit <n>', 'max recall results (default 5)')
+  .action(function(p, o) { require('../src/commands/learnings')(p || '.', o); });
+
 program.command('create-codemap <project-dir>')
   .description('Generate CodeMap creation prompt')
   .option('--module <name>', 'module name')

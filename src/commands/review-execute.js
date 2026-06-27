@@ -26,10 +26,13 @@ var SECTION = {
   executeLog: 'Execute Log'
 };
 
-function learningBrief(projectDir) {
-  var files = learning.listLearningFiles(projectDir, 5);
+function learningBrief(projectDir, queryText) {
+  var files = learning.recallLearnings(projectDir, queryText || '', 5);
   if (!files.length) return '(no Learning Records found)';
-  return files.map(function(filePath) {
+  var header = (queryText && queryText.trim())
+    ? '(relevance-ranked against the current spec; falls back to recency when no lexical match)'
+    : '(most recent)';
+  return header + '\n\n' + files.map(function(filePath) {
     var rel = common.relativeToProject(projectDir, filePath);
     var content = common.extractSection(filePath, 'Learning Record', 80) || '(empty Learning Record)';
     return '### ' + rel + '\n' + content;
@@ -177,7 +180,12 @@ function run(projectDir, opts) {
       : common.extractSection(specPath, SECTION.executeLog, 100);
     if (el) executeLog = el;
   }
-  var learningContent = learningBrief(projectDir);
+  var learningQuery = [
+    (specPath && fs.existsSync(specPath)) ? (common.getFrontmatterField(specPath, 'task-name') || '') : '',
+    intakeContent === '(section not found)' ? '' : intakeContent,
+    planContent
+  ].join(' ');
+  var learningContent = learningBrief(projectDir, learningQuery);
 
   console.log('## REVIEW EXECUTE PROMPT (4-Axis)');
   console.log('> Diff source: ' + diffSource);

@@ -80,15 +80,47 @@ function challengeVerdictFromIssues(issues) {
   return found[0] || 'FAIL_SPEC';
 }
 
+// Strip a leading "Label:" prefix from each line so keyword scanning sees the
+// filled values, not the template field names (the standard design template's
+// own labels — "Security / Permission", "Data Migration / Backfill",
+// "Data Model / Schema" — otherwise flag every standard spec).
+function stripLeadingLabels(text) {
+  return String(text || '').split(/\r?\n/).map(function(line) {
+    return line.replace(/^\s*[A-Za-z][A-Za-z0-9 /_-]*:\s*/, '');
+  }).join('\n');
+}
+
+// The "action region" of a spec: what the work will actually do (Plan + the
+// Design contract), with field labels stripped. Risk is judged from intended
+// actions, not from narrative that merely discusses risk in Research/Findings.
+function actionText(projectDir, specPath) {
+  var parts = [];
+  var plan = common.extractSection(specPath, 'Plan', 400);
+  if (plan) parts.push(plan);
+  var designRef = common.getFrontmatterField(specPath, 'design-file');
+  var designContent = '';
+  if (designRef) {
+    var dp = common.resolveProjectPath(projectDir, designRef);
+    if (dp && fs.existsSync(dp)) {
+      designContent = common.extractSection(dp, 'Technical Design', 400) || common.extractSection(dp, 'Design Note', 400) || '';
+    }
+  }
+  if (!designContent) {
+    designContent = common.extractSection(specPath, 'Technical Design', 400) || common.extractSection(specPath, 'Design Note', 400) || '';
+  }
+  if (designContent) parts.push(designContent);
+  return stripLeadingLabels(parts.join('\n'));
+}
+
 function riskFlags(content) {
   var text = String(content || '').replace(/<!--[\s\S]*?-->/g, '').toLowerCase();
   var flags = [];
   [
-    ['security', /\bsecurity|auth|permission|credential|secret\b/],
-    ['billing', /\bbilling|payment|invoice|charge\b/],
-    ['migration', /\bmigration|migrate|backfill|schema\b/],
-    ['public-api', /\bpublic api|api contract|external api\b/],
-    ['irreversible', /\birreversible|destructive|delete data\b/]
+    ['security', /\b(security|auth|permission|credential|secret)\b/],
+    ['billing', /\b(billing|payment|invoice|charge)\b/],
+    ['migration', /\b(migration|migrate|backfill|schema)\b/],
+    ['public-api', /\b(public api|api contract|external api)\b/],
+    ['irreversible', /\b(irreversible|destructive|delete data)\b/]
   ].forEach(function(item) {
     if (item[1].test(text)) flags.push(item[0]);
   });
@@ -172,7 +204,8 @@ function analyzeSpec(projectDir, specPath, opts) {
   }
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
-  var flags = riskFlags(content);
+  var action = actionText(projectDir, specPath);
+  var flags = riskFlags(action && action.trim() ? action : content);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var explicit = explicitChallengeVerdict(content);
   var validationVerdict = challengeVerdictFromIssues(validation.issues);
@@ -211,5 +244,7 @@ module.exports = {
   analyzeProject: analyzeProject,
   challengeVerdictFromIssues: challengeVerdictFromIssues,
   designMethodHint: designMethodHint,
-  formatDesignMethodLines: formatDesignMethodLines
+  formatDesignMethodLines: formatDesignMethodLines,
+  riskFlags: riskFlags,
+  actionText: actionText
 };

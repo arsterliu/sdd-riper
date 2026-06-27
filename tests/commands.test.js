@@ -824,6 +824,26 @@ describe('CLI commands', function() {
     assert.ok(std.indexOf('standard is the heaviest') !== -1, 'standard should get the heavier nudge: ' + std.slice(0, 300));
   });
 
+  it('learnings lists the project index and recalls per spec (AC-003)', function() {
+    var demo = path.join(tmpBase, 'd6learn');
+    run('init ' + demo + ' --mode lite');
+    run('discover ' + demo + ' --task-name pay-retry --spec-version v1.0 --requirement "payment retry idempotency"');
+    run('new-learning ' + demo + ' pay-retry');
+    var lf = path.join(demo, 'mydocs', 'learnings', 'v1.0-pay-retry.learning.md');
+    var c = fs.readFileSync(lf, 'utf-8')
+      .replace('Applies When:', 'Applies When: payment retry idempotency')
+      .replace('Decision Rule:', 'Decision Rule: use idempotency keys');
+    fs.writeFileSync(lf, c, 'utf-8');
+    var idx = run('learnings ' + demo);
+    assert.ok(idx.indexOf('PROJECT LEARNINGS') !== -1, 'expected project index: ' + idx);
+    assert.ok(idx.indexOf('pay-retry') !== -1);
+    assert.ok(idx.indexOf('payment retry idempotency') !== -1);
+    var spec = path.join(demo, 'mydocs', 'specs', 'v1.0-pay-retry.md');
+    var recall = run('learnings ' + demo + ' --for ' + spec);
+    assert.ok(recall.indexOf('LEARNING RECALL') !== -1, 'expected recall view: ' + recall);
+    assert.ok(recall.indexOf('v1.0-pay-retry.learning.md') !== -1);
+  });
+
   it('console API exposes spec list, detail, and archive validation', async function() {
     var demo = path.join(tmpBase, 'd7');
     run('init ' + demo + ' --mode standard');
