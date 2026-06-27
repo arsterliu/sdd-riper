@@ -521,6 +521,7 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
 - `sdd validate <dir> --archive-ready`
 - `sdd new-learning <dir> [spec-name]`
+- `sdd learnings <dir> [--for <spec>]` — project-level learnings, or relevance-ranked recall for a spec
 - `sdd review-execute <dir>`
 - `sdd debug <dir> --error <msg>`
 - `sdd archive <dir> <spec-name>`
