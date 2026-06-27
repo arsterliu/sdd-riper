@@ -980,6 +980,19 @@ describe('CLI commands', function() {
     assert.ok(skill.indexOf('protocols/adr.md') !== -1);
   });
 
+  it('doctor passes on the real repo and fails on dangling references', function() {
+    var ok = run('doctor');
+    assert.ok(ok.indexOf('RESULT: OK') !== -1, 'doctor should pass on the real repo: ' + ok);
+
+    var broken = path.join(tmpBase, 'doctor-broken');
+    fs.mkdirSync(broken, { recursive: true });
+    fs.writeFileSync(path.join(broken, 'SKILL.md'), 'see vendored/superpowers/ghost/SKILL.md and protocols/missing.md', 'utf-8');
+    fs.writeFileSync(path.join(broken, 'INTEGRATIONS.md'), '', 'utf-8');
+    var bad = run('doctor ' + broken);
+    assert.ok(bad.indexOf('FAIL') !== -1, 'doctor should report FAIL: ' + bad);
+    assert.ok(bad.indexOf('exit:') !== -1, 'doctor should exit nonzero: ' + bad);
+  });
+
   it('help and version', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);

@@ -44,6 +44,10 @@ program.command('status <project-dir>')
   .description('Check project health')
   .action(function(p) { require('../src/commands/status')(p); });
 
+program.command('doctor [project-dir]')
+  .description('Self-check SDD wiring (vendored/protocols references, INTEGRATIONS touchpoints, install-skill coverage)')
+  .action(function(p) { require('../src/commands/doctor')(p); });
+
 program.command('next <project-dir>')
   .description('Analyze current workflow state and next action')
   .option('--spec <path>', 'spec file')
