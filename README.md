@@ -2,7 +2,7 @@
 
 SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **Learning Record** 管可复用经验，用 **CodeMap / ProjectMap** 管架构认知。
 
-它不是模型执行器，也不是通用 agent 平台。当前实现是一套 **Node CLI + 文件系统产物 + 本地观测 Console + Prompt/账本适配层**：CLI 负责创建、校验、归档和生成提示；真正的代码修改、命令执行、动态循环由人或宿主 agent 完成。Console 对项目状态是只读投影，自身从不写产物，唯一的副作用是把「打开文件」委托给本机默认程序。
+它不是模型执行器，也不是通用 agent 平台（不是 harness）。当前实现是一套 **Node CLI + 文件系统产物 + 本地观测 Console + Prompt/账本适配层**：CLI 负责创建、校验、归档和生成提示；真正的代码修改、命令执行、动态循环由人或宿主 agent 完成。Console 对项目状态是只读投影，自身从不写产物，唯一的副作用是把「打开文件」委托给本机默认程序。
 
 核心目标不是多写文档，而是让每个任务都能被追踪、审查和归档：
 
@@ -13,7 +13,55 @@ SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **
 - 偏差、返工和 concern 会沉淀为后续可复用的判断规则。
 - 归档后可以 reopen，而不是重新 discover 丢失上下文。
 
-## 安装
+## 文档导航
+
+SDD-RIPER 的文档按受众分层。先按下表找到适合你的入口：
+
+| 文档 | 给谁 | 何时看 |
+| :--- | :--- | :--- |
+| **README**（本文） | 所有人 | 第一次接触：了解定位、快速跑起来、命令速查 |
+| **[GUIDE.md](./GUIDE.md)** | 开发者 | 深入用：设计理念、RIPER 各阶段细节、两层方法论、FAQ |
+| **[TEAM-GUIDE.md](./TEAM-GUIDE.md)** | TL / 团队 | 团队落地：推广节奏、角色分工、自动化与巡航、常见坑 |
+| **[INTEGRATIONS.md](./INTEGRATIONS.md)** | 维护者 / agent | 集成图谱：SDD ↔ superpowers 触点映射与加载顺序 |
+| **SKILL.md / `protocols/`** | AI agent | 由 agent 加载的工作流规范，人类一般不必通读 |
+
+按角色快速定位：
+
+- **第一次用** → 读本文「快速开始」，跑一个 micro 任务。
+- **要认真用 SDD 做任务** → README 概览 + [GUIDE.md](./GUIDE.md) 细节。
+- **带团队落地 / 做 TL** → [TEAM-GUIDE.md](./TEAM-GUIDE.md)。
+- **扩展方法论 / 维护 vendored** → [INTEGRATIONS.md](./INTEGRATIONS.md) + `vendored/superpowers/SYNC.md`。
+- **给 Codex / Claude / opencode 接入** → 跑 `sdd install-skill`，agent 自动加载 `SKILL.md`。
+
+三份人读文档的分工：**README 是概览（是什么 + 怎么开始），GUIDE 是细节（怎么深入用），TEAM-GUIDE 是团队落地（怎么推广）**。内容若有交叠，以各自的深度层级为准。
+
+## 快速开始
+
+安装（需 Node.js 18+）：
+
+```text
+npm install -g git+https://github.com/arsterliu/sdd-riper.git
+```
+
+在 agent 里触发 Skill：`/sdd`；或直接用 CLI：
+
+```text
+sdd init my-project --mode standard
+sdd discover my-project --task-name my-task --version v1.0 --requirement "我要做什么"
+sdd resume my-project
+```
+
+`discover` 会创建一组任务产物：
+
+- `mydocs/specs/v1.0-my-task.md`
+- `mydocs/design/v1.0-my-task.design.md`，micro 模式不创建
+- `mydocs/logs/v1.0-my-task.execute.md`
+
+Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-file`，后续命令都从这些引用读取独立产物。
+
+阶段产物的模板结构保持英文，包括 Spec 阶段标题、Design 字段、Execute Log 字段、Learning Record 字段、frontmatter 键、文件引用键、命令名、状态枚举、验证枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
+
+## 安装（完整说明）
 
 统一从 GitHub 安装 CLI：
 
@@ -86,32 +134,6 @@ npm uninstall -g sdd-riper
 npm install -g git+https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target codex --clean
 ```
-
-## 30 秒上手
-
-Skill 触发：
-
-```text
-/sdd
-```
-
-CLI：
-
-```text
-sdd init my-project --mode standard
-sdd discover my-project --task-name my-task --version v1.0 --requirement "我要做什么"
-sdd resume my-project
-```
-
-`discover` 会创建一组任务产物：
-
-- `mydocs/specs/v1.0-my-task.md`
-- `mydocs/design/v1.0-my-task.design.md`，micro 模式不创建
-- `mydocs/logs/v1.0-my-task.execute.md`
-
-Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-file`，后续命令都从这些引用读取独立产物。
-
-阶段产物的模板结构保持英文，包括 Spec 阶段标题、Design 字段、Execute Log 字段、Learning Record 字段、frontmatter 键、文件引用键、命令名、状态枚举、验证枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
 ## 核心产物
 
@@ -191,6 +213,8 @@ Design 按模式分层约束：
 - `lite` 的 `Design Note` 保持轻量，但必须说明 `Impact Scope` 和 `Interface / Data Impact`。
 - `micro` 不创建独立 Design，但 Plan 必须包含 `Impact Scope`、`Data Impact`、`Interface Impact`、`Acceptance` 和 `Verification`。
 
+设计方法论按 `mode` + 风险路由：`sdd next` / `cruise` / `challenge` 会输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议，背后是「执行质量层（vendored superpowers）+ 设计方法层（DDD/C4/ADR/arc42）」两层方法论。细节见 [GUIDE.md](./GUIDE.md) 第六节与 [INTEGRATIONS.md](./INTEGRATIONS.md)。
+
 Gate / Cruise 默认策略：
 
 - 新项目默认 `GATE_POLICY="auto"`、`CRUISE_POLICY="autonomous"`、`CRUISE_MAX_ITERATIONS="5"`。
@@ -268,4 +292,10 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
     └── archive/     # 已归档 Spec / Design / Execute Log / Learning
 ```
 
-更多细节见 [GUIDE.md](./GUIDE.md)。
+---
+
+需要更深入的内容：
+
+- 流程与各阶段细节、设计理念、两层方法论、FAQ → [GUIDE.md](./GUIDE.md)
+- 团队落地、角色分工、巡航与自动化 → [TEAM-GUIDE.md](./TEAM-GUIDE.md)
+- SDD ↔ superpowers 集成图谱 → [INTEGRATIONS.md](./INTEGRATIONS.md)
