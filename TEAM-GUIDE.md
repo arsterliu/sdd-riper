@@ -49,6 +49,7 @@
   - 负责编写和维护 `CodeMap` 和 `ProjectMap`。
   - 作为 Reviewer 审批其他成员的 Plan，并对 Review 四轴中 `Axis 2`（Code Diff Scope）亲自跑 diff 审计，不下放给 subagent。
   - 在 `## Review Verdict` / `## Review Summary` 区块追加 Review Pass N + ISO-8601 timestamp，不覆盖历史 Pass。
+  - 写 `Technical Design` 时用 ADR（`protocols/adr.md`）记录选型；对高风险任务发起 `sdd challenge` 做独立对抗评审（见第 9 节）。
 
 - **初级研发 / 低经验同学**：
   - 建议先从 **Lite** 模式入手，培养“思考后再动手”的习惯。
@@ -56,7 +57,7 @@
 
 - **TL / 主管 (Team Lead)**：
   - 负责 `Plan Approved` 门禁。
-  - 定期查看 `sdd status` 报告，识别进度风险。
+  - 定期查看 `sdd status` 报告，识别进度风险；多项目 / 全员进度用 `sdd console` 看板更直观（见第 9 节）。
   - 不必介入每一行代码，但必须把控“方案方向”。
 
 ---
@@ -85,8 +86,8 @@
 
 ## 6. 方法论深度解析
 
-### sdd_discover 的艺术
-`sdd_discover` 动作要求同时接收 **requirement** (你要做什么) 和 **context** (你以前是怎么做的)。
+### sdd discover 的艺术
+`sdd discover` 动作要求同时接收 **requirement** (你要做什么) 和 **context** (你以前是怎么做的)。
 - CLI 推荐入口：`sdd discover <dir> --task-name <name> ...`
 - 常见错误：只给 requirement，导致 AI 重新发明轮子；只给 context，导致 AI 无所适从。
 - 正确做法：requirement 定义任务底色，context 填充细节，Spec 最终收敛为单一真相。
@@ -128,6 +129,28 @@
    - *症结*：为了完成任务而归档，把 Spec 原文搬进 `archive/` 完事，AI 之后无法快速提取关键决策。
    - *解法*：`sdd archive` 会在原 Spec 末尾追加四个 summary section（目标摘要 / 最终方案 / 关键约束 / 坑点与风险），由开发者 Edit 填实后再 `resume` 验证；不要让 `<!-- (未填充) -->` 占位符遗留。归档的产物是一份**带决策密度的 Spec**，不是 Spec 的副本。
 
-5. **坑：Windows 路径兼容性问题**
-   - *症结*：旧 shell 版本在 PowerShell 下可能有路径问题。
-   - *解法*：全员使用 **npm/npx** 命令。
+5. **坑：Windows 路径与安装问题**
+   - *症结*：把带空格的项目路径直接拼进命令，或不同 shell 下行为不一致。
+   - *解法*：当前已是 Node CLI，全员用 `npm install -g` 安装的 `sdd` 命令（需 Node 18+）；路径含空格时用引号包裹，如 `sdd next "D:\my project"`。
+
+---
+
+## 9. 自动化、巡航与方法论
+
+基础 RIPER 跑顺后，团队可以用下面这层把“人工推进”升级为“带门禁的半自动 / 自动推进”。SDD 只做控制协议——定义做什么、何时停、回退到哪；真正的执行循环复用宿主 agent（Claude Dynamic Workflows / Codex / opencode 的原生 loop），SDD 不自建模型 runtime，也不是 harness。
+
+### 对抗评审（challenge）
+`sdd challenge <dir>` 生成独立对抗评审 prompt，由一个只读、独立于实现者的 reviewer 找茬（目标偏离、设计遗漏、验收不可验证、实现越界），输出 `PASS / PASS_WITH_CONCERNS / FAIL_*`。任何 `FAIL_*` 阻止归档并回跳到对应阶段。用它把“质量判断”从实现者手里独立出来——裁判不能是运动员。
+
+### 自主巡航（cruise）
+`sdd cruise <dir>` 生成有预算的巡航控制 prompt：每轮“next → 只修回跳目标 → validate → review / challenge → 回跳”，遇 PASS / 高风险 / 超过 `CRUISE_MAX_ITERATIONS` 即停。
+- `CRUISE_POLICY`：`off`（禁用）/ `assisted`（每轮人工确认）/ `autonomous`（允许宿主原生 loop）。按模块风险选：核心模块用 assisted，常规任务可 autonomous。
+- 遇安全 / 权限 / 计费 / 数据迁移 / 公共 API / 不可逆变更，巡航必须停下要求人工介入。
+
+### 进度看板（console）
+`sdd console` 启动本地只读 Web 看板，一屏看多项目、每个 Spec 的阶段 / 门禁问题 / 最新巡航状态，比逐个 `sdd status` 更适合全员进度观察。它只读投影，不改产物。
+
+### 方法论路由与两层方法论
+Design 阶段不必凭感觉选方法论。`sdd next` / `cruise` / `challenge` 会按 `mode` + 风险输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 建议（advisory，最终由人拍板）。背后是两层可加载方法论：
+- **执行质量层**：`vendored/superpowers/` 内置的 brainstorming / TDD / 系统化调试 / 完成验证 / 计划撰写 / 子 agent / 分支收尾，绑定到 RIPER 各阶段动作（触点见 `INTEGRATIONS.md`）。
+- **设计方法层**：DDD / C4 / arc42 等按需进入 Design；其中 ADR 有本地写法 `protocols/adr.md`，Senior 写 `Technical Design` 的 `Selected Option / ADR` 字段时直接照它。
