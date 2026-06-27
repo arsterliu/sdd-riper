@@ -767,6 +767,51 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('AC-001') !== -1);
   });
 
+  function gitInit(dir) {
+    execSync('git init', { cwd: dir, stdio: 'ignore' });
+    execSync('git config user.email t@example.com', { cwd: dir, stdio: 'ignore' });
+    execSync('git config user.name Tester', { cwd: dir, stdio: 'ignore' });
+  }
+
+  it('review-execute default diffs the working tree including untracked files (AC-001/002/004)', function() {
+    var demo = path.join(tmpBase, 'd6wt');
+    run('init ' + demo + ' --mode lite');
+    var trackedFile = path.join(demo, 'tracked.txt');
+    fs.writeFileSync(trackedFile, 'original line\n', 'utf-8');
+    gitInit(demo);
+    execSync('git add -A', { cwd: demo, stdio: 'ignore' });
+    execSync('git commit -m baseline', { cwd: demo, stdio: 'ignore' });
+    fs.writeFileSync(trackedFile, 'changed line ZZTRACKED\n', 'utf-8');           // tracked, uncommitted
+    fs.writeFileSync(path.join(demo, 'fresh.txt'), 'brand new ZZUNTRACKED\n', 'utf-8'); // untracked
+    var out = run('review-execute ' + demo);
+    assert.ok(out.indexOf('> Diff source: working tree') !== -1, 'expected working tree source: ' + out.slice(0, 200));
+    assert.ok(out.indexOf('ZZTRACKED') !== -1, 'tracked change missing from Axis 2');
+    assert.ok(out.indexOf('ZZUNTRACKED') !== -1, 'untracked file missing from Axis 2');
+  });
+
+  it('review-execute --diff-base uses the branch model (AC-003)', function() {
+    var demo = path.join(tmpBase, 'd6br');
+    run('init ' + demo + ' --mode lite');
+    gitInit(demo);
+    execSync('git add -A', { cwd: demo, stdio: 'ignore' });
+    execSync('git commit -m baseline', { cwd: demo, stdio: 'ignore' });
+    var base = execSync('git rev-parse HEAD', { cwd: demo, encoding: 'utf-8' }).trim();
+    fs.writeFileSync(path.join(demo, 'committed.txt'), 'committed change ZZCOMMIT\n', 'utf-8');
+    execSync('git add -A', { cwd: demo, stdio: 'ignore' });
+    execSync('git commit -m second', { cwd: demo, stdio: 'ignore' });
+    var out = run('review-execute ' + demo + ' --diff-base ' + base);
+    assert.ok(out.indexOf('> Diff source: ' + base + '..HEAD') !== -1, 'expected branch source: ' + out.slice(0, 200));
+    assert.ok(out.indexOf('ZZCOMMIT') !== -1, 'committed change missing from branch diff');
+  });
+
+  it('review-execute reports no git diff outside a repo (AC-005)', function() {
+    var demo = path.join(tmpBase, 'd6ng');
+    run('init ' + demo + ' --mode lite');
+    var out = run('review-execute ' + demo);
+    assert.ok(out.indexOf('REVIEW EXECUTE PROMPT') !== -1);
+    assert.ok(out.indexOf('(no git diff)') !== -1, 'expected (no git diff) outside repo: ' + out.slice(0, 200));
+  });
+
   it('console API exposes spec list, detail, and archive validation', async function() {
     var demo = path.join(tmpBase, 'd7');
     run('init ' + demo + ' --mode standard');

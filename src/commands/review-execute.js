@@ -66,6 +66,43 @@ function resolveDiffBase(projectDir, explicitBase) {
   return '';
 }
 
+// Read-only diff of the working tree against HEAD (model B: a spec is committed
+// only after archive, so its work lives uncommitted in the working tree during
+// Review). Covers tracked changes (git diff HEAD) plus untracked files (which
+// git diff HEAD omits) rendered as added-file diffs. Never mutates index/tree.
+// Returns '' when not a git repo or HEAD is unusable.
+function workingTreeDiff(projectDir) {
+  var parts = [];
+  try {
+    var tracked = git(projectDir, ['diff', 'HEAD'], true);
+    if (tracked && tracked.trim()) parts.push(tracked);
+  } catch (e) {
+    return '';
+  }
+  var untracked = '';
+  try {
+    untracked = git(projectDir, ['ls-files', '--others', '--exclude-standard'], true);
+  } catch (e) {}
+  untracked.split(/\r?\n/).forEach(function(f) {
+    f = f.trim();
+    if (!f) return;
+    var out = '';
+    // `git diff --no-index` exits 1 when files differ; the diff is on stdout
+    // either way. /dev/null is a git-recognized sentinel on all platforms.
+    try {
+      out = execFileSync('git', ['diff', '--no-index', '--', '/dev/null', f], { cwd: projectDir, encoding: 'utf-8' });
+    } catch (e) {
+      out = e && e.stdout ? e.stdout : '';
+    }
+    if (out && out.trim()) parts.push(out);
+  });
+  return parts.join('\n');
+}
+
+function isInsideGitRepo(projectDir) {
+  try { git(projectDir, ['rev-parse', '--is-inside-work-tree'], false); return true; } catch (e) { return false; }
+}
+
 function run(projectDir, opts) {
   var docsRoot = common.getDocsRoot(projectDir);
   if (!fs.existsSync(docsRoot)) { console.error('[ERROR] Not initialized.'); process.exit(1); }
@@ -112,12 +149,19 @@ function run(projectDir, opts) {
   }
   var planContent = '(no spec)';
   if (specPath && fs.existsSync(specPath)) { var pc = common.extractSection(specPath, SECTION.plan, 100); planContent = pc || '(empty)'; }
-  var storedDiffBase = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'diff-base') : '';
-  var diffBase = resolveDiffBase(projectDir, opts.diffBase || storedDiffBase || '');
   var diffContent = '(no git diff)';
   var diffSource = 'unavailable';
-  if (diffBase && isSafeGitRef(diffBase)) {
-    try { diffContent = execFileSync('git', ['diff', diffBase, 'HEAD'], { cwd: projectDir, encoding: 'utf-8' }); diffSource = diffBase + '..HEAD'; } catch (e) {}
+  if (opts.diffBase) {
+    // Branch model (opt-in): diff committed history base..HEAD.
+    var diffBase = resolveDiffBase(projectDir, opts.diffBase);
+    if (diffBase && isSafeGitRef(diffBase)) {
+      try { diffContent = execFileSync('git', ['diff', diffBase, 'HEAD'], { cwd: projectDir, encoding: 'utf-8' }); diffSource = diffBase + '..HEAD'; } catch (e) {}
+    }
+  } else {
+    // Working-tree model (default, model B): show this spec's uncommitted work.
+    var wt = workingTreeDiff(projectDir);
+    if (wt && wt.trim()) { diffContent = wt; diffSource = 'working tree'; }
+    else if (isInsideGitRepo(projectDir)) { diffSource = 'working tree'; }
   }
   var diffLines = diffContent.split(/\r?\n/).length;
   if (diffLines > 500) {
