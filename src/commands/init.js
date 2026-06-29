@@ -70,7 +70,7 @@ function run(projectDir, opts) {
     // Auto-generate a main codemap skeleton for existing projects
     var codemapFile = path.join(projectDir, docsDir, 'codemap', 'main.md');
     if (!fs.existsSync(codemapFile)) {
-      newCodemap(projectDir, 'main', { force: false });
+      newCodemap(projectDir, 'main', { force: false, scan: true });
       created++;
     }
     console.log(suggestion);

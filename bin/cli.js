@@ -143,8 +143,9 @@ program.command('create-projectmap <project-dir>')
   .action(function(p, o) { require('../src/commands/create-projectmap')(p, o); });
 
 program.command('new-codemap <project-dir> <module-name>')
-  .description('Create blank CodeMap')
+  .description('Create CodeMap (blank or auto-scanned with --scan)')
   .option('--force', 'overwrite')
+  .option('--scan', 'auto-scan source code and populate codemap sections')
   .action(function(p, m, o) { require('../src/commands/new-codemap')(p, m, o); });
 
 program.command('new-projectmap <project-dir>')

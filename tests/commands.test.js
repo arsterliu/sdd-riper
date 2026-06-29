@@ -550,16 +550,38 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'projectmap.md')));
   });
 
+  it('new-codemap --scan populates from source code', function() {
+    var demo = path.join(tmpBase, 'd5scan');
+    run('init ' + demo + ' --mode standard');
+    var srcDir = path.join(demo, 'src');
+    fs.mkdirSync(srcDir, { recursive: true });
+    fs.writeFileSync(path.join(srcDir, 'app.js'), 'var mod = require("./mod");\nmodule.exports = { run: run };\nfunction run() {}\n', 'utf-8');
+    fs.writeFileSync(path.join(srcDir, 'mod.js'), 'module.exports = { hello: hello };\nfunction hello() {}\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, 'package.json'), '{"name":"scan-demo","dependencies":{"express":"^4.0.0"}}\n', 'utf-8');
+    var out = run('new-codemap ' + demo + ' main --scan --force');
+    assert.ok(out.indexOf('[CREATE]') !== -1, 'should create codemap: ' + out);
+    var content = fs.readFileSync(path.join(demo, 'mydocs', 'codemap', 'main.md'), 'utf-8');
+    assert.ok(content.indexOf('scan-demo') !== -1, 'should have project name: ' + content);
+    assert.ok(content.indexOf('express') !== -1, 'should list external dep: ' + content);
+    assert.ok(content.indexOf('src/') !== -1, 'should list source files: ' + content);
+  });
+
   it('init auto-generates codemap skeleton for existing source projects', function() {
     var demo = path.join(tmpBase, 'd5b');
     // Seed enough source files to exceed the >10 threshold
     var srcDir = path.join(demo, 'src');
     fs.mkdirSync(srcDir, { recursive: true });
     for (var i = 0; i < 12; i++) fs.writeFileSync(path.join(srcDir, 'mod' + i + '.js'), '// x\n', 'utf-8');
-    fs.writeFileSync(path.join(demo, 'package.json'), '{}\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, 'package.json'), '{"name":"demo","dependencies":{}}\n', 'utf-8');
     var out = run('init ' + demo + ' --mode standard');
     assert.ok(out.indexOf('[CREATE]') !== -1, 'init should create files: ' + out);
-    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'main.md')), 'auto codemap main.md should exist');
+    var codemapPath = path.join(demo, 'mydocs', 'codemap', 'main.md');
+    assert.ok(fs.existsSync(codemapPath), 'auto codemap main.md should exist');
+    // Verify scan populated content (not just an empty skeleton)
+    var content = fs.readFileSync(codemapPath, 'utf-8');
+    assert.ok(content.indexOf('demo') !== -1, 'codemap should contain project name from package.json: ' + content);
+    assert.ok(content.indexOf('src/') !== -1, 'codemap should list scanned source files: ' + content);
+    assert.ok(content.indexOf('Auto-scanned') !== -1, 'codemap last-reason should mention auto-scan: ' + content);
     assert.ok(out.indexOf('HINT') !== -1, 'should still print HINT about codemap: ' + out);
   });
 
