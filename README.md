@@ -40,7 +40,7 @@ SDD-RIPER 的文档按受众分层。先按下表找到适合你的入口：
 安装（需 Node.js 18+）：
 
 ```text
-npm install -g git+https://github.com/arsterliu/sdd-riper.git
+npm install -g https://github.com/arsterliu/sdd-riper.git
 ```
 
 在 agent 里触发 Skill：`/sdd`；或直接用 CLI：
@@ -66,7 +66,7 @@ Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-
 统一从 GitHub 安装 CLI：
 
 ```text
-npm install -g git+https://github.com/arsterliu/sdd-riper.git
+npm install -g https://github.com/arsterliu/sdd-riper.git
 ```
 
 需要 Node.js 18+。安装后检查：
@@ -116,14 +116,14 @@ sdd install-skill --target codex --clean
 日常更新：
 
 ```text
-npm install -g git+https://github.com/arsterliu/sdd-riper.git
+npm install -g https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target codex --clean
 ```
 
 多 agent 环境：
 
 ```text
-npm install -g git+https://github.com/arsterliu/sdd-riper.git
+npm install -g https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target all --clean
 ```
 
@@ -131,7 +131,7 @@ sdd install-skill --target all --clean
 
 ```text
 npm uninstall -g sdd-riper
-npm install -g git+https://github.com/arsterliu/sdd-riper.git
+npm install -g https://github.com/arsterliu/sdd-riper.git
 sdd install-skill --target codex --clean
 ```
 
