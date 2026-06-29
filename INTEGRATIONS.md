@@ -1,111 +1,61 @@
-# SDD-RIPER ↔ Superpowers Integration Map
+# SDD-RIPER ↔ Superpowers 集成映射
 
-SDD-RIPER provides the **workflow contract** (phases, gates, audit trail, file-system
-state). The [obra/superpowers](https://github.com/obra/superpowers) project provides
-the **execution-quality methodology** (how to actually do TDD well, debug
-systematically, verify before claiming completion, etc.) plus the up-front
-**design-clarification method** (`brainstorming`) used in the Innovate phase.
+SDD-RIPER 提供**工作流契约**（阶段、门禁、审计链、文件系统状态）。[obra/superpowers](https://github.com/obra/superpowers) 项目提供**执行质量方法论**（如何做好 TDD、系统性调试、完成前验证等），以及 Innovate 阶段使用的**设计澄清方法**（`brainstorming`）。
 
-This file is the bridge: it lists every SDD-RIPER touchpoint that calls into
-superpowers, what skill is invoked, where to find the vendored fallback, and the
-preferred resolution order at runtime.
+本文件是两者的桥梁：列出每个调用 superpowers 的 SDD-RIPER 触点、对应技能、vendored 备份路径和运行时解析顺序。
 
-## Touchpoint Index
+## 触点索引
 
-| SDD touchpoint | SKILL.md section | superpowers skill | vendored path | Fallback order |
+| SDD 触点 | SKILL.md 章节 | superpowers 技能 | vendored 路径 | 解析顺序 |
 |:---|:---|:---|:---|:---|
-| Design clarification | Innovate Phase | `brainstorming` | `vendored/superpowers/brainstorming/` | global → vendored → inlined (artifacts land in SDD's Spec/`design-file`, not `brainstorming`'s default path; visual companion needs the global skill — its `scripts/` are not vendored) |
-| Plan step granularity | Plan Phase | `writing-plans` | `vendored/superpowers/writing-plans/` | global → vendored → inlined |
-| Subagent routing | Subagent Policy | `subagent-driven-development` | `vendored/superpowers/subagent-driven-development/` | global → vendored → inlined (also see `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract) |
-| TDD enforcement | Execute Phase (TDD) | `test-driven-development` | `vendored/superpowers/test-driven-development/` | global → vendored → inlined |
-| Debug investigation | Execute Phase (debug) | `systematic-debugging` | `vendored/superpowers/systematic-debugging/` | global → vendored → inlined |
-| Completion verification | Execute Phase (Completion Verification Gate) | `verification-before-completion` | `vendored/superpowers/verification-before-completion/` | global → vendored → inlined |
-| Pre-archive git gate | Archive Phase | `finishing-a-development-branch` | `vendored/superpowers/finishing-a-development-branch/` | global → vendored → inlined |
+| 设计澄清 | Innovate 阶段 | `brainstorming` | `vendored/superpowers/brainstorming/` | 全局 → vendored → 内联摘要（产物写入 SDD 的 Spec/`design-file`，而非 brainstorming 默认路径；可视化伴侣需要全局技能——其 `scripts/` 未被 vendored） |
+| Plan 步骤粒度 | Plan 阶段 | `writing-plans` | `vendored/superpowers/writing-plans/` | 全局 → vendored → 内联摘要 |
+| 子 Agent 路由 | 子 Agent 策略 | `subagent-driven-development` | `vendored/superpowers/subagent-driven-development/` | 全局 → vendored → 内联摘要（另见 `protocols/subagent-dispatch.md` 中 SDD-RIPER 自有的派发契约） |
+| TDD 实施 | Execute 阶段（TDD） | `test-driven-development` | `vendored/superpowers/test-driven-development/` | 全局 → vendored → 内联摘要 |
+| 调试排查 | Execute 阶段（调试） | `systematic-debugging` | `vendored/superpowers/systematic-debugging/` | 全局 → vendored → 内联摘要 |
+| 完成验证 | Execute 阶段（完成验证门禁） | `verification-before-completion` | `vendored/superpowers/verification-before-completion/` | 全局 → vendored → 内联摘要 |
+| 归档前 git 门禁 | Archive 阶段 | `finishing-a-development-branch` | `vendored/superpowers/finishing-a-development-branch/` | 全局 → vendored → 内联摘要 |
 
-## Resolution Semantics
+## 解析语义
 
-For each touchpoint, the SKILL.md instruction tells the AI orchestrator to
-**load the methodology** before executing the gate. Resolution proceeds in
-this order:
+每个触点的 SKILL.md 指令要求 AI 编排器在执行门禁前**先加载方法论**。解析按以下顺序：
 
-1. **Global superpowers skill** — if the editor (Claude Code / OpenCode / Cursor
-   with skill support) reports the matching skill is loaded, the orchestrator
-   should invoke it via the editor's skill mechanism. This gives users the
-   latest upstream version plus any local customizations.
+1. **全局 superpowers 技能**——如果编辑器（Claude Code / OpenCode / 支持技能的 Cursor）报告已加载对应技能，编排器应通过编辑器的技能机制调用。用户可获得最新上游版本加本地自定义。
+2. **Vendored 副本**——若无全局技能，编排器应 `Read` `vendored/superpowers/<skill>/SKILL.md`。Vendored 副本锁定到特定上游提交，哈希见 `vendored/superpowers/.upstream-commit`。
+3. **内联摘要**——SDD-RIPER 的 `SKILL.md` 内保留了每条规则的简短摘要（如"RED → GREEN → REFACTOR; 无失败测试，不写生产代码"）作为最终 fallback。精度降低，但确保工作流不会完全中断。
 
-2. **Vendored copy** — if no global skill is available, the orchestrator should
-   `Read` the file at `vendored/superpowers/<skill>/SKILL.md` (using SKILL.md's
-   `SDD_ROOT` variable from the preamble for the absolute path). The vendored
-   copy is pinned to a specific upstream commit; see
-   `vendored/superpowers/.upstream-commit` for the exact hash.
+AI 不需要特殊协议来切换——它选择当前环境中可用的最高优先级选项。
 
-3. **Inlined summary** — the SDD-RIPER `SKILL.md` keeps a short summary of each
-   rule (e.g. "RED → GREEN → REFACTOR; no failing test, no production code")
-   inline as a final fallback when neither global nor vendored is reachable.
-   This is degraded fidelity but ensures the workflow never fully breaks.
+## 子 Agent 派发契约边界
 
-The AI does not need any special protocol to switch between these — it picks
-the highest-priority option available in its current environment.
+上表的"子 Agent 路由"触点解析到 superpowers 的 `subagent-driven-development`，但**SDD-RIPER 的权威派发契约是 `protocols/subagent-dispatch.md`**，而非 vendored 技能。边界如下：
 
-## Subagent Dispatch Contract Boundary
+- `vendored/superpowers/subagent-driven-development/SKILL.md`——高层方法论（何时派发、子 Agent 生命周期、审查步骤）。用于概念理解。
+- `protocols/subagent-dispatch.md`——SDD-RIPER 专用契约。定义 **brief 模式**（task / spec_excerpts / files_to_read / return_schema / constraints）、**返回模式**（verdict / summary ≤200 词 / 证据指针 / 建议）、**三条约束**（brief 自足、不写文件、压缩返回）和**三个信任但验证例外**（完成验证门禁 / Plan 批准门禁 / 最终 Review 裁决——均由编排器持有）。
 
-The Subagent routing touchpoint above resolves to `subagent-driven-development` from
-superpowers, but **the authoritative dispatch contract for SDD-RIPER is
-`protocols/subagent-dispatch.md`**, not the vendored skill. The boundary is:
+如果 AI 只按上表解析到 vendored 技能，会遗漏 SDD-RIPER 专用的 brief 字段，可能尝试读取 Spec 文件本身（违反"brief 自足"）或写入 Spec（违反"不写文件"）。**派发前务必读取 `protocols/subagent-dispatch.md`，无论 superpowers 层解析到哪一级。**
 
-- `vendored/superpowers/subagent-driven-development/SKILL.md` — high-level
-  methodology (when to dispatch, subagent lifecycle, review steps). Load for
-  conceptual grounding.
-- `protocols/subagent-dispatch.md` — SDD-RIPER-specific contract. Defines the
-  **brief schema** (task / spec_excerpts / files_to_read / return_schema /
-  constraints), the **return schema** (verdict / summary ≤200 words / evidence
-  pointers / recommendations), the **three constraints** (brief is self-sufficient,
-  no file writes, compressed return), and the **three Trust But Verify
-  exceptions** (Completion Verification Gate / Plan Approval Gate / Final Review
-  Verdict — all owned by orchestrator).
+## 与全局 Superpowers 的共存
 
-If the AI follows the resolution order in the table above and reads only the
-vendored skill, it will miss the SDD-RIPER-specific brief fields and may
-attempt to read the Spec file itself (violating "brief is self-sufficient") or
-write to Spec (violating "no file writes"). Always read
-`protocols/subagent-dispatch.md` before dispatching, regardless of which
-superpowers layer resolved.
+已全局安装 `obra/superpowers` 的用户**不需要**使用锁定的 vendored 版本。上述 fallback 链确保用户自己的安装优先：
 
-## Coexistence with Global Superpowers
+- 高级用户获得最新上游版本 + 个人自定义。
+- 新用户通过 vendored 副本获得保底可用的基线。
+- 两条路径共享相同的 SDD-RIPER 契约，契约层行为一致。
 
-Users who already have `obra/superpowers` installed globally are NOT forced to
-use the pinned vendored version. The fallback chain above ensures the user's
-own installation takes precedence. This means:
+## 许可证与归属
 
-- Power users get the latest upstream + their customizations.
-- New users get a guaranteed-working baseline via the vendored copy.
-- Both paths share the same SDD-RIPER contracts, so behavior at the contract
-  layer is identical.
+Vendored 技能在 **MIT License** 下分发，Copyright © 2025 Jesse Vincent。许可证原文保留在 `vendored/superpowers/LICENSE`。维护者操作手册见 `vendored/superpowers/SYNC.md`（同步流程、范围说明、许可证合规说明）。
 
-## License & Attribution
+SDD-RIPER 自身的契约层（工作流阶段、门禁、文件系统布局、`protocols/`、`templates/`）遵循 SDD-RIPER 自有许可证。两个项目独立且可组合——互非 fork。
 
-The vendored skills are distributed under the **MIT License**, Copyright © 2025
-Jesse Vincent. The license text is preserved verbatim at
-`vendored/superpowers/LICENSE`. See `vendored/superpowers/SYNC.md` for the
-maintainer-facing operations manual (sync procedure, scope rationale,
-license-compliance notes).
+## 新增触点
 
-SDD-RIPER's own contract layer (workflow phases, gates, file-system layout,
-`protocols/`, `templates/`) remains under SDD-RIPER's own license. The two
-projects are independent and composable — neither is forked into the other.
+如果未来 SDD-RIPER 阶段需要调用其他 superpowers 技能（或任何外部方法论），按以下顺序更新：
 
-## Adding a New Touchpoint
+1. 在上方**触点索引**表中新增一行。
+2. 若需 vendoring，在 `vendored/superpowers/` 下添加技能目录，更新 `vendored/superpowers/SYNC.md` 的 Scope 章节。
+3. 更新 `SKILL.md` 对应章节，使用 `(see vendored/superpowers/<X>/SKILL.md — read on demand; prefer global skill if loaded):` 模式。
+4. 若触点影响用户可见的工作流，更新 `README.md`。
 
-If a future SDD-RIPER phase needs to call into another superpowers skill
-(or any other external methodology), update in this order:
-
-1. Add a row to the **Touchpoint Index** table above.
-2. If vendoring, add the skill directory under `vendored/superpowers/` and
-   update `vendored/superpowers/SYNC.md` Scope section.
-3. Update the corresponding `SKILL.md` section to use the
-   `(see vendored/superpowers/<X>/SKILL.md — read on demand; prefer global skill if loaded):`
-   pattern.
-4. Update `README.md` if the new touchpoint changes any user-facing workflow.
-
-Do NOT add a touchpoint without all four steps — a half-wired touchpoint
-silently degrades to inlined fallback only, defeating the purpose of vendoring.
+**不要跳过任何一步**——未完整接线的触点会静默降级到内联摘要，失去 vendoring 的意义。
