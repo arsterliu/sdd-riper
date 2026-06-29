@@ -26,14 +26,23 @@ SDD-RIPER 提供**工作流契约**（阶段、门禁、审计链、文件系统
 
 AI 不需要特殊协议来切换——它选择当前环境中可用的最高优先级选项。
 
-## 子 Agent 派发契约边界
+## 子 Agent 派发
 
-上表的"子 Agent 路由"触点解析到 superpowers 的 `subagent-driven-development`，但**SDD-RIPER 的权威派发契约是 `protocols/subagent-dispatch.md`**，而非 vendored 技能。边界如下：
+SDD-RIPER 的子 agent 不是通用并行工人，而是**一次性调查员**：替主 agent 读文件、跑调试、做审查，只带结论回来。主 agent 始终掌握决策权。
 
-- `vendored/superpowers/subagent-driven-development/SKILL.md`——高层方法论（何时派发、子 Agent 生命周期、审查步骤）。用于概念理解。
-- `protocols/subagent-dispatch.md`——SDD-RIPER 专用契约。定义 **brief 模式**（task / spec_excerpts / files_to_read / return_schema / constraints）、**返回模式**（verdict / summary ≤200 词 / 证据指针 / 建议）、**三条约束**（brief 自足、不写文件、压缩返回）和**三个信任但验证例外**（完成验证门禁 / Plan 批准门禁 / 最终 Review 裁决——均由编排器持有）。
+**何时派子 agent**：需要读 3+ 个文件或 500+ 行、调试排查、独立审查某个维度、大步执行任务。
 
-如果 AI 只按上表解析到 vendored 技能，会遗漏 SDD-RIPER 专用的 brief 字段，可能尝试读取 Spec 文件本身（违反"brief 自足"）或写入 Spec（违反"不写文件"）。**派发前务必读取 `protocols/subagent-dispatch.md`，无论 superpowers 层解析到哪一级。**
+**何时不派**：需要跟用户对话的需求澄清、方案选择、Plan 审批、归档执行——这些是主 agent 的职责。
+
+**三条硬规则**：
+
+1. **Brief 自足**：给子 agent 的任务描述里直接贴相关内容，不让它自己找。
+2. **子 agent 不写文件**：只返回结论，由主 agent 写入 spec / design / log。
+3. **返回压缩**：只返回 verdict + 摘要 + 证据指针，不贴大段原文。
+
+**三种门禁主 agent 必须亲自确认，不能委托子 agent**：完成验证（跑测试）、Plan 批准（问用户）、Review 裁决（综合各方发现写最终 verdict）。
+
+详细契约见 `protocols/subagent-dispatch.md`。superpowers 的 `subagent-driven-development` 提供高层方法论（何时派、生命周期），但 SDD-RIPER 的 brief/return 格式和硬规则以 `protocols/subagent-dispatch.md` 为准。
 
 ## 与全局 Superpowers 的共存
 
