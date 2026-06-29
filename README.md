@@ -217,10 +217,15 @@ Design 按模式分层约束：
 Gate / Cruise 默认策略：
 
 - 新项目默认 `GATE_POLICY="auto"`、`CRUISE_POLICY="autonomous"`、`CRUISE_MAX_ITERATIONS="5"`。
-- `auto` 不是无门禁；`Plan Approved By: auto-gate` 必须同时写明 `Gate Evidence:`。
+- **GATE_POLICY** 支持 `manual | auto | advisory`：
+  - `manual`：必须人工填写 `Plan Approved By: <user>` 和 `Approved At:`。
+  - `auto`：AI 可填写 `Plan Approved By: auto-gate`，但必须同时提供 `Approved At:` 和 `Gate Evidence:`。缺任何一项都会被 validate 拦截。
+  - `advisory`：与 auto 行为一致，Review 阶段额外提示人工确认。
+- **CRUISE_POLICY** 支持 `off | assisted | autonomous`：
+  - `off`：禁用巡航 prompt 和 run ledger。
+  - `assisted`：人在每轮修复之间确认。
+  - `autonomous`：允许宿主原生 loop（Claude Code Dynamic Workflows、Codex native loop 等）。
 - `sdd challenge` 的 `FAIL_*` verdict 会阻止归档，并由 `sdd cruise` 映射回对应阶段修复。
-- `sdd cruise` 默认使用 `--engine auto`：在 `CRUISE_POLICY="autonomous"` 时优先复用宿主 agent 的原生 loop，例如 Claude Code Dynamic Workflows、Codex native loop、opencode native loop；不可用时退回 prompt loop。
-- `CRUISE_POLICY="off"` 会禁用巡航 prompt 和 run ledger；`assisted` 要求人在每轮修复之间确认；`autonomous` 才允许宿主原生 loop。
 - `sdd cruise --engine claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。
 - `sdd cruise --record-run` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录 iteration、engine、next action、challenge verdict 和停止原因。
 - SDD 不持有模型执行循环；`Spec / Design / Plan / Execute Log / Learning` 仍是真相源。

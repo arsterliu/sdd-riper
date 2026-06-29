@@ -214,7 +214,13 @@ Gate Policy: manual | auto | advisory
 Gate Evidence: <auto-gate 时必填>
 ```
 
-默认 `GATE_POLICY="auto"`。auto gate 不是无门禁；只有 `Plan Approved By: auto-gate`、`Approved At:` 和 `Gate Evidence:` 都存在时，才允许作为自动门禁通过。
+默认 `GATE_POLICY="auto"`。三种策略：
+
+- **manual**：必须由人工填写 `Plan Approved By: <user>` 和 `Approved At:`，AI 不能自行批准。
+- **auto**：AI 可填写 `Plan Approved By: auto-gate`，但必须同时提供 `Approved At:` 和 `Gate Evidence:`（验证结果、测试通过等事实依据）。auto gate 不是无门禁——缺任何一项都会被 validate 拦截。
+- **advisory**：与 auto 行为一致，但在 Review 阶段会额外提示人工确认。
+
+同时可在 `.sdd-config` 中配置：`GATE_POLICY="manual|auto|advisory"`。
 
 ### Execute
 
