@@ -152,45 +152,30 @@ sdd install-skill --target codex --clean
 Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
 ```
 
-## 流程架构图
+## 流程架构
 
-```mermaid
-flowchart TD
-  User[User / Orchestrator] --> CLI[sdd Node CLI]
-  Agent[Host Agent<br/>Codex / Claude Code / opencode] --> CLI
-
-  CLI --> Init[init / discover / resume]
-  CLI --> Detector[next<br/>workflow detector]
-  CLI --> Prompt[challenge / cruise<br/>prompt generator]
-  CLI --> Gate[validate / archive<br/>gate runner]
-  CLI --> Console[sdd console<br/>read-only projection]
-
-  Init --> Spec[(Spec<br/>control plane)]
-  Spec --> Design[(Design)]
-  Spec --> Log[(Execute Log)]
-  Spec --> Learning[(Learning Record)]
-  Spec --> Runs[(Cruise Run Ledger)]
-
-  Detector --> Prompt
-  Prompt --> Agent
-  Agent --> Code[Code changes<br/>and commands]
-  Agent --> Spec
-  Agent --> Design
-  Agent --> Log
-  Agent --> Learning
-
-  Code --> Gate
-  Spec --> Gate
-  Design --> Gate
-  Log --> Gate
-  Learning --> Gate
-  Gate --> Archive[(Archive)]
-
-  Console --> Spec
-  Console --> Design
-  Console --> Log
-  Console --> Learning
-  Console --> Runs
+```
+┌─────────────────────────────────────────────────┐
+│ 控制面（Spec）                                   │
+│  目标、Research、Innovate、Acceptance、Plan、    │
+│  门禁、Review 裁决、产物引用                      │
+│  design-file / execute-log-file / learning-file  │
+└──────────────┬──────────────────────────────────┘
+               │ 引用
+┌──────────────▼──────────────────────────────────┐
+│ 产出面（独立产物）                               │
+│  Design / Execute Log / Learning Record          │
+│  Cruise Run Ledger / Archive                     │
+└──────────────▲──────────────────────────────────┘
+               │ 读/写/验证
+┌──────────────┴──────────────────────────────────┐
+│ 调度面（CLI + Host Agent）                       │
+│  探测：status / next / resume                    │
+│  生成：debug / review-execute / challenge / cruise│
+│  操作：init / discover / validate / archive      │
+│  视图：codemap / learnings / doctor / console    │
+│  执行：Agent 按 prompt 修改代码和产物             │
+└─────────────────────────────────────────────────┘
 ```
 
 - **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。
