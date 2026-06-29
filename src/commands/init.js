@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { getDocsDir, isValidDocsDirName, shouldSuggestCodeMap } = require('../../lib/common');
 const genAiConfigs = require('./_gen-ai-configs');
+const newCodemap = require('./new-codemap');
 
 var SDD_PROTOCOL_VERSION = '1.0';
 
@@ -65,7 +66,15 @@ function run(projectDir, opts) {
   skipped += aiResult.skipped;
 
   var suggestion = shouldSuggestCodeMap(projectDir, docsDir);
-  if (suggestion) console.log(suggestion);
+  if (suggestion) {
+    // Auto-generate a main codemap skeleton for existing projects
+    var codemapFile = path.join(projectDir, docsDir, 'codemap', 'main.md');
+    if (!fs.existsSync(codemapFile)) {
+      newCodemap(projectDir, 'main', { force: false });
+      created++;
+    }
+    console.log(suggestion);
+  }
 
   console.log("Use 'sdd discover <dir> --task-name <name> --version v1.0 ...' to create your first spec.");
   console.log('SDD initialized in ' + projectDir + '. Created: ' + created + ' files, Skipped: ' + skipped + ' files.');

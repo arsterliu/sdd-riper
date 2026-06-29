@@ -550,6 +550,26 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'projectmap.md')));
   });
 
+  it('init auto-generates codemap skeleton for existing source projects', function() {
+    var demo = path.join(tmpBase, 'd5b');
+    // Seed enough source files to exceed the >10 threshold
+    var srcDir = path.join(demo, 'src');
+    fs.mkdirSync(srcDir, { recursive: true });
+    for (var i = 0; i < 12; i++) fs.writeFileSync(path.join(srcDir, 'mod' + i + '.js'), '// x\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, 'package.json'), '{}\n', 'utf-8');
+    var out = run('init ' + demo + ' --mode standard');
+    assert.ok(out.indexOf('[CREATE]') !== -1, 'init should create files: ' + out);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'main.md')), 'auto codemap main.md should exist');
+    assert.ok(out.indexOf('HINT') !== -1, 'should still print HINT about codemap: ' + out);
+  });
+
+  it('init does not auto-generate codemap for empty projects', function() {
+    var demo = path.join(tmpBase, 'd5c');
+    fs.mkdirSync(demo, { recursive: true });
+    var out = run('init ' + demo + ' --mode standard');
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'main.md')), 'empty project should not get auto codemap');
+  });
+
   it('prompt commands generate output', function() {
     var demo = path.join(tmpBase, 'd6');
     run('init ' + demo + ' --mode standard');
