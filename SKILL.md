@@ -385,9 +385,17 @@ Run:
 sdd challenge "<PROJECT_ROOT>"
 ```
 
-standard/lite should use an independent challenge agent when available. micro may run the challenge inline, but it must keep the adversarial role separate from implementation.
+**standard/lite 必须派子 agent 执行对抗审查。** 对抗审查的核心价值是"不是自己审自己"——主 agent 写了代码再自己审，确认偏差不可避免。子 agent 有独立上下文，只返回 verdict + findings。
 
-Challenge agents are read-only. They return:
+micro 可在主上下文内执行，但必须保持对抗角色与实现角色分离。
+
+派发规则（遵循 `protocols/subagent-dispatch.md`）：
+
+1. **Brief 自足**：将 spec 内容、design 摘要、execute log 摘要直接贴入 brief，不让子 agent 自己找。
+2. **子 agent 只读不写**：challenge agent 不修改任何文件（包括代码），只返回 verdict。
+3. **返回压缩**：verdict + backtrack target + summary（≤200 词）。
+
+Challenge agent 返回：
 
 ```text
 Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING

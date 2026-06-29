@@ -85,21 +85,14 @@ Forbidden in returns:
 2. **Subagent does not write SDD artifacts**: the orchestrator writes to Spec (control-plane decisions), Design (technical design), Execute Log (execution facts), and Learning Record (reusable decision rules). Subagents MAY modify code files within the scope of their brief — code is not an SDD artifact. But subagents must not create or modify SDD artifacts on their own, because the orchestrator needs to maintain cross-artifact consistency.
 3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
 
-## Challenge Verdicts
+## Challenge Agent
 
-Use these verdicts for adversarial review:
+Adversarial challenge is the primary mandatory subagent scenario for standard/lite. The challenge agent must be independent — it did not write the code or the design, so it can question assumptions the orchestrator may have confirmed.
 
-- PASS
-- PASS_WITH_CONCERNS
-- FAIL_SPEC
-- FAIL_DESIGN
-- FAIL_ACCEPTANCE
-- FAIL_PLAN
-- FAIL_CODE
-- FAIL_LOG
-- FAIL_LEARNING
-
-Any `FAIL_*` verdict is a backtrack signal for `sdd cruise`. The challenge agent must not repair the failure.
+- **Must dispatch**: standard/lite tasks must use a challenge subagent. Micro may run inline but must keep adversarial role separate from implementation.
+- **Read-only**: the challenge agent does not modify any file (including code). It only returns a verdict.
+- **Verdict enum**: defined by `sdd challenge` (PASS / PASS_WITH_CONCERNS / FAIL_SPEC / FAIL_DESIGN / FAIL_ACCEPTANCE / FAIL_PLAN / FAIL_CODE / FAIL_LOG / FAIL_LEARNING). Any `FAIL_*` verdict is a backtrack signal for `sdd cruise`. The challenge agent must not repair the failure.
+- **Return format**: `Challenge Verdict: <verdict>`, `Backtrack Target: <target>`, `Challenge Summary: <evidence, ≤200 words>`.
 
 ## Trust But Verify
 
@@ -111,8 +104,8 @@ The orchestrator must not take a subagent verdict at face value for these gates:
 
 ## Mode Policy
 
-- **standard**: recommended for Research evidence, large Execute packages, debug investigation, and Review axes.
-- **lite**: optional; dispatch only when context volume or evidence independence justifies it.
-- **micro**: default to no subagents.
+- **standard**: mandatory for adversarial challenge. Recommended for Research evidence, large Execute packages, debug investigation, and Review axes.
+- **lite**: mandatory for adversarial challenge. Other dispatch optional — only when context volume or evidence independence justifies it.
+- **micro**: challenge may run inline (but must keep adversarial role separate). Default to no other subagents.
 
 The orchestrator's main context stays focused on decisions, gates, and artifact consistency.
