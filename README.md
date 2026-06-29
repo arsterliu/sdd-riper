@@ -1,6 +1,6 @@
 # SDD-RIPER
 
-SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **Learning Record** 管可复用经验，用 **CodeMap / ProjectMap** 管架构认知。
+SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **Learning Record** 管可复用经验，用 **CodeMap**（按需计算视图）管架构认知。
 
 它不是模型执行器，也不是通用 agent 平台（不是 harness）。当前实现是一套 **Node CLI + 文件系统产物 + 本地观测 Console + Prompt/账本适配层**：CLI 负责创建、校验、归档和生成提示；真正的代码修改、命令执行、动态循环由人或宿主 agent 完成。Console 对项目状态是只读投影，自身从不写产物，唯一的副作用是把「打开文件」委托给本机默认程序。
 
@@ -143,8 +143,7 @@ sdd install-skill --target codex --clean
 | **Design** | 技术设计产物。standard 写 `Technical Design`，lite 写 `Design Note`，micro 不单独写设计。 |
 | **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
 | **Learning Record** | 经验沉淀产物。把偏差、BUGFIX、concern、reopen 暴露出的规律写成可复用决策规则。 |
-| **CodeMap** | 模块级架构地图，记录入口、边界、依赖、风险。 |
-| **ProjectMap** | 多仓或多团队协作地图，记录系统边界、接口契约和职责。 |
+| **CodeMap** | 按需架构视图（`sdd codemap`），扫描源码实时输出，不持久化、永不过时。架构变更应记录到 Learning Record。 |
 | **Cruise Run** | 巡航可观测账本。记录 `sdd cruise --record-run` 时的 iteration、engine、next action、verdict 和停止原因，不替代 Spec / Design / Execute Log。 |
 
 ## 流程
@@ -287,7 +286,6 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
     ├── logs/        # Execute Log
     ├── learnings/   # Learning Record
     ├── runs/        # Cruise run ledger
-    ├── codemap/     # 模块地图
     ├── context/     # Context Bundle
     └── archive/     # 已归档 Spec / Design / Execute Log / Learning
 ```

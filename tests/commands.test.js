@@ -541,62 +541,36 @@ describe('CLI commands', function() {
     assert.ok(!fs.existsSync(stale));
   });
 
-  it('new-codemap and new-projectmap work', function() {
+  it('sdd codemap outputs on-demand architecture view', function() {
     var demo = path.join(tmpBase, 'd5');
-    run('init ' + demo + ' --mode standard');
-    assert.ok(run('new-codemap ' + demo + ' auth').indexOf('[CREATE]') !== -1);
-    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'auth.md')));
-    assert.ok(run('new-projectmap ' + demo).indexOf('[CREATE]') !== -1);
-    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'projectmap.md')));
-  });
-
-  it('new-codemap --scan populates from source code', function() {
-    var demo = path.join(tmpBase, 'd5scan');
     run('init ' + demo + ' --mode standard');
     var srcDir = path.join(demo, 'src');
     fs.mkdirSync(srcDir, { recursive: true });
     fs.writeFileSync(path.join(srcDir, 'app.js'), 'var mod = require("./mod");\nmodule.exports = { run: run };\nfunction run() {}\n', 'utf-8');
     fs.writeFileSync(path.join(srcDir, 'mod.js'), 'module.exports = { hello: hello };\nfunction hello() {}\n', 'utf-8');
-    fs.writeFileSync(path.join(demo, 'package.json'), '{"name":"scan-demo","dependencies":{"express":"^4.0.0"}}\n', 'utf-8');
-    var out = run('new-codemap ' + demo + ' main --scan --force');
-    assert.ok(out.indexOf('[CREATE]') !== -1, 'should create codemap: ' + out);
-    var content = fs.readFileSync(path.join(demo, 'mydocs', 'codemap', 'main.md'), 'utf-8');
-    assert.ok(content.indexOf('scan-demo') !== -1, 'should have project name: ' + content);
-    assert.ok(content.indexOf('express') !== -1, 'should list external dep: ' + content);
-    assert.ok(content.indexOf('src/') !== -1, 'should list source files: ' + content);
+    fs.writeFileSync(path.join(demo, 'package.json'), '{"name":"codemap-test","dependencies":{"express":"^4.0.0"}}\n', 'utf-8');
+    var out = run('codemap ' + demo);
+    assert.ok(out.indexOf('codemap-test') !== -1, 'should contain project name: ' + out);
+    assert.ok(out.indexOf('express') !== -1, 'should list external dep: ' + out);
+    assert.ok(out.indexOf('src/') !== -1, 'should list source files: ' + out);
+    assert.ok(out.indexOf('Auto-generated') !== -1, 'should mention auto-generated: ' + out);
+    // Verify no codemap file is persisted
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'codemap')), 'codemap directory should not exist');
   });
 
-  it('init auto-generates codemap skeleton for existing source projects', function() {
+  it('init no longer creates codemap directory or projectmap', function() {
     var demo = path.join(tmpBase, 'd5b');
-    // Seed enough source files to exceed the >10 threshold
-    var srcDir = path.join(demo, 'src');
-    fs.mkdirSync(srcDir, { recursive: true });
-    for (var i = 0; i < 12; i++) fs.writeFileSync(path.join(srcDir, 'mod' + i + '.js'), '// x\n', 'utf-8');
-    fs.writeFileSync(path.join(demo, 'package.json'), '{"name":"demo","dependencies":{}}\n', 'utf-8');
-    var out = run('init ' + demo + ' --mode standard');
-    assert.ok(out.indexOf('[CREATE]') !== -1, 'init should create files: ' + out);
-    var codemapPath = path.join(demo, 'mydocs', 'codemap', 'main.md');
-    assert.ok(fs.existsSync(codemapPath), 'auto codemap main.md should exist');
-    // Verify scan populated content (not just an empty skeleton)
-    var content = fs.readFileSync(codemapPath, 'utf-8');
-    assert.ok(content.indexOf('demo') !== -1, 'codemap should contain project name from package.json: ' + content);
-    assert.ok(content.indexOf('src/') !== -1, 'codemap should list scanned source files: ' + content);
-    assert.ok(content.indexOf('Auto-scanned') !== -1, 'codemap last-reason should mention auto-scan: ' + content);
-    assert.ok(out.indexOf('HINT') !== -1, 'should still print HINT about codemap: ' + out);
-  });
-
-  it('init does not auto-generate codemap for empty projects', function() {
-    var demo = path.join(tmpBase, 'd5c');
     fs.mkdirSync(demo, { recursive: true });
     var out = run('init ' + demo + ' --mode standard');
-    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'codemap', 'main.md')), 'empty project should not get auto codemap');
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'codemap')), 'codemap directory should not be created');
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'projectmap.md')), 'projectmap.md should not be created');
+    assert.ok(out.indexOf('HINT') === -1, 'should not print codemap HINT: ' + out);
   });
 
   it('prompt commands generate output', function() {
     var demo = path.join(tmpBase, 'd6');
     run('init ' + demo + ' --mode standard');
-    assert.ok(run('create-codemap ' + demo + ' --module x').indexOf('CREATE CODEMAP PROMPT') !== -1);
-    assert.ok(run('create-projectmap ' + demo).indexOf('CREATE PROJECTMAP PROMPT') !== -1);
+    assert.ok(run('codemap ' + demo).indexOf('CodeMap') !== -1);
     assert.ok(run('build-context-bundle ' + demo + ' --spec-version v1.0 --out b').indexOf('BUILD CONTEXT BUNDLE PROMPT') !== -1);
     assert.ok(run('review-execute ' + demo).indexOf('REVIEW EXECUTE PROMPT') !== -1);
     run('discover ' + demo + ' --task-name dbg --spec-version v1.0 --requirement x');

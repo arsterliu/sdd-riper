@@ -156,9 +156,6 @@ function run(projectDir, opts) {
   var logTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', 'execute-log.md');
   fs.writeFileSync(logOut, fillArtifactTemplate(logTemplate, taskName, mode, specRel), 'utf-8');
 
-  var suggestion = common.shouldSuggestCodeMap(projectDir, docsDir);
-  if (suggestion) console.log(suggestion);
-
   console.log(modeAdvisory(mode, !!opts.mode));
 
   console.log('');

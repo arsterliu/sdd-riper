@@ -14,7 +14,6 @@ function setupProject(mode) {
   if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true });
   fs.mkdirSync(projectDir, { recursive: true });
   fs.mkdirSync(path.join(docsDir, 'specs'), { recursive: true });
-  fs.mkdirSync(path.join(docsDir, 'codemap'), { recursive: true });
   fs.mkdirSync(path.join(docsDir, 'context'), { recursive: true });
   fs.mkdirSync(path.join(docsDir, 'archive'), { recursive: true });
   

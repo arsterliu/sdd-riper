@@ -8,7 +8,7 @@
 <!-- 来源：archive/ specs/ -->
 
 ## 工程背景
-<!-- 来源：codemap/ -->
+<!-- 来源：`sdd codemap <dir>` 或源码直接阅读 -->
 
 ## 信息冲突记录
 <!-- 如有来源冲突，在此记录 provenance 与处置方式 -->

@@ -75,7 +75,7 @@ When the user chooses setup:
 1. Ask target directory if unclear.
 2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
 3. Do not manually create the scaffold with Write/Edit.
-4. Offer to create CodeMap only when the command output or project complexity indicates it is useful.
+4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.
 5. To create the first task, run:
 
 ```text
@@ -156,7 +156,7 @@ Required outputs in Spec:
 - Assumptions
 - Confirmed Requirement
 
-Use CodeMap / ProjectMap / archive only when relevant. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
+Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
 ## Innovate Phase
 
@@ -394,7 +394,7 @@ The command generates a bounded repair-loop prompt according to `CRUISE_POLICY`.
 Allowed Review writes:
 
 - Spec Review Verdict / Review Summary.
-- CodeMap / ProjectMap only if architecture facts changed.
+- Architecture changes → record in Learning Record (not a separate CodeMap file).
 
 Forbidden Review writes:
 
@@ -526,8 +526,5 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd debug <dir> --error <msg>`
 - `sdd archive <dir> <spec-name>`
 - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
-- `sdd create-codemap <dir> [--module <name>]`
-- `sdd new-codemap <dir> <module>`
-- `sdd create-projectmap <dir> [--repos a,b]`
-- `sdd new-projectmap <dir>`
+- `sdd codemap <dir>`
 - `sdd build-context-bundle <dir> --version vN.M [--sources <dir>]`

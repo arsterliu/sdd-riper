@@ -58,7 +58,7 @@ function run(projectDir) {
   console.log('[SDD Status] ' + projectDir);
 
   var missingDirs = [];
-  ['specs','design','logs','learnings','runs','codemap','context','archive'].forEach(function(d) {
+  ['specs','design','logs','learnings','runs','context','archive'].forEach(function(d) {
     if (!fs.existsSync(path.join(docsRoot, d))) missingDirs.push(docsDir + '/' + d);
   });
   if (missingDirs.length === 0) console.log('  Structure:    OK');
@@ -67,30 +67,6 @@ function run(projectDir) {
   var aiConfigs = ['AGENTS.md','CLAUDE.md','.cursorrules','.github/copilot-instructions.md'];
   var foundConfig = aiConfigs.find(function(f) { return fs.existsSync(path.join(projectDir, f)); });
   console.log('  AI Config:    ' + (foundConfig ? 'OK (' + foundConfig + ' found)' : 'WARN (none found)'));
-
-  var pmFile = path.join(docsRoot, 'projectmap.md');
-  if (fs.existsSync(pmFile)) {
-    var pmContent = fs.readFileSync(pmFile, 'utf-8');
-    if (/^name:/m.test(pmContent) && /^repos:/m.test(pmContent)) console.log('  ProjectMap:   OK');
-    else { console.log('  ProjectMap:   ERROR (broken frontmatter)'); if (exitCode < 2) exitCode = 2; }
-  } else console.log('  ProjectMap:   WARN (no projectmap.md found)');
-
-  var codemapDir = path.join(docsRoot, 'codemap');
-  if (!fs.existsSync(codemapDir)) console.log('  CodeMap:      WARN (codemap/ directory missing)');
-  else {
-    var cmFiles = fs.readdirSync(codemapDir).filter(function(f) { return f.endsWith('.md') && f !== '.gitkeep'; }).sort();
-    if (cmFiles.length === 0) console.log('  CodeMap:      OK (none)');
-    else {
-      var cmNames = cmFiles.map(function(f) { return f.replace(/\.md$/, ''); });
-      var missingReason = [];
-      cmFiles.forEach(function(f) {
-        var c = fs.readFileSync(path.join(codemapDir, f), 'utf-8');
-        if (!/^last-reason:/m.test(c)) missingReason.push(f);
-      });
-      if (missingReason.length) console.log('  CodeMap:      WARN (' + cmFiles.length + ' modules: ' + cmNames.join(',') + '; missing last-reason in: ' + missingReason.join(' '));
-      else console.log('  CodeMap:      OK (' + cmFiles.length + ' modules: ' + cmNames.join(',') + ')');
-    }
-  }
 
   var specsDir = path.join(docsRoot, 'specs');
   var total = 0, draft = 0;

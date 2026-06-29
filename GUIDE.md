@@ -32,8 +32,6 @@ harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳
 | Execute Log | `<docs-root>/logs/` | 执行步骤、偏差、验证结果，append-only。 |
 | Learning Record | `<docs-root>/learnings/` | 偏差、BUGFIX、concern、reopen 暴露出的可复用决策规则。 |
 | Cruise Run | `<docs-root>/runs/` | 巡航 iteration、engine、verdict、回跳目标和停止原因，属于可观测性账本，不替代核心产物。 |
-| CodeMap | `<docs-root>/codemap/` | 模块级架构事实。 |
-| ProjectMap | `<docs-root>/projectmap.md` | 多仓、多团队或跨系统契约。 |
 
 Spec 是控制面，不再承载完整技术设计、执行日志和经验库。这样 Review 和 Archive 可以分别审查规范、设计、执行事实和可复用经验。
 
@@ -57,7 +55,6 @@ flowchart TD
   Spec --> ExecuteLog[(Execute Log)]
   Spec --> Learning[(Learning Record)]
   Spec --> Runs[(Cruise Run Ledger)]
-  Spec --> Maps[(CodeMap / ProjectMap)]
 
   Status --> Prompt
   Prompt --> Agent
@@ -110,7 +107,7 @@ loop 的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Wo
 目标是把“原始要求”变成可执行的 Confirmed Requirement。应产出：
 
 - Requirement Review：歧义、隐含假设、风险、外部依赖。
-- Findings：从代码、文档、历史 Spec、CodeMap 得到的事实。
+- Findings：从代码、文档、历史 Spec 得到的事实。架构概览可按需运行 `sdd codemap <dir>`。
 - Open Questions：必须澄清的问题。
 - Assumptions：暂时接受但需要追踪的假设。
 - Confirmed Requirement：校准后的需求边界。
@@ -413,8 +410,7 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 | `archive` | 归档 Spec 及引用产物。 |
 | `reopen` | 基于归档任务创建修复 Spec 和新 Execute Log。 |
 | `debug` | 生成根因分析 Prompt。 |
-| `create-codemap` / `new-codemap` | 生成或创建模块地图。 |
-| `create-projectmap` / `new-projectmap` | 生成或创建项目地图。 |
+| `codemap` | 按需扫描源码并输出架构视图（不持久化，永不过时）。 |
 | `build-context-bundle` | 把外部材料压缩成上下文包。 |
 | `install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
 
@@ -447,8 +443,8 @@ Web Console 是文件系统产物的 projection，不是新的 source of truth�
 
 ### Spec 还是单一真相源吗？
 
-Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execute Log、Learning、CodeMap 等共同构成。Review 和 Archive 必须沿引用读取，而不是只读 Spec 文件本身。
+Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execute Log、Learning 等共同构成。Review 和 Archive 必须沿引用读取，而不是只读 Spec 文件本身。
 
-### 什么时候创建 CodeMap？
+### 什么时候用 CodeMap？
 
-模块复杂、调用链不清、跨任务会复用架构认知时创建。不要每个任务都创建 CodeMap。
+CodeMap 是按需计算视图（`sdd codemap <dir>`），不持久化、永不过时。在 Research 阶段需要架构概览时运行一次即可。架构事实变更应记录到 Learning Record。

@@ -117,10 +117,9 @@ program.command('learnings [project-dir]')
   .option('--limit <n>', 'max recall results (default 5)')
   .action(function(p, o) { require('../src/commands/learnings')(p || '.', o); });
 
-program.command('create-codemap <project-dir>')
-  .description('Generate CodeMap creation prompt')
-  .option('--module <name>', 'module name')
-  .action(function(p, o) { require('../src/commands/create-codemap')(p, o); });
+program.command('codemap <project-dir>')
+  .description('Output a computed architecture view (on-demand, not persisted)')
+  .action(function(p) { require('../src/commands/codemap').run(p); });
 
 program.command('build-context-bundle <project-dir>')
   .description('Generate Context Bundle prompt')
@@ -135,23 +134,5 @@ program.command('debug <project-dir>')
   .option('--log <file>', 'log file')
   .option('--error <msg>', 'error message')
   .action(function(p, o) { require('../src/commands/debug')(p, o); });
-
-program.command('create-projectmap <project-dir>')
-  .description('Generate ProjectMap creation prompt')
-  .option('--repos <list>', 'repo list')
-  .option('--force', 'overwrite')
-  .action(function(p, o) { require('../src/commands/create-projectmap')(p, o); });
-
-program.command('new-codemap <project-dir> <module-name>')
-  .description('Create CodeMap (blank or auto-scanned with --scan)')
-  .option('--force', 'overwrite')
-  .option('--scan', 'auto-scan source code and populate codemap sections')
-  .action(function(p, m, o) { require('../src/commands/new-codemap')(p, m, o); });
-
-program.command('new-projectmap <project-dir>')
-  .description('Create blank ProjectMap')
-  .option('--repos <list>', 'repo list')
-  .option('--force', 'overwrite')
-  .action(function(p, o) { require('../src/commands/new-projectmap')(p, o); });
 
 program.parse(normalizeCommandAliases(process.argv));

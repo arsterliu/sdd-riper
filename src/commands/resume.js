@@ -39,13 +39,6 @@ function run(projectDir) {
   } else {
     phaseHint = 'new_task';
   }
-  var hasCodeMap = 'no', codeMapModules = '';
-  var codemapDir = path.join(docsRoot, 'codemap');
-  if (fs.existsSync(codemapDir)) {
-    var cmFiles = fs.readdirSync(codemapDir).filter(function(f) { return f.endsWith('.md') && f !== '.gitkeep'; }).sort();
-    if (cmFiles.length > 0) { hasCodeMap = 'yes'; codeMapModules = cmFiles.map(function(f) { return f.replace(/\.md$/, ''); }).join(','); }
-  }
-  var hasProjectMap = fs.existsSync(path.join(docsRoot, 'projectmap.md')) ? 'yes' : 'no';
   var learningCount = learning.listLearningFiles(projectDir, 10000).length;
   var hasLearnings = learningCount > 0 ? 'yes' : 'no';
   var sectionsHint;
@@ -61,9 +54,6 @@ function run(projectDir) {
   console.log('ACTIVE_SPECS: ' + specCount);
   console.log('LATEST_SPEC: ' + (latestSpec || 'none'));
   console.log('SPEC_STATUS: ' + specStatus);
-  console.log('HAS_CODEMAP: ' + hasCodeMap);
-  if (hasCodeMap === 'yes') console.log('CODEMAP_MODULES: ' + codeMapModules);
-  console.log('HAS_PROJECTMAP: ' + hasProjectMap);
   console.log('HAS_LEARNINGS: ' + hasLearnings);
   if (hasLearnings === 'yes') console.log('LEARNING_RECORDS: ' + learningCount);
   console.log('PHASE_HINT: ' + phaseHint);
