@@ -37,7 +37,7 @@ SDD-RIPER 的子 agent 不是通用并行工人，而是**一次性调查员**�
 **三条硬规则**：
 
 1. **Brief 自足**：给子 agent 的任务描述里直接贴相关内容，不让它自己找。
-2. **子 agent 不写文件**：只返回结论，由主 agent 写入 spec / design / log。
+2. **子 agent 不写 SDD 产物**：spec / design / log / learning 由主 agent 统一写入，子 agent 不能碰。但子 agent **可以改代码**——代码不是 SDD 产物，且并行改代码是合理的执行方式。
 3. **返回压缩**：只返回 verdict + 摘要 + 证据指针，不贴大段原文。
 
 **三种门禁主 agent 必须亲自确认，不能委托子 agent**：完成验证（跑测试）、Plan 批准（问用户）、Review 裁决（综合各方发现写最终 verdict）。

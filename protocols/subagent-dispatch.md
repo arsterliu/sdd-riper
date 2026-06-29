@@ -82,7 +82,7 @@ Forbidden in returns:
 ## Three Constraints
 
 1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log / Learning excerpts.
-2. **Subagent does not write files**: the orchestrator writes to the correct artifact: Spec for control-plane decisions, Design for technical design, Execute Log for execution facts, Learning Record for reusable decision rules, CodeMap / ProjectMap for architecture facts.
+2. **Subagent does not write SDD artifacts**: the orchestrator writes to Spec (control-plane decisions), Design (technical design), Execute Log (execution facts), and Learning Record (reusable decision rules). Subagents MAY modify code files within the scope of their brief — code is not an SDD artifact. But subagents must not create or modify SDD artifacts on their own, because the orchestrator needs to maintain cross-artifact consistency.
 3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
 
 ## Challenge Verdicts
