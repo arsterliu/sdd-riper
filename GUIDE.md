@@ -108,7 +108,7 @@ loop 的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Wo
 
 - Requirement Review：歧义、隐含假设、风险、外部依赖。
 - Findings：从代码、文档、历史 Spec 得到的事实。架构概览可按需运行 `sdd codemap <dir>`。
-- Open Questions：必须澄清的问题。
+- Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出具体选项，用户回答后写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
 - Confirmed Requirement：校准后的需求边界。
 
@@ -221,6 +221,8 @@ Gate Evidence: <auto-gate 时必填>
 - **advisory**：与 auto 行为一致，但在 Review 阶段会额外提示人工确认。
 
 同时可在 `.sdd-config` 中配置：`GATE_POLICY="manual|auto|advisory"`。
+
+**Plan 未批准时的行为**：如果 Plan 因 Open Questions 未解决而无法批准，Agent 应主动用 `AskUserQuestion` 交互式澄清每个问题，而非仅提示"存在问题"。澄清后更新 spec，再走门禁。
 
 ### Execute
 

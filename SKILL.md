@@ -105,6 +105,16 @@ Use `PHASE_HINT`:
 
 For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
 
+### Resolving Open Questions
+
+When the spec contains unresolved `Open Questions` or Plan approval is blocked by unclear requirements:
+
+1. **Ask the user interactively** — use `AskUserQuestion` to present each question with concrete options (not free-form text fields). This is faster and more reliable than telling the user to "edit the spec yourself."
+2. **Write answers into the spec** — once the user answers, update the spec's `Open Questions` → `Assumptions` or `Confirmed Requirement` sections accordingly. Do not leave resolved questions as open.
+3. **Then proceed to Plan approval** — with clarified requirements, the Plan gate can be satisfied.
+
+Do NOT just list questions and wait. Actively drive resolution.
+
 Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is unclear. Use `sdd cruise "<PROJECT_ROOT>"` to generate an autonomous repair-loop prompt. Use `sdd challenge "<PROJECT_ROOT>"` for independent adversarial review.
 
 When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
