@@ -39,34 +39,51 @@ Spec 是控制面，不再承载完整技术设计、执行日志和经验库。
 
 ## 二、流程架构
 
-### 产物关系
+SDD-RIPER 按三层职责运行：
 
 ```
-Spec（控制面）
- ├── design-file ──→ Design（技术设计）
- ├── execute-log-file ──→ Execute Log（执行事实）
- └── learning-file ──→ Learning Record（可复用经验）
-
-Cruise Run Ledger（可观测账本，不参与门禁）
-Archive（已归档产物）
+┌─────────────────────────────────────────────────────┐
+│ 控制面（Spec）                                       │
+│  目标、Research、Innovate、Acceptance、Plan、        │
+│  门禁、Review 裁决、产物引用                          │
+│  design-file / execute-log-file / learning-file      │
+└──────────────┬──────────────────────────────────────┘
+               │ 引用
+┌──────────────▼──────────────────────────────────────┐
+│ 产出面（独立产物）                                   │
+│  Design ── 技术设计 / Design Note                    │
+│  Execute Log ── 执行事实（append-only）              │
+│  Learning Record ── 可复用决策规则                    │
+│  Cruise Run Ledger ── 可观测账本（不参与门禁）       │
+│  Archive ── 已归档产物                               │
+└──────────────▲──────────────────────────────────────┘
+               │ 读/写/验证
+┌──────────────┴──────────────────────────────────────┐
+│ 调度面（CLI + Agent）                                │
+│                                                      │
+│  探测：status / next / resume                        │
+│    → 只读推导状态，不修改产物                         │
+│                                                      │
+│  生成：debug / review-execute / challenge / cruise   │
+│    → 输出 prompt，不调用模型 API                      │
+│                                                      │
+│  操作：init / discover / validate / archive / reopen │
+│    → 创建 / 检查 / 归档产物                          │
+│                                                      │
+│  视图：codemap / learnings / doctor / console        │
+│    → 按需扫描或只读投影，不持久化                     │
+│                                                      │
+│  执行：Host Agent（Claude Code / Codex / opencode）  │
+│    → 按 prompt 执行代码修改和命令，写入产出面         │
+└─────────────────────────────────────────────────────┘
 ```
-
-### CLI 命令角色
-
-| 角色 | 命令 | 行为 |
-|------|------|------|
-| 只读探测器 | `status` / `next` / `resume` | 读取产物、推导状态，不修改 |
-| Prompt 生成器 | `debug` / `review-execute` / `challenge` / `cruise` | 输出提示词，不直接调用模型 |
-| 文件操作 | `init` / `discover` / `validate` / `archive` / `reopen` / `new-learning` | 创建/检查/归档产物 |
-| 按需视图 | `codemap` / `learnings` / `doctor` / `console` | 扫描输出或只读投影，不持久化 |
 
 ### 关键边界
 
-- `sdd next` / `status` 只读分析文件系统产物，不修改代码或文档。
-- `sdd debug` / `review-execute` / `challenge` / `cruise` 生成 prompt，不直接调用模型 API。
-- `sdd cruise --record-run` 只把当前巡航状态追加到 `<docs-root>/runs/*.cruise.jsonl`，不会自动执行下一轮。
-- `sdd console` 是只读 projection，可打开和预览产物，但不是新的 source of truth。
-- `validate` / `archive` 是真正的机器门禁和文件归档操作。
+- **控制面不嵌入产出**：Spec 通过 `design-file` / `execute-log-file` / `learning-file` 引用产物，不内联 Technical Design、Execute Log 或 Learning Record 内容。
+- **调度面只驱动，不决策**：`sdd next` 推导状态但不自动执行；`sdd challenge` 生成对抗 prompt 但不做裁决；`sdd cruise` 生成循环 prompt 但不跑模型循环。
+- **产出面只记录，不回溯**：Execute Log 是 append-only；Learning Record 记录规则但不修改历史。架构变更记录到 Learning Record，不另存 codemap 文件。
+- **调度面依赖宿主执行**：代码修改由 Host Agent 执行，SDD 不自建模型 runtime。宿主支持原生 loop 时复用，否则退回 prompt-loop 补偿。
 
 ## 三、RIPER 流程
 
