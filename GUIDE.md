@@ -37,50 +37,30 @@ Spec 是控制面，不再承载完整技术设计、执行日志和经验库。
 
 阶段产物的模板结构保持英文，包括章节标题、人工字段标签、frontmatter 键、`design-file` / `execute-log-file` / `learning-file` 引用键、CLI 命令名、状态枚举、验证类型枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
-## 二、流程架构图
+## 二、流程架构
 
-```mermaid
-flowchart TD
-  User[User / Orchestrator] --> CLI[sdd Node CLI]
-  Agent[Host Agent<br/>Codex / Claude Code / opencode] --> CLI
+### 产物关系
 
-  CLI --> Init[init / discover / resume]
-  CLI --> Status[status / next<br/>read-only detectors]
-  CLI --> Prompt[debug / review-execute / challenge / cruise<br/>prompt generators]
-  CLI --> Gate[validate / archive / reopen<br/>file-system operations]
-  CLI --> Console[sdd console<br/>read-only web projection]
+```
+Spec（控制面）
+ ├── design-file ──→ Design（技术设计）
+ ├── execute-log-file ──→ Execute Log（执行事实）
+ └── learning-file ──→ Learning Record（可复用经验）
 
-  Init --> Spec[(Spec<br/>control plane)]
-  Spec --> Design[(Design)]
-  Spec --> ExecuteLog[(Execute Log)]
-  Spec --> Learning[(Learning Record)]
-  Spec --> Runs[(Cruise Run Ledger)]
-
-  Status --> Prompt
-  Prompt --> Agent
-  Agent --> Code[Code changes<br/>and local commands]
-  Agent --> Spec
-  Agent --> Design
-  Agent --> ExecuteLog
-  Agent --> Learning
-
-  Code --> Gate
-  Spec --> Gate
-  Design --> Gate
-  ExecuteLog --> Gate
-  Learning --> Gate
-  Gate --> Archive[(Archive)]
-  Gate --> Spec
-
-  Console --> Spec
-  Console --> Design
-  Console --> ExecuteLog
-  Console --> Learning
-  Console --> Runs
-  Console --> Archive
+Cruise Run Ledger（可观测账本，不参与门禁）
+Archive（已归档产物）
 ```
 
-这张图的关键边界是：
+### CLI 命令角色
+
+| 角色 | 命令 | 行为 |
+|------|------|------|
+| 只读探测器 | `status` / `next` / `resume` | 读取产物、推导状态，不修改 |
+| Prompt 生成器 | `debug` / `review-execute` / `challenge` / `cruise` | 输出提示词，不直接调用模型 |
+| 文件操作 | `init` / `discover` / `validate` / `archive` / `reopen` / `new-learning` | 创建/检查/归档产物 |
+| 按需视图 | `codemap` / `learnings` / `doctor` / `console` | 扫描输出或只读投影，不持久化 |
+
+### 关键边界
 
 - `sdd next` / `status` 只读分析文件系统产物，不修改代码或文档。
 - `sdd debug` / `review-execute` / `challenge` / `cruise` 生成 prompt，不直接调用模型 API。
