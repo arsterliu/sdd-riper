@@ -120,7 +120,13 @@ function riskFlags(content) {
     ['billing', /\b(billing|payment|invoice|charge)\b/],
     ['migration', /\b(migration|migrate|backfill|schema)\b/],
     ['public-api', /\b(public api|api contract|external api)\b/],
-    ['irreversible', /\b(irreversible|destructive|delete data)\b/]
+    ['irreversible', /\b(irreversible|destructive|delete data)\b/],
+    // Chinese keyword counterparts — no word-boundary anchors (CJK has no \b)
+    ['security', /权限|认证|授权|密钥|凭证/],
+    ['billing', /计费|支付|账单|扣费|收费/],
+    ['migration', /迁移|数据迁移|回填|schema/],
+    ['public-api', /公开接口|外部接口|api契约/],
+    ['irreversible', /不可逆|破坏性|删除数据|清空数据/]
   ].forEach(function(item) {
     if (item[1].test(text)) flags.push(item[0]);
   });

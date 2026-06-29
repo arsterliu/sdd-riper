@@ -52,4 +52,28 @@ describe('riskFlags action-region scanning', function() {
     var state = workflow.analyzeSpec(projectDir, spec, {});
     assert.ok(state.riskFlags.indexOf('irreversible') !== -1, 'fallback should flag from full content: ' + state.riskFlags);
   });
+
+  it('flags Chinese risk keywords in action region (AC-008)', function() {
+    var spec = writeSpec('v1.0-cn.md',
+      '## Intake\n讨论数据迁移方案。\n\n## Plan\n1. 对用户表执行数据迁移。\n2. 清空数据不再需要的旧日志。\n\n## Design Note\nApproach: 迁移后删除数据（不可逆）。\n');
+    var action = workflow.actionText(projectDir, spec);
+    var flags = workflow.riskFlags(action);
+    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from 数据迁移: ' + flags);
+    assert.ok(flags.indexOf('irreversible') !== -1, 'expected irreversible from 不可逆/清空数据: ' + flags);
+  });
+
+  it('does not flag Chinese risk words in narrative (AC-009)', function() {
+    var spec = writeSpec('v1.0-cn-meta.md',
+      '## Intake\n本次任务讨论权限和计费的设计。\n\n## Findings\n数据迁移和支付都是关键领域。\n\n' +
+      '## Plan\n1. 新增一个配置项。\n2. 输出日志提示。\n\n## Design Note\nApproach: 纯配置变更，无风险动作。\n');
+    var action = workflow.actionText(projectDir, spec);
+    assert.deepEqual(workflow.riskFlags(action), [], 'action region should be clean: ' + action);
+    assert.ok(workflow.riskFlags(fs.readFileSync(spec, 'utf-8')).length > 0, 'full content should still flag');
+  });
+
+  it('Chinese security and billing keywords work directly (AC-010)', function() {
+    assert.ok(workflow.riskFlags('增加权限校验').indexOf('security') !== -1);
+    assert.ok(workflow.riskFlags('接入支付网关').indexOf('billing') !== -1);
+    assert.ok(workflow.riskFlags('公开接口变更').indexOf('public-api') !== -1);
+  });
 });
