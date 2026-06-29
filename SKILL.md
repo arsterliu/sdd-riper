@@ -37,7 +37,13 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 
 ## CLI Rule
 
-Use the `sdd` command for workflow operations.
+Use the `sdd` command for workflow operations. If `sdd` is not found in PATH, locate it first:
+
+1. Try `which sdd` / `Get-Command sdd` — if found, use it directly.
+2. Try `npm root -g` to find the global node_modules, then use `node <npm-global>/sdd-riper/bin/cli.js` as the `sdd` command.
+3. If the project itself is the sdd-riper repo, use `node <project-root>/bin/cli.js`.
+
+Once located, store the resolved path (e.g. `SDD_BIN=node /path/to/bin/cli.js`) and use it for all subsequent `sdd` calls.
 
 ## Artifact Model
 
@@ -64,7 +70,7 @@ Always follow these references. Do not recreate embedded `## Technical Design`, 
 1. Detect project root.
 2. Check for `.sdd-config` and docs root.
 3. If not initialized, ask whether to initialize.
-4. If initialized, run `sdd resume "<PROJECT_ROOT>"` and follow `PHASE_HINT`.
+4. If initialized, run `sdd resume "<PROJECT_ROOT>"` (or `$SDD_BIN resume "<PROJECT_ROOT>"` if using resolved path) and follow `PHASE_HINT`.
 
 Use plain user-facing text for the activation choice, then stop and wait if the user must choose.
 
