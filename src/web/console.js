@@ -376,14 +376,115 @@ function renderBlocker(spec) {
     ' / backtrack: ' + esc(workflow.backtrackTarget || '-') +
     ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
     runText;
+  var summaryHtml = '';
+  if (workflow.challengeSummary) {
+    summaryHtml = '<span class="challenge-summary">Challenge Summary: ' + esc(workflow.challengeSummary) + '</span>';
+  }
   qs('next-blocker').innerHTML = [
     '<div class="blocker-card">',
     '<span class="pill ' + tone + '">' + esc(phase) + '</span>',
     '<div><strong>' + (phase === 'ready' ? 'Ready to archive' : phase === 'archived' ? 'Archived' : 'Next blocker') + '</strong>',
     '<span>' + esc(blockerText[phase] || 'Review this spec before moving forward.') + '</span>',
-    '<span>' + controlText + '</span></div>',
-    '</div>'
+    '<span>' + controlText + '</span>',
+    summaryHtml,
+    '</div></div>'
   ].join('');
+}
+
+var RISK_FLAG_TONES = {
+  security: 'risk-security',
+  billing: 'risk-billing',
+  migration: 'risk-migration',
+  'public-api': 'risk-public-api',
+  irreversible: 'risk-irreversible'
+};
+
+var RISK_FLAG_LABELS = {
+  security: 'Security',
+  billing: 'Billing',
+  migration: 'Migration',
+  'public-api': 'Public API',
+  irreversible: 'Irreversible'
+};
+
+function renderRiskFlags(spec) {
+  var workflow = spec.workflow || {};
+  var flags = Array.isArray(workflow.riskFlags) ? workflow.riskFlags : [];
+  var root = qs('risk-flags');
+  root.innerHTML = '';
+  if (!flags.length) {
+    root.innerHTML = '<div class="risk-flags-row"><span class="pill not-started">No risk flags</span></div>';
+    return;
+  }
+  root.innerHTML = '<div class="risk-flags-row">' + flags.map(function(flag) {
+    var tone = RISK_FLAG_TONES[flag] || 'risk-default';
+    var label = RISK_FLAG_LABELS[flag] || flag;
+    return '<span class="risk-flag ' + tone + '">' + esc(label) + '</span>';
+  }).join('') + '</div>';
+}
+
+function renderBlockers(spec) {
+  var workflow = spec.workflow || {};
+  var blockers = Array.isArray(workflow.blockers) ? workflow.blockers : [];
+  var root = qs('blockers');
+  root.innerHTML = '';
+  if (!blockers.length) {
+    root.innerHTML = '<div class="blockers-row"><span class="pill complete">No blockers</span></div>';
+    return;
+  }
+  root.innerHTML = '<ul class="blockers-list">' + blockers.map(function(blocker) {
+    return '<li class="blocker-item">' + esc(blocker) + '</li>';
+  }).join('') + '</ul>';
+}
+
+function renderDesignMethod(spec) {
+  var workflow = spec.workflow || {};
+  var dm = workflow.designMethod || {};
+  var root = qs('design-method');
+  root.innerHTML = '';
+  if (!dm.applies) {
+    root.innerHTML = '<div class="design-method-row"><span class="pill not-started">Not applicable</span> <span>' + esc((dm.notes && dm.notes[0]) || 'micro mode does not use standalone design methodology') + '</span></div>';
+    return;
+  }
+  var html = '<div class="design-method-row">';
+  if (dm.methods && dm.methods.length) {
+    html += '<div class="dm-group"><strong>Methods</strong>';
+    dm.methods.forEach(function(m) { html += '<span class="dm-tag">' + esc(m) + '</span>'; });
+    html += '</div>';
+  }
+  if (dm.focusFields && dm.focusFields.length) {
+    html += '<div class="dm-group"><strong>Focus Fields</strong>';
+    dm.focusFields.forEach(function(f) { html += '<span class="dm-tag">' + esc(f) + '</span>'; });
+    html += '</div>';
+  }
+  if (dm.notes && dm.notes.length) {
+    html += '<div class="dm-group"><strong>Notes</strong><ul>';
+    dm.notes.forEach(function(n) { html += '<li>' + esc(n) + '</li>'; });
+    html += '</ul></div>';
+  }
+  html += '</div>';
+  root.innerHTML = html;
+}
+
+function renderLearningTriggers(spec) {
+  var completion = spec.completion || {};
+  var learningArtifact = completion.learningArtifact || {};
+  var triggers = Array.isArray(learningArtifact.triggers) ? learningArtifact.triggers : [];
+  var required = !!completion.learningRequired;
+  var root = qs('learning-triggers');
+  root.innerHTML = '';
+  if (!required) {
+    root.innerHTML = '<div class="learning-triggers-row"><span class="pill not-started">Not required</span> <span>Learning Record is not required for current archive signals</span></div>';
+    return;
+  }
+  var html = '<div class="learning-triggers-row"><strong>Learning required</strong>';
+  if (triggers.length) {
+    html += '<ul class="learning-triggers-list">';
+    triggers.forEach(function(t) { html += '<li class="learning-trigger-item">' + esc(t) + '</li>'; });
+    html += '</ul>';
+  }
+  html += '</div>';
+  root.innerHTML = html;
 }
 
 function renderGateList(spec) {
@@ -499,8 +600,12 @@ function renderDetail(spec) {
     qs('detail-phase').textContent = text(spec.phase);
     qs('detail-updated').textContent = formatDate(spec.updatedAt);
     renderBlocker(spec);
+    renderRiskFlags(spec);
+    renderBlockers(spec);
     renderGateList(spec);
     renderArtifacts(spec);
+    renderDesignMethod(spec);
+    renderLearningTriggers(spec);
     renderValidation(spec.validate);
     qs('validate').onclick = function() {
       runValidate(spec.id);

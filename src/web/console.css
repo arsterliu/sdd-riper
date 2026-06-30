@@ -985,6 +985,159 @@ select {
   }
 }
 
+/* Risk flags */
+.risk-flags-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.risk-flag {
+  border-radius: 999px;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 5px 10px;
+  white-space: nowrap;
+}
+
+.risk-security {
+  background: #fde8e8;
+  color: #b91c1c;
+}
+
+.risk-billing {
+  background: #fff3e0;
+  color: #c46a1a;
+}
+
+.risk-migration {
+  background: #e7f6fd;
+  color: #1d8fc9;
+}
+
+.risk-public-api {
+  background: #f3e8fd;
+  color: #7c3aed;
+}
+
+.risk-irreversible {
+  background: #fde8e8;
+  color: #b91c1c;
+}
+
+.risk-default {
+  background: var(--idle-soft);
+  color: var(--idle);
+}
+
+/* Blockers */
+.blockers-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.blockers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.blocker-item {
+  background: var(--waiting-soft);
+  border: 1px solid #f0c99d;
+  border-radius: 6px;
+  color: var(--waiting);
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+/* Challenge Summary */
+.challenge-summary {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  margin-top: 6px;
+}
+
+/* Design Method */
+.design-method-row {
+  margin-bottom: 10px;
+}
+
+.dm-group {
+  margin-bottom: 6px;
+}
+
+.dm-group strong {
+  color: var(--muted);
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.dm-tag {
+  background: var(--progress-soft);
+  border-radius: 999px;
+  color: var(--progress);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  margin-right: 6px;
+  margin-bottom: 4px;
+  padding: 4px 8px;
+}
+
+.dm-group ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.dm-group li {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Learning Triggers */
+.learning-triggers-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.learning-triggers-row strong {
+  font-size: 12px;
+  margin-right: 6px;
+}
+
+.learning-triggers-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.learning-trigger-item {
+  background: var(--waiting-soft);
+  border-radius: 999px;
+  color: var(--waiting);
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

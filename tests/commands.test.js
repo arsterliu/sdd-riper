@@ -1042,6 +1042,66 @@ describe('CLI commands', function() {
     assert.doesNotMatch(source, /Start-Process -LiteralPath/);
   });
 
+  it('console renders risk flags with per-type color classes (AC-001)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
+    assert.ok(js.indexOf('renderRiskFlags') !== -1, 'renderRiskFlags function exists');
+    assert.ok(js.indexOf('risk-security') !== -1, 'security risk tone mapped');
+    assert.ok(js.indexOf('risk-billing') !== -1, 'billing risk tone mapped');
+    assert.ok(js.indexOf('risk-migration') !== -1, 'migration risk tone mapped');
+    assert.ok(js.indexOf('risk-public-api') !== -1, 'public-api risk tone mapped');
+    assert.ok(js.indexOf('risk-irreversible') !== -1, 'irreversible risk tone mapped');
+    assert.ok(js.indexOf('No risk flags') !== -1, 'empty state text present');
+    assert.match(css, /\.risk-security/, 'security CSS class exists');
+    assert.match(css, /\.risk-billing/, 'billing CSS class exists');
+    assert.match(css, /\.risk-migration/, 'migration CSS class exists');
+    assert.match(css, /\.risk-public-api/, 'public-api CSS class exists');
+    assert.match(css, /\.risk-irreversible/, 'irreversible CSS class exists');
+  });
+
+  it('console renders design method advisory with methods, focusFields, and notes (AC-002)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(js.indexOf('renderDesignMethod') !== -1, 'renderDesignMethod function exists');
+    assert.ok(js.indexOf('dm-group') !== -1, 'design method group class used');
+    assert.ok(js.indexOf('dm-tag') !== -1, 'design method tag class used');
+    assert.ok(html.indexOf('design-method') !== -1, 'design method container in HTML');
+  });
+
+  it('console renders learning triggers when learning is required (AC-003)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(js.indexOf('renderLearningTriggers') !== -1, 'renderLearningTriggers function exists');
+    assert.ok(js.indexOf('learningRequired') !== -1, 'reads learningRequired from completion');
+    assert.ok(js.indexOf('learning-trigger-item') !== -1, 'learning trigger item class used');
+    assert.ok(html.indexOf('learning-triggers') !== -1, 'learning triggers container in HTML');
+  });
+
+  it('console renders blockers list from workflow (AC-004)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(js.indexOf('renderBlockers') !== -1, 'renderBlockers function exists');
+    assert.ok(js.indexOf('blocker-item') !== -1, 'blocker item class used');
+    assert.ok(js.indexOf('No blockers') !== -1, 'empty state text present');
+    assert.ok(html.indexOf('blockers') !== -1, 'blockers container in HTML');
+  });
+
+  it('console renders challenge summary in blocker card (AC-005)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    assert.ok(js.indexOf('challengeSummary') !== -1, 'reads challengeSummary from workflow');
+    assert.ok(js.indexOf('challenge-summary') !== -1, 'challenge summary CSS class used');
+  });
+
+  it('console detail page has Status Overview and Methodology sections in HTML', function() {
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(html.indexOf('Status Overview') !== -1, 'Status Overview section exists');
+    assert.ok(html.indexOf('Methodology') !== -1, 'Methodology section exists');
+    assert.ok(html.indexOf('risk-flags') !== -1, 'risk-flags container exists');
+    assert.ok(html.indexOf('blockers') !== -1, 'blockers container exists');
+    assert.ok(html.indexOf('design-method') !== -1, 'design-method container exists');
+    assert.ok(html.indexOf('learning-triggers') !== -1, 'learning-triggers container exists');
+  });
+
   it('design method router maps mode and risk to advisory hints', function() {
     var workflow = require('../src/core/workflow');
     var micro = workflow.designMethodHint('micro', []);
