@@ -8,6 +8,7 @@ var COPY_ENTRIES = [
   'bin',
   'lib',
   'src',
+  'node_modules',
   'templates',
   'protocols',
   'vendored',

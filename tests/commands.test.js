@@ -538,6 +538,7 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(targets[0].dir, 'templates')));
     assert.ok(fs.existsSync(path.join(targets[0].dir, 'protocols')));
     assert.ok(fs.existsSync(path.join(targets[0].dir, 'src')));
+    assert.ok(fs.existsSync(path.join(targets[0].dir, 'node_modules', 'commander')), 'commander dependency must be copied for agent environments');
     assert.ok(!fs.existsSync(stale));
   });
 
