@@ -1102,6 +1102,57 @@ describe('CLI commands', function() {
     assert.ok(html.indexOf('learning-triggers') !== -1, 'learning-triggers container exists');
   });
 
+  it('console renders challenge verdict with color-coded pill (AC-001)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
+    assert.ok(js.indexOf('renderChallengeVerdict') !== -1, 'renderChallengeVerdict function exists');
+    assert.ok(js.indexOf('challengeVerdictTone') !== -1, 'verdict tone function exists');
+    assert.ok(js.indexOf("'complete'") !== -1, 'PASS maps to complete tone');
+    assert.ok(js.indexOf("'waiting'") !== -1, 'PASS_WITH_CONCERNS maps to waiting tone');
+    assert.ok(js.indexOf("'bad'") !== -1, 'FAIL_* maps to bad tone');
+    assert.match(css, /\.pill\.bad/, 'bad pill CSS class exists');
+  });
+
+  it('console renders backtrack target only on FAIL verdict (AC-002)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    assert.ok(js.indexOf('backtrack-target') !== -1, 'backtrack target CSS class used');
+    assert.ok(js.indexOf("verdict.indexOf('FAIL_') === 0") !== -1, 'backtrack only shown for FAIL_*');
+  });
+
+  it('console renders cruise run with policy, iterations, and latest run (AC-003)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(js.indexOf('renderCruiseRun') !== -1, 'renderCruiseRun function exists');
+    assert.ok(js.indexOf('cruisePolicy') !== -1, 'reads cruisePolicy');
+    assert.ok(js.indexOf('maxIterations') !== -1, 'reads maxIterations');
+    assert.ok(js.indexOf('cruise-latest') !== -1, 'latest run section class');
+    assert.ok(html.indexOf('cruise-run') !== -1, 'cruise-run container in HTML');
+  });
+
+  it('console renders cruise stop reason with color coding (AC-004)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    assert.ok(js.indexOf('STOP_REASON_TONES') !== -1, 'stop reason tone map exists');
+    assert.ok(js.indexOf("pass: 'complete'") !== -1, 'pass → complete');
+    assert.ok(js.indexOf("max_iterations: 'waiting'") !== -1, 'max_iterations → waiting');
+    assert.ok(js.indexOf("human_required: 'bad'") !== -1, 'human_required → bad');
+    assert.ok(js.indexOf("continue: 'progress'") !== -1, 'continue → progress');
+  });
+
+  it('console blocker card no longer contains challenge and backtrack text (AC-005)', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var blockerMatch = js.match(/function renderBlocker\(spec\)[\s\S]*?\.join\(''\);/);
+    assert.ok(blockerMatch, 'renderBlocker function found');
+    assert.doesNotMatch(blockerMatch[0], /challenge: /, 'challenge text removed from blocker card');
+    assert.doesNotMatch(blockerMatch[0], /backtrack: /, 'backtrack text removed from blocker card');
+  });
+
+  it('console detail page has Challenge Verdict and Cruise Run sections in HTML', function() {
+    var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
+    assert.ok(html.indexOf('challenge-verdict') !== -1, 'challenge-verdict container exists');
+    assert.ok(html.indexOf('Cruise Run') !== -1, 'Cruise Run section exists');
+    assert.ok(html.indexOf('cruise-run') !== -1, 'cruise-run container exists');
+  });
+
   it('design method router maps mode and risk to advisory hints', function() {
     var workflow = require('../src/core/workflow');
     var micro = workflow.designMethodHint('micro', []);

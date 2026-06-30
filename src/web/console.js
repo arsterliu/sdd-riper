@@ -372,8 +372,6 @@ function renderBlocker(spec) {
   var controlText = 'gate: ' + esc(workflow.gatePolicy || '-') +
     ' / cruise: ' + esc(workflow.cruisePolicy || '-') +
     ' / next: ' + esc(workflow.nextAction || '-') +
-    ' / challenge: ' + esc(workflow.challengeVerdict || '-') +
-    ' / backtrack: ' + esc(workflow.backtrackTarget || '-') +
     ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
     runText;
   var summaryHtml = '';
@@ -482,6 +480,80 @@ function renderLearningTriggers(spec) {
     html += '<ul class="learning-triggers-list">';
     triggers.forEach(function(t) { html += '<li class="learning-trigger-item">' + esc(t) + '</li>'; });
     html += '</ul>';
+  }
+  html += '</div>';
+  root.innerHTML = html;
+}
+
+function challengeVerdictTone(verdict) {
+  if (!verdict) return 'not-started';
+  if (verdict === 'PASS') return 'complete';
+  if (verdict === 'PASS_WITH_CONCERNS') return 'waiting';
+  if (verdict.indexOf('FAIL_') === 0) return 'bad';
+  return 'not-started';
+}
+
+function renderChallengeVerdict(spec) {
+  var workflow = spec.workflow || {};
+  var verdict = workflow.challengeVerdict || '';
+  var backtrack = workflow.backtrackTarget || '';
+  var root = qs('challenge-verdict');
+  root.innerHTML = '';
+  var tone = challengeVerdictTone(verdict);
+  var html = '<div class="challenge-verdict-row">';
+  html += '<strong>Challenge</strong> ';
+  html += '<span class="pill ' + tone + '">' + esc(verdict || 'Not run') + '</span>';
+  if (verdict.indexOf('FAIL_') === 0 && backtrack) {
+    html += ' <span class="backtrack-target">Backtrack: ' + esc(backtrack) + '</span>';
+  }
+  html += '</div>';
+  root.innerHTML = html;
+}
+
+var STOP_REASON_TONES = {
+  pass: 'complete',
+  max_iterations: 'waiting',
+  human_required: 'bad',
+  continue: 'progress'
+};
+
+var STOP_REASON_LABELS = {
+  pass: 'Pass',
+  max_iterations: 'Max iterations',
+  human_required: 'Human required',
+  continue: 'Continue'
+};
+
+function renderCruiseRun(spec) {
+  var workflow = spec.workflow || {};
+  var run = spec.cruiseRun || {};
+  var root = qs('cruise-run');
+  root.innerHTML = '';
+  var policy = workflow.cruisePolicy || 'off';
+  var maxIter = workflow.maxIterations || 5;
+  if (policy === 'off' && !run.count) {
+    root.innerHTML = '<div class="cruise-run-row"><span class="pill not-started">Off</span> <span>Cruise is disabled</span></div>';
+    return;
+  }
+  var html = '<div class="cruise-run-row">';
+  html += '<div class="cruise-meta"><span class="cruise-label">Policy</span><span class="pill ' + (policy === 'autonomous' ? 'progress' : policy === 'assisted' ? 'waiting' : 'not-started') + '">' + esc(policy) + '</span></div>';
+  html += '<div class="cruise-meta"><span class="cruise-label">Max iterations</span><span>' + esc(maxIter) + '</span></div>';
+  if (run.count) {
+    var latest = run.latest || {};
+    var stopReason = latest.stopReason || '';
+    var stopTone = STOP_REASON_TONES[stopReason] || 'not-started';
+    var stopLabel = STOP_REASON_LABELS[stopReason] || stopReason;
+    html += '<div class="cruise-latest">';
+    html += '<div class="cruise-meta"><span class="cruise-label">Latest run</span><span>#' + esc(latest.iteration || '-') + ' / ' + esc(latest.engine || '-') + '</span></div>';
+    html += '<div class="cruise-meta"><span class="cruise-label">Verdict</span><span class="pill ' + challengeVerdictTone(latest.challengeVerdict) + '">' + esc(latest.challengeVerdict || '-') + '</span></div>';
+    html += '<div class="cruise-meta"><span class="cruise-label">Stop reason</span><span class="pill ' + stopTone + '">' + esc(stopLabel) + '</span></div>';
+    html += '</div>';
+    html += '<div class="cruise-meta"><span class="cruise-label">Total runs</span><span>' + esc(run.count) + '</span></div>';
+    if (run.malformedCount) {
+      html += '<div class="cruise-meta"><span class="cruise-label">Corrupted entries</span><span class="pill bad">' + esc(run.malformedCount) + '</span></div>';
+    }
+  } else if (policy !== 'off') {
+    html += '<div class="cruise-meta"><span class="pill not-started">No runs recorded</span></div>';
   }
   html += '</div>';
   root.innerHTML = html;
@@ -601,11 +673,13 @@ function renderDetail(spec) {
     qs('detail-updated').textContent = formatDate(spec.updatedAt);
     renderBlocker(spec);
     renderRiskFlags(spec);
+    renderChallengeVerdict(spec);
     renderBlockers(spec);
     renderGateList(spec);
     renderArtifacts(spec);
     renderDesignMethod(spec);
     renderLearningTriggers(spec);
+    renderCruiseRun(spec);
     renderValidation(spec.validate);
     qs('validate').onclick = function() {
       runValidate(spec.id);
