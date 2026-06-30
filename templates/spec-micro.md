@@ -45,3 +45,6 @@ execute-log-file:
 Challenge Verdict:
 Backtrack Target:
 Challenge Summary:
+Challenge Executed By:
+Challenge Executed At:
+Challenge Evidence:

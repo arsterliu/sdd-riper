@@ -279,6 +279,22 @@ Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Exec
 Challenge Summary: <evidence, ≤200 words>
 ```
 
+**执行证据门禁**：Challenge 完成后，必须在 Spec 中填写执行证据三要素：
+
+```text
+Challenge Executed By: subagent | inline | auto-gate | <agent-id>
+Challenge Executed At: <ISO-8601>
+Challenge Evidence: <verdict + summary from independent agent>
+```
+
+`validate --archive-ready` 强制校验三要素齐全，缺任何一项拦截归档。门禁策略复用 `GATE_POLICY`：
+
+- **manual**：`Challenge Executed By` 不能是 `auto-gate`，必须由人工填写
+- **auto**：AI 可填写 `auto-gate`，但三要素必须齐全
+- **advisory**：与 auto 行为一致，Review 阶段额外提示人工确认
+
+standard/lite 模式下 `Challenge Executed By` 必须包含 `subagent`（对抗审查的核心是"不是自己审自己"）；micro 模式下可以是 `inline`。
+
 **怎么结束**：
 
 - `PASS`：对抗评审通过，进入 Learning Check → Archive。

@@ -193,7 +193,7 @@ function makeStandardArchiveReady(demo, specFile) {
   fs.writeFileSync(specFile, content, 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
-  insertSectionContent(specFile, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
+  insertSectionContent(specFile, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: all gates pass.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS - independent review');
   return { designFile: designFile, logFile: logFile };
 }
 
@@ -406,6 +406,126 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Adversarial Challenge failed: FAIL_DESIGN') !== -1);
   });
 
+  it('validate requires challenge evidence fields for archive (AC-001)', function() {
+    var demo = path.join(tmpBase, 'd4i');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-evidence --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-evidence.md');
+    makeStandardArchiveReady(demo, sf);
+    // Remove challenge evidence to test that validate catches the missing fields
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/Challenge Executed By:.*\n/, 'Challenge Executed By:\n');
+    c = c.replace(/Challenge Executed At:.*\n/, 'Challenge Executed At:\n');
+    c = c.replace(/Challenge Evidence:.*\n/, 'Challenge Evidence:\n');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Executed By is empty') !== -1, 'missing Executed By');
+  });
+
+  it('validate requires Challenge Executed At when Executed By is present', function() {
+    var demo = path.join(tmpBase, 'd4i2');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-at --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-at.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/Challenge Executed At:.*\n/, 'Challenge Executed At:\n');
+    c = c.replace(/Challenge Evidence:.*\n/, 'Challenge Evidence:\n');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Executed At is empty') !== -1, 'missing Executed At');
+  });
+
+  it('validate requires Challenge Evidence when Executed By and At are present', function() {
+    var demo = path.join(tmpBase, 'd4i3');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-ev --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-ev.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/Challenge Evidence:.*\n/, 'Challenge Evidence:\n');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Evidence is required') !== -1, 'missing Evidence');
+  });
+
+  it('validate rejects inline challenge for lite mode (AC-004 lite)', function() {
+    var demo = path.join(tmpBase, 'd4l2');
+    run('init ' + demo + ' --mode lite');
+    run('discover ' + demo + ' --task-name challenge-inline-lite --spec-version v1.0 --requirement x --mode lite');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-lite.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1Lite task confirmed.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: simple change.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: lite task\nRequirement: lite\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js');
+    c = fillApproval(c);
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Design Note', 'Approach: test.\nImpact Scope: minimal.\nInterface / Data Impact: none.\nCompatibility: ok.\nRisks: none.\nTest Strategy: unit.');
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: DONE\n');
+    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
+  });
+
+  it('validate passes when challenge evidence is complete (AC-002)', function() {
+    var demo = path.join(tmpBase, 'd4j');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-ok --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-ok.md');
+    makeStandardArchiveReady(demo, sf);
+    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: All gates pass.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS - all gates verified by independent agent');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('Challenge Executed By') === -1, 'no challenge evidence issues');
+  });
+
+  it('validate rejects auto-gate challenge under manual policy (AC-003)', function() {
+    var demo = path.join(tmpBase, 'd4k');
+    run('init ' + demo + ' --mode standard');
+    fs.writeFileSync(path.join(demo, '.sdd-config'), 'GATE_POLICY=manual\n');
+    run('discover ' + demo + ' --task-name challenge-manual --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-manual.md');
+    makeStandardArchiveReady(demo, sf);
+    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: auto-gate\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Manual gate policy requires human Challenge Executed By') !== -1);
+  });
+
+  it('validate rejects inline challenge for standard/lite modes (AC-004)', function() {
+    var demo = path.join(tmpBase, 'd4l');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-inline-std --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-std.md');
+    makeStandardArchiveReady(demo, sf);
+    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
+  });
+
+  it('validate allows inline challenge for micro mode (AC-005)', function() {
+    var demo = path.join(tmpBase, 'd4m');
+    run('init ' + demo + ' --mode micro');
+    run('discover ' + demo + ' --task-name challenge-inline-micro --spec-version v1.0 --requirement x --mode micro');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-micro.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/## Plan/, '## Plan\n\nImpact Scope: single file\nData Impact: none\nInterface Impact: none\nAcceptance: behavior preserved\nVerification: unit test\n\nPlan Approved By: auto-gate\nApproved At: 2026-06-30T00:00:00Z\nGate Policy: auto\nGate Evidence: micro plan complete');
+    fs.writeFileSync(sf, c);
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    fs.writeFileSync(logFile, 'Step 1: DONE\n');
+    insertSectionContent(sf, 'Review Summary', 'PASS - micro task verified.\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS - inline review for micro');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('Challenge Executed By') === -1 || result.indexOf('inline') === -1, 'micro allows inline');
+  });
+
   it('validate enforces lite design note and acceptance criteria', function() {
     var demo = path.join(tmpBase, 'd4c');
     run('init ' + demo + ' --mode lite');
@@ -418,12 +538,7 @@ describe('CLI commands', function() {
     c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: 复用现有 validate/archive pattern.');
     c = fillApproval(c);
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
-
-    var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Design Note is empty') !== -1);
-    assert.ok(blocked.indexOf('Acceptance Criteria is empty') !== -1);
-    assert.ok(blocked.indexOf('Execute Log is empty') !== -1);
+    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: validate archive-ready gates\nRequirement: lite validation\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Lite archive readiness\n  Given lite design, acceptance, approval, execute log, and PASS review are present\n  When validate --archive-ready runs\n  Then validation reports OK');
     fs.writeFileSync(sf, c, 'utf-8');
@@ -448,7 +563,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
     insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
-    insertSectionContent(sf, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
+    insertSectionContent(sf, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard Acceptance Criteria missing Verification for: AC-001') !== -1);
@@ -492,7 +607,7 @@ describe('CLI commands', function() {
     var c = fs.readFileSync(sf, 'utf-8');
     c = fillApproval(c);
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS');
+    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Micro Plan must include Impact Scope') !== -1);

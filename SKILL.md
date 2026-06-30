@@ -401,7 +401,12 @@ Challenge agent 返回：
 Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
 Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
 Challenge Summary: <evidence>
+Challenge Executed By: subagent | inline | auto-gate | <agent-id>
+Challenge Executed At: <ISO-8601>
+Challenge Evidence: <verdict + summary from independent agent>
 ```
+
+`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require `subagent` in `Challenge Executed By`; micro allows `inline`. Gate policy mirrors `GATE_POLICY`: manual rejects `auto-gate`, auto requires all three fields, advisory adds a human confirmation prompt.
 
 Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
 

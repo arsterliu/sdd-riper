@@ -237,6 +237,32 @@ function validateChallengeVerdict(content, issues) {
   }
 }
 
+function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issues) {
+  var executedBy = labelValue(content, 'Challenge Executed By');
+  var executedAt = labelValue(content, 'Challenge Executed At');
+  var challengeEvidence = labelValue(content, 'Challenge Evidence');
+  if (!executedBy) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed By is empty.');
+    return;
+  }
+  if (!executedAt) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed At is empty.');
+  }
+  if (!challengeEvidence) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Evidence is required for challenge execution.');
+  }
+  if (/^auto-gate$/i.test(executedBy)) {
+    if (gatePolicy === 'manual') {
+      issues.push('Manual gate policy requires human Challenge Executed By.');
+    }
+  }
+  if (mode === 'standard' || mode === 'lite') {
+    if (!/subagent/i.test(executedBy)) {
+      issues.push('Standard and lite modes require subagent Challenge execution.');
+    }
+  }
+}
+
 function validateModeArtifacts(projectDir, specPath, mode, issues) {
   if (mode === 'standard') {
     if (common.subsectionIsEmpty(specPath, SECTION.confirmedRequirement)) {
@@ -331,6 +357,9 @@ function validateSpec(specPath, opts) {
   }
   validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
   validateChallengeVerdict(content, issues);
+  if (opts.archiveReady) {
+    validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
+  }
 
   if (opts.archiveReady) {
     validateModeArtifacts(projectDir, specPath, mode, issues);

@@ -67,6 +67,7 @@ function classifyIssue(issue) {
   if (/Execute Log/i.test(issue)) return 'FAIL_LOG';
   if (/Learning Record|Learning/i.test(issue)) return 'FAIL_LEARNING';
   if (/Review Verdict|Review Summary|PASS verdict/i.test(issue)) return 'FAIL_CODE';
+  if (/Challenge Executed|Challenge Evidence/i.test(issue)) return 'FAIL_CODE';
   return 'FAIL_SPEC';
 }
 
