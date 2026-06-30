@@ -109,7 +109,7 @@ Challenge 和 Cruise 是 Review 之后的质量闭环。它们不改变 RIPER �
 
 - Requirement Review：歧义、隐含假设、风险、外部依赖。
 - Findings：从代码、文档、历史 Spec 得到的事实。架构概览可按需运行 `sdd codemap <dir>`。
-- Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
+- Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过"其他"选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
 - Confirmed Requirement：校准后的需求边界。
 

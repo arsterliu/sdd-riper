@@ -109,7 +109,7 @@ For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unles
 
 When the spec contains unresolved `Open Questions` or Plan approval is blocked by unclear requirements:
 
-1. **Ask the user interactively with suggested answers** — use `AskUserQuestion` to present each question with 2-4 concrete options. Each option should be an **AI-suggested answer** derived from the spec context, codebase findings, and domain knowledge — not a placeholder like "fill in yourself." The user confirms, adjusts, or provides a different answer. This is faster and more reliable than telling the user to "edit the spec yourself."
+1. **Ask the user interactively with suggested answers** — use `AskUserQuestion` to present each question with 2-4 concrete options. Each option should be an **AI-suggested answer** derived from the spec context, codebase findings, and domain knowledge — not a placeholder like "fill in yourself." The user confirms, adjusts, or provides a different answer via the "Other" free-text option. Do not try to cover every possibility in the options — the "Other" option is the escape hatch. This is faster and more reliable than telling the user to "edit the spec yourself."
 2. **Write answers into the spec** — once the user answers, update the spec's `Open Questions` → `Assumptions` or `Confirmed Requirement` sections accordingly. Do not leave resolved questions as open.
 3. **Then proceed to Plan approval** — with clarified requirements, the Plan gate can be satisfied.
 
