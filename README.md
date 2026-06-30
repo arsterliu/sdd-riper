@@ -149,7 +149,7 @@ sdd install-skill --target codex --clean
 ## 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
 ## 流程架构
@@ -184,8 +184,8 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learni
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。
 - **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。
 - **Review**：四轴审查 Intake、Design/Acceptance/Plan、Code Diff、Execute Log。
-- **Challenge**：独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。
-- **Cruise**：在配置策略内生成巡航控制 prompt，引导宿主 agent 按 next/challenge/validate 结果回跳；`sdd cruise` 本身不执行模型循环，也不直接修复代码。
+- **Challenge**：Review 之后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
+- **Cruise**：Challenge 返回 `FAIL_*` 后进入。每轮按 Backtrack Target 修复、validate、再次 challenge，直到通过或达到迭代上限。`sdd cruise` 本身不执行模型循环，也不直接修复代码。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
 - **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
 

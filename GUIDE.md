@@ -88,12 +88,16 @@ SDD-RIPER 按三层职责运行：
 ## 三、RIPER 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
-巡航能力不会取消 RIPER 产物合同。`sdd next` 用于判断下一步和回跳目标，`sdd challenge` 用于生成独立对抗评审 prompt，`sdd cruise` 用于生成有预算的巡航控制 prompt。
+Challenge 和 Cruise 是 Review 之后的质量闭环。它们不改变 RIPER 产物合同，而是在四轴审查后追加一层独立对抗评审，并在发现问题时提供有预算的修复循环。
 
-loop 的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Workflows，Codex / opencode 如果当前运行面支持原生自主循环，也应直接复用。SDD 不自建模型执行 runtime；它只提供状态机、门禁、回跳映射和产物真相链。宿主不支持原生 loop 时，退回 `prompt` 或 `local-loop` prompt-loop 补偿模式；SDD 只记录 iteration 快照，不执行模型循环。
+- `sdd next`：判断当前阶段、下一步和回跳目标。
+- `sdd challenge`：生成独立对抗评审 prompt，由独立角色（standard/lite 必须派子 agent）执行。
+- `sdd cruise`：在 challenge 返回 `FAIL_*` 后，生成有预算的修复循环 prompt。
+
+循环的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Workflows，Codex / opencode 如果当前运行面支持原生自主循环，也应直接复用。SDD 不自建模型执行 runtime；它只提供状态机、门禁、回跳映射和产物真相链。宿主不支持原生 loop 时，退回 `prompt` 或 `local-loop` prompt-loop 补偿模式；SDD 只记录 iteration 快照，不执行模型循环。
 
 `CRUISE_POLICY="off"` 会禁用巡航 prompt 和 run ledger；`assisted` 要求人在每轮修复之间确认；`autonomous` 才允许宿主原生 loop。
 
@@ -250,35 +254,90 @@ Review 是四轴审查：
 
 Axis 2 是 primary axis。Axis 0、1、3 是确认轴，任何一轴失败都应阻止归档或触发修正。
 
-### Challenge / Cruise
+Review 完成后自动进入 Challenge（对抗评审）。
 
-对抗评审建议由独立 challenge agent 执行。standard/lite 默认要求独立角色；micro 可以内联执行，但必须按独立评审者输出 verdict。
+### Challenge（对抗评审）
+
+**何时触发**：Review 四轴审查完成后自动进入。Challenge 是 Review 的延伸，不是可选步骤。
+
+**谁执行**：
+
+- **standard / lite**：必须派子 agent 执行。对抗审查的核心价值是"不是自己审自己"——主 agent 写了代码再自己审，确认偏差不可避免。子 agent 有独立上下文，只返回 verdict + findings。
+- **micro**：可在主上下文内执行，但必须保持对抗角色与实现角色分离。
+
+**怎么运行**：
 
 ```text
-sdd next <project-dir>
 sdd challenge <project-dir>
+```
+
+Challenge agent 只读不写任何文件（包括代码），只返回：
+
+```text
+Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
+Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
+Challenge Summary: <evidence, ≤200 words>
+```
+
+**怎么结束**：
+
+- `PASS`：对抗评审通过，进入 Learning Check → Archive。
+- `PASS_WITH_CONCERNS`：通过但有顾虑，进入 Learning Check（必须创建 Learning Record）→ Archive。
+- `FAIL_*`：阻止归档，进入 Cruise 修复循环。
+
+**派发规则**（standard/lite，遵循 `protocols/subagent-dispatch.md`）：
+
+1. Brief 自足：将 spec、design 摘要、execute log 摘要直接贴入 brief，不让子 agent 自己找。
+2. 子 agent 只读不写：不修改任何文件，只返回 verdict。
+3. 返回压缩：verdict + backtrack target + summary（≤200 词）。
+
+### Cruise（自主巡航）
+
+**何时触发**：Challenge 返回 `FAIL_*` verdict 后自动进入。如果 Challenge 返回 `PASS` 或 `PASS_WITH_CONCERNS`，不需要 Cruise。
+
+**怎么运行**：
+
+```text
 sdd cruise <project-dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
 ```
 
-Challenge verdict 枚举：
+Cruise 每一轮做三件事：
 
-- `PASS`
-- `PASS_WITH_CONCERNS`
-- `FAIL_SPEC`
-- `FAIL_DESIGN`
-- `FAIL_ACCEPTANCE`
-- `FAIL_PLAN`
-- `FAIL_CODE`
-- `FAIL_LOG`
-- `FAIL_LEARNING`
+1. **定位问题**：根据 `FAIL_*` 的 `Backtrack Target` 回到对应阶段修复。回跳映射：`FAIL_SPEC` → Research，`FAIL_DESIGN` → Design，`FAIL_ACCEPTANCE` → Acceptance，`FAIL_PLAN` → Plan，`FAIL_CODE` → Execute / Debug，`FAIL_LOG` → Execute Log，`FAIL_LEARNING` → Learning Check。
+2. **修复并验证**：修复对应产物，运行 `sdd validate` 检查门禁。
+3. **再次 Challenge**：修复后重新运行 `sdd challenge`，验证问题是否解决。
 
-任何 `FAIL_*` 都会阻止 archive，并作为 `sdd cruise` 的回跳信号：需求问题回 Research，设计问题回 Design，验收问题回 Acceptance，计划问题回 Plan，代码问题回 Execute / Debug，日志问题回 Execute Log，经验沉淀问题回 Learning Check。巡航超过 `CRUISE_MAX_ITERATIONS` 或遇到安全、权限、计费、数据迁移、公共 API、不可逆变更时必须停止并要求人工介入。
+```text
+┌──────────────┐
+│  Challenge    │
+│  FAIL_*      │
+└──────┬───────┘
+       │ Backtrack Target
+       ▼
+┌──────────────┐     ┌──────────────┐     ┌──────────────┐
+│  修复产物     │────▶│  validate    │────▶│  challenge   │
+│  (回跳阶段)   │     │  检查门禁     │     │  重新评审     │
+└──────────────┘     └──────────────┘     └──────┬───────┘
+                                              │
+                                    ┌─────────┴─────────┐
+                                    │ PASS → 结束        │
+                                    │ FAIL → 下一轮      │
+                                    └───────────────────┘
+```
 
-`--engine auto` 是默认值。它的策略是：先复用宿主原生 loop；没有原生 loop 时，要求宿主 agent 或人工把同一套 `sdd next -> repair -> validate -> review/challenge -> backtrack` 作为普通 prompt loop 执行。无论使用哪个 engine，`Spec / Design / Plan / Execute Log / Learning` 都不能被宿主 workflow 文件替代。
+**怎么结束**：
+
+- Challenge 返回 `PASS` 或 `PASS_WITH_CONCERNS`：Cruise 结束，进入 Learning Check → Archive。
+- 达到 `CRUISE_MAX_ITERATIONS`（默认 5）：必须停止，要求人工介入。
+- 遇到安全、权限、计费、数据迁移、公共 API、不可逆变更：必须停止，要求人工介入。
+
+**Engine 选择**：`--engine auto` 是默认值。策略是先复用宿主原生 loop；没有原生 loop 时，退回 prompt loop。无论使用哪个 engine，`Spec / Design / Plan / Execute Log / Learning` 都不能被宿主 workflow 文件替代。
+
+**运行记录**：`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录每轮的 iteration、engine、verdict 和停止原因，用于 Console 和人工审计。
 
 ### Learning Check
 
-Learning Check 在 Review 之后、Archive 之前执行。它不是复盘作文，而是把本次任务暴露出的可复用判断沉淀成规则。
+Learning Check 在 Challenge 通过后、Archive 之前执行。它不是复盘作文，而是把本次任务暴露出的可复用判断沉淀成规则。
 
 以下情况必须创建 Learning Record：
 
