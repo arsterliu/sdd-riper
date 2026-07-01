@@ -93,6 +93,231 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 
 Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage 汇总），替代了原独立的 Review 阶段。Challenge 是 Execute 之后的唯一质量门禁。`PASS_WITH_CONCERNS` 直接进入 Learning Check（不再回退到 Review）。
 
+### 全链路流转图
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  sdd init <dir> --mode standard|lite|micro                                │
+│  → 创建目录结构 + .sdd-config + AI 配置文件                               │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  sdd discover <dir> --task-name <name> --version v1.0 --requirement "..." │
+│  → 创建 Spec + Design（micro 除外）+ Execute Log                           │
+│  → Spec frontmatter 写入 design-file / execute-log-file / learning-file    │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Research                                                                  │
+│  ┌─ 读取项目规范宪章（eslint/tsconfig/CI gates 等）→ 写入 Findings          │
+│  ├─ Requirement Review：歧义、风险、外部依赖                               │
+│  ├─ Findings：代码事实 + 项目约束 + 架构概览（sdd codemap 按需）           │
+│  ├─ Open Questions → AskUserQuestion 交互澄清                              │
+│  ├─ Assumptions：暂未确认的约束                                           │
+│  └─ Confirmed Requirement：校准后的需求边界                                │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Innovate  （micro 跳过；lite 可跳过但写 Reason）                         │
+│  ┌─ 至少两个方案比较                                                       │
+│  ├─ 优缺点 / 技术风险 / 需求匹配度                                        │
+│  ├─ 被拒绝方案的原因                                                       │
+│  └─ 选中方案                                                               │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Design / Acceptance                                                       │
+│  ┌─ standard: 独立 Technical Design（8 个必填字段）                        │
+│  │            + Acceptance Criteria（AC-### + Verification 元数据）         │
+│  ├─ lite:    独立 Design Note（6 个必填字段）+ 轻量 AC                     │
+│  └─ micro:   Plan 内含 Acceptance + Verification + Impact                  │
+│                                                                             │
+│  sdd next → 输出 DESIGN_METHOD / DESIGN_FOCUS_FIELDS（advisory）           │
+│  风险标记 → 点亮对应 Design 字段（security→安全审查, billing→状态模型...）  │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Plan                                                                      │
+│  ┌─ 从 Design + AC 拆成原子步骤                                            │
+│  ├─ 每步：文件路径 / 具体改动 / 对应 AC / 验证方式                         │
+│  └─ 门禁三选一 ──┬─ manual:  人工 Plan Approved By + Approved At            │
+│                   ├─ auto:    auto-gate + Gate Evidence                    │
+│                   └─ advisory: 同 auto，Challenge 时额外人工确认           │
+│                                                                             │
+│  ★ Plan 未批准 → 禁止进入 Execute                                         │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Execute*                                                                  │
+│  ┌─ 严格按 Plan 执行，每个 Step 追加到 Execute Log                         │
+│  │                                                                         │
+│  │  Step 格式:                                                             │
+│  │  ┌─ Step / Status / Files / Result / Verification                      │
+│  │  ├─ AC Coverage: AC-###: PASS|FAIL|SKIPPED                             │
+│  │  │    ├─ Scenarios: "场景名": PASS|FAIL                                 │
+│  │  │    ├─ Test: <test file path>                                        │
+│  │  │    ├─ Method: tdd|bdd|manual                                        │
+│  │  │    └─ SKIPPED 专属: Reason + Approved By（非 auto-gate）+ Approved At│
+│  │  ├─ Deviation: none | DEVIATED_MINOR | DEVIATED_MAJOR                  │
+│  │  └─ Timestamp: ISO-8601                                                │
+│  │                                                                         │
+│  │  偏差规则:                                                              │
+│  │  ┌─ DEVIATED_MINOR: 同目标不同实现 → 记录继续                           │
+│  │  ├─ DEVIATED_MAJOR: 目标/边界变化 → 停止，回退到 Plan/Design            │
+│  │  └─ BUGFIX / BUGFIX_ESCALATED: 缺陷修复                                │
+│  │                                                                         │
+│  │  失败时: sdd debug → 根因分析 → 再试                                   │
+│  │                                                                         │
+│  └─ 最后一步: Completion Verification（替代原 Review 阶段）               │
+│     ┌─ Step: completion-verification                                       │
+│     ├─ AC Coverage Summary: AC-###: PASS|FAIL|SKIPPED (type, test_path)   │
+│     └─ Four-Axis Checklist:                                               │
+│        Axis 0 (Intake): aligned | misaligned                              │
+│        Axis 1 (Design/Acceptance/Plan): complete | incomplete              │
+│        Axis 2 (Code Diff): within boundary | out of boundary              │
+│        Axis 3 (Execute Log): faithful | unfaithful                        │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Challenge（唯一独立质量门禁）                                             │
+│                                                                             │
+│  sdd challenge <dir>  →  生成对抗审查 prompt                               │
+│                                                                             │
+│  ┌─ standard/lite: 必须派子 agent 执行（核心: 不是自己审自己）             │
+│  └─ micro: 可内联但必须角色分离                                            │
+│                                                                             │
+│  子 agent 只读不写，返回:                                                  │
+│  ┌─ Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC              │
+│  │                      | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN       │
+│  │                      | FAIL_CODE | FAIL_LOG | FAIL_LEARNING            │
+│  ├─ Backtrack Target: Research | Design | Acceptance | Plan               │
+│  │                    | Execute / Debug | Execute Log | Learning Check     │
+│  └─ Challenge Summary: <evidence, ≤200 words>                             │
+│                                                                             │
+│  结果必须通过命令写入（禁止手动填写）:                                     │
+│  sdd challenge <dir> --record-result "VERDICT" --summary "..."            │
+│                    --executed-by "subagent"                                │
+│  → 自动写入: Challenge Verdict / Backtrack Target / Challenge Summary     │
+│             Challenge Executed By / Challenge Executed At（当前时间戳）    │
+│             Challenge Evidence                                             │
+│                                                                             │
+│  判决路由:                                                                  │
+│  ┌─ PASS               → Learning Check → Archive                        │
+│  ├─ PASS_WITH_CONCERNS → Learning Check（必须创建 Learning）→ Archive     │
+│  └─ FAIL_*             → Cruise 修复循环                                 │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │ FAIL_*
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Cruise（自主巡航）                                                        │
+│                                                                             │
+│  sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex]      │
+│              [--emit-claude-prompt] [--record-run] [--iteration N]         │
+│                                                                             │
+│  每轮循环:                                                                  │
+│  ┌─ 按 Backtrack Target 回到对应阶段修复                                   │
+│  ├─ sdd validate → 检查门禁                                               │
+│  └─ sdd challenge → 重新评审                                              │
+│                                                                             │
+│  终止条件:                                                                  │
+│  ┌─ Challenge PASS / PASS_WITH_CONCERNS → 退出循环                         │
+│  ├─ 达到 CRUISE_MAX_ITERATIONS（默认 5） → 人工介入                       │
+│  └─ 安全/权限/计费/迁移/公共 API/不可逆 → 立即停止，人工介入              │
+│                                                                             │
+│  CRUISE_POLICY: off（禁用）| assisted（每轮人工确认）| autonomous（原生loop）│
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │ PASS / PASS_WITH_CONCERNS
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Learning Check                                                            │
+│                                                                             │
+│  必须创建 Learning Record 的触发条件:                                      │
+│  ┌─ Execute Log 含 BUGFIX / BUGFIX_ESCALATED / DEVIATED_MINOR|MAJOR       │
+│  ├─ Challenge verdict = PASS_WITH_CONCERNS                                │
+│  ├─ 任务从归档 reopen                                                     │
+│  ├─ AC 本身不充分                                                          │
+│  └─ 同类失败模式重复出现                                                  │
+│                                                                             │
+│  sdd new-learning <dir> [spec-name]                                        │
+│  → 创建 learning-file，8 个必填字段:                                      │
+│    Source Spec / Trigger / Observed Problem / Root Cause                   │
+│    Decision Rule / Applies When / Recommended Action / Evidence            │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  Archive                                                                   │
+│                                                                             │
+│  sdd validate <dir> --archive-ready                                        │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  归档门禁清单:                                                       │    │
+│  │  ┌─ Plan Gate: Approved By + Approved At + Gate Evidence（auto 时）  │    │
+│  │  ├─ Challenge Verdict: 非 FAIL_*                                    │    │
+│  │  ├─ Challenge Evidence: Executed By + Executed At + Evidence        │    │
+│  │  │   ├─ standard/lite: Executed By 含 subagent                      │    │
+│  │  │   ├─ manual policy: 非 auto-gate                                 │    │
+│  │  │   └─ Executed At 晚于 Execute Log 最后 step Timestamp            │    │
+│  │  ├─ Mode Artifacts: Design 必填字段 / AC Verification 元数据       │    │
+│  │  ├─ Execute Log: 非空                                               │    │
+│  │  ├─ AC Coverage L1-L4:                                              │    │
+│  │  │   ├─ L1: 每个 AC 有 Coverage 记录                                │    │
+│  │  │   ├─ L2: 所有 Coverage 结果 PASS（SKIPPED 需人工批准）           │    │
+│  │  │   ├─ L3: Test 路径文件存在                                       │    │
+│  │  │   └─ L4: Scenario 名称匹配（WARNING，不阻断）                    │    │
+│  │  ├─ Learning Record: 触发条件满足时必填且 8 字段齐全                │    │
+│  │  └─ diff-base frontmatter（git 仓库时）                             │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
+│                                                                             │
+│  sdd archive <dir> <spec-name>                                             │
+│  → 移动 Spec + Design + Execute Log + Learning 到 archive/                 │
+│  → 更新归档 Spec 内的引用路径                                              │
+└──────────────────────────────┬──────────────────────────────────────────────┘
+                               │
+                               ▼
+                    ┌──── 已归档 ────┐
+                    │                 │
+                    │  发现缺陷?      │
+                    └────┬────────────┘
+                         │ 是
+                         ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  sdd reopen <dir> <slug> --defect "缺陷描述" [--mode standard|lite|micro] │
+│  → 基于归档 Spec 创建新 Spec + 新 Execute Log（+ 新 Design if 非micro）  │
+│  → 不要重新 discover（切断历史上下文）                                     │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+### 状态引擎
+
+```
+sdd resume / sdd next / sdd status
+
+workflow.analyzeSpec()
+    │
+    ├─ 读 Spec frontmatter: mode / status / design-file / execute-log-file
+    ├─ 读 Spec 内容: Plan Approved / Challenge Verdict / Gate Evidence
+    ├─ 读 Design / Execute Log 内容
+    ├─ validate.validateSpec(archiveReady: true) → issues[]
+    ├─ riskFlags(actionText) → security / billing / migration / public-api / irreversible
+    ├─ designMethodHint(mode, riskFlags) → advisory 方法论建议
+    │
+    ├─ challengeVerdict: 优先用 Spec 中显式值，无则从 issues 推导
+    ├─ backtrackTarget: VERDICT_TO_TARGET 映射
+    ├─ nextAction: PASS → archive_ready, FAIL_* → repair_<target>
+    │   Challenge PASS + 有 validation blockers → repair_<target>（不跳过修复）
+    └─ blockers: validate issues 列表
+
+sdd resume → 自动输出 RELEVANT_LEARNINGS（recallLearnings 相关性召回）
+sdd console → 只读投影，展示以上所有状态
+```
+
 Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER 产物合同，而是在四轴自查后追加一层独立对抗评审，并在发现问题时提供有预算的修复循环。
 
 - `sdd next`：判断当前阶段、下一步和回跳目标。
