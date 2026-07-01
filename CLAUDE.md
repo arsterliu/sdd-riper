@@ -53,7 +53,7 @@ The docs root directory defaults to mydocs/ but can be overridden via .sdd-confi
 ## Phases
 
 ```text
-Research -> Innovate -> Design -> Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
+Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge -> Learning Check -> Archive
 ```
 
 - **Research**: 需求审视、发现、待澄清问题、假设、已确认需求。
@@ -61,5 +61,5 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute -> Review -> Lea
 - **Design**: write technical design in the external `design-file`; keep labels such as Selected Option / ADR, Requirement Traceability, Impact Scope, Architecture View, Data Model / Schema, Interface Contract, Compatibility / Rollback, and Test Strategy in English, and fill the content in Chinese.
 - **Acceptance**: write `AC-###` criteria in Spec; keep metadata labels such as `Requirement:`, `Verification:`, `Test:`, and `Manual Evidence:` in English, and write BDD / Gherkin scenario descriptions in Chinese.
 - **Plan**: atomic steps derived from Design and Acceptance Criteria; gate evidence required before Execute.
-- **Execute**: follow Plan strictly; append each step result to the external Execute Log.
-- **Review**: 4-axis audit: Intake, Design/Acceptance/Plan, Code Diff, Execute Log.
+- **Execute**: follow Plan strictly; append each step result to the external Execute Log. Completion Verification (four-axis self-check + AC Coverage summary) is the last step.
+- **Challenge**: independent adversarial review; FAIL_* verdicts backtrack to the mapped phase and block archive.

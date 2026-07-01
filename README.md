@@ -9,7 +9,7 @@ SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **
 - 需求不会在长对话里漂移。
 - 方案选择有证据和取舍。
 - Plan 不能替代技术设计。
-- Execute 的真实行为可以被 Review 审计。
+- Execute 的真实行为可以被 Challenge 审计。
 - 偏差、返工和 concern 会沉淀为后续可复用的判断规则。
 - 归档后可以 reopen，而不是重新 discover 丢失上下文。
 
@@ -139,7 +139,7 @@ sdd install-skill --target codex --clean
 
 | 产物 | 责任 |
 | :--- | :--- |
-| **Spec** | 控制面。保存 Intake、Research、Innovate、Acceptance Criteria、Plan、审批、Review verdict，并引用 Design / Execute Log / Learning。 |
+| **Spec** | 控制面。保存 Intake、Research、Innovate、Acceptance Criteria、Plan、审批、Completion Verification / Challenge verdict，并引用 Design / Execute Log / Learning。 |
 | **Design** | 技术设计产物。standard 写 `Technical Design`，lite 写 `Design Note`，micro 不单独写设计。 |
 | **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
 | **Learning Record** | 经验沉淀产物。把偏差、BUGFIX、concern、reopen 暴露出的规律写成可复用决策规则。 |
@@ -149,7 +149,7 @@ sdd install-skill --target codex --clean
 ## 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challenge -> (Cruise) -> Learning Check -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
 ## 流程架构
@@ -158,7 +158,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challe
 ┌─────────────────────────────────────────────────┐
 │ 控制面（Spec）                                   │
 │  目标、Research、Innovate、Acceptance、Plan、    │
-│  门禁、Review 裁决、产物引用                      │
+│  门禁、Challenge 裁决、产物引用                      │
 │  design-file / execute-log-file / learning-file  │
 └──────────────┬──────────────────────────────────┘
                │ 引用
@@ -178,13 +178,12 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challe
 └─────────────────────────────────────────────────┘
 ```
 
-- **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。
+- **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。Findings 应包含项目编码惯例（eslint/tsconfig 等），确保后续不违背项目规范。
 - **Innovate**：至少比较两个方案；lite 可跳过，但必须写明 Reason。
 - **Design/Acceptance**：standard/lite 在独立 Design 文件写设计，验收标准仍留在 Spec；micro 把 `Acceptance` / `Verification` 写入 Plan。
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。
-- **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。
-- **Review**：四轴审查 Intake、Design/Acceptance/Plan、Code Diff、Execute Log。
-- **Challenge**：Review 之后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
+- **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。最后一步是 Completion Verification（四轴自查 + AC Coverage 汇总）。
+- **Challenge**：Execute Completion Verification 完成后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
 - **Cruise**：Challenge 返回 `FAIL_*` 后进入。每轮按 Backtrack Target 修复、validate、再次 challenge，直到通过或达到迭代上限。`sdd cruise` 本身不执行模型循环，也不直接修复代码。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
 - **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
@@ -205,7 +204,7 @@ Gate / Cruise 默认策略：
 - **GATE_POLICY** 支持 `manual | auto | advisory`：
   - `manual`：必须人工填写 `Plan Approved By: <user>` 和 `Approved At:`。
   - `auto`：AI 可填写 `Plan Approved By: auto-gate`，但必须同时提供 `Approved At:` 和 `Gate Evidence:`。缺任何一项都会被 validate 拦截。
-  - `advisory`：与 auto 行为一致，Review 阶段额外提示人工确认。
+  - `advisory`：与 auto 行为一致，Challenge 阶段额外提示人工确认。
 - **CRUISE_POLICY** 支持 `off | assisted | autonomous`：
   - `off`：禁用巡航 prompt 和 run ledger。
   - `assisted`：人在每轮修复之间确认。

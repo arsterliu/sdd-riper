@@ -32,7 +32,7 @@ SDD-RIPER 的子 agent 不是通用并行工人，而是**一次性调查员**�
 
 **对抗审查是强制派发场景**：standard/lite 必须派子 agent 执行 `sdd challenge`。对抗审查的核心价值是"不是自己审自己"——主 agent 写了代码再自己审，确认偏差不可避免。micro 可在主上下文内执行，但必须保持对抗角色与实现角色分离。
 
-**其他何时派子 agent**：需要读 3+ 个文件或 500+ 行、调试排查、独立审查某个 Review 轴、大步执行任务。
+**其他何时派子 agent**：需要读 3+ 个文件或 500+ 行、调试排查、独立审查某个 Challenge 轴、大步执行任务。
 
 **何时不派**：需要跟用户对话的需求澄清、方案选择、Plan 审批、归档执行——这些是主 agent 的职责。
 
@@ -42,7 +42,7 @@ SDD-RIPER 的子 agent 不是通用并行工人，而是**一次性调查员**�
 2. **子 agent 不写 SDD 产物**：spec / design / log / learning 由主 agent 统一写入，子 agent 不能碰。但子 agent **可以改代码**——代码不是 SDD 产物，且并行改代码是合理的执行方式。
 3. **返回压缩**：只返回 verdict + 摘要 + 证据指针，不贴大段原文。
 
-**三种门禁主 agent 必须亲自确认，不能委托子 agent**：完成验证（跑测试）、Plan 批准（问用户）、Review 裁决（综合各方发现写最终 verdict）。
+**三种门禁主 agent 必须亲自确认，不能委托子 agent**：完成验证（跑测试）、Plan 批准（问用户）、Challenge 裁决（综合各方发现写最终 verdict）。
 
 详细契约见 `protocols/subagent-dispatch.md`。superpowers 的 `subagent-driven-development` 提供高层方法论（何时派、生命周期），但 SDD-RIPER 的 brief/return 格式和硬规则以 `protocols/subagent-dispatch.md` 为准。
 

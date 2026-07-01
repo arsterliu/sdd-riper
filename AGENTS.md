@@ -1,3 +1,33 @@
+# SDD-RIPER Agent Instructions
+
+## Core Rules (No Exceptions)
+- **No Spec, No Code** - Do not write code unless a task Spec exists.
+- **Spec is Control Plane** - Spec owns task gates and references Design / Execute Log / Learning artifacts.
+- **Design is Separate** - standard/lite write technical design in design-file; Plan cannot replace it.
+- **Execute Log is Separate** - record step results and deviations in execute-log-file.
+- **Learning Check** - create learning-file with reusable decision rules when deviations, bugfixes, concerns, or reopen lessons occur.
+- **Chinese Artifact Content** - keep artifact headings and field labels in English; write filled analysis, decisions, plans, evidence, and learning rules in Chinese.
+- **Gate Policy** - default gate-policy is auto; `auto-gate` requires `Gate Evidence:` and manual policy requires human approval.
+- **Autonomous Cruise** - use `sdd next`, `sdd challenge`, and `sdd cruise --engine auto` for dynamic routing, adversarial review, and bounded repair loops. Reuse host-native loops only when `CRUISE_POLICY="autonomous"`; use prompt-loop compensation otherwise. Use `--emit-claude-prompt` for Claude Code ultracode/workflow guidance and `--record-run` for run ledger.
+- **Debug Before Retry** - when a step fails, run debug to find root cause before retrying.
+
+## RIPER Workflow
+Follow the SDD-RIPER phases: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check.
+
+## Context Layers
+- **Spec**: Current task control plane (<docs-root>/specs/, defaults to mydocs/specs/).
+- **Design**: Technical Design / Design Note referenced by Spec design-file.
+- **Execute Log**: Step audit trail referenced by Spec execute-log-file.
+- **Learning**: Reusable decision rules referenced by Spec learning-file.
+- **Cruise Runs**: Observable cruise iteration ledger (<docs-root>/runs/, defaults to mydocs/runs/).
+- **CodeMap** (on-demand): Run `sdd codemap <dir>` to get a computed architecture view — not persisted, always current.
+
+## Docs Root Configuration
+The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).
+
+## Mode: standard
+
+## Protocol Reference
 # SDD-RIPER Protocol (Standard)
 
 > Brief reference for AI config files. Full rules live in `SKILL.md`.
@@ -28,27 +58,3 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 - **Plan**: atomic steps derived from Design and Acceptance Criteria; gate evidence required before Execute.
 - **Execute**: follow Plan strictly; append each step result to the external Execute Log. Completion Verification (four-axis self-check + AC Coverage summary) is the last step.
 - **Challenge**: independent adversarial review; FAIL_* verdicts backtrack to the mapped phase and block archive.
-- **Learning Check**: create `learning-file` when execution produced reusable lessons.
-- **Cruise Run**: append run ledger entries for observable autonomous iterations when cruise is recorded.
-- **Archive**: run `sdd validate <dir> --archive-ready`; `archive` moves Spec plus referenced Design / Execute Log / Learning into archive.
-
-## Subagent Policy
-
-Do not make every key phase a subagent decision owner.
-
-- Subagents may own evidence gathering, local work packages, debug investigations, or individual challenge axes.
-- Challenge agents are read-only adversarial reviewers; they return verdict, evidence, and backtrack target.
-- The orchestrator owns requirement boundary, selected option, Plan gate, final verdict, completion verification, Learning decision, and archive consistency.
-- A subagent PASS never replaces fresh orchestrator verification.
-
-## Context Layers
-
-- **Hot**: active Spec phase section, Plan, and referenced artifact path.
-- **Warm**: Design file, Execute Log file, Learning files, CodeMap, ProjectMap, relevant historical Specs.
-- **Cold**: full archive files, external context bundles, long source reads.
-
-## Mode Summary
-
-- `standard`: full flow; external Technical Design required; external Execute Log required; subagents recommended for evidence/work packages/challenge axes.
-- `lite`: external Design Note required; external Execute Log required; subagents optional.
-- `micro`: no standalone Design; Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification; external Execute Log required; avoid subagents by default.

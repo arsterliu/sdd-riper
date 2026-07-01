@@ -31,7 +31,7 @@ function run(projectDir) {
     } else {
       var content = fs.readFileSync(latestSpec, 'utf-8');
       if (/^[ \t]*Plan Approved By:[ \t]*[^\s].*/m.test(content)) {
-        phaseHint = common.sectionIsEmpty(latestSpec, 'Review (Verdict|Summary)') ? 'execute' : 'archive';
+        phaseHint = common.sectionIsEmpty(latestSpec, 'Completion Verification') ? 'execute' : 'archive';
       } else {
         phaseHint = 'research_or_plan';
       }
@@ -46,7 +46,7 @@ function run(projectDir) {
     case 'new_task': sectionsHint = '(none)'; break;
     case 'research_or_plan': sectionsHint = 'Summary,Intake,Research,Innovate Options,Design Reference,Acceptance Criteria,Plan'; break;
     case 'execute': sectionsHint = 'Summary,Plan,Execute Log Reference'; break;
-    case 'archive': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Review Verdict,Review Summary'; break;
+    case 'archive': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Completion Verification,Challenge Verdict'; break;
     default: sectionsHint = 'Summary,Intake,Plan'; break;
   }
   console.log('[SDD Resume] ' + projectDir);

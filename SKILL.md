@@ -3,7 +3,7 @@ name: sdd-riper
 version: 2.0.0
 description: |
   SDD-RIPER: Structured development workflow for AI-assisted delivery.
-  Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive.
+  Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
   Uses Spec as control plane, external Design as technical design, external Execute Log as audit trail, and Learning Record as reusable decision memory.
   Trigger with: /sdd-riper, /sdd, "setup SDD", "start sdd task".
 allowed-tools:
@@ -24,7 +24,7 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 ## Non-Negotiable Rules
 
 1. **No Spec, No Code**: never write implementation code without an active task Spec.
-2. **Spec is the control plane**: Spec owns goal, Research, Innovate, Acceptance Criteria, Plan, human approval, Review verdict, and references to external artifacts.
+2. **Spec is the control plane**: Spec owns goal, Research, Innovate, Acceptance Criteria, Plan, human approval, Challenge verdict, and references to external artifacts.
 3. **Design is an independent artifact**: standard/lite must write Design in `design-file`. Plan cannot substitute for Design.
 4. **Execute Log is an independent artifact**: every mode writes execution facts to `execute-log-file`.
 5. **Learning is a reusable decision asset**: when execution produces deviations, bugfixes, concerns, or reopen lessons, write a Learning Record in `learning-file` before archive.
@@ -32,7 +32,7 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 7. **Configured Plan Gate**: do not enter Execute until the configured gate is satisfied. Manual gates require human approval; auto gates require `Plan Approved By: auto-gate`, `Approved At:`, and `Gate Evidence:`.
 8. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
 9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
-10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Review verdict, Learning decision, and Archive consistency.
+10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency.
 11. **Challenge Failures Backtrack**: adversarial challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
 
 ## CLI Rule
@@ -101,7 +101,7 @@ Use `PHASE_HINT`:
 - `new_task`: ask whether to run `discover`.
 - `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.
 - `execute`: enter Execute only if Plan approval is present.
-- `archive`: run Review / Learning Check / Archive checks.
+- `archive`: run Challenge / Learning Check / Archive checks.
 
 For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
 
@@ -144,7 +144,7 @@ Cruise engine options:
 - `prompt`: generic prompt loop.
 - `local-loop`: prompt-loop compensation for hosts without native loop support; SDD records snapshots but does not run a model executor.
 
-Never move Spec, Design, Plan, Execute Log, Learning, or Review state into a host-specific workflow file as the source of truth.
+Never move Spec, Design, Plan, Execute Log, Learning, or Challenge evidence into a host-specific workflow file as the source of truth.
 
 Use `sdd cruise "<PROJECT_ROOT>" --engine claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
 
@@ -167,12 +167,12 @@ Goal: turn raw request into Confirmed Requirement.
 Required outputs in Spec:
 
 - Requirement Review
-- Findings
+- Findings (from code, docs, historical Specs, **and project conventions**: eslint/prettier/tsconfig rules, test framework, CI gates, etc. — Design and Execute must comply)
 - Open Questions
 - Assumptions
 - Confirmed Requirement
 
-Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
+Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Use `sdd build-context-bundle` to compress external materials (API specs, SDK docs) referenced via `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
 ## Innovate Phase
 
@@ -439,12 +439,12 @@ sdd cruise "<PROJECT_ROOT>" [--engine auto|prompt|local-loop|claude-code|codex|o
 
 The command generates a bounded repair-loop prompt according to `CRUISE_POLICY`. `off` disables cruise output and run recording, `assisted` requires human confirmation between iterations, and `autonomous` may reuse host-native loops. With `--engine auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The agent should repair only the artifact indicated by `BACKTRACK_TARGET`, run `sdd validate`, then run `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
 
-Allowed Review writes:
+Allowed Cruise writes:
 
-- Spec Review Verdict / Review Summary.
-- Architecture changes → record in Learning Record (not a separate CodeMap file).
+- Completion Verification updates in Execute Log.
+- Challenge evidence via `sdd challenge --record-result`.
 
-Forbidden Review writes:
+Forbidden Cruise writes:
 
 - implementation code
 - new features
@@ -453,14 +453,14 @@ Forbidden Review writes:
 
 ## Learning Check Phase
 
-Run Learning Check after Review and before Archive.
+Run Learning Check after Challenge and before Archive.
 
 Create a Learning Record when any of these are true:
 
 - Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
-- Review verdict is `PASS_WITH_CONCERNS`.
+- Challenge verdict is `PASS_WITH_CONCERNS`.
 - The task was reopened from archived work.
-- Acceptance criteria were found insufficient during Execute or Review.
+- Acceptance criteria were found insufficient during Execute or Challenge.
 - The same failure pattern has appeared before.
 
 Use:
@@ -509,7 +509,7 @@ Archive moves:
 
 Archive also updates the archived Spec references to archive-relative paths.
 
-Do not archive if the user reports a defect. Return to Execute / Review first.
+Do not archive if the user reports a defect. Return to Execute / Challenge first.
 
 ## Reopen
 

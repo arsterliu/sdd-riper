@@ -19,7 +19,7 @@
 Flow:
 
 ```text
-Research -> Innovate/Skip -> Design Note -> Acceptance -> Plan -> Execute -> Review -> Learning Check -> Archive
+Research -> Innovate/Skip -> Design Note -> Acceptance -> Plan -> Execute* -> Challenge -> Learning Check -> Archive
 ```
 
 Required artifacts:
@@ -36,7 +36,7 @@ Design Note must cover Approach, Impact Scope, Interface / Data Impact, Compatib
 Flow:
 
 ```text
-Plan -> Execute -> Review -> Learning Check -> Archive
+Plan -> Execute* -> Challenge -> Learning Check -> Archive
 ```
 
 Micro skips Research, Innovate, and standalone Design. Plan must include:
@@ -53,15 +53,16 @@ Micro skips Research, Innovate, and standalone Design. Plan must include:
 
 Micro still requires an external Execute Log, conditional Learning Record, and the configured Plan gate.
 
-## Review
+## Challenge & Completion Verification
 
-- Lite uses the 4-axis review: Intake, Design/Acceptance/Plan, Code Diff, Execute Log.
-- Micro defaults to Axis 2, but archive validation still requires Plan approval, Execute Log, and PASS review summary.
-- Challenge review is read-only. FAIL_* verdicts backtrack to the mapped phase and block archive.
+- Execute's last step is Completion Verification (four-axis self-check + AC Coverage summary).
+- Lite uses the 4-axis self-check: Intake, Design/Acceptance/Plan, Code Diff, Execute Log.
+- Micro defaults to Axis 2, but archive validation still requires Plan approval, Execute Log, and PASS challenge verdict.
+- Challenge is the sole quality gate after Execute. FAIL_* verdicts backtrack to the mapped phase and block archive.
 
 ## Subagent Policy
 
-- Lite may use subagents for large reads, debug investigation, or review axes.
+- Lite may use subagents for large reads, debug investigation, or challenge axes.
 - Lite should use an independent challenge agent when available.
 - Micro defaults to single-agent execution.
 - The orchestrator owns final decisions, Plan approval, completion verification, and final verdict.

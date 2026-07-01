@@ -1,6 +1,6 @@
 # Learning Check Protocol
 
-Run after Review and before Archive.
+Run after Challenge and before Archive.
 
 ## Goal
 
@@ -12,9 +12,9 @@ Keep artifact headings and human-readable field labels in English. Write the fil
 Create a Learning Record when any of these are true:
 
 - Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
-- Review verdict is `PASS_WITH_CONCERNS`.
+- Challenge verdict is `PASS_WITH_CONCERNS`.
 - The task was reopened from archived work.
-- Acceptance criteria were found insufficient during Execute or Review.
+- Acceptance criteria were found insufficient during Execute or Challenge.
 - The same failure pattern has appeared before.
 
 ## Output

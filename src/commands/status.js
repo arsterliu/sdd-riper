@@ -11,7 +11,7 @@ var SECTION = {
   designNote: 'Design Note',
   acceptanceCriteria: 'Acceptance Criteria',
   executeLog: 'Execute Log',
-  review: 'Review (Verdict|Summary)'
+  review: 'Completion Verification'
 };
 
 function extractSectionText(filePath, pattern) {
@@ -100,7 +100,7 @@ function run(projectDir) {
       if (!artifactHasContent(projectDir, sp, 'execute-log-file', SECTION.executeLog)) warnExecuteLog.push(f);
       try { var c2 = fs.readFileSync(sp, 'utf-8'); if (/Plan Approved By:/.test(c2) && /^Plan Approved By:[ \t]*$/m.test(c2)) warnPlan.push(f); } catch (e) {}
       if (common.sectionIsEmpty(sp, SECTION.review)) {
-        try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## Review (Verdict|Summary)/m.test(c3)) warnReview.push(f); } catch (e) {}
+        try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## Completion Verification/m.test(c3)) warnReview.push(f); } catch (e) {}
       }
     });
   }
@@ -111,7 +111,7 @@ function run(projectDir) {
   console.log('  Acceptance:   ' + (warnAcceptance.length ? 'WARN (empty/incomplete in: ' + warnAcceptance.join(' ') + ')' : 'OK'));
   console.log('  Plan:         ' + (warnPlan.length ? 'WARN (missing approval in: ' + warnPlan.join(' ') + ')' : 'OK'));
   console.log('  Execute Log:  ' + (warnExecuteLog.length ? 'WARN (empty/missing in: ' + warnExecuteLog.join(' ') + ')' : 'OK'));
-  console.log('  Review:       ' + (warnReview.length ? 'WARN (empty verdict in: ' + warnReview.join(' ') + ')' : 'OK'));
+  console.log('  Challenge:    ' + (warnReview.length ? 'WARN (empty verdict in: ' + warnReview.join(' ') + ')' : 'OK'));
   process.exit(exitCode);
 }
 module.exports = run;

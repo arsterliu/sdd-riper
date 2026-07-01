@@ -26,7 +26,7 @@ Never dispatch subagents for:
 - Plan writing.
 - Plan Approval.
 - Completion Verification.
-- Final Review verdict aggregation.
+- Final Challenge verdict aggregation.
 - Archive execution.
 - Repairing artifacts after a failed challenge verdict.
 
@@ -100,11 +100,11 @@ The orchestrator must not take a subagent verdict at face value for these gates:
 
 - **Completion Verification Gate**: run tests / lint / build directly and inspect output.
 - **Plan Approval Gate**: ask and read the user's approval directly.
-- **Final Review Verdict**: subagents return per-axis findings; the orchestrator applies verdict precedence and writes the final verdict to Spec.
+- **Final Challenge Verdict**: subagents return per-axis findings; the orchestrator applies verdict precedence and writes the final verdict to Spec via `sdd challenge --record-result`.
 
 ## Mode Policy
 
-- **standard**: mandatory for adversarial challenge. Recommended for Research evidence, large Execute packages, debug investigation, and Review axes.
+- **standard**: mandatory for adversarial challenge. Recommended for Research evidence, large Execute packages, debug investigation, and Challenge axes.
 - **lite**: mandatory for adversarial challenge. Other dispatch optional — only when context volume or evidence independence justifies it.
 - **micro**: challenge may run inline (but must keep adversarial role separate). Default to no other subagents.
 

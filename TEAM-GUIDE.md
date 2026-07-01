@@ -47,8 +47,8 @@
 - **核心研发 (Senior)**：
   - 使用 **Standard** 模式运行完整 RIPER 流程。
   - 负责编写和维护 `CodeMap` 和 `ProjectMap`。
-  - 作为 Reviewer 审批其他成员的 Plan，并对 Review 四轴中 `Axis 2`（Code Diff Scope）亲自跑 diff 审计，不下放给 subagent。
-  - 在 `## Review Verdict` / `## Review Summary` 区块追加 Review Pass N + ISO-8601 timestamp，不覆盖历史 Pass。
+  - 作为 Reviewer 审批其他成员的 Plan，并对 Completion Verification 四轴中 `Axis 2`（Code Diff Scope）亲自跑 diff 审计，不下放给 subagent。
+  - 在 `## Completion Verification` 区块追加 Completion Verification Pass N + ISO-8601 timestamp，不覆盖历史 Pass。Challenge 结果通过 `sdd challenge --record-result` 写入。
   - 写 `Technical Design` 时用 ADR（`protocols/adr.md`）记录选型；对高风险任务发起 `sdd challenge` 做独立对抗评审（见第 9 节）。
 
 - **初级研发 / 低经验同学**：
@@ -71,7 +71,7 @@
 | **Mode Recommendation** | 复杂度校准 | “用 5 维度打分评估任务复杂度，推荐 mode；不接受基于 Requirement 字符数的判断。” |
 | **规划 (Plan)** | 结构化输出 | “请将选定的方案拆解为原子步骤，并填入 Spec 的 Plan 区块。” |
 | **执行 (Execute)** | 严格指令 | “严格按照 Plan 第 1 步执行，不要改动其他文件。” |
-| **评审 (Review)** | 对照检查 | “对照原始 Spec 验收清单，检查代码实现是否存在偏差。” |
+| **评审 (Challenge)** | 对照检查 | “对照原始 Spec 验收清单，检查代码实现是否存在偏差。” |
 
 > **Mode Recommendation Gate** 是 Research 末尾的强制门禁（micro 模式跳过）。它读 **Confirmed Requirement**（不是 raw Requirement）评估复杂度，避免”用户一句话就当小任务”的误判。研发在评审时要看 AI 的 5 维度评分是否站得住脚——这是 mode 校准的关键决策点。
 
@@ -80,7 +80,7 @@
 - **Innovate (创新)**：高（鼓励尝试不同方案，只要能说清优劣）。
 - **Plan (规划)**：**低**（必须精确、死板、原子化）。
 - **Execute (执行)**：**零**（禁止在执行阶段“临场发挥”，发现计划不行必须回退）。
-- **Review (评审)**：中（基于事实做出判断）。
+- **Challenge (对抗评审)**：中（基于事实做出判断）。
 
 ---
 
@@ -102,7 +102,7 @@
 
 建议在引入 SDD 前三周收集基线数据，后续对比：
 - **Bug 率**：统计 Execute 阶段产生的非预期 Bug 数量。
-- **需求周期 (Lead Time)**：观察从 Research 到 Review 完成的耗时。
+- **需求周期 (Lead Time)**：观察从 Research 到 Challenge 完成的耗时。
 - **重工率**：统计因为“方案不对”而导致代码推倒重来的次数。
 
 ---
@@ -111,7 +111,7 @@
 
 1. **坑：跳过 Plan 直接 Execute**
    - *症结*：觉得任务简单，不想写步骤。
-   - *解法*：TL 在 Review 时，发现没有详细步骤的直接打回。
+   - *解法*：TL 在 Challenge 时，发现没有详细步骤的直接打回。
 
 2. **坑：把 context 当作 requirement 用**
    - *症结*：把旧的文档丢给 AI 说“按这个改”，结果 AI 把旧文档里的错误也复现了。
