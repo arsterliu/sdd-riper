@@ -215,17 +215,30 @@ function analyzeSpec(projectDir, specPath, opts) {
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var explicit = explicitChallengeVerdict(content);
   var validationVerdict = challengeVerdictFromIssues(validation.issues);
-  var verdict = explicit && /^FAIL_/.test(explicit)
+  // Challenge Verdict from Spec is the authoritative independent quality gate.
+  // Validation issues are separate blockers — they should not override an
+  // explicit Challenge PASS. Only when no Challenge Verdict exists do we
+  // derive one from validation issues for routing purposes.
+  var verdict = explicit
     ? explicit
-    : (validation.issues && validation.issues.length ? validationVerdict : (explicit || validationVerdict));
+    : (validation.issues && validation.issues.length ? validationVerdict : 'PASS');
   var target = VERDICT_TO_TARGET[verdict] || 'Research';
+  // If Challenge passed but validation blockers remain, the task is not
+  // truly archive-ready — blockers must be resolved first.
+  var action = nextAction(verdict);
+  if (action === 'archive_ready' && validation.issues && validation.issues.length) {
+    action = 'repair_' + (VERDICT_TO_TARGET[validationVerdict] || 'Research')
+      .toLowerCase()
+      .replace(/ \/ /g, '_')
+      .replace(/\s+/g, '_');
+  }
   return {
     gatePolicy: gatePolicy,
     cruisePolicy: cruisePolicy,
     maxIterations: maxIterations,
     challengeVerdict: verdict,
     backtrackTarget: target,
-    nextAction: nextAction(verdict),
+    nextAction: action,
     blockers: validation.issues || [],
     riskFlags: flags,
     designMethod: designMethodHint(mode, flags),

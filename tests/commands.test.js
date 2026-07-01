@@ -57,7 +57,7 @@ function fillChallenge(content, verdict, opts) {
     .replace(/^Backtrack Target:$/m, 'Backtrack Target: ' + (opts.backtrack || 'Ready'))
     .replace(/^Challenge Summary:$/m, 'Challenge Summary: ' + (opts.summary || 'ok.'))
     .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: ' + (opts.executedBy || 'subagent'))
-    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: ' + (opts.executedAt || '2026-01-01T00:00:00Z'))
+    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: ' + (opts.executedAt || '2026-01-01T00:01:00Z'))
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: ' + (opts.evidence || 'PASS - independent review'));
 }
 
@@ -207,7 +207,7 @@ function makeStandardArchiveReady(demo, specFile) {
     .replace(/^Backtrack Target:$/m, 'Backtrack Target: Ready')
     .replace(/^Challenge Summary:$/m, 'Challenge Summary: all gates pass.')
     .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent')
-    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:00:00Z')
+    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z')
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - independent review');
   fs.writeFileSync(specFile, content, 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
@@ -769,7 +769,7 @@ describe('CLI commands', function() {
     assert.ok(opencode.indexOf('SDD remains the control protocol') !== -1);
   });
 
-  it('next does not let stale PASS challenge verdict override validation blockers', function() {
+  it('next preserves explicit challenge PASS even when validation has blockers', function() {
     var demo = path.join(tmpBase, 'd6h');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name stale-pass --spec-version v1.0 --requirement x');
@@ -780,10 +780,11 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var out = run('next ' + demo);
-    assert.ok(out.indexOf('CHALLENGE_VERDICT: FAIL_SPEC') !== -1);
-    assert.ok(out.indexOf('BACKTRACK_TARGET: Research') !== -1);
-    assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
+    // Challenge verdict is independent — explicit PASS stays PASS
+    assert.ok(out.indexOf('CHALLENGE_VERDICT: PASS') !== -1);
+    // But validation blockers still appear and nextAction is not archive_ready
     assert.ok(out.indexOf('Confirmed Requirement is empty.') !== -1);
+    assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
   });
 
   it('cruise respects off and assisted cruise policies', function() {

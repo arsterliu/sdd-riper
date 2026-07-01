@@ -58,6 +58,24 @@ var MICRO_PLAN_REQUIRED = [
   'Verification'
 ];
 
+// Extract the latest Timestamp from Execute Log step entries.
+// Returns a Date object or null if no valid timestamp found.
+function extractLastStepTimestamp(executeLogContent) {
+  var latest = null;
+  String(executeLogContent || '').split(/\r?\n/).forEach(function(line) {
+    var m = line.match(/^\s*Timestamp:\s*(.+)$/i);
+    if (!m) return;
+    var raw = m[1].trim();
+    // Skip template placeholders like "ISO-8601" that Date() would mis-parse
+    if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return;
+    var t = new Date(raw);
+    if (!Number.isNaN(t.getTime()) && (!latest || t > latest)) {
+      latest = t;
+    }
+  });
+  return latest;
+}
+
 function firstRealLine(section) {
   var visible = section.replace(/<!--[\s\S]*?-->/g, '');
   return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
@@ -241,9 +259,10 @@ function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issu
   var executedBy = labelValue(content, 'Challenge Executed By');
   var executedAt = labelValue(content, 'Challenge Executed At');
   var challengeEvidence = labelValue(content, 'Challenge Evidence');
+  var challengeTime = null;
   if (!executedBy) {
     if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed By is empty.');
-    return;
+    return challengeTime;
   }
   if (!executedAt) {
     if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed At is empty.');
@@ -261,14 +280,16 @@ function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issu
       issues.push('Standard and lite modes require subagent Challenge execution.');
     }
   }
-  // Challenge Executed At must be a valid ISO-8601 timestamp after the last
-  // Execute Log step timestamp (prevents pre-filling Challenge before Execute).
+  // Challenge Executed At must be a valid ISO-8601 timestamp.
+  // Temporal ordering against Execute Log is checked separately in validateSpec.
   if (executedAt && archiveReady) {
-    var challengeTime = new Date(executedAt);
+    challengeTime = new Date(executedAt);
     if (Number.isNaN(challengeTime.getTime())) {
       issues.push('Challenge Executed At is not a valid ISO-8601 timestamp.');
+      challengeTime = null;
     }
   }
+  return challengeTime;
 }
 
 function validateModeArtifacts(projectDir, specPath, mode, issues) {
@@ -531,20 +552,9 @@ function validateSpec(specPath, opts) {
   validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
   validateChallengeVerdict(content, issues);
 
-  // Compute hasReviewPass early for backward-compat checks
-  var review = common.extractSection(specPath, SECTION.review, 200);
-  var reviewLine = firstRealLine(review);
-  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
-
+  var challengeTime = null;
   if (opts.archiveReady) {
-    // Backward compat: if the spec has a Review section with PASS but no Challenge
-    // Evidence fields, skip the Challenge evidence gate (old specs predate it).
-    var hasChallengeEvidence = labelHasContent(content, 'Challenge Executed By') ||
-      labelHasContent(content, 'Challenge Executed At') ||
-      labelHasContent(content, 'Challenge Evidence');
-    if (hasChallengeEvidence || !hasReviewPass) {
-      validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
-    }
+    challengeTime = validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
   }
 
   if (opts.archiveReady) {
@@ -557,15 +567,13 @@ function validateSpec(specPath, opts) {
     issues.push('Execute Log is empty.');
   }
 
-  // Review has been merged into Execute's Completion Verification Gate.
-  // For backward compatibility, if a Review Verdict/Summary section exists and
-  // contains a PASS line, we still accept it. New specs should use Completion
-  // Verification Step in Execute Log instead.
-  // If no Review section at all, that's fine (new template). If it exists but
-  // doesn't PASS, still block for backward compat.
-  if (reviewLine && !hasReviewPass) {
-    var reviewSectionName = mode === 'standard' ? 'Review Verdict' : 'Review Summary';
-    issues.push(reviewSectionName + ' must contain a PASS verdict before archive.');
+  // Challenge Executed At must be after the last Execute Log step timestamp
+  if (opts.archiveReady && challengeTime && logArtifact.path) {
+    var fullLogForTimestamp = fs.readFileSync(logArtifact.path, 'utf-8');
+    var lastStepTime = extractLastStepTimestamp(fullLogForTimestamp);
+    if (lastStepTime && challengeTime <= lastStepTime) {
+      issues.push('Challenge Executed At must be after the last Execute Log step timestamp.');
+    }
   }
 
   // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
@@ -575,7 +583,7 @@ function validateSpec(specPath, opts) {
   }
 
   if (opts.archiveReady) {
-    validateLearningRecord(projectDir, specPath, learning.learningTriggers(content, executeLog, reviewLine), issues);
+    validateLearningRecord(projectDir, specPath, learning.learningTriggers(content, executeLog, labelValue(content, 'Challenge Verdict')), issues);
   }
 
   if (status === 'archived' && opts.archiveReady) {

@@ -41,6 +41,11 @@ function run(projectDir) {
   }
   var learningCount = learning.listLearningFiles(projectDir, 10000).length;
   var hasLearnings = learningCount > 0 ? 'yes' : 'no';
+  var relevantLearnings = [];
+  if (hasLearnings === 'yes' && latestSpec) {
+    var specContent = fs.readFileSync(latestSpec, 'utf-8');
+    relevantLearnings = learning.recallLearnings(projectDir, specContent, 3);
+  }
   var sectionsHint;
   switch (phaseHint) {
     case 'new_task': sectionsHint = '(none)'; break;
@@ -56,6 +61,12 @@ function run(projectDir) {
   console.log('SPEC_STATUS: ' + specStatus);
   console.log('HAS_LEARNINGS: ' + hasLearnings);
   if (hasLearnings === 'yes') console.log('LEARNING_RECORDS: ' + learningCount);
+  if (relevantLearnings.length) {
+    console.log('RELEVANT_LEARNINGS:');
+    relevantLearnings.forEach(function(lp) {
+      console.log('- ' + lp);
+    });
+  }
   console.log('PHASE_HINT: ' + phaseHint);
   console.log('SECTIONS_HINT: ' + sectionsHint);
 }

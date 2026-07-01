@@ -185,17 +185,12 @@ function completionState(projectDir, specPath, mode) {
   var learningContent = learningArtifact.content;
   var plan = sectionText(specPath, SECTION.plan);
   var content = fs.readFileSync(specPath, 'utf-8');
-  // Review has been merged into Execute's Completion Verification Gate.
-  // For backward compat, still read Review section if present.
-  var review = sectionText(specPath, SECTION.review);
-  var reviewLine = firstRealLine(review);
-  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
-  // Challenge Verdict is the primary quality gate now.
+  // Challenge Verdict is the sole quality gate.
   var challengeVerdict = '';
   var cvMatch = content.match(/^[ \t]*Challenge Verdict:[ \t]*(.+)$/m);
   if (cvMatch) challengeVerdict = cvMatch[1].trim().toUpperCase();
   var challengePass = challengeVerdict === 'PASS' || challengeVerdict === 'PASS_WITH_CONCERNS';
-  var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), reviewLine);
+  var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), challengeVerdict);
   var learningRequired = learningTriggers.length > 0;
   learningArtifact.hasContent = learningArtifact.exists ? !!learning.firstRealLine(learningContent) : false;
   learningArtifact.required = learningRequired;
@@ -228,8 +223,7 @@ function completionState(projectDir, specPath, mode) {
     plan: planApproved,
     executeLog: executeLog.hasContent,
     completionVerification: completionVerification,
-    challengePass: challengePass || hasReviewPass,
-    reviewLine: reviewLine,
+    challengePass: challengePass,
     designArtifact: design,
     executeLogArtifact: executeLog,
     learningArtifact: learningArtifact,
@@ -304,7 +298,7 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       learning: completion.learning,
       learningRequired: completion.learningRequired
     },
-    reviewVerdict: completion.reviewLine,
+    reviewVerdict: '',
     workflow: workflowState,
     cruiseRun: cruiseRun.readLedger(projectDir, specPath),
     validate: {
