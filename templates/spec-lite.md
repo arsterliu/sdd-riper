@@ -48,8 +48,9 @@ Gate Evidence:
 ## Execute Log Reference
 execute-log-file:
 
-## Review Summary
-<!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
+## Completion Verification
+<!-- The agent records the four-axis self-check and AC Coverage summary in the Execute Log's completion-verification step. This replaces the former Review Summary section. -->
+
 Challenge Verdict:
 Backtrack Target:
 Challenge Summary:

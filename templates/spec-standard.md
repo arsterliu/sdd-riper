@@ -81,8 +81,9 @@ Gate Evidence:
 <!-- Execute Log is an independent artifact. Append execution facts to execute-log-file. -->
 execute-log-file:
 
-## Review Verdict
-<!-- Format: Review Pass N - <ISO-8601> - <PASS|PASS_WITH_CONCERNS|FAIL_CODE|FAIL_PLAN|FAIL_SPEC> -->
+## Completion Verification
+<!-- After all Plan steps are done, the agent records the four-axis self-check and AC Coverage summary in the Execute Log's completion-verification step. This replaces the former Review Verdict section. -->
+
 Challenge Verdict:
 Backtrack Target:
 Challenge Summary:

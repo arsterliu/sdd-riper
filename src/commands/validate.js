@@ -335,6 +335,150 @@ function resolveSpec(projectDir, opts) {
   return common.findLatestSpec(specsDir);
 }
 
+// Parse AC Coverage records from Execute Log content.
+// Returns an array of { id, result, scenarios, test, method, reason, approvedBy, approvedAt }
+function parseAcCoverage(executeLogContent) {
+  var records = [];
+  var lines = String(executeLogContent || '').split(/\r?\n/);
+  // Match lines like "  - AC-001: PASS" or "  - AC-001: FAIL" or "  - AC-001: SKIPPED"
+  var acLine = /^\s*-\s*(AC-\d+)\s*:\s*(PASS|FAIL|SKIPPED)\b/i;
+  var scenarioLine = /^\s*-\s*"([^"]+)"\s*:\s*(PASS|FAIL)\b/i;
+  var testLine = /^\s*Test:\s*(.+)$/i;
+  var methodLine = /^\s*Method:\s*(.+)$/i;
+  var reasonLine = /^\s*Reason:\s*(.+)$/i;
+  var approvedByLine = /^\s*Approved By:\s*(.+)$/i;
+  var approvedAtLine = /^\s*Approved At:\s*(.+)$/i;
+  var current = null;
+  for (var i = 0; i < lines.length; i++) {
+    var m = lines[i].match(acLine);
+    if (m) {
+      current = {
+        id: m[1].toUpperCase(),
+        result: m[2].toUpperCase(),
+        scenarios: [],
+        test: '',
+        method: '',
+        reason: '',
+        approvedBy: '',
+        approvedAt: ''
+      };
+      records.push(current);
+      continue;
+    }
+    if (!current) continue;
+    // Check for sub-fields (indented under the AC Coverage entry)
+    var sm = lines[i].match(scenarioLine);
+    if (sm) { current.scenarios.push({ name: sm[1], result: sm[2].toUpperCase() }); continue; }
+    var tm = lines[i].match(testLine);
+    if (tm) { current.test = tm[1].trim(); continue; }
+    var mm = lines[i].match(methodLine);
+    if (mm) { current.method = mm[1].trim(); continue; }
+    var rm = lines[i].match(reasonLine);
+    if (rm) { current.reason = rm[1].trim(); continue; }
+    var abm = lines[i].match(approvedByLine);
+    if (abm) { current.approvedBy = abm[1].trim(); continue; }
+    var aam = lines[i].match(approvedAtLine);
+    if (aam) { current.approvedAt = aam[1].trim(); continue; }
+    // A new top-level AC line or a non-indented line ends the current record
+    if (/^\s*-\s*AC-\d+/i.test(lines[i]) || /^[A-Za-z]/.test(lines[i].trim())) {
+      current = null;
+    }
+  }
+  return records;
+}
+
+// Parse AC IDs from Spec Acceptance Criteria section.
+// Returns an array of { id, verification, test, scenarios }
+function parseAcDeclarations(acceptanceSection) {
+  var declarations = [];
+  var blocks = acceptanceBlocks(acceptanceSection);
+  blocks.forEach(function(block) {
+    var text = block.lines.join('\n');
+    var verification = labelValue(text, 'Verification');
+    var test = labelValue(text, 'Test');
+    // Extract scenario names from Given/When/Then blocks
+    var scenarios = [];
+    var scenarioRegex = /^Scenario:\s*(.+)$/im;
+    var sm = text.match(scenarioRegex);
+    if (sm) scenarios.push(sm[1].trim());
+    declarations.push({
+      id: block.id,
+      verification: verification,
+      test: test,
+      scenarios: scenarios
+    });
+  });
+  return declarations;
+}
+
+// Validate AC Coverage against Spec declarations (L1-L4).
+// L1: every AC in Spec has a Coverage record in Execute Log
+// L2: all Coverage results are PASS (SKIPPED with approval is OK)
+// L3: Test path files exist (when projectDir is provided)
+// L4 (limited): Scenario names in Coverage appear in Spec (warning only)
+function validateAcCoverage(specPath, projectDir, executeLogContent, archiveReady, issues) {
+  if (!archiveReady) return;
+  var acceptanceSection = sectionContent(specPath, SECTION.acceptanceCriteria);
+  if (!firstRealLine(acceptanceSection)) return; // no AC, skip
+  var declarations = parseAcDeclarations(acceptanceSection);
+  if (!declarations.length) return;
+  var coverageRecords = parseAcCoverage(executeLogContent);
+  // If no coverage records at all, skip (gradual enforcement for old logs)
+  if (!coverageRecords.length) return;
+  // Build a map of coverage by AC id
+  var coverageMap = {};
+  coverageRecords.forEach(function(r) { coverageMap[r.id] = r; });
+  // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
+  declarations.forEach(function(decl) {
+    var cov = coverageMap[decl.id];
+    if (!cov) {
+      issues.push('AC Coverage: ' + decl.id + ' has no execution evidence in Execute Log.');
+      return;
+    }
+    if (cov.result === 'FAIL') {
+      issues.push('AC Coverage: ' + decl.id + ' verification failed.');
+      return;
+    }
+    if (cov.result === 'SKIPPED') {
+      // SKIPPED requires human approval three-element gate
+      if (!cov.approvedBy) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved By.');
+      } else if (/^auto-gate$/i.test(cov.approvedBy)) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED; Approved By cannot be auto-gate.');
+      }
+      if (!cov.approvedAt) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved At.');
+      }
+      if (!cov.reason) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Reason.');
+      }
+      return;
+    }
+    // PASS — L3: check test path exists
+    if (cov.test && projectDir) {
+      var testPath = common.resolveProjectPath(projectDir, cov.test);
+      if (testPath && !fs.existsSync(testPath)) {
+        issues.push('AC Coverage: ' + decl.id + ' Test file not found: ' + cov.test);
+      }
+    }
+  });
+  // L4 (limited): check scenario names in coverage appear in spec declarations (warning only)
+  declarations.forEach(function(decl) {
+    var cov = coverageMap[decl.id];
+    if (!cov || !cov.scenarios.length || !decl.scenarios.length) return;
+    cov.scenarios.forEach(function(covScenario) {
+      var found = decl.scenarios.some(function(declScenario) {
+        return declScenario.toLowerCase().indexOf(covScenario.name.toLowerCase()) !== -1 ||
+               covScenario.name.toLowerCase().indexOf(declScenario.toLowerCase()) !== -1;
+      });
+      if (!found) {
+        // Warning: not blocking, just informational
+        issues.push('AC Coverage: ' + decl.id + ' scenario "' + covScenario.name + '" not found in Spec acceptance criteria (may need review).');
+      }
+    });
+  });
+}
+
 function validateSpec(specPath, opts) {
   opts = opts || {};
   var issues = [];
@@ -345,7 +489,6 @@ function validateSpec(specPath, opts) {
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var status = common.getFrontmatterField(specPath, 'status') || 'draft';
-  var reviewSectionName = mode === 'standard' ? 'Review Verdict' : 'Review Summary';
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
   var isGitRepo = isInsideGitRepo(projectDir);
 
@@ -371,12 +514,24 @@ function validateSpec(specPath, opts) {
     issues.push('Execute Log is empty.');
   }
 
+  // Review has been merged into Execute's Completion Verification Gate.
+  // For backward compatibility, if a Review Verdict/Summary section exists and
+  // contains a PASS line, we still accept it. New specs should use Completion
+  // Verification Step in Execute Log instead.
   var review = common.extractSection(specPath, SECTION.review, 200);
   var reviewLine = firstRealLine(review);
-  if (!reviewLine) {
-    issues.push(reviewSectionName + ' is empty.');
-  } else if (!isPassVerdict(reviewLine)) {
+  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
+  // If no Review section at all, that's fine (new template). If it exists but
+  // doesn't PASS, still block for backward compat.
+  if (reviewLine && !hasReviewPass) {
+    var reviewSectionName = mode === 'standard' ? 'Review Verdict' : 'Review Summary';
     issues.push(reviewSectionName + ' must contain a PASS verdict before archive.');
+  }
+
+  // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
+  if (opts.archiveReady && logArtifact.path) {
+    var fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
+    validateAcCoverage(specPath, projectDir, fullExecuteLog, true, issues);
   }
 
   if (opts.archiveReady) {

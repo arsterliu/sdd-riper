@@ -5,7 +5,7 @@ var validate = require('../commands/validate');
 
 var VERDICT_TO_TARGET = {
   PASS: 'Ready',
-  PASS_WITH_CONCERNS: 'Review',
+  PASS_WITH_CONCERNS: 'Learning Check',
   FAIL_SPEC: 'Research',
   FAIL_DESIGN: 'Design',
   FAIL_ACCEPTANCE: 'Acceptance',
@@ -62,11 +62,10 @@ function classifyIssue(issue) {
   if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
-  if (/Acceptance Criteria|Verification|Automated Acceptance|E2E Acceptance|Manual Acceptance/i.test(issue)) return 'FAIL_ACCEPTANCE';
+  if (/Acceptance Criteria|Verification|Automated Acceptance|E2E Acceptance|Manual Acceptance|AC Coverage/i.test(issue)) return 'FAIL_ACCEPTANCE';
   if (/Plan Approved|Approved At|Gate Evidence|Micro Plan/i.test(issue)) return 'FAIL_PLAN';
   if (/Execute Log/i.test(issue)) return 'FAIL_LOG';
   if (/Learning Record|Learning/i.test(issue)) return 'FAIL_LEARNING';
-  if (/Review Verdict|Review Summary|PASS verdict/i.test(issue)) return 'FAIL_CODE';
   if (/Challenge Executed|Challenge Evidence/i.test(issue)) return 'FAIL_CODE';
   return 'FAIL_SPEC';
 }

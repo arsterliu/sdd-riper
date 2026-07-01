@@ -21,7 +21,6 @@ var phases = [
   ['acceptance', 'Acceptance'],
   ['plan', 'Plan'],
   ['execute', 'Execute'],
-  ['review', 'Review'],
   ['learning', 'Learning'],
   ['ready', 'Ready'],
   ['archived', 'Archived']
@@ -33,10 +32,10 @@ var gateDefinitions = [
   ['design', 'Design', 'Technical design or design note'],
   ['acceptance', 'Acceptance', 'Observable acceptance criteria'],
   ['plan', 'Plan Gate', 'Configured approval gate, with Gate Evidence for auto-gate'],
-  ['executeLog', 'Execute Log', 'Execution facts recorded'],
-  ['review', 'Review', 'Review section filled'],
+  ['executeLog', 'Execute Log', 'Execution facts recorded with AC Coverage'],
+  ['completionVerification', 'Completion Verification', 'Four-axis self-check and AC Coverage summary in Execute Log'],
   ['learning', 'Learning', 'Reusable lesson recorded when required'],
-  ['reviewPass', 'PASS Verdict', 'Final verdict allows archive']
+  ['challengePass', 'Challenge PASS', 'Independent adversarial review passed']
 ];
 
 var blockerText = {
@@ -45,8 +44,7 @@ var blockerText = {
   design: 'Design is missing or empty. Standard and lite specs need an external design artifact.',
   acceptance: 'Acceptance criteria are missing or incomplete.',
   plan: 'Plan gate is missing. Fill Plan Approved By and Approved At; auto-gate also needs Gate Evidence.',
-  execute: 'Execute Log is missing or empty. Record the execution facts before Review.',
-  review: 'Review is missing or does not contain a PASS verdict.',
+  execute: 'Execute Log is missing or empty. Record the execution facts before Challenge.',
   learning: 'Learning Check is required. Record the reusable lesson before Archive.',
   ready: 'All archive gates pass. This spec is ready to archive.',
   archived: 'This spec is archived.'
@@ -135,8 +133,8 @@ function gateStats(spec) {
 }
 
 function gatePhase(key) {
-  if (key === 'executeLog') return 'execute';
-  if (key === 'review' || key === 'reviewPass') return 'review';
+  if (key === 'executeLog' || key === 'completionVerification') return 'execute';
+  if (key === 'challengePass') return 'learning';
   return key;
 }
 
@@ -192,7 +190,7 @@ function projectSpark(summary) {
   var counts = summary.counts || {};
   var complete = summary.ready || 0;
   var progress = (counts.research || 0) + (counts.innovate || 0) + (counts.design || 0) +
-    (counts.acceptance || 0) + (counts.execute || 0) + (counts.review || 0) + (counts.learning || 0);
+    (counts.acceptance || 0) + (counts.execute || 0) + (counts.learning || 0);
   var waiting = counts.plan || 0;
   var notStarted = counts.archived || 0;
   return [

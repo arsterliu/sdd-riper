@@ -61,12 +61,12 @@ function modeAdvisory(mode, explicit) {
 
 function workflowHint(mode) {
   if (mode === 'micro') {
-    return '### AI: Follow Plan -> Execute Log -> Review -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
+    return '### AI: Follow Plan -> Execute Log (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
   }
   if (mode === 'lite') {
-    return '### AI: Follow Research -> Innovate/Skip -> Design Note -> Acceptance Criteria -> Plan -> Execute -> Review -> Learning Check. Lite Design Note must cover Approach, Impact Scope, Interface / Data Impact, Compatibility, Risks, and Test Strategy. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
+    return '### AI: Follow Research -> Innovate/Skip -> Design Note -> Acceptance Criteria -> Plan -> Execute (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Lite Design Note must cover Approach, Impact Scope, Interface / Data Impact, Compatibility, Risks, and Test Strategy. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
   }
-  return '### AI: Follow Research -> Innovate -> Technical Design -> Acceptance Criteria -> Plan -> Execute -> Review -> Learning Check. Standard Technical Design is a design contract: fill Impact Scope, Architecture View, Data Model / Schema, Interface Contract, Compatibility / Rollback, and Test Strategy before Plan. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
+  return '### AI: Follow Research -> Innovate -> Technical Design -> Acceptance Criteria -> Plan -> Execute (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Standard Technical Design is a design contract: fill Impact Scope, Architecture View, Data Model / Schema, Interface Contract, Compatibility / Rollback, and Test Strategy before Plan. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
 }
 
 function fillArtifactTemplate(templatePath, taskName, mode, specRelPath) {

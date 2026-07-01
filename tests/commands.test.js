@@ -50,6 +50,17 @@ function fillApproval(content) {
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
 }
 
+function fillChallenge(content, verdict, opts) {
+  opts = opts || {};
+  return content
+    .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: ' + verdict)
+    .replace(/^Backtrack Target:$/m, 'Backtrack Target: ' + (opts.backtrack || 'Ready'))
+    .replace(/^Challenge Summary:$/m, 'Challenge Summary: ' + (opts.summary || 'ok.'))
+    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: ' + (opts.executedBy || 'subagent'))
+    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: ' + (opts.executedAt || '2026-01-01T00:00:00Z'))
+    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: ' + (opts.evidence || 'PASS - independent review'));
+}
+
 function fillAutoApproval(content) {
   return content
     .replace(/^Plan Approved By:$/m, 'Plan Approved By: auto-gate')
@@ -190,10 +201,17 @@ function makeStandardArchiveReady(demo, specFile) {
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 保留校验后的归档流程。Pros: 简单。Cons: 仅测试覆盖。\nOption B: 跳过归档。Pros: 无。Cons: 无法覆盖。\nSelected: 方案 A。');
   content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: 完整 standard spec 可以归档\nRequirement: archive-flow\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: 有效 standard spec\n  Given standard spec 包含设计、AC、审批、执行日志和 PASS 评审\n  When archive 执行\n  Then spec 被移动到 archive');
   content = fillApproval(content);
+  // Fill Challenge fields (Completion Verification section replaces old Review Verdict)
+  content = content
+    .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
+    .replace(/^Backtrack Target:$/m, 'Backtrack Target: Ready')
+    .replace(/^Challenge Summary:$/m, 'Challenge Summary: all gates pass.')
+    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent')
+    .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:00:00Z')
+    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - independent review');
   fs.writeFileSync(specFile, content, 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
-  insertSectionContent(specFile, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: all gates pass.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS - independent review');
   return { designFile: designFile, logFile: logFile };
 }
 
@@ -400,7 +418,10 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name challenge-fail --spec-version v1.0 --requirement x');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-fail.md');
     makeStandardArchiveReady(demo, sf);
-    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: FAIL_DESIGN\nChallenge Summary: design contract missed interface impact.');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: FAIL_DESIGN')
+         .replace(/^Challenge Summary:.*$/m, 'Challenge Summary: design contract missed interface impact.');
+    fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Adversarial Challenge failed: FAIL_DESIGN') !== -1);
@@ -464,10 +485,10 @@ describe('CLI commands', function() {
     c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: simple change.');
     c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: lite task\nRequirement: lite\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js');
     c = fillApproval(c);
+    c = fillChallenge(c, 'PASS', { executedBy: 'inline' });
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Design Note', 'Approach: test.\nImpact Scope: minimal.\nInterface / Data Impact: none.\nCompatibility: ok.\nRisks: none.\nTest Strategy: unit.');
     insertSectionContent(logFile, 'Execute Log', 'Step 1: DONE\n');
-    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
@@ -479,7 +500,6 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name challenge-ok --spec-version v1.0 --requirement x');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-ok.md');
     makeStandardArchiveReady(demo, sf);
-    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: All gates pass.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS - all gates verified by independent agent');
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('Challenge Executed By') === -1, 'no challenge evidence issues');
@@ -492,7 +512,9 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name challenge-manual --spec-version v1.0 --requirement x');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-manual.md');
     makeStandardArchiveReady(demo, sf);
-    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: auto-gate\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: auto-gate');
+    fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Manual gate policy requires human Challenge Executed By') !== -1);
@@ -504,7 +526,9 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name challenge-inline-std --spec-version v1.0 --requirement x');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-std.md');
     makeStandardArchiveReady(demo, sf);
-    insertSectionContent(sf, 'Review Verdict', 'Challenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: inline');
+    fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
@@ -517,10 +541,10 @@ describe('CLI commands', function() {
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-micro.md');
     var c = fs.readFileSync(sf, 'utf-8');
     c = c.replace(/## Plan/, '## Plan\n\nImpact Scope: single file\nData Impact: none\nInterface Impact: none\nAcceptance: behavior preserved\nVerification: unit test\n\nPlan Approved By: auto-gate\nApproved At: 2026-06-30T00:00:00Z\nGate Policy: auto\nGate Evidence: micro plan complete');
+    c = fillChallenge(c, 'PASS', { executedBy: 'inline', evidence: 'PASS - inline review for micro' });
     fs.writeFileSync(sf, c);
     var logFile = artifactPath(demo, sf, 'execute-log-file');
     fs.writeFileSync(logFile, 'Step 1: DONE\n');
-    insertSectionContent(sf, 'Review Summary', 'PASS - micro task verified.\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-06-30T00:20:00Z\nChallenge Evidence: PASS - inline review for micro');
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('Challenge Executed By') === -1 || result.indexOf('inline') === -1, 'micro allows inline');
@@ -537,8 +561,8 @@ describe('CLI commands', function() {
     c = replaceSectionStart(c, 'Confirmed Requirement', 'Lite task must enforce design and acceptance before archive.');
     c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: 复用现有 validate/archive pattern.');
     c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: validate archive-ready gates\nRequirement: lite validation\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Lite archive readiness\n  Given lite design, acceptance, approval, execute log, and PASS review are present\n  When validate --archive-ready runs\n  Then validation reports OK');
     fs.writeFileSync(sf, c, 'utf-8');
@@ -560,10 +584,10 @@ describe('CLI commands', function() {
     c = replaceSectionStart(c, 'Innovate Options', 'Option A: require verification metadata. Pros: traceable. Cons: more structure.\nOption B: free text AC. Pros: flexible. Cons: weaker archive gates.\nSelected: Option A.');
     c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: missing verification is blocked\nRequirement: ac-verification\nType: functional\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Missing verification\n  Given an AC without Verification metadata\n  When validate runs\n  Then archive readiness is blocked');
     c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
     insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
-    insertSectionContent(sf, 'Review Verdict', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: subagent\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard Acceptance Criteria missing Verification for: AC-001') !== -1);
@@ -606,8 +630,8 @@ describe('CLI commands', function() {
     var logFile = artifactPath(demo, sf, 'execute-log-file');
     var c = fs.readFileSync(sf, 'utf-8');
     c = fillApproval(c);
+    c = fillChallenge(c, 'PASS', { executedBy: 'inline' });
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(sf, 'Review Summary', 'Review Pass 1 - 2026-01-01T00:00:00Z - PASS\nChallenge Verdict: PASS\nBacktrack Target: Ready\nChallenge Summary: ok.\nChallenge Executed By: inline\nChallenge Executed At: 2026-01-01T00:00:00Z\nChallenge Evidence: PASS');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Micro Plan must include Impact Scope') !== -1);
@@ -1318,5 +1342,214 @@ describe('CLI commands', function() {
     assert.ok(run('--help').indexOf('install-skill') !== -1);
     assert.ok(run('install-skill --help').indexOf('cc-switch') !== -1);
     assert.ok(run('--version').indexOf('2.0.0') !== -1);
+  });
+
+  // --- AC Coverage cross-validation tests ---
+
+  it('validate reports AC without execution evidence (AC-001: coverage format)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-1');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-cov-test --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-cov-test.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC coverage test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: with coverage. Pros: traceable. Cons: more structure.\nOption B: without coverage. Pros: flexible. Cons: weaker gates.\nSelected: Option A.');
+    // Create a real test file in the project for L3 check
+    var testDir = path.join(demo, 'tests');
+    fs.mkdirSync(testDir, {recursive: true});
+    fs.writeFileSync(path.join(testDir, 'ac-cov.test.js'), 'test("ac-cov", () => {});', 'utf-8');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: unit test passes\nRequirement: ac-cov\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/ac-cov.test.js\n\nScenario: Unit test runs\n  Given a test file\n  When npm test runs\n  Then all tests pass');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    // Write Execute Log with AC Coverage for AC-001 (must include ## Execute Log heading)
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement feature\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/ac-cov.test.js\n    Method: tdd\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('AC Coverage') === -1, 'AC-001 has coverage, should not report issue: ' + result);
+  });
+
+  it('validate blocks archive when AC has no coverage record (AC-002: L1)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-2');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-no-cov --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-no-cov.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC no-coverage test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: must have evidence\nRequirement: ac-cov-l1\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    // Write Execute Log with coverage for a different AC (not AC-001)
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-999: PASS\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('AC-001 has no execution evidence') !== -1, 'should report missing AC-001 coverage: ' + blocked);
+  });
+
+  it('validate blocks archive when AC coverage result is FAIL (AC-002: L2)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-3');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-fail-cov --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-fail-cov.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC fail coverage test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: must pass\nRequirement: ac-cov-l2\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: FAIL\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('AC-001 verification failed') !== -1, 'should report AC-001 FAIL: ' + blocked);
+  });
+
+  it('validate blocks archive when AC test file not found (AC-002: L3)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-4');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-no-test-file --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-no-test-file.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC no test file test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: must have real test\nRequirement: ac-cov-l3\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/fake-test.js');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/fake-test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Test file not found') !== -1, 'should report test file not found: ' + blocked);
+  });
+
+  it('validate blocks archive when SKIPPED AC lacks approval (AC-003)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-5');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-skipped --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC skipped test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: e2e coverage\nRequirement: ac-skipped\nType: functional\nVerification: e2e\nAutomated: yes\nTest: tests/e2e/login.spec.ts');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    // SKIPPED without approval
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('SKIPPED but missing Approved By') !== -1, 'should report missing Approved By: ' + blocked);
+  });
+
+  it('validate blocks archive when SKIPPED AC has auto-gate approval (AC-003)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-6');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-skipped-auto --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped-auto.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC skipped auto-gate test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: e2e coverage\nRequirement: ac-skipped-auto\nType: functional\nVerification: e2e\nAutomated: yes\nTest: tests/e2e/login.spec.ts');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: auto-gate\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Approved By cannot be auto-gate') !== -1, 'should reject auto-gate for SKIPPED: ' + blocked);
+  });
+
+  it('validate accepts SKIPPED AC with proper human approval (AC-003)', function() {
+    var demo = path.join(tmpBase, 'ac-cov-7');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name ac-skipped-ok --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped-ok.md');
+    var designFile = artifactPath(demo, sf, 'design-file');
+    var logFile = artifactPath(demo, sf, 'execute-log-file');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC skipped OK test.\n');
+    c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: e2e coverage\nRequirement: ac-skipped-ok\nType: functional\nVerification: e2e\nAutomated: yes\nTest: tests/e2e/login.spec.ts');
+    c = fillApproval(c);
+    c = fillChallenge(c, 'PASS');
+    fs.writeFileSync(sf, c, 'utf-8');
+    insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: human-reviewer\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('SKIPPED') === -1 || result.indexOf('RESULT: OK') !== -1, 'SKIPPED with approval should not block: ' + result);
+  });
+
+  it('new spec templates do not contain Review Verdict or Review Summary (AC-004)', function() {
+    var demo = path.join(tmpBase, 'ac-review-merge');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name review-merge --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-review-merge.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    assert.ok(c.indexOf('## Review Verdict') === -1, 'standard spec should not have Review Verdict section');
+    assert.ok(c.indexOf('## Review Summary') === -1, 'standard spec should not have Review Summary section');
+    assert.ok(c.indexOf('## Completion Verification') !== -1, 'standard spec should have Completion Verification section');
+
+    // lite
+    run('discover ' + demo + ' --task-name review-merge-lite --spec-version v1.0 --requirement x --mode lite');
+    var sfLite = path.join(demo, 'mydocs', 'specs', 'v1.0-review-merge-lite.md');
+    c = fs.readFileSync(sfLite, 'utf-8');
+    assert.ok(c.indexOf('## Review Verdict') === -1, 'lite spec should not have Review Verdict');
+    assert.ok(c.indexOf('## Review Summary') === -1, 'lite spec should not have Review Summary');
+    assert.ok(c.indexOf('## Completion Verification') !== -1, 'lite spec should have Completion Verification');
+
+    // micro
+    run('discover ' + demo + ' --task-name review-merge-micro --spec-version v1.0 --requirement x --mode micro');
+    var sfMicro = path.join(demo, 'mydocs', 'specs', 'v1.0-review-merge-micro.md');
+    c = fs.readFileSync(sfMicro, 'utf-8');
+    assert.ok(c.indexOf('## Review Verdict') === -1, 'micro spec should not have Review Verdict');
+    assert.ok(c.indexOf('## Review Summary') === -1, 'micro spec should not have Review Summary');
+    assert.ok(c.indexOf('## Completion Verification') !== -1, 'micro spec should have Completion Verification');
+  });
+
+  it('validate does not require Review Verdict for new specs (AC-004)', function() {
+    var demo = path.join(tmpBase, 'ac-no-review');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name no-review --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-no-review.md');
+    makeStandardArchiveReady(demo, sf);
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    // Should not complain about missing Review Verdict
+    assert.ok(result.indexOf('Review Verdict is empty') === -1, 'should not require Review Verdict');
+    assert.ok(result.indexOf('Review Summary is empty') === -1, 'should not require Review Summary');
+  });
+
+  it('PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)', function() {
+    var workflow = require(path.resolve('src/core/workflow'));
+    assert.strictEqual(workflow.VERDICT_TO_TARGET.PASS_WITH_CONCERNS, 'Learning Check');
+  });
+
+  it('Console phases do not include review (AC-004)', function() {
+    var consoleSrc = fs.readFileSync(path.resolve('src/web/console.js'), 'utf-8');
+    // phases array should not contain review
+    var phasesMatch = consoleSrc.match(/var phases = \[([\s\S]*?)\];/);
+    assert.ok(phasesMatch, 'should find phases array');
+    assert.ok(phasesMatch[1].indexOf("'review'") === -1, 'phases should not include review');
   });
 });

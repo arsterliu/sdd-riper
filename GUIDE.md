@@ -88,10 +88,12 @@ SDD-RIPER 按三层职责运行：
 ## 三、RIPER 流程
 
 ```text
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute -> Review -> Challenge -> (Cruise) -> Learning Check -> Archive
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
-Challenge 和 Cruise 是 Review 之后的质量闭环。它们不改变 RIPER 产物合同，而是在四轴审查后追加一层独立对抗评审，并在发现问题时提供有预算的修复循环。
+Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage 汇总），替代了原独立的 Review 阶段。Challenge 是 Execute 之后的唯一质量门禁。`PASS_WITH_CONCERNS` 直接进入 Learning Check（不再回退到 Review）。
+
+Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER 产物合同，而是在四轴自查后追加一层独立对抗评审，并在发现问题时提供有预算的修复循环。
 
 - `sdd next`：判断当前阶段、下一步和回跳目标。
 - `sdd challenge`：生成独立对抗评审 prompt，由独立角色（standard/lite 必须派子 agent）执行。
@@ -241,24 +243,39 @@ Timestamp: ...
 
 重大偏差必须暂停并回到 Plan / Design，而不是事后改写 Spec 合理化实现。
 
-### Review
+Execute Log 每个 Step 应包含 AC Coverage 结构化记录：
 
-Review 是四轴审查：
+```text
+AC Coverage:
+  - AC-001: PASS
+    Scenarios:
+      - "有效登录": PASS
+    Test: tests/e2e/login.spec.ts
+    Method: bdd
+```
 
-| 轴 | 检查内容 |
-| :--- | :--- |
-| Axis 0 | Intake 是否仍然对齐原始目标。 |
-| Axis 1 | Design / Acceptance / Plan 是否覆盖完整。 |
-| Axis 2 | Code Diff 是否越界。 |
-| Axis 3 | Execute Log 是否忠实反映真实改动。 |
+E2E 环境不可用时，AC 标记为 `SKIPPED`，需人工批准三要素（Reason + Approved By + Approved At）。`Approved By` 不能是 `auto-gate`。
 
-Axis 2 是 primary axis。Axis 0、1、3 是确认轴，任何一轴失败都应阻止归档或触发修正。
+Execute 最后一个 Step 是 Completion Verification，包含四轴自查清单和 AC Coverage 全量汇总：
 
-Review 完成后自动进入 Challenge（对抗评审）。
+```text
+Step: completion-verification
+Status: DONE
+AC Coverage Summary:
+  - AC-001: PASS (unit, tests/auth/login.test.ts)
+  - AC-002: SKIPPED (e2e, tests/e2e/login.spec.ts)
+Four-Axis Checklist:
+  - Axis 0 (Intake): aligned
+  - Axis 1 (Design/Acceptance/Plan): complete
+  - Axis 2 (Code Diff): within boundary
+  - Axis 3 (Execute Log): faithful
+```
+
+`validate --archive-ready` 对有 AC Coverage 的 Execute Log 做交叉检查（L1-L4）：每个 AC 有 Coverage 记录、结果 PASS、Test 路径文件存在、Scenario 名称匹配（warning）。旧 Execute Log 无 Coverage 记录时不报错（渐进式门禁）。
 
 ### Challenge（对抗评审）
 
-**何时触发**：Review 四轴审查完成后自动进入。Challenge 是 Review 的延伸，不是可选步骤。
+**何时触发**：Execute Completion Verification 完成后自动进入。Review 已合并进 Execute 的 Completion Verification Gate，Challenge 是唯一独立质量门禁。
 
 **谁执行**：
 
@@ -398,9 +415,9 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 | Design | 独立 Technical Design | 独立 Design Note | 不单独创建 |
 | Acceptance | AC-###，推荐 BDD | 轻量 AC | Plan 中的 Acceptance |
 | Plan Approval | 必须 | 必须 | 必须 |
-| Execute Log | 独立文件，必填 | 独立文件，必填 | 独立文件，必填 |
+| Execute Log | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage |
+| Completion Verification | 四轴自查 + AC Coverage 汇总 | 四轴自查 + AC Coverage 汇总 | 四轴自查 + AC Coverage 汇总 |
 | Learning | 条件必填 | 条件必填 | 条件必填 |
-| Review | 四轴 | 四轴 | 默认 Axis 2 |
 | Subagent | 推荐 | 可选 | 默认不用 |
 
 模式选择建议：

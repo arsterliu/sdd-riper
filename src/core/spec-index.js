@@ -14,7 +14,6 @@ var PHASES = [
   'acceptance',
   'plan',
   'execute',
-  'review',
   'learning',
   'ready',
   'archived'
@@ -185,9 +184,17 @@ function completionState(projectDir, specPath, mode) {
   var learningArtifact = learning.learningArtifact(projectDir, specPath);
   var learningContent = learningArtifact.content;
   var plan = sectionText(specPath, SECTION.plan);
+  var content = fs.readFileSync(specPath, 'utf-8');
+  // Review has been merged into Execute's Completion Verification Gate.
+  // For backward compat, still read Review section if present.
   var review = sectionText(specPath, SECTION.review);
   var reviewLine = firstRealLine(review);
-  var content = fs.readFileSync(specPath, 'utf-8');
+  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
+  // Challenge Verdict is the primary quality gate now.
+  var challengeVerdict = '';
+  var cvMatch = content.match(/^[ \t]*Challenge Verdict:[ \t]*(.+)$/m);
+  if (cvMatch) challengeVerdict = cvMatch[1].trim().toUpperCase();
+  var challengePass = challengeVerdict === 'PASS' || challengeVerdict === 'PASS_WITH_CONCERNS';
   var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), reviewLine);
   var learningRequired = learningTriggers.length > 0;
   learningArtifact.hasContent = learningArtifact.exists ? !!learning.firstRealLine(learningContent) : false;
@@ -215,8 +222,8 @@ function completionState(projectDir, specPath, mode) {
     acceptance: acceptance,
     plan: planApproved,
     executeLog: executeLog.hasContent,
-    review: !!reviewLine,
-    reviewPass: isPassVerdict(reviewLine),
+    completionVerification: executeLog.hasContent,
+    challengePass: challengePass || hasReviewPass,
     reviewLine: reviewLine,
     designArtifact: design,
     executeLogArtifact: executeLog,
@@ -234,7 +241,7 @@ function inferPhase(status, mode, completion) {
   if (!completion.acceptance) return 'acceptance';
   if (!completion.plan) return 'plan';
   if (!completion.executeLog) return 'execute';
-  if (!completion.review || !completion.reviewPass) return 'review';
+  if (!completion.challengePass) return 'execute';
   if (!completion.learning) return 'learning';
   return 'ready';
 }
@@ -287,8 +294,8 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       acceptance: completion.acceptance,
       plan: completion.plan,
       executeLog: completion.executeLog,
-      review: completion.review,
-      reviewPass: completion.reviewPass,
+      completionVerification: completion.completionVerification,
+      challengePass: completion.challengePass,
       learning: completion.learning,
       learningRequired: completion.learningRequired
     },

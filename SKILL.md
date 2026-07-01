@@ -319,10 +319,23 @@ Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLO
 Files: <paths>
 Result: <what changed in Chinese>
 Verification: <command/result>
+AC Coverage:
+  - AC-###: PASS | FAIL | SKIPPED
+    Scenarios:
+      - "scenario name": PASS | FAIL
+    Test: <test file path>
+    Method: tdd | bdd | manual
+    Reason: <required for SKIPPED: why E2E environment was unavailable>
+    Approved By: <required for SKIPPED: human name, not auto-gate>
+    Approved At: <required for SKIPPED: ISO-8601>
 Deviation: none | <Chinese explanation>
 Timestamp: <ISO 8601>
 ---
 ```
+
+AC Coverage is a structured record linking each step to the acceptance criteria it covers. Every step that implements or verifies an AC must include an `AC Coverage` entry. The `Scenarios` sub-field maps BDD/Gherkin scenarios to their test results. `Method` declares whether the step used TDD, BDD, or manual verification.
+
+When an E2E test cannot run because the environment is unavailable, mark the AC as `SKIPPED` with `Reason`, `Approved By`, and `Approved At`. `Approved By` cannot be `auto-gate` — skipping verification is a human decision. The agent should attempt to fix the environment first; only if it cannot, mark as BLOCKED and let the human decide to retry or skip.
 
 Deviation rules:
 
@@ -345,39 +358,41 @@ Completion Verification Gate (see `vendored/superpowers/verification-before-comp
 2. Run it freshly.
 3. Read full output and exit code.
 4. Confirm it proves the relevant acceptance criteria.
-5. Only then report completion.
+5. Record the four-axis self-check in the Execute Log's completion-verification step.
+6. Only then report completion.
+
+The completion-verification step is the last step in the Execute Log:
+
+```text
+Step: completion-verification
+Status: DONE | BLOCKED
+Result: <Chinese summary of four-axis self-check and AC coverage>
+AC Coverage Summary:
+  - AC-###: PASS | FAIL | SKIPPED (<verification type>, <test path>)
+Four-Axis Checklist:
+  - Axis 0 (Intake): aligned | misaligned
+  - Axis 1 (Design/Acceptance/Plan): complete | incomplete
+  - Axis 2 (Code Diff): within boundary | out of boundary
+  - Axis 3 (Execute Log): faithful | unfaithful
+Verification: <commands run>
+Timestamp: <ISO 8601>
+```
+
+This replaces the former Review Verdict / Review Summary section in the Spec. Review has been merged into Execute's Completion Verification Gate. Challenge is now the sole quality gate after Execute.
 
 Never rely on a subagent success report for final verification.
 
-## Review Phase
+`validate --archive-ready` cross-checks AC Coverage (L1-L4):
+- L1: every AC in Spec has a Coverage record in Execute Log
+- L2: all Coverage results are PASS (SKIPPED with human approval is OK)
+- L3: Test path files exist (when projectDir is provided)
+- L4 (limited): Scenario names in Coverage appear in Spec (warning only)
 
-Run:
-
-```text
-sdd review-execute "<PROJECT_ROOT>"
-```
-
-Review is a judge, not a programmer. Do not fix code during Review.
-
-standard/lite use four axes:
-
-- Axis 0: Intake Alignment
-- Axis 1: Design / Acceptance / Plan Coverage
-- Axis 2: Code Diff Scope
-- Axis 3: Execute Log Fidelity
-
-Axis 2 is primary. Axis 0/1/3 are confirmation axes.
-
-For standard/lite, dispatching one subagent per axis is allowed and often useful. The orchestrator must:
-
-1. Collect axis findings.
-2. Confirm primary evidence itself.
-3. Apply verdict precedence: `FAIL_SPEC > FAIL_PLAN > FAIL_CODE`.
-4. Write final verdict to Spec `Review Verdict` / `Review Summary`.
-
-micro normally runs only Axis 2.
+Old Execute Logs without AC Coverage are handled gracefully — the cross-check is skipped.
 
 ## Challenge Phase
+
+Review has been merged into Execute's Completion Verification Gate (four-axis self-check recorded in the Execute Log's completion-verification step). Challenge is now the sole quality gate after Execute. `PASS_WITH_CONCERNS` now routes to Learning Check (not Review).
 
 Run:
 
