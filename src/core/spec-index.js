@@ -215,6 +215,11 @@ function completionState(projectDir, specPath, mode) {
   var approvedAt = labelHasContent(content, 'Approved At');
   var autoGate = /^auto-gate$/i.test((content.match(/^[ \t]*Plan Approved By:[ \t]*(.*)$/m) || [])[1] || '');
   var planApproved = approvedBy && approvedAt && (!autoGate || labelHasContent(content, 'Gate Evidence'));
+  // completionVerification: check if Execute Log contains a completion-verification step
+  var fullLogContent = executeLog.hasContent && executeLog.path && fs.existsSync(executeLog.path)
+    ? fs.readFileSync(executeLog.path, 'utf-8')
+    : (executeLog.content || '');
+  var completionVerification = executeLog.hasContent && /completion.verification|completion-verification/i.test(fullLogContent);
   return {
     research: research,
     innovate: innovate,
@@ -222,7 +227,7 @@ function completionState(projectDir, specPath, mode) {
     acceptance: acceptance,
     plan: planApproved,
     executeLog: executeLog.hasContent,
-    completionVerification: executeLog.hasContent,
+    completionVerification: completionVerification,
     challengePass: challengePass || hasReviewPass,
     reviewLine: reviewLine,
     designArtifact: design,
