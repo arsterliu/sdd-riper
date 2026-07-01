@@ -396,11 +396,13 @@ function parseAcDeclarations(acceptanceSection) {
     var text = block.lines.join('\n');
     var verification = labelValue(text, 'Verification');
     var test = labelValue(text, 'Test');
-    // Extract scenario names from Given/When/Then blocks
+    // Extract scenario names from Given/When/Then blocks (multiple scenarios per AC)
     var scenarios = [];
-    var scenarioRegex = /^Scenario:\s*(.+)$/im;
-    var sm = text.match(scenarioRegex);
-    if (sm) scenarios.push(sm[1].trim());
+    var scenarioRegex = /^Scenario:\s*(.+)$/gim;
+    var sm;
+    while ((sm = scenarioRegex.exec(text)) !== null) {
+      scenarios.push(sm[1].trim());
+    }
     declarations.push({
       id: block.id,
       verification: verification,
@@ -425,9 +427,29 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
   var coverageRecords = parseAcCoverage(executeLogContent);
   // If no coverage records at all, skip (gradual enforcement for old logs)
   if (!coverageRecords.length) return;
-  // Build a map of coverage by AC id
+  // Build a map of coverage by AC id, merging per-step and summary entries
+  // (summary entries may lack Test paths; per-step entries have them)
   var coverageMap = {};
-  coverageRecords.forEach(function(r) { coverageMap[r.id] = r; });
+  coverageRecords.forEach(function(r) {
+    var existing = coverageMap[r.id];
+    if (!existing) {
+      coverageMap[r.id] = r;
+    } else {
+      // Merge: prefer PASS/SKIPPED over FAIL, preserve Test path if available
+      if (r.result !== 'FAIL' && existing.result === 'FAIL') {
+        coverageMap[r.id] = r;
+      } else if (r.test && !existing.test) {
+        // Keep the entry that has a Test path
+        existing.test = r.test;
+      }
+      // Merge scenarios
+      r.scenarios.forEach(function(s) {
+        if (!existing.scenarios.some(function(es) { return es.name === s.name; })) {
+          existing.scenarios.push(s);
+        }
+      });
+    }
+  });
   // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
   declarations.forEach(function(decl) {
     var cov = coverageMap[decl.id];
@@ -463,6 +485,7 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
     }
   });
   // L4 (limited): check scenario names in coverage appear in spec declarations (warning only)
+  // Warnings use a "WARNING:" prefix so they don't block archive readiness
   declarations.forEach(function(decl) {
     var cov = coverageMap[decl.id];
     if (!cov || !cov.scenarios.length || !decl.scenarios.length) return;
@@ -472,8 +495,7 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
                covScenario.name.toLowerCase().indexOf(declScenario.toLowerCase()) !== -1;
       });
       if (!found) {
-        // Warning: not blocking, just informational
-        issues.push('AC Coverage: ' + decl.id + ' scenario "' + covScenario.name + '" not found in Spec acceptance criteria (may need review).');
+        issues.push('WARNING: AC Coverage: ' + decl.id + ' scenario "' + covScenario.name + '" not found in Spec acceptance criteria (may need review).');
       }
     });
   });
@@ -500,8 +522,21 @@ function validateSpec(specPath, opts) {
   }
   validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
   validateChallengeVerdict(content, issues);
+
+  // Compute hasReviewPass early for backward-compat checks
+  var review = common.extractSection(specPath, SECTION.review, 200);
+  var reviewLine = firstRealLine(review);
+  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
+
   if (opts.archiveReady) {
-    validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
+    // Backward compat: if the spec has a Review section with PASS but no Challenge
+    // Evidence fields, skip the Challenge evidence gate (old specs predate it).
+    var hasChallengeEvidence = labelHasContent(content, 'Challenge Executed By') ||
+      labelHasContent(content, 'Challenge Executed At') ||
+      labelHasContent(content, 'Challenge Evidence');
+    if (hasChallengeEvidence || !hasReviewPass) {
+      validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
+    }
   }
 
   if (opts.archiveReady) {
@@ -518,9 +553,6 @@ function validateSpec(specPath, opts) {
   // For backward compatibility, if a Review Verdict/Summary section exists and
   // contains a PASS line, we still accept it. New specs should use Completion
   // Verification Step in Execute Log instead.
-  var review = common.extractSection(specPath, SECTION.review, 200);
-  var reviewLine = firstRealLine(review);
-  var hasReviewPass = reviewLine && isPassVerdict(reviewLine);
   // If no Review section at all, that's fine (new template). If it exists but
   // doesn't PASS, still block for backward compat.
   if (reviewLine && !hasReviewPass) {
@@ -542,7 +574,7 @@ function validateSpec(specPath, opts) {
     issues.push('Spec is already archived.');
   }
 
-  return { ok: issues.length === 0, issues: issues, specPath: specPath };
+  return { ok: issues.filter(function(i) { return !/^WARNING:/i.test(i); }).length === 0, issues: issues, specPath: specPath };
 }
 
 function run(projectDir, opts) {
