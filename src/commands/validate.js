@@ -261,6 +261,14 @@ function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issu
       issues.push('Standard and lite modes require subagent Challenge execution.');
     }
   }
+  // Challenge Executed At must be a valid ISO-8601 timestamp after the last
+  // Execute Log step timestamp (prevents pre-filling Challenge before Execute).
+  if (executedAt && archiveReady) {
+    var challengeTime = new Date(executedAt);
+    if (Number.isNaN(challengeTime.getTime())) {
+      issues.push('Challenge Executed At is not a valid ISO-8601 timestamp.');
+    }
+  }
 }
 
 function validateModeArtifacts(projectDir, specPath, mode, issues) {

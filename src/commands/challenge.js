@@ -1,4 +1,7 @@
 var workflow = require('../core/workflow');
+var common = require('../../lib/common');
+var fs = require('fs');
+var path = require('path');
 
 var VERDICTS = [
   'PASS',
@@ -14,6 +17,43 @@ var VERDICTS = [
 
 function run(projectDir, opts) {
   opts = opts || {};
+
+  // --record-result mode: write challenge evidence into the spec
+  if (opts.recordResult) {
+    var verdict = String(opts.recordResult || '').toUpperCase();
+    if (VERDICTS.indexOf(verdict) === -1) {
+      console.error('[ERROR] Invalid verdict: ' + verdict + '. Allowed: ' + VERDICTS.join(', '));
+      process.exit(1);
+    }
+    var docsRoot = common.getDocsRoot(projectDir);
+    var specsDir = path.join(docsRoot, 'specs');
+    var specPath = common.findLatestSpec(specsDir);
+    if (!specPath || !fs.existsSync(specPath)) {
+      console.error('[ERROR] No active spec found in ' + specsDir);
+      process.exit(1);
+    }
+    var content = fs.readFileSync(specPath, 'utf-8');
+    var summary = opts.summary || '';
+    var executedBy = opts.executedBy || 'subagent';
+    var now = new Date().toISOString();
+    var backtrack = workflow.VERDICT_TO_TARGET[verdict] || 'Research';
+    // Replace the challenge fields in the spec
+    content = content
+      .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: ' + verdict)
+      .replace(/^Backtrack Target:.*$/m, 'Backtrack Target: ' + backtrack)
+      .replace(/^Challenge Summary:.*$/m, 'Challenge Summary: ' + summary)
+      .replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: ' + executedBy)
+      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: ' + now)
+      .replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: ' + verdict + ' - ' + summary);
+    fs.writeFileSync(specPath, content, 'utf-8');
+    console.log('[SDD Challenge] Result recorded in spec: ' + path.basename(specPath));
+    console.log('  Verdict: ' + verdict);
+    console.log('  Backtrack: ' + backtrack);
+    console.log('  Executed By: ' + executedBy);
+    console.log('  Executed At: ' + now);
+    return;
+  }
+
   var state = workflow.analyzeProject(projectDir, opts);
   console.log('## ADVERSARIAL REVIEW PROMPT');
   console.log('');
@@ -53,6 +93,9 @@ function run(projectDir, opts) {
   console.log('Challenge Verdict: <' + VERDICTS.join('|') + '>');
   console.log('Backtrack Target: <Research|Design|Acceptance|Plan|Execute / Debug|Execute Log|Learning Check|Ready>');
   console.log('Challenge Summary: <evidence-backed summary>');
+  console.log('');
+  console.log('After the challenge agent returns, record the result with:');
+  console.log('  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent|inline"');
 }
 
 module.exports = run;

@@ -416,12 +416,16 @@ Challenge agent 返回：
 Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
 Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
 Challenge Summary: <evidence>
-Challenge Executed By: subagent | inline | auto-gate | <agent-id>
-Challenge Executed At: <ISO-8601>
-Challenge Evidence: <verdict + summary from independent agent>
 ```
 
-`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require `subagent` in `Challenge Executed By`; micro allows `inline`. Gate policy mirrors `GATE_POLICY`: manual rejects `auto-gate`, auto requires all three fields, advisory adds a human confirmation prompt.
+**必须通过 `sdd challenge --record-result` 写入结果，不能手动填写 Challenge Evidence 字段。** 手动填写会被视为伪造证据。正确流程：
+
+1. 派发 subagent 执行对抗审查
+2. 收到 subagent 返回的 verdict + summary
+3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent"`
+4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
+
+`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require `subagent` in `Challenge Executed By`; micro allows `inline`. Gate policy mirrors `GATE_POLICY`: manual rejects `auto-gate`, auto requires all three fields, advisory adds a human confirmation prompt. `Challenge Executed At` must be a valid ISO-8601 timestamp.
 
 Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
 

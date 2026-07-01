@@ -55,9 +55,12 @@ program.command('next <project-dir>')
   .action(function(p, o) { require('../src/commands/next')(p, o); });
 
 program.command('challenge <project-dir>')
-  .description('Generate adversarial review prompt')
+  .description('Generate adversarial review prompt, or record challenge result with --record-result')
   .option('--spec <path>', 'spec file')
   .option('--name <slug>', 'spec task slug')
+  .option('--record-result <verdict>', 'record challenge verdict (PASS|PASS_WITH_CONCERNS|FAIL_*) into spec')
+  .option('--summary <text>', 'challenge summary (used with --record-result)')
+  .option('--executed-by <who>', 'who executed the challenge (subagent|inline, used with --record-result)')
   .action(function(p, o) { require('../src/commands/challenge')(p, o); });
 
 program.command('cruise <project-dir>')
