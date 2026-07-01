@@ -298,7 +298,6 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       learning: completion.learning,
       learningRequired: completion.learningRequired
     },
-    reviewVerdict: '',
     workflow: workflowState,
     cruiseRun: cruiseRun.readLedger(projectDir, specPath),
     validate: {

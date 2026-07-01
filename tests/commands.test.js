@@ -550,6 +550,21 @@ describe('CLI commands', function() {
     assert.ok(result.indexOf('Challenge Executed By') === -1 || result.indexOf('inline') === -1, 'micro allows inline');
   });
 
+  it('validate blocks archive when Challenge Executed At is before Execute Log step', function() {
+    var demo = path.join(tmpBase, 'd4t');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name time-order --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-time-order.md');
+    makeStandardArchiveReady(demo, sf);
+    // Set Challenge time before Execute Log step time
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2025-12-31T23:59:59Z');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Executed At must be after the last Execute Log step timestamp') !== -1);
+  });
+
   it('validate enforces lite design note and acceptance criteria', function() {
     var demo = path.join(tmpBase, 'd4c');
     run('init ' + demo + ' --mode lite');
@@ -999,6 +1014,11 @@ describe('CLI commands', function() {
     var recall = run('learnings ' + demo + ' --for ' + spec);
     assert.ok(recall.indexOf('LEARNING RECALL') !== -1, 'expected recall view: ' + recall);
     assert.ok(recall.indexOf('v1.0-pay-retry.learning.md') !== -1);
+
+    // Resume should auto-output relevant learnings
+    var resumeOut = run('resume ' + demo);
+    assert.ok(resumeOut.indexOf('RELEVANT_LEARNINGS:') !== -1, 'resume should output RELEVANT_LEARNINGS when learnings exist');
+    assert.ok(resumeOut.indexOf('pay-retry.learning.md') !== -1, 'resume should include the relevant learning file');
   });
 
   it('console API exposes spec list, detail, and archive validation', async function() {
