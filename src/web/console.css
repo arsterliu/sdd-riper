@@ -1166,6 +1166,26 @@ select {
   padding: 3px 8px;
 }
 
+/* AC Coverage */
+.ac-coverage-summary {
+  display: grid;
+  gap: 6px;
+}
+.ac-coverage-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+.ac-coverage-item .pill {
+  min-width: 48px;
+  text-align: center;
+}
+.ac-coverage-warning {
+  opacity: 0.8;
+}
+
 /* Cruise Run */
 .cruise-run-row {
   display: grid;

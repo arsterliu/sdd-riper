@@ -557,6 +557,86 @@ function renderCruiseRun(spec) {
   root.innerHTML = html;
 }
 
+var AC_COVERAGE_TONES = {
+  PASS: 'complete',
+  FAIL: 'bad',
+  SKIPPED: 'waiting'
+};
+
+function renderAcCoverage(spec) {
+  var root = qs('ac-coverage');
+  root.innerHTML = '';
+  var validate = spec.validate || {};
+  var issues = Array.isArray(validate.issues) ? validate.issues : [];
+  // Extract AC Coverage issues and warnings
+  var coverageIssues = issues.filter(function(i) {
+    return /^AC Coverage:/i.test(i);
+  });
+  var coverageWarnings = issues.filter(function(i) {
+    return /^WARNING: AC Coverage:/i.test(i);
+  });
+  // Extract AC IDs from issues to show coverage status
+  var coveredAcs = [];
+  var missingAcs = [];
+  var skippedAcs = [];
+  var failedAcs = [];
+  issues.forEach(function(issue) {
+    var acMatch = issue.match(/AC-(\d+)/);
+    if (!acMatch) return;
+    var acId = 'AC-' + acMatch[1];
+    if (/has no execution evidence/i.test(issue)) {
+      if (missingAcs.indexOf(acId) === -1) missingAcs.push(acId);
+    } else if (/verification failed/i.test(issue)) {
+      if (failedAcs.indexOf(acId) === -1) failedAcs.push(acId);
+    } else if (/SKIPPED/i.test(issue)) {
+      if (skippedAcs.indexOf(acId) === -1) skippedAcs.push(acId);
+    } else if (/Test file not found/i.test(issue)) {
+      if (failedAcs.indexOf(acId) === -1) failedAcs.push(acId);
+    }
+  });
+  // Build coverage summary from gate data
+  var completion = spec.completion || {};
+  var hasCoverageData = coverageIssues.length > 0 || coverageWarnings.length > 0 ||
+    missingAcs.length > 0 || failedAcs.length > 0 || skippedAcs.length > 0;
+  if (!hasCoverageData && !completion.completionVerification) {
+    root.innerHTML = '<div class="ac-coverage-row"><span class="pill not-started">No AC Coverage data</span> <span>Execute Log has no AC Coverage records</span></div>';
+    return;
+  }
+  var html = '<div class="ac-coverage-summary">';
+  // Show completion verification status
+  if (completion.completionVerification) {
+    html += '<div class="ac-coverage-item"><span class="pill complete">Completion Verification</span> <span>Four-axis self-check recorded</span></div>';
+  } else {
+    html += '<div class="ac-coverage-item"><span class="pill waiting">Completion Verification</span> <span>Four-axis self-check not yet recorded</span></div>';
+  }
+  // Show coverage issues
+  missingAcs.forEach(function(ac) {
+    html += '<div class="ac-coverage-item"><span class="pill bad">' + esc(ac) + '</span> <span>No execution evidence</span></div>';
+  });
+  failedAcs.forEach(function(ac) {
+    html += '<div class="ac-coverage-item"><span class="pill bad">' + esc(ac) + '</span> <span>Verification failed or test file missing</span></div>';
+  });
+  skippedAcs.forEach(function(ac) {
+    html += '<div class="ac-coverage-item"><span class="pill waiting">' + esc(ac) + '</span> <span>SKIPPED — needs human approval</span></div>';
+  });
+  // Show warnings
+  coverageWarnings.forEach(function(w) {
+    var clean = w.replace(/^WARNING:\s*/i, '');
+    html += '<div class="ac-coverage-item ac-coverage-warning"><span class="pill progress">⚠</span> <span>' + esc(clean) + '</span></div>';
+  });
+  // Show other coverage issues (non-blocking)
+  coverageIssues.filter(function(i) { return !/^WARNING:/.test(i); }).forEach(function(issue) {
+    // Skip issues already shown above
+    if (/has no execution evidence|verification failed|SKIPPED|Test file not found/i.test(issue)) return;
+    html += '<div class="ac-coverage-item"><span class="pill bad">Issue</span> <span>' + esc(issue) + '</span></div>';
+  });
+  if (!missingAcs.length && !failedAcs.length && !skippedAcs.length && !coverageIssues.length && !coverageWarnings.length) {
+    html += '<div class="ac-coverage-item"><span class="pill complete">All ACs covered</span> <span>No coverage issues found</span></div>';
+  }
+  html += '</div>';
+  root.innerHTML = html;
+}
+
 function renderGateList(spec) {
   spec = spec || {};
   spec.completion = spec.completion || {};
@@ -677,6 +757,7 @@ function renderDetail(spec) {
     renderArtifacts(spec);
     renderDesignMethod(spec);
     renderLearningTriggers(spec);
+    renderAcCoverage(spec);
     renderCruiseRun(spec);
     renderValidation(spec.validate);
     qs('validate').onclick = function() {

@@ -1239,6 +1239,21 @@ describe('CLI commands', function() {
     assert.ok(html.indexOf('blockers') !== -1, 'blockers container exists');
     assert.ok(html.indexOf('design-method') !== -1, 'design-method container exists');
     assert.ok(html.indexOf('learning-triggers') !== -1, 'learning-triggers container exists');
+    assert.ok(html.indexOf('ac-coverage') !== -1, 'ac-coverage container exists');
+    assert.ok(html.indexOf('AC Coverage') !== -1, 'AC Coverage section title exists');
+  });
+
+  it('console renders AC Coverage with completion verification and coverage issues', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
+    assert.ok(js.indexOf('renderAcCoverage') !== -1, 'renderAcCoverage function exists');
+    assert.ok(js.indexOf('ac-coverage-summary') !== -1, 'ac-coverage-summary class used');
+    assert.ok(js.indexOf('ac-coverage-item') !== -1, 'ac-coverage-item class used');
+    assert.ok(js.indexOf('completionVerification') !== -1, 'reads completionVerification from completion');
+    assert.ok(js.indexOf('No AC Coverage data') !== -1, 'empty state text present');
+    assert.ok(js.indexOf('All ACs covered') !== -1, 'all-pass state text present');
+    assert.ok(css.indexOf('.ac-coverage-summary') !== -1, 'ac-coverage-summary CSS exists');
+    assert.ok(css.indexOf('.ac-coverage-item') !== -1, 'ac-coverage-item CSS exists');
   });
 
   it('console renders challenge verdict with color-coded pill (AC-001)', function() {
