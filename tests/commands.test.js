@@ -240,9 +240,9 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'runs', '.gitkeep')));
     var agentsText = fs.readFileSync(path.join(tmpBase, 'demo', 'AGENTS.md'), 'utf-8');
     var claudeText = fs.readFileSync(path.join(tmpBase, 'demo', 'CLAUDE.md'), 'utf-8');
-    assert.ok(agentsText.indexOf('Chinese Artifact Content') !== -1);
-    assert.ok(agentsText.indexOf('Plan Approved By') !== -1);
-    assert.ok(claudeText.indexOf('filled artifact content in Chinese') !== -1);
+    assert.ok(agentsText.indexOf('制品中文内容') !== -1);
+    assert.ok(agentsText.indexOf('Gate Evidence') !== -1);
+    assert.ok(claudeText.indexOf('填写制品内容时使用中文') !== -1);
   });
 
   it('discover creates spec, design, and execute log artifacts', function() {

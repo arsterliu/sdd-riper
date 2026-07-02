@@ -1,42 +1,20 @@
-# GitHub Copilot Instructions - SDD-RIPER
+# GitHub Copilot 指令 - SDD-RIPER
 
-## Workflow
-Always follow the SDD-RIPER methodology when generating code suggestions.
+## 工作流
+生成代码建议时，始终遵循 SDD-RIPER 方法论。
 
-## Key Rules
-- No Spec, No Code: check <docs-root>/specs/ (defaults to mydocs/specs/) before suggesting code.
-- SDD-RIPER phases: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check.
-- Design, Execute Log, and Learning are separate artifacts referenced by design-file, execute-log-file, and learning-file.
-- Artifact headings and field labels stay English; filled artifact content should be Chinese by default.
-- Plan Approved gate: do not suggest implementation code until `Plan Approved By:` and `Approved At:` are filled; auto-gate also requires `Gate Evidence:`.
-- Autonomous workflow: use `sdd next`, `sdd challenge`, and `sdd cruise --engine auto` to route, challenge, and repair bounded work; use `--emit-claude-prompt` for Claude Code ultracode guidance and `--record-run` for run ledger.
-- Archive gate: run sdd validate <dir> --archive-ready before archive.
-- Debug before retry: when code fails, run debug to find root cause before retrying.
-- CodeMap (on-demand): run `sdd codemap <dir>` for a live architecture view — not persisted, always current.
+## 关键规则
+- 无 Spec 不写码：建议代码前检查 <docs-root>/specs/（默认 mydocs/specs/）。
+- SDD-RIPER 阶段：Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check。
+- Design、Execute Log 和 Learning 是独立制品，分别由 design-file、execute-log-file 和 learning-file 引用。
+- 制品标题和字段标签保持英文；填写的制品内容默认使用中文。
+- Plan Approved 门禁：`Plan Approved By:` 和 `Approved At:` 填写前不建议实现代码；auto-gate 还需要 `Gate Evidence:`。
+- 自主工作流：使用 `sdd next`、`sdd challenge`、`sdd cruise --engine auto` 进行路由、对抗审核和有界修复；使用 `--emit-claude-prompt` 获取 Claude Code ultracode 指引和 `--record-run` 记录运行账本。
+- 归档门禁：归档前运行 sdd validate <dir> --archive-ready。
+- 先 Debug 再重试：代码失败时，先运行 debug 找根因再重试。
+- CodeMap（按需）：运行 `sdd codemap <dir>` 获取实时架构视图——不持久化，始终最新。
 
-## Docs Root Configuration
-The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).
+## Docs Root 配置
+docs root 目录默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。
 
 ## Mode: standard
-
-## Protocol Reference
-# SDD-RIPER Protocol (Standard)
-
-> Brief reference for AI config files. Full rules live in `SKILL.md`.
-
-## Core Rules
-
-- **No Spec, No Code**: never write code without an active task Spec.
-- **Spec is Control Plane**: Spec owns goal, gates, plan, verdict, and references to Design / Execute Log / Learning.
-- **Design Is Separate**: standard mode writes Technical Design in `design-file`; Plan cannot replace it.
-- **Execute Log Is Separate**: every Plan step and deviation is recorded in `execute-log-file`.
-- **Learning Is Separate**: reusable lessons from deviations, bugfixes, concerns, or reopen work are recorded in `learning-file`.
-- **Chinese Filled Content**: keep artifact headings and human-readable labels in English; write filled analysis, decisions, design details, plan steps, evidence, and learning rules in Chinese.
-- **Gate Policy**: default policy is auto. Manual approval uses a human `Plan Approved By:`; auto approval uses `Plan Approved By: auto-gate` plus `Gate Evidence:`.
-- **Autonomous Cruise**: use `sdd next`, `sdd challenge`, and `sdd cruise` to route, challenge, and repair bounded work. Prefer host-native loops with `sdd cruise --engine auto` only when `CRUISE_POLICY="autonomous"`; fallback to prompt-loop compensation when native loop support is unavailable. Use `--emit-claude-prompt` for Claude Code ultracode/workflow guidance and `--record-run` for `<docs-root>/runs/*.cruise.jsonl`. `CRUISE_POLICY="off"` disables cruise output and run recording.
-- **Debug Before Retry**: failed steps go through `sdd debug` before retry.
-- **No Claim Without Verification**: run fresh tests / lint / build before declaring done.
-
-## Phases
-
-```text

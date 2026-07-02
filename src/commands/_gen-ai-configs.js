@@ -1,6 +1,5 @@
 const fs = require('fs');
 const path = require('path');
-const { SCAFFOLD_ROOT } = require('../../lib/common');
 
 function run(projectDir, mode, force) {
   if (!mode) mode = 'standard';
@@ -8,18 +7,6 @@ function run(projectDir, mode, force) {
     console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
     process.exit(3);
   }
-
-  var protocolFile = mode === 'standard'
-    ? path.join(SCAFFOLD_ROOT, 'protocols', 'sdd-riper-one.md')
-    : path.join(SCAFFOLD_ROOT, 'protocols', 'sdd-riper-one-light.md');
-
-  var protocolExcerpt = '(protocol excerpt unavailable)';
-  var protocolExcerpt20 = '(protocol excerpt unavailable)';
-  try {
-    var lines = fs.readFileSync(protocolFile, 'utf-8').split(/\r?\n/);
-    protocolExcerpt = lines.slice(0, 30).join('\n');
-    protocolExcerpt20 = lines.slice(0, 20).join('\n');
-  } catch (e) {}
 
   var created = 0, skipped = 0;
 
@@ -37,126 +24,115 @@ function run(projectDir, mode, force) {
   }
 
   var agentsContent = [
-    '# SDD-RIPER Agent Instructions',
+    '# SDD-RIPER Agent 指令',
     '',
-    '## Core Rules (No Exceptions)',
-    '- **No Spec, No Code** - Do not write code unless a task Spec exists.',
-    '- **Spec is Control Plane** - Spec owns task gates and references Design / Execute Log / Learning artifacts.',
-    '- **Design is Separate** - standard/lite write technical design in design-file; Plan cannot replace it.',
-    '- **Execute Log is Separate** - record step results and deviations in execute-log-file.',
-    '- **Learning Check** - create learning-file with reusable decision rules when deviations, bugfixes, concerns, or reopen lessons occur.',
-    '- **Chinese Artifact Content** - keep artifact headings and field labels in English; write filled analysis, decisions, plans, evidence, and learning rules in Chinese.',
-    '- **Gate Policy** - default gate-policy is auto; `auto-gate` requires `Gate Evidence:` and manual policy requires human approval.',
-    '- **Autonomous Cruise** - use `sdd next`, `sdd challenge`, and `sdd cruise --engine auto` for dynamic routing, adversarial review, and bounded repair loops. Reuse host-native loops only when `CRUISE_POLICY="autonomous"`; use prompt-loop compensation otherwise. Use `--emit-claude-prompt` for Claude Code ultracode/workflow guidance and `--record-run` for run ledger.',
-    '- **Debug Before Retry** - when a step fails, run debug to find root cause before retrying.',
+    '## 核心规则（不可违反）',
+    '- **无 Spec 不写码** — 除非存在任务 Spec，否则不写代码。',
+    '- **Spec 是控制面** — Spec 拥有任务门禁，引用 Design / Execute Log / Learning 制品。',
+    '- **Design 独立** — standard/lite 模式在 design-file 中写技术设计；Plan 不能替代。',
+    '- **Execute Log 独立** — 在 execute-log-file 中记录步骤结果和偏差。',
+    '- **Learning Check** — 当偏差、修复、关注点或重开经验产生可复用规则时，创建 learning-file。',
+    '- **制品中文内容** — 保持制品标题和字段标签为英文；填写分析、决策、计划、证据和学习规则时使用中文。',
+    '- **Gate Policy** — 默认 gate-policy 为 auto；`auto-gate` 需要填写 `Gate Evidence:`；manual policy 需要人工审批。',
+    '- **Autonomous Cruise** — 使用 `sdd next`、`sdd challenge`、`sdd cruise --engine auto` 进行动态路由、对抗审核和有界修复循环。仅在 `CRUISE_POLICY="autonomous"` 时复用宿主原生循环；否则使用 prompt-loop 补偿。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 记录运行账本。',
+    '- **先 Debug 再重试** — 步骤失败时，先运行 debug 找根因再重试。',
     '',
-    '## RIPER Workflow',
-    'Follow the SDD-RIPER phases: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check.',
+    '## RIPER 工作流',
+    'Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check',
     '',
-    '## Context Layers',
-    '- **Spec**: Current task control plane (<docs-root>/specs/, defaults to mydocs/specs/).',
-    '- **Design**: Technical Design / Design Note referenced by Spec design-file.',
-    '- **Execute Log**: Step audit trail referenced by Spec execute-log-file.',
-    '- **Learning**: Reusable decision rules referenced by Spec learning-file.',
-    '- **Cruise Runs**: Observable cruise iteration ledger (<docs-root>/runs/, defaults to mydocs/runs/).',
-    '- **CodeMap** (on-demand): Run `sdd codemap <dir>` to get a computed architecture view — not persisted, always current.',
+    '## 上下文层',
+    '- **Spec**：当前任务控制面（<docs-root>/specs/，默认 mydocs/specs/）。',
+    '- **Design**：由 Spec design-file 引用的技术设计 / Design Note。',
+    '- **Execute Log**：由 Spec execute-log-file 引用的步骤审计轨迹。',
+    '- **Learning**：由 Spec learning-file 引用的可复用决策规则。',
+    '- **Cruise Runs**：可观测的 cruise 迭代账本（<docs-root>/runs/，默认 mydocs/runs/）。',
+    '- **CodeMap**（按需）：运行 `sdd codemap <dir>` 获取计算架构视图——不持久化，始终最新。',
     '',
-    '## Docs Root Configuration',
-    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '## Docs Root 配置',
+    'docs root 目录默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。',
     '',
-    '## Mode: ' + mode,
-    '',
-    '## Protocol Reference',
-    protocolExcerpt
+    '## Mode: ' + mode
   ].join('\n');
   writeConfig(path.join(projectDir, 'AGENTS.md'), agentsContent);
 
   var claudeContent = [
-    '# Claude Project Instructions - SDD-RIPER',
+    '# Claude 项目指令 - SDD-RIPER',
     '',
-    '## Memory',
-    '- Always load the latest Spec before starting any task.',
-    '- Follow design-file and execute-log-file references when Design or execution facts are needed.',
-    '- Track RIPER phase transitions explicitly.',
+    '## 记忆',
+    '- 开始任何任务前，始终加载最新的 Spec。',
+    '- 需要 Design 或执行事实时，遵循 design-file 和 execute-log-file 引用。',
+    '- 显式跟踪 RIPER 阶段转换。',
     '',
-    '## Behavior',
-    '- NEVER write code without a Spec.',
-    '- NEVER proceed past Plan without gate evidence: manual approval, or `Plan Approved By: auto-gate` plus `Gate Evidence:` under auto policy.',
-    '- NEVER use Plan as a substitute for standard/lite Design.',
-    '- ALWAYS record deviations from Plan in the Execute Log file referenced by execute-log-file.',
-    '- ALWAYS create a Learning Record when deviations, bugfixes, concerns, or reopen lessons produce reusable rules.',
-    '- ALWAYS keep artifact headings and field labels in English, and write filled artifact content in Chinese.',
-    '- ALWAYS run debug before retrying a failed step.',
+    '## 行为',
+    '- 绝不在没有 Spec 的情况下写代码。',
+    '- 绝不在没有 gate evidence 的情况下越过 Plan：人工审批，或 auto policy 下的 `Plan Approved By: auto-gate` 加 `Gate Evidence:`。',
+    '- 绝不用 Plan 替代 standard/lite Design。',
+    '- 绝不手动填写 Challenge Evidence 字段。始终使用 `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent"` 记录 challenge 结果。',
+    '- 始终在 execute-log-file 引用的 Execute Log 中记录 Plan 偏差。',
+    '- 当偏差、修复、关注点或重开经验产生可复用规则时，始终创建 Learning Record。',
+    '- 始终保持制品标题和字段标签为英文，填写制品内容时使用中文。',
+    '- 步骤失败时，始终先运行 debug 再重试。',
     '',
-    '## RIPER Phase Gate',
-    'Current phase must be explicit. Prohibited: jumping phases silently.',
+    '## RIPER 阶段门禁',
+    '当前阶段必须显式。禁止：静默跳过阶段。',
     '',
-    '## Entry Commands',
-    '- sdd discover <dir> --task-name <name> --version v1.0 ... = start a new task / Research phase.',
-    '- sdd validate <dir> --archive-ready = check Spec, Design, Execute Log, Learning, approval, and review gates before archive.',
-    '- sdd next <dir> = inspect dynamic workflow state and next action.',
-    '- sdd challenge <dir> = generate an independent adversarial review prompt.',
-    '- sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N] = generate cruise prompt, optional Claude ultracode/workflow prompt, and optional run ledger entry; local-loop is prompt-loop compensation, not an SDD model executor.',
-    '- sdd new-learning <dir> [spec-name] = create and bind a Learning Record.',
-    '- sdd codemap <dir> = output a computed architecture view (on-demand, not persisted).',
-    '- sdd resume <dir> = resume an existing task / reload context.',
+    '## 入口命令',
+    '- sdd discover <dir> --task-name <name> --version v1.0 ... = 启动新任务 / Research 阶段。',
+    '- sdd validate <dir> --archive-ready = 归档前检查 Spec、Design、Execute Log、Learning、审批和 challenge 门禁。',
+    '- sdd next <dir> = 检查动态工作流状态和下一步动作。',
+    '- sdd challenge <dir> = 生成独立对抗审核提示。',
+    '- sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N] = 生成 cruise 提示，可选 Claude ultracode/workflow 提示和运行账本条目；local-loop 是 prompt-loop 补偿，不是 SDD 模型执行器。',
+    '- sdd new-learning <dir> [spec-name] = 创建并绑定 Learning Record。',
+    '- sdd codemap <dir> = 输出计算架构视图（按需，不持久化）。',
+    '- sdd resume <dir> = 恢复已有任务 / 重载上下文。',
     '',
-    '## Docs Root Configuration',
-    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '## Docs Root 配置',
+    'docs root 目录默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。',
     '',
-    '## Mode: ' + mode,
-    '',
-    '## Protocol Reference',
-    protocolExcerpt
+    '## Mode: ' + mode
   ].join('\n');
   writeConfig(path.join(projectDir, 'CLAUDE.md'), claudeContent);
 
   var cursorContent = [
-    '# SDD-RIPER Rules for Cursor',
+    '# SDD-RIPER Cursor 规则',
     '',
-    'RULE: Never write code unless a task Spec exists in <docs-root>/specs/ (defaults to mydocs/specs/).',
-    'RULE: SDD-RIPER phases are Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check.',
-    'RULE: Artifact headings and field labels stay English; filled artifact content must be Chinese by default.',
-    'RULE: Plan Approved By and Approved At must be filled before Execute phase; auto-gate also requires Gate Evidence.',
-    'RULE: Use sdd next / sdd challenge / sdd cruise --engine auto for autonomous workflow routing and adversarial review; use --emit-claude-prompt for Claude Code ultracode guidance and --record-run for run ledger.',
-    'RULE: Standard/lite Design lives in design-file; Execute Log lives in execute-log-file.',
-    'RULE: Learning Records live in learning-file when deviations, bugfixes, concerns, or reopen lessons occur.',
-    'RULE: Run sdd validate <dir> --archive-ready before archive.',
-    'RULE: Spec is the control plane; code must match Spec and referenced artifacts.',
-    'RULE: Debug before retry - when a step fails, run debug to find root cause first.',
-    'RULE: Use `sdd codemap <dir>` for an on-demand architecture view when needed — it scans source code live, no stale files.',
-    'RULE: Docs root defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
-    'RULE: mode=' + mode,
-    '',
-    '## Protocol Reference',
-    protocolExcerpt20
+    'RULE: 除非 <docs-root>/specs/（默认 mydocs/specs/）中存在任务 Spec，否则不写代码。',
+    'RULE: SDD-RIPER 阶段为 Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check。',
+    'RULE: 制品标题和字段标签保持英文；填写的制品内容默认使用中文。',
+    'RULE: Execute 阶段前必须填写 Plan Approved By 和 Approved At；auto-gate 还需要 Gate Evidence。',
+    'RULE: 使用 sdd next / sdd challenge / sdd cruise --engine auto 进行自主工作流路由和对抗审核；使用 --emit-claude-prompt 获取 Claude Code ultracode 指引和 --record-run 记录运行账本。',
+    'RULE: standard/lite Design 存在于 design-file；Execute Log 存在于 execute-log-file。',
+    'RULE: 当偏差、修复、关注点或重开经验发生时，Learning Records 存在于 learning-file。',
+    'RULE: 归档前运行 sdd validate <dir> --archive-ready。',
+    'RULE: Spec 是控制面；代码必须匹配 Spec 和引用的制品。',
+    'RULE: 先 Debug 再重试 — 步骤失败时，先运行 debug 找根因。',
+    'RULE: 按需使用 `sdd codemap <dir>` 获取架构视图——扫描源代码实时生成，无过期文件。',
+    'RULE: docs root 默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。',
+    'RULE: mode=' + mode
   ].join('\n');
   writeConfig(path.join(projectDir, '.cursorrules'), cursorContent);
 
   var copilotContent = [
-    '# GitHub Copilot Instructions - SDD-RIPER',
+    '# GitHub Copilot 指令 - SDD-RIPER',
     '',
-    '## Workflow',
-    'Always follow the SDD-RIPER methodology when generating code suggestions.',
+    '## 工作流',
+    '生成代码建议时，始终遵循 SDD-RIPER 方法论。',
     '',
-    '## Key Rules',
-    '- No Spec, No Code: check <docs-root>/specs/ (defaults to mydocs/specs/) before suggesting code.',
-    '- SDD-RIPER phases: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check.',
-    '- Design, Execute Log, and Learning are separate artifacts referenced by design-file, execute-log-file, and learning-file.',
-    '- Artifact headings and field labels stay English; filled artifact content should be Chinese by default.',
-    '- Plan Approved gate: do not suggest implementation code until `Plan Approved By:` and `Approved At:` are filled; auto-gate also requires `Gate Evidence:`.',
-    '- Autonomous workflow: use `sdd next`, `sdd challenge`, and `sdd cruise --engine auto` to route, challenge, and repair bounded work; use `--emit-claude-prompt` for Claude Code ultracode guidance and `--record-run` for run ledger.',
-    '- Archive gate: run sdd validate <dir> --archive-ready before archive.',
-    '- Debug before retry: when code fails, run debug to find root cause before retrying.',
-    '- CodeMap (on-demand): run `sdd codemap <dir>` for a live architecture view — not persisted, always current.',
+    '## 关键规则',
+    '- 无 Spec 不写码：建议代码前检查 <docs-root>/specs/（默认 mydocs/specs/）。',
+    '- SDD-RIPER 阶段：Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check。',
+    '- Design、Execute Log 和 Learning 是独立制品，分别由 design-file、execute-log-file 和 learning-file 引用。',
+    '- 制品标题和字段标签保持英文；填写的制品内容默认使用中文。',
+    '- Plan Approved 门禁：`Plan Approved By:` 和 `Approved At:` 填写前不建议实现代码；auto-gate 还需要 `Gate Evidence:`。',
+    '- 自主工作流：使用 `sdd next`、`sdd challenge`、`sdd cruise --engine auto` 进行路由、对抗审核和有界修复；使用 `--emit-claude-prompt` 获取 Claude Code ultracode 指引和 `--record-run` 记录运行账本。',
+    '- 归档门禁：归档前运行 sdd validate <dir> --archive-ready。',
+    '- 先 Debug 再重试：代码失败时，先运行 debug 找根因再重试。',
+    '- CodeMap（按需）：运行 `sdd codemap <dir>` 获取实时架构视图——不持久化，始终最新。',
     '',
-    '## Docs Root Configuration',
-    'The docs root directory defaults to mydocs/ but can be overridden via .sdd-config (DOCS_DIR=...).',
+    '## Docs Root 配置',
+    'docs root 目录默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。',
     '',
-    '## Mode: ' + mode,
-    '',
-    '## Protocol Reference',
-    protocolExcerpt20
+    '## Mode: ' + mode
   ].join('\n');
   writeConfig(path.join(projectDir, '.github', 'copilot-instructions.md'), copilotContent);
 
