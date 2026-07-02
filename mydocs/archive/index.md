@@ -9,3 +9,4 @@
 | v1.0-console-observability-gaps.md | 2026-06-30 | console-observability-gaps | Review Pass 1 - 2026-06-30T00:05:00Z - PASS |
 | v1.0-console-challenge-cruise-display.md | 2026-06-30 | console-challenge-cruise-display | Review Pass 1 - 2026-06-30T00:15:00Z - PASS_WITH_CONCERNS |
 | v1.0-challenge-evidence-gate.md | 2026-06-30 | challenge-evidence-gate | Review Pass 1 - 2026-06-30T00:25:00Z - PASS_WITH_CONCERNS |
+| v1.0-ai-config-managed-block.md | 2026-07-02 | ai-config-managed-block | — |

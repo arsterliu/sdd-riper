@@ -17,6 +17,10 @@ function run(args) {
   }
 }
 
+function countOccurrences(text, needle) {
+  return (text.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
+}
+
 function artifactPath(projectDir, specFile, field) {
   var content = fs.readFileSync(specFile, 'utf-8');
   var match = content.match(new RegExp('^' + field + ':\\s*"?([^"\\r\\n]*)"?\\s*$', 'm'));
@@ -240,9 +244,63 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'runs', '.gitkeep')));
     var agentsText = fs.readFileSync(path.join(tmpBase, 'demo', 'AGENTS.md'), 'utf-8');
     var claudeText = fs.readFileSync(path.join(tmpBase, 'demo', 'CLAUDE.md'), 'utf-8');
-    assert.ok(agentsText.indexOf('制品中文内容') !== -1);
-    assert.ok(agentsText.indexOf('Gate Evidence') !== -1);
-    assert.ok(claudeText.indexOf('填写制品内容时使用中文') !== -1);
+    assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);
+    assert.ok(agentsText.indexOf('This project uses SDD-RIPER') !== -1);
+    assert.ok(agentsText.indexOf('Do not manually fill Challenge Evidence fields') !== -1);
+    assert.ok(claudeText.indexOf('Explicitly track RIPER phase transitions') !== -1);
+  });
+
+  it('init appends SDD-RIPER block to existing AI config files', function() {
+    var demo = path.join(tmpBase, 'demo-existing-ai');
+    fs.mkdirSync(path.join(demo, '.github'), { recursive: true });
+    fs.writeFileSync(path.join(demo, 'AGENTS.md'), '# Project Agents\n\n- keep this project rule\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, 'CLAUDE.md'), '# Project Claude Rules\n\n- keep this Claude rule\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, '.cursorrules'), 'RULE: keep cursor rule\n', 'utf-8');
+    fs.writeFileSync(path.join(demo, '.github', 'copilot-instructions.md'), '# Copilot\n\n- keep copilot rule\n', 'utf-8');
+
+    var out = run('init ' + demo + ' --mode lite');
+    assert.ok(out.indexOf('[MERGE]') !== -1);
+
+    var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
+    assert.ok(agentsText.indexOf('- keep this project rule') !== -1);
+    assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);
+    assert.ok(agentsText.indexOf('- Mode: lite') !== -1);
+
+    var claudeText = fs.readFileSync(path.join(demo, 'CLAUDE.md'), 'utf-8');
+    assert.ok(claudeText.indexOf('- keep this Claude rule') !== -1);
+    assert.ok(claudeText.indexOf('Claude-specific reminder') !== -1);
+  });
+
+  it('init refreshes existing SDD-RIPER block without duplicating it', function() {
+    var demo = path.join(tmpBase, 'demo-refresh-ai');
+    run('init ' + demo + ' --mode standard');
+    var agentsFile = path.join(demo, 'AGENTS.md');
+    var first = fs.readFileSync(agentsFile, 'utf-8');
+    fs.writeFileSync(agentsFile, '# Custom Header\n\n' + first.replace('- Mode: standard', '- Mode: stale'), 'utf-8');
+
+    var out = run('init ' + demo + ' --mode micro');
+    assert.ok(out.indexOf('[UPDATE]') !== -1);
+
+    var agentsText = fs.readFileSync(agentsFile, 'utf-8');
+    assert.ok(agentsText.indexOf('# Custom Header') !== -1);
+    assert.strictEqual(countOccurrences(agentsText, '<!-- sdd-riper:start -->'), 1);
+    assert.strictEqual(countOccurrences(agentsText, '<!-- sdd-riper:end -->'), 1);
+    assert.ok(agentsText.indexOf('- Mode: micro') !== -1);
+    assert.strictEqual(agentsText.indexOf('- Mode: stale'), -1);
+  });
+
+  it('init --force does not overwrite existing AI config content', function() {
+    var demo = path.join(tmpBase, 'demo-force-ai');
+    fs.mkdirSync(demo, { recursive: true });
+    fs.writeFileSync(path.join(demo, 'AGENTS.md'), '# Existing Agents\n\n- never delete me\n', 'utf-8');
+
+    var out = run('init ' + demo + ' --mode standard --force');
+    assert.ok(out.indexOf('[MERGE]') !== -1);
+
+    var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
+    assert.ok(agentsText.indexOf('- never delete me') !== -1);
+    assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);
+    assert.strictEqual(countOccurrences(agentsText, '<!-- sdd-riper:start -->'), 1);
   });
 
   it('discover creates spec, design, and execute log artifacts', function() {
