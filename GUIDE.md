@@ -106,6 +106,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  sdd discover <dir> --task-name <name> --version v1.0 --requirement "..." │
 │  → 创建 Spec + Design（micro 除外）+ Execute Log                           │
 │  → Spec frontmatter 写入 design-file / execute-log-file / learning-file    │
+│  → 自动绑定 mydocs/context/<task-name>/ 为 context-source                  │
 └──────────────────────────────┬──────────────────────────────────────────────┘
                                │
                                ▼
@@ -335,7 +336,7 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 目标是把”原始要求”变成可执行的 Confirmed Requirement。应产出：
 
 - Requirement Review：歧义、隐含假设、风险、外部依赖。
-- Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料可通过 `sdd build-context-bundle` 压缩后以 `context-source` 引用。
+- Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料（PRD、UI 稿、原型等）放入 `mydocs/context/<task-name>/`，`sdd discover` 自动绑定 `context-source`。
 - Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过”其他”选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
 - Confirmed Requirement：校准后的需求边界。
@@ -422,7 +423,72 @@ Scenario: 有效登录
   Then 系统创建已认证会话
 ```
 
-好的验收标准必须可观察、可验证、可追踪到需求，不应写成“代码实现完成”。`Verification:` 是归档门禁字段，取值为 `unit` / `integration` / `e2e` / `manual`。E2E AC 必须提供 `Test:` 或 `Manual Evidence:`；manual AC 必须提供 `Manual Evidence:`。
+好的验收标准必须可观察、可验证、可追踪到需求，不应写成”代码实现完成”。`Verification:` 是归档门禁字段，取值为 `unit` / `integration` / `e2e` / `manual`。E2E AC 必须提供 `Test:` 或 `Manual Evidence:`；manual AC 必须提供 `Manual Evidence:`。
+
+### 测试策略：TDD / BDD / E2E
+
+SDD 不规定具体测试框架，但要求每个 AC 都有明确的验证方式（`Verification:`），并在 Execute 阶段用对应的 `Method` 执行。测试策略在 Design 阶段的 `Test Strategy` 字段中声明，在 Acceptance 的每个 AC 中落地，在 Execute 中执行和记录。
+
+**验证层级与适用场景：**
+
+| Verification | 适用场景 | Method | 何时用 |
+| :--- | :--- | :--- | :--- |
+| `unit` | 单个函数 / 模块逻辑、边界条件、错误路径 | `tdd` | 默认首选。纯逻辑、无外部依赖的代码应全部覆盖。 |
+| `integration` | 模块间交互、数据库 / API / 中间件集成 | `tdd` 或 `bdd` | 当单元测试无法验证模块协作时使用。重点验证接口契约和数据流。 |
+| `e2e` | 用户关键路径、跨系统端到端行为 | `bdd` | 覆盖核心业务场景（登录、支付、下单等），数量不宜多但必须稳。 |
+| `manual` | 视觉验证、主观体验、一次性检查 | `manual` | 仅当自动化不可行时使用，必须提供 `Manual Evidence:`。 |
+
+**TDD — Execute 的默认工作方式：**
+
+TDD 适用于 `unit` 和 `integration` 验证。SDD 的 TDD 循环与 Execute Log 集成：
+
+1. **Red**：写失败测试，确认失败原因正确。
+2. **Green**：写最小实现使测试通过。
+3. **Refactor**：在测试保护下重构，行为不变。
+
+每个 TDD 步骤在 Execute Log 中记录 AC Coverage，`Method: tdd`。当步骤不适用 TDD（如配置变更、纯 UI 调整）时，用 `Method: manual` 并提供验证证据。
+
+**BDD — 验收标准的自然语言测试：**
+
+BDD 用于 `e2e` 和部分 `integration` 验证。AC 的 Gherkin 场景即是测试规范：
+
+```gherkin
+Scenario: 无效密码登录
+  Given 一个已注册用户
+  When 用户提交有效邮箱和错误密码
+  Then 系统返回认证失败并记录尝试
+```
+
+BDD 场景在 Acceptance 阶段编写，在 Execute 阶段实现为自动化测试。Execute Log 记录 `Method: bdd`，`Scenarios` 子字段追踪每个场景的通过状态。
+
+**E2E — 关键路径的端到端保障：**
+
+E2E 测试验证完整的用户路径，从入口到持久化。SDD 对 E2E 的核心规则：
+
+- **每个任务 3-5 个 E2E 场景即可**——覆盖核心路径和最关键的失败路径，不是追求覆盖率。
+- **E2E AC 必须提供 `Test:` 路径**——`validate --archive-ready` 会检查该路径是否存在（L3 门禁）。
+- **E2E 环境不可用时**：AC 标记为 `SKIPPED`，必须提供三要素（`Reason` + `Approved By` + `Approved At`）。`Approved By` 不能是 `auto-gate`——跳过验证是人工决策。Agent 应先尝试修复环境，无法修复时标记 BLOCKED 让人决定。
+- **不稳定的 E2E 测试**：flaky test 不等于 PASS。如果测试不稳定，先 debug 找根因，再决定修复或重写。不要通过重试来掩盖不稳定性。
+
+**测试金字塔在 SDD 中的映射：**
+
+```
+        /  e2e  \           ← 少量关键路径，Method: bdd
+       / integ.  \          ← 接口契约验证，Method: tdd / bdd
+      /   unit    \         ← 大量逻辑覆盖，Method: tdd
+     /  manual     \        ← 仅自动化不可行时，Manual Evidence 必填
+```
+
+**Design 中 `Test Strategy` 字段的写法：**
+
+standard 的 `Technical Design` 和 lite 的 `Design Note` 都有 `Test Strategy` 字段。它应说明：
+
+- 测试框架和运行命令。
+- 哪些 AC 用 unit / integration / e2e / manual 验证。
+- E2E 环境依赖和搭建方式。
+- 已知约束（如外部服务 mock 策略）。
+
+micro 模式没有独立 Design，但 Plan 的 `Verification` 字段同样需要说明验证方式。
 
 ### Plan
 
@@ -436,19 +502,13 @@ Plan 是执行契约，不是技术设计的替代品。Plan 必须从 Design �
 进入 Execute 前必须填写：
 
 ```text
-Plan Approved By: <user>
+Plan Approved By: <user> | auto-gate
 Approved At: <timestamp>
 Gate Policy: manual | auto | advisory
-Gate Evidence: <auto-gate 时必填>
+Gate Evidence: <auto/advisory 时必填>
 ```
 
-默认 `GATE_POLICY="auto"`。三种策略：
-
-- **manual**：必须由人工填写 `Plan Approved By: <user>` 和 `Approved At:`，AI 不能自行批准。
-- **auto**：AI 可填写 `Plan Approved By: auto-gate`，但必须同时提供 `Approved At:` 和 `Gate Evidence:`（验证结果、测试通过等事实依据）。auto gate 不是无门禁——缺任何一项都会被 validate 拦截。
-- **advisory**：与 auto 行为一致，但在 Challenge 阶段会额外提示人工确认。
-
-同时可在 `.sdd-config` 中配置：`GATE_POLICY="manual|auto|advisory"`。
+GATE_POLICY 的三种策略详细说明见第四节。这里强调核心规则：**auto-gate 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 validate 拦截。manual 策略下 AI 不能填写 `Plan Approved By`，必须由人工签名。
 
 **Plan 未批准时的行为**：如果 Plan 因 Open Questions 未解决而无法批准，Agent 应主动用 `AskUserQuestion` 交互式澄清每个问题，并给出建议答案选项，而非仅提示"存在问题"。澄清后更新 spec，再走门禁。
 
@@ -631,7 +691,16 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 不要重新 `discover`，否则会切断历史上下文。
 
-## 四、三种模式
+## 四、三种模式与门禁策略
+
+SDD 用两个正交的配置轴定义一个任务怎么跑：
+
+- **Mode**（standard / lite / micro）— 决定工作流形状：几个阶段、多少制品、设计深度。
+- **GATE_POLICY**（manual / auto / advisory）— 决定治理松紧：谁来批 Plan、要不要人介入。
+
+两个轴组合才完整描述任务运行方式——`micro + manual`（小改动但涉及关键逻辑）和 `standard + auto`（重流程但 AI 可自批）是完全合理的组合。
+
+### Mode
 
 | 门禁 / 产物 | standard | lite | micro |
 | :--- | :---: | :---: | :---: |
@@ -652,6 +721,38 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 - 单文件、低风险、可逆、无公共接口影响：用 micro。
 
 当任务涉及安全、权限、计费、数据迁移、公共接口、跨模块副作用或不可逆变更，即使只改一个文件，也应升级到 lite 或 standard。
+
+### GATE_POLICY
+
+GATE_POLICY 控制 Plan 审批权——这是 SDD 最核心的治理门禁。默认 `GATE_POLICY="auto"`，在 `.sdd-config` 中配置。
+
+| 策略 | Plan Approved By | Gate Evidence | Challenge 行为 | 适用场景 |
+| :--- | :--- | :--- | :--- | :--- |
+| **manual** | 必须由人填写 `<user>` | 不要求 | 正常 | 核心模块、高风险、关键业务逻辑、上线后不可逆 |
+| **auto** | AI 可填 `auto-gate` | **必须提供**（测试通过、lint 通过等事实依据） | 正常 | 常规开发、有测试覆盖的中低风险任务 |
+| **advisory** | AI 可填 `auto-gate` | **必须提供** | Challenge 阶段额外提示人工确认 | 边界场景——不完全放心 auto，但 manual 太重 |
+
+**auto 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 `validate` 拦截。auto-gate 的核心是"AI 可以批准，但必须拿出证据"。
+
+**advisory 的定位**：它是 auto 和 manual 之间的缓冲。适用于"技术上可以 auto，但想让 TL 多看一眼"的场景，比如第一次使用新模式、团队刚上手 SDD、或任务在边界条件附近。advisory 不增加 Plan 阶段的人工等待，只在 Challenge 时提醒。
+
+**选择指南**：
+
+- 不确定就用 advisory——它不会阻塞流程，只会在 Challenge 时多一次人工确认。
+- 核心 / 高风险 / 不可逆 → manual。
+- 有信心、有覆盖 → auto。
+- 团队可以按模块设置不同策略：核心模块 `.sdd-config` 写 `GATE_POLICY="manual"`，常规模块用 auto。
+
+**Mode × GATE_POLICY 组合示例**：
+
+| 组合 | 含义 | 典型场景 |
+| :--- | :--- | :--- |
+| standard + manual | 重流程 + 人审批 | 支付系统重构、用户认证改造 |
+| standard + auto | 重流程 + AI 可自批 | 有经验的常规标准任务 |
+| lite + advisory | 中等流程 + 人确认 | 首次用 lite 模式、边界改动 |
+| lite + auto | 中等流程 + AI 可自批 | 明确的中小改动 |
+| micro + auto | 轻流程 + AI 自批 | 低风险小改动（最常见） |
+| micro + manual | 轻流程 + 人审批 | 小改动但涉及关键逻辑（如配置变更） |
 
 ## 五、Subagent 策略
 
@@ -733,7 +834,6 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 | `reopen` | 基于归档任务创建修复 Spec 和新 Execute Log。 |
 | `debug` | 生成根因分析 Prompt。 |
 | `codemap` | 按需扫描源码并输出架构视图（不持久化，永不过时）。 |
-| `build-context-bundle` | 把外部材料压缩成上下文包。 |
 | `install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
 
 安装后使用 `sdd` 命令执行所有操作。`next` / `cruise` / `challenge` 的输出已包含 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 方法论路由建议（见第三、六节）。

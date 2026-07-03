@@ -198,13 +198,36 @@ Design 按模式分层约束：
 
 设计方法论按 `mode` + 风险路由：`sdd next` / `cruise` / `challenge` 会输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议，背后是「执行质量层（vendored superpowers）+ 设计方法层（DDD/C4/ADR/arc42）」两层方法论。细节见 [GUIDE.md](./GUIDE.md) 第六节与 [INTEGRATIONS.md](./INTEGRATIONS.md)。
 
-Gate / Cruise 默认策略：
+## 两个配置轴：Mode 与 GATE_POLICY
 
-- 新项目默认 `GATE_POLICY="auto"`、`CRUISE_POLICY="autonomous"`、`CRUISE_MAX_ITERATIONS="5"`。
-- **GATE_POLICY** 支持 `manual | auto | advisory`：
-  - `manual`：必须人工填写 `Plan Approved By: <user>` 和 `Approved At:`。
-  - `auto`：AI 可填写 `Plan Approved By: auto-gate`，但必须同时提供 `Approved At:` 和 `Gate Evidence:`。缺任何一项都会被 validate 拦截。
-  - `advisory`：与 auto 行为一致，Challenge 阶段额外提示人工确认。
+SDD 用两个正交的配置轴定义任务运行方式：
+
+### Mode（工作流形状）
+
+| 模式 | 适用场景 | Design | Execute Log | Subagent |
+| :--- | :--- | :--- | :--- | :--- |
+| `standard` | 新功能、重构、多模块、风险较高任务 | 独立 Technical Design | 独立文件，必填 | 推荐作为 evidence / work-package owner |
+| `lite` | 中小改动、上下文明确任务 | 独立 Design Note | 独立文件，必填 | 可选 |
+| `micro` | 单文件 bugfix、文案、低风险配置 | 不单独创建，写入 Plan | 独立文件，必填 | 默认不用 |
+
+### GATE_POLICY（治理松紧）
+
+| 策略 | 谁批 Plan | 核心规则 | 适用场景 |
+| :--- | :--- | :--- | :--- |
+| `manual` | 人工签名 | AI 不能填 `Plan Approved By` | 核心模块、高风险、不可逆 |
+| `auto` | AI（附证据） | 必须提供 `Gate Evidence:` + `Approved At:`，缺一拦截 | 常规开发、有测试覆盖 |
+| `advisory` | AI（附证据） | 同 auto，Challenge 阶段额外提示人工确认 | 边界场景、团队刚上手 |
+
+新项目默认 `GATE_POLICY="auto"`、`CRUISE_POLICY="autonomous"`、`CRUISE_MAX_ITERATIONS="5"`。在 `.sdd-config` 中配置。不确定选哪个 → advisory；核心 / 高风险 → manual；有信心有覆盖 → auto。
+
+组合策略：
+
+- **Design / Execute Log 独立产物化是强制策略**。
+- **Subagent 不是所有关键环节的 decision owner**；它只做 evidence owner、work-package owner、review axis owner。
+- **Orchestrator 永远负责最终目标、门禁、裁决和归档一致性**。
+
+### Cruise 策略
+
 - **CRUISE_POLICY** 支持 `off | assisted | autonomous`：
   - `off`：禁用巡航 prompt 和 run ledger。
   - `assisted`：人在每轮修复之间确认。
@@ -213,20 +236,6 @@ Gate / Cruise 默认策略：
 - `sdd cruise --engine claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。
 - `sdd cruise --record-run` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录 iteration、engine、next action、challenge verdict 和停止原因。
 - SDD 不持有模型执行循环；`Spec / Design / Plan / Execute Log / Learning` 仍是真相源。
-
-## 三种模式
-
-| 模式 | 适用场景 | Design | Execute Log | Subagent |
-| :--- | :--- | :--- | :--- | :--- |
-| `standard` | 新功能、重构、多模块、风险较高任务 | 独立 Technical Design | 独立文件，必填 | 推荐作为 evidence / work-package owner |
-| `lite` | 中小改动、上下文明确任务 | 独立 Design Note | 独立文件，必填 | 可选 |
-| `micro` | 单文件 bugfix、文案、低风险配置 | 不单独创建，写入 Plan | 独立文件，必填 | 默认不用 |
-
-组合策略：
-
-- **Design / Execute Log 独立产物化是强制策略**。
-- **Subagent 不是所有关键环节的 decision owner**；它只做 evidence owner、work-package owner、review axis owner。
-- **Orchestrator 永远负责最终目标、门禁、裁决和归档一致性**。
 
 ## 常用命令
 
@@ -275,7 +284,7 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
     ├── logs/        # Execute Log
     ├── learnings/   # Learning Record
     ├── runs/        # Cruise run ledger
-    ├── context/     # Context Bundle
+    ├── context/     # 原始材料（按任务名子目录组织）
     └── archive/     # 已归档 Spec / Design / Execute Log / Learning
 ```
 

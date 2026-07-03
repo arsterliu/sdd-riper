@@ -16,6 +16,7 @@ function sddBlock(title, mode, bodyLines) {
     '- Do not write code without an active Spec.',
     '- Do not move past Plan without gate evidence.',
     '- Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.',
+    '- Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.',
     '- Record execution deviations in the referenced Execute Log.',
     '- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent"`.',
     '- Keep artifact headings and field labels in English; write artifact content in Chinese.',

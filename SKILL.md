@@ -88,6 +88,8 @@ When the user chooses setup:
 sdd discover "<TARGET_DIR>" --task-name "<slug>" --version v1.0 --requirement "<requirement>" [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro]
 ```
 
+If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.
+
 ## Workflow Routing
 
 Run:
@@ -121,7 +123,7 @@ When the host agent supports a native autonomous loop, reuse it instead of makin
 
 ## Gate / Cruise Policy
 
-`.sdd-config` may contain:
+SDD uses two orthogonal configuration axes — **Mode** (standard / lite / micro) controls workflow shape (how many phases, how many artifacts); **GATE_POLICY** (manual / auto / advisory) controls governance tightness (who approves Plan, whether human must intervene). Both are set in `.sdd-config`:
 
 ```text
 GATE_POLICY="auto"              # manual | auto | advisory
@@ -131,9 +133,11 @@ CRUISE_MAX_ITERATIONS="5"
 
 Default is `auto` / `autonomous` / `5` when fields are missing.
 
-- `manual`: requires a human `Plan Approved By:` and `Approved At:`.
-- `auto`: allows `Plan Approved By: auto-gate` only when `Gate Evidence:` explains the automatic evidence.
-- `advisory`: may continue non-archive exploration with warnings, but archive readiness still reports risks.
+- `manual`: requires a human `Plan Approved By: <user>` and `Approved At:`. AI cannot self-approve.
+- `auto`: allows `Plan Approved By: auto-gate` only when `Gate Evidence:` and `Approved At:` are provided. Auto-gate is not gate-free — `validate` rejects any missing field.
+- `advisory`: same as `auto` for Plan approval, but Challenge phase adds an extra human confirmation prompt. Use when "technically auto, but TL should double-check."
+
+**Selection guide**: unsure → advisory; core / high-risk / irreversible → manual; confident + covered → auto. Teams can set different policies per module.
 
 Cruise engine options:
 
@@ -172,7 +176,7 @@ Required outputs in Spec:
 - Assumptions
 - Confirmed Requirement
 
-Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Use `sdd build-context-bundle` to compress external materials (API specs, SDK docs) referenced via `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
+Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
 ## Innovate Phase
 
@@ -247,6 +251,8 @@ It should also cover these fields when relevant:
 - Risks / Trade-offs
 
 Write acceptance criteria in Spec with `AC-###` ids. Keep labels such as `Requirement:` / `Type:` / `Verification:` / `Automated:` / `Test:` / `Manual Evidence:` in English. The verification value remains one of `unit | integration | e2e | manual`. BDD / Gherkin scenario descriptions should be written in Chinese. E2E ACs must reference `Test:` or `Manual Evidence:`; manual ACs must include `Manual Evidence:`.
+
+Testing strategy mapping: `unit` → `Method: tdd` (default for logic), `integration` → `Method: tdd` or `bdd` (interface contracts, data flow), `e2e` → `Method: bdd` (critical user paths, 3-5 scenarios), `manual` → `Method: manual` (last resort, `Manual Evidence:` required). Flaky E2E tests are not PASS — debug the root cause first. When E2E environment is unavailable, mark AC as `SKIPPED` with `Reason` + `Approved By` (human, not auto-gate) + `Approved At`.
 
 ### Lite
 
@@ -575,4 +581,3 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd archive <dir> <spec-name>`
 - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
 - `sdd codemap <dir>`
-- `sdd build-context-bundle <dir> --version vN.M [--sources <dir>]`

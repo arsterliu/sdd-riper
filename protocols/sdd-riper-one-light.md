@@ -7,7 +7,7 @@
 - **无 Spec 不写码**。
 - **Spec 是控制面**：Spec 引用 Design / Execute Log / Learning，而非内嵌。
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、计划步骤、证据和学习规则时使用中文。
-- **Gate Policy**：默认 auto。人工审批填写 `Plan Approved By:`；auto 审批填写 `Plan Approved By: auto-gate` 加 `Gate Evidence:`。
+- **Gate Policy**：`manual`（人签名）| `auto`（AI 附 `Gate Evidence:`）| `advisory`（同 auto，Challenge 时人工确认）。默认 auto。核心模块 / 高风险用 manual；不确定用 advisory。
 - **Autonomous Cruise**：使用 `sdd next`、`sdd challenge`、`sdd cruise` 进行路由、对抗审核和有界修复。仅在 `CRUISE_POLICY="autonomous"` 时优先使用宿主原生循环；否则回退到 prompt-loop 补偿。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。`CRUISE_POLICY="off"` 禁用 cruise 输出和运行记录。
 - **Execute Log 必需**：所有模式都将步骤结果写入 `execute-log-file`。
 - **Learning 条件性**：偏差、修复、关注点和重开经验需要 `learning-file`。

@@ -12,6 +12,7 @@ function run(projectDir, opts) {
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
+  if (state.contextSource) console.log('CONTEXT_SOURCE: ' + state.contextSource);
   workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
     console.log(line);
   });

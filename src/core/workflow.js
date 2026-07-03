@@ -210,6 +210,7 @@ function analyzeSpec(projectDir, specPath, opts) {
   }
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
+  var contextSource = common.getFrontmatterField(specPath, 'context-source') || '';
   var action = actionText(projectDir, specPath);
   var flags = riskFlags(action && action.trim() ? action : content);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
@@ -245,6 +246,7 @@ function analyzeSpec(projectDir, specPath, opts) {
     gateEvidence: labelValue(content, 'Gate Evidence'),
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
+    contextSource: contextSource || undefined,
     reviewBrief: sectionContent(specPath, 'Review (Verdict|Summary)')
   };
 }

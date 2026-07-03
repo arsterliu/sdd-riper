@@ -4,7 +4,7 @@ var program = require('commander').program;
 function normalizeCommandAliases(argv) {
   var out = argv.slice();
   var command = out[2];
-  if (command !== 'discover' && command !== 'build-context-bundle') return out;
+  if (command !== 'discover') return out;
   for (var i = 3; i < out.length; i++) {
     if (out[i] === '--version') out[i] = '--spec-version';
   }
@@ -123,14 +123,6 @@ program.command('learnings [project-dir]')
 program.command('codemap <project-dir>')
   .description('Output a computed architecture view (on-demand, not persisted)')
   .action(function(p) { require('../src/commands/codemap').run(p); });
-
-program.command('build-context-bundle <project-dir>')
-  .description('Generate Context Bundle prompt')
-  .option('--sources <dir>', 'sources dir')
-  .option('--out <name>', 'bundle name')
-  .option('--spec-version <ver>', 'bundle version')
-  .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
-  .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/build-context-bundle')(p, o); });
 
 program.command('debug <project-dir>')
   .description('Generate Debug prompt')

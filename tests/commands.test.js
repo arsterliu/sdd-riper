@@ -347,6 +347,48 @@ describe('CLI commands', function() {
     assert.ok(c.indexOf('### Constraints\nconstraints: none') !== -1);
   });
 
+  it('discover auto-binds context/<task-name>/ as context-source', function() {
+    var demo = path.join(tmpBase, 'd2c');
+    run('init ' + demo + ' --mode standard');
+    var ctxDir = path.join(demo, 'mydocs', 'context', 'my-task');
+    fs.mkdirSync(ctxDir, { recursive: true });
+    fs.writeFileSync(path.join(ctxDir, 'prd.md'), '# PRD', 'utf-8');
+    var out = run('discover ' + demo + ' --task-name my-task --spec-version v1.0 --requirement x');
+    assert.ok(out.indexOf('Context source: mydocs/context/my-task') !== -1, 'should report context-source in output');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-my-task.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    assert.ok(c.indexOf('context-source: "mydocs/context/my-task"') !== -1, 'spec should have context-source frontmatter');
+  });
+
+  it('discover uses --context override when provided', function() {
+    var demo = path.join(tmpBase, 'd2d');
+    run('init ' + demo + ' --mode standard');
+    var out = run('discover ' + demo + ' --task-name other --spec-version v1.0 --requirement x --context custom/path');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-other.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    assert.ok(c.indexOf('context-source: "custom/path"') !== -1, 'spec should use explicit --context value');
+  });
+
+  it('resume shows context-source when present', function() {
+    var demo = path.join(tmpBase, 'd2e');
+    run('init ' + demo + ' --mode standard');
+    var ctxDir = path.join(demo, 'mydocs', 'context', 'ctx-task');
+    fs.mkdirSync(ctxDir, { recursive: true });
+    run('discover ' + demo + ' --task-name ctx-task --spec-version v1.0 --requirement x');
+    var out = run('resume ' + demo);
+    assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/ctx-task') !== -1, 'resume should show context-source');
+  });
+
+  it('next shows context-source when present', function() {
+    var demo = path.join(tmpBase, 'd2f');
+    run('init ' + demo + ' --mode standard');
+    var ctxDir = path.join(demo, 'mydocs', 'context', 'next-task');
+    fs.mkdirSync(ctxDir, { recursive: true });
+    run('discover ' + demo + ' --task-name next-task --spec-version v1.0 --requirement x');
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/next-task') !== -1, 'next should show context-source');
+  });
+
   it('resume and status work', function() {
     var demo = path.join(tmpBase, 'd3');
     run('init ' + demo + ' --mode standard');
@@ -784,7 +826,6 @@ describe('CLI commands', function() {
     var demo = path.join(tmpBase, 'd6');
     run('init ' + demo + ' --mode standard');
     assert.ok(run('codemap ' + demo).indexOf('CodeMap') !== -1);
-    assert.ok(run('build-context-bundle ' + demo + ' --spec-version v1.0 --out b').indexOf('BUILD CONTEXT BUNDLE PROMPT') !== -1);
     assert.ok(run('review-execute ' + demo).indexOf('REVIEW EXECUTE PROMPT') !== -1);
     run('discover ' + demo + ' --task-name dbg --spec-version v1.0 --requirement x');
     assert.ok(run('debug ' + demo + ' --error e').indexOf('DEBUG PROMPT') !== -1);

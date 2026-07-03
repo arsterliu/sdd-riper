@@ -69,5 +69,9 @@ function run(projectDir) {
   }
   console.log('PHASE_HINT: ' + phaseHint);
   console.log('SECTIONS_HINT: ' + sectionsHint);
+  if (latestSpec && fs.existsSync(latestSpec)) {
+    var ctxSrc = common.getFrontmatterField(latestSpec, 'context-source');
+    if (ctxSrc) console.log('CONTEXT_SOURCE: ' + ctxSrc);
+  }
 }
 module.exports = run;

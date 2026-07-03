@@ -36,9 +36,19 @@
 
 ## 3. 团队唯一规则
 
-> **“未经 Plan Approved，不得改代码”**
+> **”未经 Plan Approved，不得改代码”**
 
-这是 SDD-RIPER 的核心灵魂。无论任务多紧急，必须在 Spec 中完成计划拆解，并获得（人工或 TL）的签名批准后，方可进入 Execute 阶段。
+这是 SDD-RIPER 的核心灵魂。无论任务多紧急，必须在 Spec 中完成计划拆解，并获得批准后，方可进入 Execute 阶段。
+
+**谁批准——由 GATE_POLICY 决定：**
+
+| 策略 | 谁批 Plan | TL 介入点 | 适合谁 |
+| :--- | :--- | :--- | :--- |
+| **manual** | 人（签名） | Plan 阶段 | 核心模块、高风险、新人 |
+| **auto** | AI（附 Gate Evidence） | Challenge 阶段 | 有经验同学、有测试覆盖的常规任务 |
+| **advisory** | AI（附 Gate Evidence） | Challenge 阶段 + 人工确认 | 边界场景、团队刚上手 |
+
+TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `GATE_POLICY=”manual”`，常规模块用 auto。不确定就用 advisory，它不阻塞流程，只多一次人工确认。
 
 ---
 
@@ -67,7 +77,7 @@
 ### 意图分类表
 | 协作阶段 | 协作模式 | 关键指令 |
 | :--- | :--- | :--- |
-| **探索 (Research)** | 深度对话 | “基于 context，帮我分析这个 requirement 的潜在风险，写到 ### Requirement Review。” |
+| **探索 (Research)** | 深度对话 | “基于 mydocs/context/ 中的原始材料和 spec context-source，帮我分析这个 requirement 的潜在风险，写到 ### Requirement Review。” |
 | **Mode Recommendation** | 复杂度校准 | “用 5 维度打分评估任务复杂度，推荐 mode；不接受基于 Requirement 字符数的判断。” |
 | **规划 (Plan)** | 结构化输出 | “请将选定的方案拆解为原子步骤，并填入 Spec 的 Plan 区块。” |
 | **执行 (Execute)** | 严格指令 | “严格按照 Plan 第 1 步执行，不要改动其他文件。” |
@@ -89,8 +99,25 @@
 ### sdd discover 的艺术
 `sdd discover` 动作要求同时接收 **requirement** (你要做什么) 和 **context** (你以前是怎么做的)。
 - CLI 推荐入口：`sdd discover <dir> --task-name <name> ...`
+- **原始材料管理**：PRD、UI 稿、原型等原始材料放入 `mydocs/context/<task-name>/`（在 discover 之前创建），`sdd discover` 自动绑定 `context-source`。每个任务独立子目录，支持并行 spec 开发。
 - 常见错误：只给 requirement，导致 AI 重新发明轮子；只给 context，导致 AI 无所适从。
 - 正确做法：requirement 定义任务底色，context 填充细节，Spec 最终收敛为单一真相。
+
+### 测试策略速查
+
+SDD 要求每个 AC 都声明 `Verification:` 类型（unit / integration / e2e / manual），并在 Execute 中用对应 `Method`（tdd / bdd / manual）执行。
+
+| Verification | Method | 团队规则 |
+| :--- | :--- | :--- |
+| `unit` | `tdd` | 默认要求。纯逻辑代码必须 TDD 覆盖。 |
+| `integration` | `tdd` / `bdd` | 接口契约必须验证。重点验证数据流和错误处理。 |
+| `e2e` | `bdd` | 仅覆盖关键用户路径（3-5 个场景）。flaky test 不等于 PASS。 |
+| `manual` | `manual` | 最后手段。必须提供 `Manual Evidence:`，不能留空。 |
+
+**TL 关注点**：
+- Challenge 时，检查 AC 的 `Verification` 是否匹配实际风险——高风险路径只有 unit 测试是不足的。
+- E2E `SKIPPED` 必须有人签字（`Approved By` 不能是 `auto-gate`），Agent 不能自行跳过验证。
+- Design 的 `Test Strategy` 字段不应为空——如果为空，说明设计者没想清楚怎么验证。
 
 ### 治理的折中策略
 - **Standard vs Lite**：这是管理成本与交付质量的平衡。对于高风险核心模块，严禁使用 Lite。
@@ -132,6 +159,14 @@
 5. **坑：Windows 路径与安装问题**
    - *症结*：把带空格的项目路径直接拼进命令，或不同 shell 下行为不一致。
    - *解法*：当前已是 Node CLI，全员用 `npm install -g` 安装的 `sdd` 命令（需 Node 18+）；路径含空格时用引号包裹，如 `sdd next "D:\my project"`。
+
+6. **坑：AC 只有 unit 测试，关键路径缺乏 E2E 保障**
+   - *症结*：所有 AC 都标 `Verification: unit`，核心业务路径（支付、下单、认证）没有端到端验证，上线后集成问题频发。
+   - *解法*：Design 的 `Test Strategy` 必须说明哪些 AC 需要更高级别验证。TL 在 Plan 审批时检查高风险路径是否只有 unit 覆盖——如果是，要求补充 integration 或 e2e AC。
+
+7. **坑：E2E 测试不稳定就标记 SKIPPED 掩盖问题**
+   - *症结*：E2E 测试偶尔失败，Agent 直接标记 SKIPPED 继续推进，集成风险被隐藏。
+   - *解法*：flaky test 不是 PASS 也不是 SKIPPED 的理由。必须先 `sdd debug` 找根因，再决定修复或重写。SKIPPED 只用于环境确实不可用的情况，且必须有人签字（`Approved By` 不能是 `auto-gate`）。
 
 ---
 

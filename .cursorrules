@@ -6,6 +6,7 @@ RULE: 制品标题和字段标签保持英文；填写的制品内容默认使�
 RULE: Execute 阶段前必须填写 Plan Approved By 和 Approved At；auto-gate 还需要 Gate Evidence。
 RULE: 使用 sdd next / sdd challenge / sdd cruise --engine auto 进行自主工作流路由和对抗审核；使用 --emit-claude-prompt 获取 Claude Code ultracode 指引和 --record-run 记录运行账本。
 RULE: standard/lite Design 存在于 design-file；Execute Log 存在于 execute-log-file。
+RULE: 原始材料（PRD、UI稿、原型等）放入 mydocs/context/<task-name>/；sdd discover 自动绑定 context-source。
 RULE: 当偏差、修复、关注点或重开经验发生时，Learning Records 存在于 learning-file。
 RULE: 归档前运行 sdd validate <dir> --archive-ready。
 RULE: Spec 是控制面；代码必须匹配 Spec 和引用的制品。

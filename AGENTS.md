@@ -16,6 +16,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Le
 
 ## 上下文层
 - **Spec**：当前任务控制面（<docs-root>/specs/，默认 mydocs/specs/）。
+- **Context**：由 Spec context-source 引用的原始材料（<docs-root>/context/<task-name>/，默认 mydocs/context/<task-name>/）。放置 PRD、UI 稿、原型等，discover 时自动绑定。
 - **Design**：由 Spec design-file 引用的技术设计 / Design Note。
 - **Execute Log**：由 Spec execute-log-file 引用的步骤审计轨迹。
 - **Learning**：由 Spec learning-file 引用的可复用决策规则。

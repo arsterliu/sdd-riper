@@ -139,10 +139,18 @@ function run(projectDir, opts) {
   }
 
   var specContent = fs.readFileSync(specTemplate, 'utf-8');
+  // Auto-detect context/<task-name>/ directory
+  var contextSource = opts.context || '';
+  if (!contextSource) {
+    var contextCandidate = path.join(docsRoot, 'context', taskName);
+    if (fs.existsSync(contextCandidate)) {
+      contextSource = docsDir + '/context/' + taskName;
+    }
+  }
   specContent = specContent.replace(/task-name: "Task Name Placeholder"/g, 'task-name: "' + taskName + '"');
   specContent = specContent.replace(/date: YYYY-MM-DD/, 'date: ' + todayIso());
   specContent = specContent.replace(/^mode:.*/m, 'mode: ' + mode);
-  specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(opts.context || '') + '"');
+  specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(contextSource) + '"');
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
   specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');
   specContent = specContent.replace(/^execute-log-file:.*/gm, 'execute-log-file: "' + yamlQuote(logRel) + '"');
@@ -165,6 +173,7 @@ function run(projectDir, opts) {
   console.log('### requirement: ' + (opts.requirement || '(not set)'));
   console.log('### goal: ' + (opts.goal || '(not set)'));
   console.log('### Spec file: ' + specOut);
+  if (contextSource) console.log('### Context source: ' + contextSource);
   if (designOut) console.log('### Design file: ' + designOut);
   console.log('### Execute Log file: ' + logOut);
   console.log('');
