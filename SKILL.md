@@ -436,6 +436,10 @@ Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
 
 Code Challenge is what distinguishes SDD Challenge from a PR review. PR review focuses on team collaboration and style; Code Challenge focuses on whether code matches the Spec/Design/Plan constraints and whether it has security or quality defects.
 
+**Verdict guidance for Code Challenge**: if code faithfully implements a flawed Design, the correct verdict is `FAIL_DESIGN` (backtrack to Design), not `FAIL_CODE`. `FAIL_CODE` applies only when the code itself has defects. The challenge agent must distinguish "code is wrong" from "code is correct but the upstream artifact is wrong."
+
+Briefs for challenge subagents must include source code (`source_code` in `artifact_excerpts`) so the Code Challenge axis has input to review.
+
 **必须通过 `sdd challenge --record-result` 写入结果，不能手动填写 Challenge Evidence 字段。** 手动填写会被视为伪造证据。正确流程：
 
 1. 派发 subagent 执行对抗审查

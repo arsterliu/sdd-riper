@@ -48,6 +48,8 @@ artifact_excerpts:
     <pasted Design excerpt when needed>
   execute_log: |
     <pasted Execute Log excerpt when needed>
+  source_code: |
+    <pasted source code for Code Challenge review; include changed files from Execute Log>
 
 files_to_read:
   - path: <absolute path>
@@ -81,7 +83,7 @@ Forbidden in returns:
 
 ## Three Constraints
 
-1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log / Learning excerpts.
+1. **Brief is self-sufficient**: the orchestrator pastes relevant Spec / Design / Execute Log / Learning excerpts. For Challenge subagents, include source code (`source_code` in `artifact_excerpts`) so the Code Challenge axis has input to review.
 2. **Subagent does not write SDD artifacts**: the orchestrator writes to Spec (control-plane decisions), Design (technical design), Execute Log (execution facts), and Learning Record (reusable decision rules). Subagents MAY modify code files within the scope of their brief — code is not an SDD artifact. But subagents must not create or modify SDD artifacts on their own, because the orchestrator needs to maintain cross-artifact consistency.
 3. **Return is compressed**: verdict, summary, evidence pointers, optional recommendations.
 

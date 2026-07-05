@@ -612,6 +612,8 @@ standard/lite 模式下 `Challenge Executed By` 必须包含 `subagent`（对抗
 
 Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团队协作和风格偏好，Code Challenge 关注代码是否匹配 SDD 产物的约束——Spec 说要做 X，Design 说用 Y 方案，代码是否真的做了 X 且用了 Y？安全漏洞和测试质量也在这一轴审查。
 
+**Code Challenge 的 verdict 判定**：如果代码忠实实现了一个有缺陷的 Design，正确 verdict 是 `FAIL_DESIGN`（回跳到 Design），不是 `FAIL_CODE`。`FAIL_CODE` 只适用于代码本身有缺陷的情况。Challenge agent 需要区分"代码错了"和"代码对了但上游错了"。
+
 **怎么结束**：
 
 - `PASS`：对抗评审通过，进入 Learning Check → Archive。
@@ -620,7 +622,7 @@ Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团
 
 **派发规则**（standard/lite，遵循 `protocols/subagent-dispatch.md`）：
 
-1. Brief 自足：将 spec、design 摘要、execute log 摘要直接贴入 brief，不让子 agent 自己找。
+1. Brief 自足：将 spec、design 摘要、execute log 摘要和**源代码**直接贴入 brief，不让子 agent 自己找。Code Challenge 需要读代码——brief 中必须包含源代码。
 2. 子 agent 只读不写：不修改任何文件，只返回 verdict。
 3. 返回压缩：verdict + backtrack target + summary（≤200 词）。
 

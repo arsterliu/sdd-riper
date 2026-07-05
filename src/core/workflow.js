@@ -88,9 +88,9 @@ function challengeRequiredAfterCompletion(projectDir, specPath, specContent, iss
 function classifyIssue(issue) {
   var failedChallenge = String(issue || '').match(/Adversarial Challenge failed:\s*(FAIL_[A-Z_]+)/i);
   if (failedChallenge) return failedChallenge[1].toUpperCase();
-  if (/Challenge has not been executed/i.test(issue)) return 'FAIL_CODE';
-  if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_CODE';
-  if (/code quality|duplication|dead code|naming|pattern violation|hardcoded secret|injection risk|input validation|Code Challenge/i.test(issue)) return 'FAIL_CODE';
+  if (/Challenge has not been executed/i.test(issue)) return 'FAIL_LOG';
+  if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_LOG';
+  if (/hardcoded secret|injection risk|missing input validation|dead code|code duplication|Code Challenge/i.test(issue)) return 'FAIL_CODE';
   if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
@@ -98,7 +98,7 @@ function classifyIssue(issue) {
   if (/Plan Approved|Approved At|Gate Evidence|Micro Plan/i.test(issue)) return 'FAIL_PLAN';
   if (/Execute Log/i.test(issue)) return 'FAIL_LOG';
   if (/Learning Record|Learning/i.test(issue)) return 'FAIL_LEARNING';
-  if (/Challenge Executed|Challenge Evidence/i.test(issue)) return 'FAIL_CODE';
+  if (/Challenge Executed|Challenge Evidence/i.test(issue)) return 'FAIL_LOG';
   return 'FAIL_SPEC';
 }
 
@@ -260,7 +260,7 @@ function analyzeSpec(projectDir, specPath, opts) {
   // If Challenge passed but validation blockers remain, the task is not
   // truly archive-ready — blockers must be resolved first.
   var action = nextAction(verdict);
-  if (challengeRequired && (challengeRequired !== 'missing' || validationVerdict === 'FAIL_CODE')) {
+  if (challengeRequired && (challengeRequired !== 'missing' || validationVerdict === 'FAIL_CODE' || validationVerdict === 'FAIL_LOG')) {
     target = 'Challenge';
     action = 'run_challenge';
   }

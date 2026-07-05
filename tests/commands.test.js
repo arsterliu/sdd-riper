@@ -1301,6 +1301,8 @@ describe('CLI commands', function() {
     assert.ok(challenge.indexOf('Acceptance Challenge') !== -1);
     assert.ok(challenge.indexOf('Plan Challenge') !== -1);
     assert.ok(challenge.indexOf('Code Challenge') !== -1);
+    assert.ok(challenge.indexOf('FAIL_CODE') !== -1, 'challenge output should list FAIL_CODE verdict');
+    assert.ok(challenge.indexOf('CODE_FILES') !== -1 || challenge.indexOf('Execute Log') !== -1, 'challenge should reference code files or execute log');
     assert.ok(challenge.indexOf('Execute Challenge') !== -1);
     assert.ok(challenge.indexOf('Archive Challenge') !== -1);
     assert.ok(challenge.indexOf('FAIL_DESIGN') !== -1);
@@ -2143,6 +2145,23 @@ describe('CLI commands', function() {
   it('PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)', function() {
     var workflow = require(path.resolve('src/core/workflow'));
     assert.strictEqual(workflow.VERDICT_TO_TARGET.PASS_WITH_CONCERNS, 'Learning Check');
+  });
+
+  it('FAIL_CODE backtrack target is Execute / Debug', function() {
+    var workflow = require(path.resolve('src/core/workflow'));
+    assert.strictEqual(workflow.VERDICT_TO_TARGET.FAIL_CODE, 'Execute / Debug');
+  });
+
+  it('classifyIssue maps code quality issues to FAIL_CODE', function() {
+    var workflow = require(path.resolve('src/core/workflow'));
+    var issues = ['Code Challenge: hardcoded secret found in config.js'];
+    assert.strictEqual(workflow.challengeVerdictFromIssues(issues), 'FAIL_CODE');
+  });
+
+  it('classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE', function() {
+    var workflow = require(path.resolve('src/core/workflow'));
+    var issues = ['Challenge has not been executed: Challenge Executed By is empty.'];
+    assert.strictEqual(workflow.challengeVerdictFromIssues(issues), 'FAIL_LOG');
   });
 
   it('Console phases do not include review (AC-004)', function() {

@@ -67,6 +67,33 @@ function run(projectDir, opts) {
   console.log('Output labels must stay in English; evidence and explanation may be written in Chinese.');
   console.log('');
   console.log('SPEC: ' + (state.specPath || 'none'));
+  if (state.specPath && fs.existsSync(state.specPath)) {
+    var specContent = fs.readFileSync(state.specPath, 'utf-8');
+    var execLogRef = common.getFrontmatterField(state.specPath, 'execute-log-file');
+    var designRef = common.getFrontmatterField(state.specPath, 'design-file');
+    if (execLogRef) console.log('EXECUTE_LOG: ' + execLogRef);
+    if (designRef) console.log('DESIGN: ' + designRef);
+    // Extract changed file paths from Execute Log for Code Challenge
+    if (execLogRef) {
+      var execLogPath = common.resolveProjectPath(projectDir, execLogRef);
+      if (execLogPath && fs.existsSync(execLogPath)) {
+        var execLogContent = fs.readFileSync(execLogPath, 'utf-8');
+        var fileMatches = execLogContent.match(/^Files:\s*(.+)$/gm);
+        if (fileMatches && fileMatches.length) {
+          var codeFiles = [];
+          fileMatches.forEach(function(m) {
+            m.replace(/^Files:\s*/, '').split(/,\s*/).forEach(function(f) {
+              f = f.trim();
+              if (f && codeFiles.indexOf(f) === -1) codeFiles.push(f);
+            });
+          });
+          if (codeFiles.length) console.log('CODE_FILES: ' + codeFiles.join(', '));
+        }
+      }
+    }
+    var diffBase = common.getFrontmatterField(state.specPath, 'diff-base');
+    if (diffBase) console.log('DIFF_BASE: ' + diffBase);
+  }
   console.log('GATE_POLICY: ' + state.gatePolicy);
   console.log('CRUISE_POLICY: ' + state.cruisePolicy);
   console.log('CURRENT_VERDICT_HINT: ' + state.challengeVerdict);
@@ -94,6 +121,7 @@ function run(projectDir, opts) {
   console.log('- Challenge security: hardcoded secrets, injection risks, missing input validation.');
   console.log('- Challenge correctness: does the code actually implement what the Spec/Design/Plan prescribe?');
   console.log('- Challenge test quality: do tests verify behavior or just mock it? Are edge cases covered?');
+  console.log('- Verdict guidance: if the code faithfully implements a flawed Design, the correct verdict is FAIL_DESIGN (not FAIL_CODE). FAIL_CODE applies when the code itself has defects; FAIL_DESIGN applies when the code is correct but the upstream artifact is wrong.');
   console.log('');
   console.log('### Execute Challenge');
   console.log('- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.');
