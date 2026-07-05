@@ -64,7 +64,7 @@ function run(projectDir, opts) {
   created += aiResult.created;
   skipped += aiResult.skipped;
 
-  console.log("Use 'sdd discover <dir> --task-name <name> --version v1.0 ...' to create your first spec.");
+  console.log("Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.");
   console.log('SDD initialized in ' + projectDir + '. Created: ' + created + ' files, Skipped: ' + skipped + ' files.');
 }
 

@@ -106,14 +106,7 @@ function parseFrontmatter(filePath) {
 }
 
 function parseFileName(fileName) {
-  var m = fileName.match(/^v(\d+)\.(\d+)-(.+)\.md$/);
-  if (!m) return { version: '', slug: fileName.replace(/\.md$/, '') };
-  return {
-    version: 'v' + m[1] + '.' + m[2],
-    slug: m[3],
-    major: parseInt(m[1], 10),
-    minor: parseInt(m[2], 10)
-  };
+  return common.parseSpecFileName(fileName) || { version: '', slug: fileName.replace(/\.md$/, '') };
 }
 
 function makeId(projectDir, filePath) {

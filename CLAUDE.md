@@ -7,6 +7,7 @@
 
 ## 行为
 - 绝不在没有 Spec 的情况下写代码。
+- 创建 Spec 前，必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
 - 绝不在没有 gate evidence 的情况下越过 Plan：人工审批，或 auto policy 下的 `Plan Approved By: auto-gate` 加 `Gate Evidence:`。
 - 绝不用 Plan 替代 standard/lite Design。
 - 绝不手动填写 Challenge Evidence 字段。始终使用 `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent"` 记录 challenge 结果。
@@ -19,7 +20,7 @@
 当前阶段必须显式。禁止：静默跳过阶段。
 
 ## 入口命令
-- sdd discover <dir> --task-name <name> --version v1.0 ... = 启动新任务 / Research 阶段。
+- sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ... = 启动新任务 / Research 阶段；version/task-name/context 必须先由用户输入或确认。
 - sdd validate <dir> --archive-ready = 归档前检查 Spec、Design、Execute Log、Learning、审批和 challenge 门禁。
 - sdd next <dir> = 检查动态工作流状态和下一步动作。
 - sdd challenge <dir> = 生成独立对抗审核提示。

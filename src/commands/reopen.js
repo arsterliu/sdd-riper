@@ -28,13 +28,12 @@ function run(projectDir, specName, opts) {
   if (!fs.existsSync(docsRoot) || !fs.existsSync(specsDir)) { console.error('[ERROR] Not initialized.'); process.exit(1); }
   var specTemplate = common.getSpecTemplate(projectDir, patchMode);
   if (!fs.existsSync(specTemplate)) { console.error('[ERROR] Template not found.'); process.exit(1); }
-  var specSlug = common.normalizeSlug(specName);
-  var sourceSpec = common.findSourceSpec(specsDir, specSlug, true) || common.findSourceSpec(archiveDir, specSlug, true);
+  var sourceSpec = common.findSourceSpecByRef(specsDir, specName, true) || common.findSourceSpecByRef(archiveDir, specName, true);
   if (!sourceSpec) { console.error('[ERROR] No archived spec found.'); process.exit(1); }
   var sourceBname = path.basename(sourceSpec);
-  var vm = sourceBname.match(/^(v\d+\.\d+)-(.+)\.md$/);
-  if (!vm) { console.error('[ERROR] Invalid versioned naming.'); process.exit(1); }
-  var sourceVersion = vm[1], taskSlug = vm[2];
+  var parsed = common.parseSpecFileName(sourceBname);
+  if (!parsed) { console.error('[ERROR] Invalid versioned naming.'); process.exit(1); }
+  var sourceVersion = parsed.version, taskSlug = parsed.slug;
   var archiveFile = path.join(archiveDir, sourceVersion + '-' + taskSlug + '.md');
   if (!fs.existsSync(archiveFile)) { console.error('[ERROR] Archive file not found: ' + archiveFile); process.exit(1); }
   var newSpec = path.join(specsDir, sourceVersion + '-' + taskSlug + '.md');

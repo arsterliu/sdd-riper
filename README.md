@@ -47,9 +47,11 @@ npm install -g https://github.com/arsterliu/sdd-riper.git
 
 ```text
 sdd init my-project --mode standard
-sdd discover my-project --task-name my-task --version v1.0 --requirement "我要做什么"
+sdd discover my-project --task-name my-task --version v1.0 --requirement "我要做什么" --context none
 sdd resume my-project
 ```
+
+创建 Spec 前，agent 必须先让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不能静默推导这些核心字段后直接执行 `discover`。
 
 `discover` 会创建一组任务产物：
 
@@ -58,6 +60,8 @@ sdd resume my-project
 - `mydocs/logs/v1.0-my-task.execute.md`
 
 Spec 的 frontmatter 会写入 `design-file`、`execute-log-file` 和 `learning-file`，后续命令都从这些引用读取独立产物。
+
+`version` 表示一次迭代 / 交付批次，支持 `vN.M` 与 `vN.M.P`（如 `v1.0`、`v1.3.6`）。同一个 `version` 下可以有多个并行 Spec，但 `task-name` 必须唯一；唯一键是 `version + task-name`。
 
 阶段产物的模板结构保持英文，包括 Spec 阶段标题、Design 字段、Execute Log 字段、Learning Record 字段、frontmatter 键、文件引用键、命令名、状态枚举、验证枚举和 `AC-###` 编号。实际填充的需求分析、方案取舍、设计说明、计划步骤、执行说明、证据和经验规则使用中文。
 
@@ -242,7 +246,7 @@ SDD 用两个正交的配置轴定义任务运行方式：
 | 命令 | 作用 |
 | :--- | :--- |
 | `sdd init <dir>` | 初始化项目结构。 |
-| `sdd discover <dir> --task-name <name> --version v1.0 --requirement <text>` | 创建 Spec、Design、Execute Log。 |
+| `sdd discover <dir> --task-name <name> --version <vN.M\|vN.M.P> --requirement <text> [--context <source\|none>]` | 创建 Spec、Design、Execute Log；创建前 version/task-name/context 必须由用户输入或确认。 |
 | `sdd new-learning <dir> [spec-name]` | 创建并绑定 Learning Record。 |
 | `sdd resume <dir>` | 恢复当前任务上下文。 |
 | `sdd status <dir>` | 检查结构和流程健康度。 |

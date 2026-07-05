@@ -49,17 +49,17 @@ Once located, store the resolved path (e.g. `SDD_BIN=node /path/to/bin/cli.js`) 
 
 After `discover`, a task has:
 
-- Spec: `<docs-root>/specs/vN.M-task.md`
-- Design: `<docs-root>/design/vN.M-task.design.md` for standard/lite only
-- Execute Log: `<docs-root>/logs/vN.M-task.execute.md`
-- Learning Record: `<docs-root>/learnings/vN.M-task.learning.md` when required
-- Cruise Run Ledger: `<docs-root>/runs/vN.M-task.cruise.jsonl` when autonomous cruise is recorded
+- Spec: `<docs-root>/specs/<vN.M-or-vN.M.P>-task.md`
+- Design: `<docs-root>/design/<vN.M-or-vN.M.P>-task.design.md` for standard/lite only
+- Execute Log: `<docs-root>/logs/<vN.M-or-vN.M.P>-task.execute.md`
+- Learning Record: `<docs-root>/learnings/<vN.M-or-vN.M.P>-task.learning.md` when required
+- Cruise Run Ledger: `<docs-root>/runs/<vN.M-or-vN.M.P>-task.cruise.jsonl` when autonomous cruise is recorded
 
 Spec frontmatter contains:
 
 ```yaml
-design-file: "mydocs/design/vN.M-task.design.md"
-execute-log-file: "mydocs/logs/vN.M-task.execute.md"
+design-file: "mydocs/design/<vN.M-or-vN.M.P>-task.design.md"
+execute-log-file: "mydocs/logs/<vN.M-or-vN.M.P>-task.execute.md"
 learning-file: ""
 ```
 
@@ -82,10 +82,11 @@ When the user chooses setup:
 2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
 3. Do not manually create the scaffold with Write/Edit.
 4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.
-5. To create the first task, run:
+5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`.
+6. To create the first task, run:
 
 ```text
-sdd discover "<TARGET_DIR>" --task-name "<slug>" --version v1.0 --requirement "<requirement>" [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro]
+sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro]
 ```
 
 If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.
@@ -416,13 +417,24 @@ micro 可在主上下文内执行，但必须保持对抗角色与实现角色�
 2. **子 agent 只读不写**：challenge agent 不修改任何文件（包括代码），只返回 verdict。
 3. **返回压缩**：verdict + backtrack target + summary（≤200 词）。
 
-Challenge agent 返回：
+Challenge agent returns:
 
 ```text
 Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
 Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
 Challenge Summary: <evidence>
 ```
+
+Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+
+- **Research Challenge**: does confirmed requirement match the original goal? Are hidden assumptions exposed?
+- **Design Challenge**: architecture, data model, interface contract, impact scope, compatibility, rollback, failure modes.
+- **Acceptance Challenge**: are ACs observable, verifiable, and traceable to requirements?
+- **Plan Challenge**: are steps executable, bounded, and derived from Design and ACs?
+- **Code Challenge**: code quality (duplication, dead code, naming), security (hardcoded secrets, injection, input validation), correctness (does code match Spec/Design?), test quality (testing behavior or mocks?).
+- **Execute Log Challenge**: did execution deviate from Plan? Is AC Coverage truthful?
+
+Code Challenge is what distinguishes SDD Challenge from a PR review. PR review focuses on team collaboration and style; Code Challenge focuses on whether code matches the Spec/Design/Plan constraints and whether it has security or quality defects.
 
 **必须通过 `sdd challenge --record-result` 写入结果，不能手动填写 Challenge Evidence 字段。** 手动填写会被视为伪造证据。正确流程：
 
@@ -565,7 +577,7 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 ## Command Reference
 
 - `sdd init <dir> --mode standard|lite|micro`
-- `sdd discover <dir> --task-name <slug> --version vN.M --requirement <text> [--mode ...]`
+- `sdd discover <dir> --task-name <confirmed-slug> --version <confirmed-vN.M-or-vN.M.P> --requirement <text> [--context ...] [--mode ...]`
 - `sdd resume <dir>`
 - `sdd status <dir>`
 - `sdd next <dir>`

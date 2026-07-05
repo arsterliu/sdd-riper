@@ -103,7 +103,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
                                │
                                ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│  sdd discover <dir> --task-name <name> --version v1.0 --requirement "..." │
+│  sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> --requirement "..." │
 │  → 创建 Spec + Design（micro 除外）+ Execute Log                           │
 │  → Spec frontmatter 写入 design-file / execute-log-file / learning-file    │
 │  → 自动绑定 mydocs/context/<task-name>/ 为 context-source                  │
@@ -294,6 +294,8 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  → 不要重新 discover（切断历史上下文）                                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+`discover` 前置门禁：agent 必须让用户输入或确认 `version` 与 `task-name`，并询问是否存在参考资料 / context。`version` 是迭代 / 交付批次聚合键，支持 `vN.M` 和 `vN.M.P`；同一个 `version` 下允许多个并行 Spec，但 `task-name` 必须唯一。
 
 ### 状态引擎
 
@@ -596,6 +598,19 @@ Challenge Evidence: <verdict + summary from independent agent>
 - **advisory**：与 auto 行为一致，Challenge 阶段额外提示人工确认
 
 standard/lite 模式下 `Challenge Executed By` 必须包含 `subagent`（对抗审查的核心是"不是自己审自己"）；micro 模式下可以是 `inline`。
+
+**审查轴**：Challenge 从六个维度独立审查，每个维度都可触发 `FAIL_*`：
+
+| 轴 | 审查什么 | FAIL verdict | 回跳目标 |
+| :--- | :--- | :--- | :--- |
+| Research Challenge | 确认需求是否匹配原始目标，隐含假设是否暴露 | FAIL_SPEC | Research |
+| Design Challenge | 架构、数据模型、接口契约、影响范围、兼容性、回滚、失败模式 | FAIL_DESIGN | Design |
+| Acceptance Challenge | AC 是否可观察、可验证、可追踪到需求 | FAIL_ACCEPTANCE | Acceptance |
+| Plan Challenge | Plan 步骤是否可执行、有边界、从 Design 和 AC 推导 | FAIL_PLAN | Plan |
+| **Code Challenge** | 代码质量（冗余、死代码、命名）、安全（硬编码密钥、注入、输入校验）、正确性（是否匹配 Spec/Design）、测试质量（测行为还是测 mock） | FAIL_CODE | Execute / Debug |
+| Execute Log Challenge | 执行是否偏离 Plan，AC Coverage 是否真实 | FAIL_LOG | Execute Log |
+
+Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团队协作和风格偏好，Code Challenge 关注代码是否匹配 SDD 产物的约束——Spec 说要做 X，Design 说用 Y 方案，代码是否真的做了 X 且用了 Y？安全漏洞和测试质量也在这一轴审查。
 
 **怎么结束**：
 

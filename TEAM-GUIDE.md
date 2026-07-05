@@ -175,7 +175,20 @@ SDD 要求每个 AC 都声明 `Verification:` 类型（unit / integration / e2e 
 基础 RIPER 跑顺后，团队可以用下面这层把“人工推进”升级为“带门禁的半自动 / 自动推进”。SDD 只做控制协议——定义做什么、何时停、回退到哪；真正的执行循环复用宿主 agent（Claude Dynamic Workflows / Codex / opencode 的原生 loop），SDD 不自建模型 runtime，也不是 harness。
 
 ### 对抗评审（challenge）
-`sdd challenge <dir>` 生成独立对抗评审 prompt，由一个只读、独立于实现者的 reviewer 找茬（目标偏离、设计遗漏、验收不可验证、实现越界），输出 `PASS / PASS_WITH_CONCERNS / FAIL_*`。任何 `FAIL_*` 阻止归档并回跳到对应阶段。用它把“质量判断”从实现者手里独立出来——裁判不能是运动员。
+`sdd challenge <dir>` 生成独立对抗评审 prompt，由一个只读、独立于实现者的 reviewer 从六个轴找茬，输出 `PASS / PASS_WITH_CONCERNS / FAIL_*`。任何 `FAIL_*` 阻止归档并回跳到对应阶段。用它把”质量判断”从实现者手里独立出来——裁判不能是运动员。
+
+六轴审查：
+
+| 轴 | 找什么 | 团队关注点 |
+| :--- | :--- | :--- |
+| Research | 需求偏离、隐含假设 | 需求理解是否到位 |
+| Design | 架构遗漏、接口风险 | 设计是否经得起推敲 |
+| Acceptance | 验收不可验证、场景缺失 | AC 是否真可验收 |
+| Plan | 步骤不可执行、边界不清 | Plan 是否真的能落地 |
+| **Code** | 代码质量、安全漏洞、冗余、测试质量 | **这是 SDD 内置的代码审查**——不是 PR review 的替代，而是归档前的代码质量门禁 |
+| Execute Log | 审计链断裂、偏差未记录 | 执行是否忠实 |
+
+Code Challenge 不替代 PR review：PR review 关注团队协作和风格；Code Challenge 关注代码是否匹配 Spec/Design 约束、是否有安全缺陷、测试是否有效。
 
 ### 自主巡航（cruise）
 `sdd cruise <dir>` 生成有预算的巡航控制 prompt：每轮“next → 只修回跳目标 → validate → review / challenge → 回跳”，遇 PASS / 高风险 / 超过 `CRUISE_MAX_ITERATIONS` 即停。

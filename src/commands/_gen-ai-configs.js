@@ -14,6 +14,8 @@ function sddBlock(title, mode, bodyLines) {
     'Hard rules:',
     '- Load the latest active Spec before implementation.',
     '- Do not write code without an active Spec.',
+    '- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; do not infer them silently.',
+    '- Before creating a Spec, ask whether reference materials / context exist, and bind them with `context-source` when provided.',
     '- Do not move past Plan without gate evidence.',
     '- Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.',
     '- Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.',

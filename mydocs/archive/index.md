@@ -10,3 +10,5 @@
 | v1.0-console-challenge-cruise-display.md | 2026-06-30 | console-challenge-cruise-display | Review Pass 1 - 2026-06-30T00:15:00Z - PASS_WITH_CONCERNS |
 | v1.0-challenge-evidence-gate.md | 2026-06-30 | challenge-evidence-gate | Review Pass 1 - 2026-06-30T00:25:00Z - PASS_WITH_CONCERNS |
 | v1.0-ai-config-managed-block.md | 2026-07-02 | ai-config-managed-block | — |
+| v1.5-spec-version-policy.md | 2026-07-04 | spec-version-policy | — |
+| v1.6-challenge-required-after-completion.md | 2026-07-05 | challenge-required-after-completion | — |

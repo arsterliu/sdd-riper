@@ -113,12 +113,12 @@ function run(projectDir, opts) {
   var designDir = path.join(docsRoot, 'design');
   var logsDir = path.join(docsRoot, 'logs');
   if (!opts.version) { console.error('[ERROR] --version/--spec-version is required'); process.exit(3); }
-  if (!/^v\d+\.\d+$/.test(opts.version)) {
-    console.error('[ERROR] Invalid version format. Expected: v{N}.{M}');
+  if (!common.isValidSpecVersion(opts.version)) {
+    console.error('[ERROR] Invalid version format. Expected: v{N}.{M} or v{N}.{M}.{P}');
     process.exit(3);
   }
   if (common.versionExists(specsDir, taskName, opts.version)) {
-    console.error('[ERROR] Spec already exists. Choose a different version.');
+    console.error('[ERROR] Spec already exists: task-name must be unique within version ' + opts.version + '.');
     process.exit(1);
   }
 

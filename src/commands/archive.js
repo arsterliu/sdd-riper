@@ -33,7 +33,7 @@ function run(projectDir, specName, opts) {
   if (!fs.existsSync(specsDir)) { console.error('[ERROR] ' + specsDir + ' not found.'); process.exit(1); }
   if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
   var specSlug = common.normalizeSlug(specName);
-  var sourceSpec = common.findSourceSpec(specsDir, specSlug);
+  var sourceSpec = common.findSourceSpecByRef(specsDir, specName);
   if (!sourceSpec) {
     console.error('[ERROR] No versioned spec matching ' + specSlug + ' found.');
     process.exit(1);
@@ -46,8 +46,11 @@ function run(projectDir, specName, opts) {
   }
   var sourceBname = path.basename(sourceSpec);
   var specVersion = 'v1.0';
-  var vm = sourceBname.match(/^(v\d+\.\d+)-.+\.md$/);
-  if (vm) specVersion = vm[1];
+  var parsed = common.parseSpecFileName(sourceBname);
+  if (parsed) {
+    specVersion = parsed.version;
+    specSlug = parsed.slug;
+  }
   var archiveFile = path.join(archiveDir, specVersion + '-' + specSlug + '.md');
   if (fs.existsSync(archiveFile) && !force) { console.error('[ERROR] Archive already exists. Use --force.'); process.exit(1); }
   var dateIso = new Date().toISOString().slice(0, 10);

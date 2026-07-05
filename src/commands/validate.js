@@ -58,24 +58,6 @@ var MICRO_PLAN_REQUIRED = [
   'Verification'
 ];
 
-// Extract the latest Timestamp from Execute Log step entries.
-// Returns a Date object or null if no valid timestamp found.
-function extractLastStepTimestamp(executeLogContent) {
-  var latest = null;
-  String(executeLogContent || '').split(/\r?\n/).forEach(function(line) {
-    var m = line.match(/^\s*Timestamp:\s*(.+)$/i);
-    if (!m) return;
-    var raw = m[1].trim();
-    // Skip template placeholders like "ISO-8601" that Date() would mis-parse
-    if (!/^\d{4}-\d{2}-\d{2}/.test(raw)) return;
-    var t = new Date(raw);
-    if (!Number.isNaN(t.getTime()) && (!latest || t > latest)) {
-      latest = t;
-    }
-  });
-  return latest;
-}
-
 function firstRealLine(section) {
   var visible = section.replace(/<!--[\s\S]*?-->/g, '');
   return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
@@ -261,14 +243,20 @@ function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issu
   var challengeEvidence = labelValue(content, 'Challenge Evidence');
   var challengeTime = null;
   if (!executedBy) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed By is empty.');
+    if (gatePolicy !== 'advisory' || archiveReady) {
+      issues.push('Challenge has not been executed: Challenge Executed By is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
+    }
     return challengeTime;
   }
   if (!executedAt) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Executed At is empty.');
+    if (gatePolicy !== 'advisory' || archiveReady) {
+      issues.push('Challenge Executed At is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
+    }
   }
   if (!challengeEvidence) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Challenge Evidence is required for challenge execution.');
+    if (gatePolicy !== 'advisory' || archiveReady) {
+      issues.push('Challenge Evidence is required for challenge execution. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
+    }
   }
   if (/^auto-gate$/i.test(executedBy)) {
     if (gatePolicy === 'manual') {
@@ -358,7 +346,7 @@ function resolveSpec(projectDir, opts) {
   var docsRoot = common.getDocsRoot(projectDir);
   var specsDir = path.join(docsRoot, 'specs');
   if (opts.name) {
-    var found = common.findSourceSpec(specsDir, common.normalizeSlug(opts.name));
+    var found = common.findSourceSpecByRef(specsDir, opts.name);
     if (found) return found;
   }
   return common.findLatestSpec(specsDir);
@@ -553,9 +541,6 @@ function validateSpec(specPath, opts) {
   validateChallengeVerdict(content, issues);
 
   var challengeTime = null;
-  if (opts.archiveReady) {
-    challengeTime = validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
-  }
 
   if (opts.archiveReady) {
     validateModeArtifacts(projectDir, specPath, mode, issues);
@@ -567,18 +552,28 @@ function validateSpec(specPath, opts) {
     issues.push('Execute Log is empty.');
   }
 
+  var fullExecuteLog = '';
+  if (opts.archiveReady && logArtifact.path && fs.existsSync(logArtifact.path)) {
+    fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
+    var completionStatus = common.completionVerificationStatus(fullExecuteLog);
+    if (completionStatus !== 'DONE') {
+      issues.push('Execute Log completion-verification is not DONE.');
+    } else {
+      challengeTime = validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
+    }
+  }
+
   // Challenge Executed At must be after the last Execute Log step timestamp
   if (opts.archiveReady && challengeTime && logArtifact.path) {
-    var fullLogForTimestamp = fs.readFileSync(logArtifact.path, 'utf-8');
-    var lastStepTime = extractLastStepTimestamp(fullLogForTimestamp);
+    var lastStepTime = common.extractLastStepTimestamp(fullExecuteLog || fs.readFileSync(logArtifact.path, 'utf-8'));
     if (lastStepTime && challengeTime <= lastStepTime) {
-      issues.push('Challenge Executed At must be after the last Execute Log step timestamp.');
+      issues.push('Challenge Executed At must be after the last Execute Log step timestamp. Run: sdd challenge <project-dir>, then record the refreshed independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
     }
   }
 
   // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
   if (opts.archiveReady && logArtifact.path) {
-    var fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
+    if (!fullExecuteLog) fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
     validateAcCoverage(specPath, projectDir, fullExecuteLog, true, issues);
   }
 

@@ -15,6 +15,14 @@ var VERDICTS = [
   'FAIL_LEARNING'
 ];
 
+function resolveSpec(projectDir, opts) {
+  var docsRoot = common.getDocsRoot(projectDir);
+  var specsDir = path.join(docsRoot, 'specs');
+  if (opts.spec) return path.resolve(projectDir, opts.spec);
+  if (opts.name) return common.findSourceSpecByRef(specsDir, opts.name);
+  return common.findLatestSpec(specsDir);
+}
+
 function run(projectDir, opts) {
   opts = opts || {};
 
@@ -25,11 +33,9 @@ function run(projectDir, opts) {
       console.error('[ERROR] Invalid verdict: ' + verdict + '. Allowed: ' + VERDICTS.join(', '));
       process.exit(1);
     }
-    var docsRoot = common.getDocsRoot(projectDir);
-    var specsDir = path.join(docsRoot, 'specs');
-    var specPath = common.findLatestSpec(specsDir);
+    var specPath = resolveSpec(projectDir, opts);
     if (!specPath || !fs.existsSync(specPath)) {
-      console.error('[ERROR] No active spec found in ' + specsDir);
+      console.error('[ERROR] No active spec found.');
       process.exit(1);
     }
     var content = fs.readFileSync(specPath, 'utf-8');
@@ -82,6 +88,12 @@ function run(projectDir, opts) {
   console.log('');
   console.log('### Plan Challenge');
   console.log('- Challenge whether Plan steps are executable, bounded, and derived from Design and Acceptance.');
+  console.log('');
+  console.log('### Code Challenge');
+  console.log('- Challenge code quality: duplication, dead code, unclear naming, pattern violations.');
+  console.log('- Challenge security: hardcoded secrets, injection risks, missing input validation.');
+  console.log('- Challenge correctness: does the code actually implement what the Spec/Design/Plan prescribe?');
+  console.log('- Challenge test quality: do tests verify behavior or just mock it? Are edge cases covered?');
   console.log('');
   console.log('### Execute Challenge');
   console.log('- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.');

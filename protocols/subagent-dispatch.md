@@ -14,7 +14,7 @@ Dispatch a subagent when any condition is true:
 2. **Iterative probing**: debug work requires probes, reference implementation checks, or variable isolation.
 3. **Independent evidence**: the output is a bounded evidence report, such as one Review axis or one Research source.
 4. **Large Execute work package**: a Plan step spans multiple modules or would pollute the orchestrator context.
-5. **Adversarial challenge**: standard/lite work needs an independent reviewer to attack requirement, design, acceptance, plan, execution, or archive readiness.
+5. **Adversarial challenge**: standard/lite work needs an independent reviewer to attack requirement, design, acceptance, plan, code quality, or archive readiness.
 
 ## When Not To Dispatch
 
@@ -92,6 +92,7 @@ Adversarial challenge is the primary mandatory subagent scenario for standard/li
 - **Must dispatch**: standard/lite tasks must use a challenge subagent. Micro may run inline but must keep adversarial role separate from implementation.
 - **Read-only**: the challenge agent does not modify any file (including code). It only returns a verdict.
 - **Verdict enum**: defined by `sdd challenge` (PASS / PASS_WITH_CONCERNS / FAIL_SPEC / FAIL_DESIGN / FAIL_ACCEPTANCE / FAIL_PLAN / FAIL_CODE / FAIL_LOG / FAIL_LEARNING). Any `FAIL_*` verdict is a backtrack signal for `sdd cruise`. The challenge agent must not repair the failure.
+- **Code Challenge axis**: the challenge agent must also review code quality (duplication, dead code, naming), security (hardcoded secrets, injection risks, missing input validation), correctness (does code match Spec/Design?), and test quality (testing behavior or mocks?). This is not a style review — it verifies code aligns with SDD artifact constraints.
 - **Return format**: `Challenge Verdict: <verdict>`, `Backtrack Target: <target>`, `Challenge Summary: <evidence, ≤200 words>`.
 
 ## Trust But Verify

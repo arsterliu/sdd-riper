@@ -104,6 +104,31 @@ describe('common.js utilities', function() {
     assert.ok(common.versionExists(specsDir, 'my-task', 'v1.0'));
   });
 
+  it('validates two-part and three-part spec versions', function() {
+    assert.ok(common.isValidSpecVersion('v1.0'));
+    assert.ok(common.isValidSpecVersion('v1.3.6'));
+    assert.ok(!common.isValidSpecVersion('1.3.6'));
+    assert.ok(!common.isValidSpecVersion('v1'));
+    assert.ok(!common.isValidSpecVersion('v1.2.3.4'));
+  });
+
+  it('parses two-part and three-part spec filenames', function() {
+    assert.deepStrictEqual(common.parseSpecFileName('v1.0-login.md'), {
+      version: 'v1.0',
+      slug: 'login',
+      major: 1,
+      minor: 0,
+      patch: 0
+    });
+    assert.deepStrictEqual(common.parseSpecFileName('v1.3.6-sdk-adapter.md'), {
+      version: 'v1.3.6',
+      slug: 'sdk-adapter',
+      major: 1,
+      minor: 3,
+      patch: 6
+    });
+  });
+
   it('normalizeSlug handles various inputs', function() {
     assert.equal(common.normalizeSlug('checkout retry'), 'checkout-retry');
     assert.equal(common.normalizeSlug('v1.0-checkout-retry'), 'checkout-retry');
@@ -154,6 +179,14 @@ describe('common.js utilities', function() {
     assert.equal(common.findLatestSpec(specsDir), hi);
   });
 
+  it('findLatestSpec sorts three-part versions by patch when dates tie', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    fs.writeFileSync(path.join(specsDir, 'v1.3.5-x.md'), '---\nstatus: draft\ndate: 2026-06-10\n---\n', 'utf-8');
+    var hi = path.join(specsDir, 'v1.3.6-x.md');
+    fs.writeFileSync(hi, '---\nstatus: draft\ndate: 2026-06-10\n---\n', 'utf-8');
+    assert.equal(common.findLatestSpec(specsDir), hi);
+  });
+
   it('getFrontmatterField reads YAML frontmatter', function() {
     var specFile = path.join(docsDir, 'specs', 'v1.0-test.md');
     fs.writeFileSync(specFile, '---\ndate: 2026-06-11\ntask-name: "my-task"\nmode: standard\nstatus: draft\n---\n\n# Spec\n', 'utf-8');
@@ -176,6 +209,14 @@ describe('common.js utilities', function() {
     fs.writeFileSync(path.join(specsDir, 'v1.1-login.md'), '---\nstatus: archived\n---\n', 'utf-8');
     var result = common.findSourceSpec(specsDir, 'login', true);
     assert.ok(result.endsWith('v1.1-login.md'), 'Expected v1.1, got: ' + result);
+  });
+
+  it('findSourceSpec finds three-part versions by slug', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    fs.writeFileSync(path.join(specsDir, 'v1.3.5-login.md'), '---\nstatus: archived\n---\n', 'utf-8');
+    fs.writeFileSync(path.join(specsDir, 'v1.3.6-login.md'), '---\nstatus: archived\n---\n', 'utf-8');
+    var result = common.findSourceSpec(specsDir, 'login', true);
+    assert.ok(result.endsWith('v1.3.6-login.md'), 'Expected v1.3.6, got: ' + result);
   });
 
   it('extractSection extracts content between headings', function() {

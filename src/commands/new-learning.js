@@ -11,8 +11,7 @@ function yamlQuote(value) {
 }
 
 function parseVersionSlug(fileName) {
-  var m = fileName.match(/^(v\d+\.\d+)-(.+)\.md$/);
-  return m ? { version: m[1], slug: m[2] } : null;
+  return common.parseSpecFileName(fileName);
 }
 
 function setFrontmatterField(content, field, value) {
@@ -36,7 +35,7 @@ function fillTemplate(templatePath, taskName, sourceSpecRel) {
 function resolveSpec(projectDir, docsRoot, specName) {
   var specsDir = path.join(docsRoot, 'specs');
   if (specName) {
-    var found = common.findSourceSpec(specsDir, common.normalizeSlug(specName));
+    var found = common.findSourceSpecByRef(specsDir, specName);
     if (found) return found;
     var explicit = path.resolve(projectDir, specName);
     if (fs.existsSync(explicit)) return explicit;

@@ -71,6 +71,23 @@ function fillAutoApproval(content) {
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.');
 }
 
+function completionVerificationLog(timestamp) {
+  return [
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: completion verification passed.',
+    'AC Coverage Summary:',
+    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test tests\\commands.test.js',
+    'Timestamp: ' + (timestamp || '2026-01-01T00:00:00Z')
+  ].join('\n');
+}
+
 function standardDesignContent() {
   return [
     'Selected Option / ADR: 选择方案 A，原因是边界清晰且可回滚。',
@@ -215,8 +232,132 @@ function makeStandardArchiveReady(demo, specFile) {
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - independent review');
   fs.writeFileSync(specFile, content, 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-  insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+  insertSectionContent(logFile, 'Execute Log', [
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: 验证通过。',
+    'AC Coverage Summary:',
+    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test tests\\commands.test.js',
+    'Timestamp: 2026-01-01T00:00:00Z'
+  ].join('\n'));
   return { designFile: designFile, logFile: logFile };
+}
+
+function makeStandardExecutedButUnchallenged(demo, specFile) {
+  var designFile = artifactPath(demo, specFile, 'design-file');
+  var logFile = artifactPath(demo, specFile, 'execute-log-file');
+  var content = fs.readFileSync(specFile, 'utf-8');
+  content = content
+    .replace(/^(### Confirmed Requirement\n)/m, '$1交付一个已完成执行、等待 Challenge 的任务。\n');
+  content = replaceSectionStart(content, 'Innovate Options', 'Option A: 在执行完成后强制路由到 Challenge。Pros: 不会漏掉门禁。Cons: 需要显式记录结果。\nOption B: 只依赖归档校验。Pros: 改动小。Cons: 容易误导 agent。\nSelected: Option A。');
+  content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: challenge required after execute\nRequirement: challenge-route\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Challenge required\n  Given standard spec 已完成执行\n  When next 或 resume 运行\n  Then 输出 Challenge 阶段');
+  content = fillApproval(content);
+  fs.writeFileSync(specFile, content, 'utf-8');
+  insertSectionContent(designFile, 'Technical Design', standardDesignContent());
+  insertSectionContent(logFile, 'Execute Log', [
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: 执行完成，等待 Challenge。',
+    'AC Coverage Summary:',
+    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test tests\\commands.test.js',
+    'Timestamp: 2026-01-01T00:00:00Z'
+  ].join('\n'));
+  return { designFile: designFile, logFile: logFile };
+}
+
+function makeStandardBlockedCompletionVerification(demo, specFile) {
+  var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
+  fs.writeFileSync(artifacts.logFile, [
+    '# Execute Log',
+    '',
+    '## Execute Log',
+    '',
+    '---',
+    'Step: 1 - implementation',
+    'Status: DONE',
+    'Result: 普通执行步骤完成。',
+    'Timestamp: 2026-01-01T00:00:00Z',
+    '---',
+    '',
+    '---',
+    'Step: completion-verification',
+    'Status: BLOCKED',
+    'Result: 完成验证未通过，不能进入 Challenge。',
+    'Timestamp: 2026-01-01T00:01:00Z',
+    '---'
+  ].join('\n'), 'utf-8');
+  return artifacts;
+}
+
+function makeStandardBlockedThenDoneCompletionVerification(demo, specFile) {
+  var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
+  fs.writeFileSync(artifacts.logFile, [
+    '# Execute Log',
+    '',
+    '## Execute Log',
+    '',
+    '---',
+    'Step: completion-verification',
+    'Status: BLOCKED',
+    'Result: 第一次完成验证未通过。',
+    'Timestamp: 2026-01-01T00:01:00Z',
+    '---',
+    '',
+    '---',
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: 修复后完成验证通过，等待 Challenge。',
+    'AC Coverage Summary:',
+    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test tests\\commands.test.js',
+    'Timestamp: 2026-01-01T00:02:00Z',
+    '---'
+  ].join('\n'), 'utf-8');
+  return artifacts;
+}
+
+function appendPostChallengeCompletion(logFile) {
+  fs.appendFileSync(logFile, [
+    '',
+    '---',
+    'Step: 2 - post-challenge bugfix',
+    'Status: BUGFIX',
+    'Result: Challenge 涔嬪悗杩藉姞淇锛岄渶瑕侀噸鏂拌Е鍙?Challenge銆?',
+    'Timestamp: 2026-01-01T00:02:00Z',
+    '---',
+    '',
+    '---',
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: 淇鍚庨噸鏂板畬鎴愰獙璇侊紝Challenge evidence 宸茶繃鏈熴€?',
+    'AC Coverage Summary:',
+    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test tests\\commands.test.js',
+    'Timestamp: 2026-01-01T00:03:00Z',
+    '---'
+  ].join('\n'), 'utf-8');
 }
 
 describe('CLI commands', function() {
@@ -332,6 +473,40 @@ describe('CLI commands', function() {
     assert.ok(logText.indexOf('## Execute Log') !== -1);
   });
 
+  it('discover accepts three-part versions and keeps version plus task-name unique', function() {
+    var demo = path.join(tmpBase, 'd2-version3');
+    run('init ' + demo + ' --mode standard');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk');
+    assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-sdk-adapter.md')));
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'design', 'v1.3.6-sdk-adapter.design.md')));
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'logs', 'v1.3.6-sdk-adapter.execute.md')));
+
+    var parallel = run('discover ' + demo + ' --task-name api-contract --spec-version v1.3.6 --requirement api');
+    assert.ok(parallel.indexOf('SPEC CREATION PROMPT') !== -1);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-api-contract.md')));
+
+    var duplicate = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk');
+    assert.ok(duplicate.indexOf('task-name must be unique within version') !== -1, duplicate);
+    assert.ok(duplicate.indexOf('exit:') !== -1, duplicate);
+  });
+
+  it('discover keeps two-part versions compatible', function() {
+    var demo = path.join(tmpBase, 'd2-version2');
+    run('init ' + demo + ' --mode standard');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3 --requirement sdk');
+    assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3-sdk-adapter.md')));
+  });
+
+  it('discover rejects unsupported version formats with clear guidance', function() {
+    var demo = path.join(tmpBase, 'd2-bad-version');
+    run('init ' + demo + ' --mode standard');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version 1.3.6 --requirement sdk');
+    assert.ok(out.indexOf('Expected: v{N}.{M} or v{N}.{M}.{P}') !== -1, out);
+    assert.ok(out.indexOf('exit:') !== -1, out);
+  });
+
   it('discover accepts --version alias and fills structured intake fields', function() {
     var demo = path.join(tmpBase, 'd2b');
     run('init ' + demo + ' --mode standard');
@@ -377,6 +552,273 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name ctx-task --spec-version v1.0 --requirement x');
     var out = run('resume ' + demo);
     assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/ctx-task') !== -1, 'resume should show context-source');
+  });
+
+  it('archive and reopen preserve three-part versions', function() {
+    var demo = path.join(tmpBase, 'd2-version-archive');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md');
+    makeStandardArchiveReady(demo, sf);
+
+    var archived = run('archive ' + demo + ' tri');
+    assert.ok(archived.indexOf('[ARCHIVE]') !== -1, archived);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.md')));
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.design.md')));
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.execute.md')));
+
+    var reopened = run('reopen ' + demo + ' tri --defect regression --mode micro');
+    assert.ok(reopened.indexOf('[CREATE]') !== -1, reopened);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md')));
+    var c = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
+    assert.match(c, /^reopened-from: "v1.3.6"$/m);
+  });
+
+  it('archive honors an explicit version when same task-name exists in multiple versions', function() {
+    var demo = path.join(tmpBase, 'd2-versioned-archive-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
+    makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
+
+    var archived = run('archive ' + demo + ' v1.3.6-tri');
+    assert.ok(archived.indexOf('[ARCHIVE]') !== -1, archived);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.md')));
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md')), 'v1.4 should remain active');
+  });
+
+  it('reopen honors an explicit version when archived task-name exists in multiple versions', function() {
+    var demo = path.join(tmpBase, 'd2-versioned-reopen-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
+    run('archive ' + demo + ' v1.4-tri');
+    makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
+    run('archive ' + demo + ' v1.3.6-tri');
+
+    var reopened = run('reopen ' + demo + ' v1.3.6-tri --defect regression --mode micro');
+    assert.ok(reopened.indexOf('[CREATE]') !== -1, reopened);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md')));
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md')), 'v1.4 should remain archived');
+    var c = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
+    assert.match(c, /^reopened-from: "v1.3.6"$/m);
+  });
+
+  it('new-learning honors an explicit version when same task-name exists in multiple versions', function() {
+    var demo = path.join(tmpBase, 'd2-versioned-learning-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+
+    var created = run('new-learning ' + demo + ' v1.3.6-tri');
+    assert.ok(created.indexOf('[LEARNING]') !== -1, created);
+    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'learnings', 'v1.3.6-tri.learning.md')));
+    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'learnings', 'v1.4-tri.learning.md')));
+    var oldSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
+    var newSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'), 'utf-8');
+    assert.ok(oldSpec.indexOf('learning-file: "mydocs/learnings/v1.3.6-tri.learning.md"') !== -1);
+    assert.match(newSpec, /^learning-file:\s*$/m);
+  });
+
+  it('challenge record-result honors an explicit versioned --name', function() {
+    var demo = path.join(tmpBase, 'd2-versioned-challenge-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+
+    var out = run('challenge ' + demo + ' --name v1.3.6-tri --record-result PASS --summary ok --executed-by subagent');
+    assert.ok(out.indexOf('v1.3.6-tri.md') !== -1, out);
+    var oldSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
+    var newSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'), 'utf-8');
+    assert.match(oldSpec, /^Challenge Verdict: PASS$/m);
+    assert.match(newSpec, /^Challenge Verdict:\s*$/m);
+  });
+
+  it('challenge record-result honors an explicit --spec path', function() {
+    var demo = path.join(tmpBase, 'd2-spec-path-challenge-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y');
+    var alphaSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-alpha.md');
+
+    var out = run('challenge ' + demo + ' --spec ' + alphaSpec + ' --record-result PASS --summary ok --executed-by subagent');
+    assert.ok(out.indexOf('v1.0-alpha.md') !== -1, out);
+    var alphaText = fs.readFileSync(alphaSpec, 'utf-8');
+    var betaText = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.1-beta.md'), 'utf-8');
+    assert.match(alphaText, /^Challenge Verdict: PASS$/m);
+    assert.match(betaText, /^Challenge Verdict:\s*$/m);
+  });
+
+  it('resume routes executed standard specs without challenge evidence to challenge phase', function() {
+    var demo = path.join(tmpBase, 'd2-resume-challenge-required');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var out = run('resume ' + demo);
+    assert.ok(out.indexOf('PHASE_HINT: challenge') !== -1, out);
+    assert.ok(out.indexOf('Challenge Verdict') !== -1, out);
+  });
+
+  it('next routes executed specs without challenge evidence to run_challenge', function() {
+    var demo = path.join(tmpBase, 'd2-next-challenge-required');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('BACKTRACK_TARGET: Challenge') !== -1, out);
+    assert.ok(out.indexOf('NEXT_ACTION: run_challenge') !== -1, out);
+    assert.ok(out.indexOf('sdd challenge') !== -1, out);
+    assert.ok(out.indexOf('--record-result') !== -1, out);
+  });
+
+  it('validate archive-ready explains how to run and record missing challenge', function() {
+    var demo = path.join(tmpBase, 'd2-validate-challenge-required');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var out = run('validate ' + demo + ' --archive-ready');
+    assert.ok(out.indexOf('Challenge has not been executed') !== -1, out);
+    assert.ok(out.indexOf('sdd challenge') !== -1, out);
+    assert.ok(out.indexOf('--record-result') !== -1, out);
+    assert.ok(out.indexOf('exit:') !== -1, out);
+  });
+
+  it('recorded challenge pass no longer routes to run_challenge', function() {
+    var demo = path.join(tmpBase, 'd2-challenge-recorded-ready');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent');
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: archive_ready') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') === -1, next);
+    var ok = run('validate ' + demo + ' --archive-ready');
+    assert.ok(ok.indexOf('RESULT: OK') !== -1, ok);
+  });
+
+  it('stale recorded challenge routes back to run_challenge after new execution', function() {
+    var demo = path.join(tmpBase, 'd2-stale-challenge-rerun');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
+    var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
+    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent');
+    var content = fs.readFileSync(specFile, 'utf-8')
+      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
+    fs.writeFileSync(specFile, content, 'utf-8');
+    appendPostChallengeCompletion(artifacts.logFile);
+
+    var resume = run('resume ' + demo);
+    assert.ok(resume.indexOf('PHASE_HINT: challenge') !== -1, resume);
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('BACKTRACK_TARGET: Challenge') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
+    assert.ok(next.indexOf('--record-result') !== -1, next);
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Executed At must be after the last Execute Log step timestamp') !== -1, blocked);
+    assert.ok(blocked.indexOf('--record-result') !== -1, blocked);
+  });
+
+  it('stale failed challenge routes to rerun challenge instead of old backtrack', function() {
+    var demo = path.join(tmpBase, 'd2-stale-failed-challenge-rerun');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
+    var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
+    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_CODE --summary old-failure --executed-by subagent');
+    var content = fs.readFileSync(specFile, 'utf-8')
+      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
+    fs.writeFileSync(specFile, content, 'utf-8');
+    appendPostChallengeCompletion(artifacts.logFile);
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('BACKTRACK_TARGET: Challenge') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
+    assert.ok(next.indexOf('repair_execute_debug') === -1, next);
+  });
+
+  it('stale non-code failed challenge routes to rerun challenge instead of old backtrack', function() {
+    var demo = path.join(tmpBase, 'd2-stale-design-challenge-rerun');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
+    var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
+    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_DESIGN --summary old-design-failure --executed-by subagent');
+    var content = fs.readFileSync(specFile, 'utf-8')
+      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
+    fs.writeFileSync(specFile, content, 'utf-8');
+    appendPostChallengeCompletion(artifacts.logFile);
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('BACKTRACK_TARGET: Challenge') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
+    assert.ok(next.indexOf('repair_design') === -1, next);
+  });
+
+  it('partial challenge evidence routes back to run_challenge', function() {
+    var demo = path.join(tmpBase, 'd2-partial-challenge-evidence');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
+    makeStandardExecutedButUnchallenged(demo, specFile);
+    var content = fs.readFileSync(specFile, 'utf-8')
+      .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
+      .replace(/^Backtrack Target:$/m, 'Backtrack Target: Ready')
+      .replace(/^Challenge Summary:$/m, 'Challenge Summary: verdict exists but evidence is incomplete')
+      .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent')
+      .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - missing timestamp');
+    fs.writeFileSync(specFile, content, 'utf-8');
+
+    var resume = run('resume ' + demo);
+    assert.ok(resume.indexOf('PHASE_HINT: challenge') !== -1, resume);
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('BACKTRACK_TARGET: Challenge') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
+    assert.ok(next.indexOf('--record-result') !== -1, next);
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Challenge Executed At is empty') !== -1, blocked);
+    assert.ok(blocked.indexOf('--record-result') !== -1, blocked);
+  });
+
+  it('blocked completion verification does not route to challenge yet', function() {
+    var demo = path.join(tmpBase, 'd2-blocked-completion-no-challenge');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardBlockedCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var resume = run('resume ' + demo);
+    assert.ok(resume.indexOf('PHASE_HINT: execute') !== -1, resume);
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') === -1, next);
+  });
+
+  it('validate does not request challenge before completion verification is done', function() {
+    var demo = path.join(tmpBase, 'd2-validate-blocked-completion-no-challenge');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardBlockedCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var out = run('validate ' + demo + ' --archive-ready');
+    assert.ok(out.indexOf('Challenge has not been executed') === -1, out);
+    assert.ok(out.indexOf('Execute Log completion-verification is not DONE') !== -1, out);
+  });
+
+  it('completion verification status uses the latest appended completion block', function() {
+    var demo = path.join(tmpBase, 'd2-latest-completion-status');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    makeStandardBlockedThenDoneCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
+
+    var resume = run('resume ' + demo);
+    assert.ok(resume.indexOf('PHASE_HINT: challenge') !== -1, resume);
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
   });
 
   it('next shows context-source when present', function() {
@@ -426,7 +868,17 @@ describe('CLI commands', function() {
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-lessoned.md');
     var artifacts = makeStandardArchiveReady(demo, sf);
     var logContent = fs.readFileSync(artifacts.logFile, 'utf-8')
-      .replace('Status: DONE', 'Status: DEVIATED_MINOR');
+      .replace('Step: completion-verification', [
+        'Step: 1 - implementation deviation',
+        'Status: DEVIATED_MINOR',
+        'Result: implementation deviated from the approved plan boundary.',
+        'Deviation: implementation approach changed within the same archive fixture.',
+        'Timestamp: 2025-12-31T23:59:00Z',
+        '',
+        '---',
+        '',
+        'Step: completion-verification'
+      ].join('\n'));
     fs.writeFileSync(artifacts.logFile, logContent, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
@@ -588,7 +1040,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS', { executedBy: 'inline' });
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Design Note', 'Approach: test.\nImpact Scope: minimal.\nInterface / Data Impact: none.\nCompatibility: ok.\nRisks: none.\nTest Strategy: unit.');
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: DONE\n');
+    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
@@ -644,7 +1096,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS', { executedBy: 'inline', evidence: 'PASS - inline review for micro' });
     fs.writeFileSync(sf, c);
     var logFile = artifactPath(demo, sf, 'execute-log-file');
-    fs.writeFileSync(logFile, 'Step 1: DONE\n');
+    fs.writeFileSync(logFile, completionVerificationLog(), 'utf-8');
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('Challenge Executed By') === -1 || result.indexOf('inline') === -1, 'micro allows inline');
@@ -682,7 +1134,7 @@ describe('CLI commands', function() {
     c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: validate archive-ready gates\nRequirement: lite validation\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Lite archive readiness\n  Given lite design, acceptance, approval, execute log, and PASS review are present\n  When validate --archive-ready runs\n  Then validation reports OK');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Design Note', 'Approach: 复用 standard validate path.\nImpact Scope: CLI validation only.\nInterface / Data Impact: 不改变外部接口和持久化数据。\nCompatibility: no format break.\nRisks: missing AC would block archive.\nTest Strategy: node test validates this behavior.');
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1);
   });
@@ -702,7 +1154,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Standard Acceptance Criteria missing Verification for: AC-001') !== -1);
@@ -759,7 +1211,7 @@ describe('CLI commands', function() {
     c = fs.readFileSync(sf, 'utf-8')
       .replace(/^Approved At: 2026-01-01T00:00:00Z$/m, 'Approved At: 2026-01-01T00:00:00Z\n\nScope: single-file test fixture\nTouched Files: none\nChange: validate micro gates\nImpact Scope: micro validation only\nData Impact: none\nInterface Impact: none\nAcceptance: validate reports OK\nVerification: node --test tests/*.test.js\nBlast Radius: micro only');
     fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1);
   });
@@ -848,6 +1300,7 @@ describe('CLI commands', function() {
     assert.ok(challenge.indexOf('Design Challenge') !== -1);
     assert.ok(challenge.indexOf('Acceptance Challenge') !== -1);
     assert.ok(challenge.indexOf('Plan Challenge') !== -1);
+    assert.ok(challenge.indexOf('Code Challenge') !== -1);
     assert.ok(challenge.indexOf('Execute Challenge') !== -1);
     assert.ok(challenge.indexOf('Archive Challenge') !== -1);
     assert.ok(challenge.indexOf('FAIL_DESIGN') !== -1);
@@ -1014,7 +1467,7 @@ describe('CLI commands', function() {
     c = fillAutoApproval(c);
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: test\nStatus: DONE\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var out = run('next ' + demo);
     assert.ok(out.indexOf('CHALLENGE_VERDICT: FAIL_ACCEPTANCE') !== -1);
@@ -1448,6 +1901,18 @@ describe('CLI commands', function() {
     var out = run('next ' + demo);
     assert.ok(out.indexOf('DESIGN_METHOD:') !== -1);
     assert.ok(out.indexOf('arc42') !== -1);
+  });
+
+  it('skill and generated AI configs require human-confirmed spec creation inputs', function() {
+    var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
+    assert.ok(skill.indexOf('must ask the user to provide or confirm `version` and `task-name`') !== -1);
+    assert.ok(skill.indexOf('ask whether reference materials / context exist') !== -1);
+
+    var demo = path.join(tmpBase, 'human-confirmed-ai-config');
+    run('init ' + demo + ' --mode standard');
+    var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
+    assert.ok(agentsText.indexOf('Before creating a Spec, ask the user to provide or confirm `version` and `task-name`') !== -1);
+    assert.ok(agentsText.indexOf('ask whether reference materials / context exist') !== -1);
   });
 
   it('ADR method doc exists and is wired into SKILL.md', function() {

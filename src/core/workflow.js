@@ -58,7 +58,39 @@ function explicitChallengeVerdict(content) {
   return VERDICT_TO_TARGET[verdict] ? verdict : '';
 }
 
+function executeCompletionDone(projectDir, specPath) {
+  var ref = common.getFrontmatterField(specPath, 'execute-log-file');
+  if (!ref) return false;
+  var logPath = common.resolveProjectPath(projectDir, ref);
+  if (!logPath || !fs.existsSync(logPath)) return false;
+  var content = fs.readFileSync(logPath, 'utf-8');
+  return common.completionVerificationDone(content);
+}
+
+function challengeRequiredAfterCompletion(projectDir, specPath, specContent, issues) {
+  if (!executeCompletionDone(projectDir, specPath)) return false;
+  var challengeStale = (issues || []).some(function(issue) {
+    return /Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue);
+  });
+  if (challengeStale) return 'stale';
+  var explicit = explicitChallengeVerdict(specContent);
+  var challengePartial = (issues || []).some(function(issue) {
+    return /Challenge Executed At is empty|Challenge Evidence is required/i.test(issue);
+  });
+  if (challengePartial) return 'partial';
+  var challengeMissing = (issues || []).some(function(issue) {
+    return /Challenge has not been executed|Challenge Executed By is empty/i.test(issue);
+  });
+  if (challengeMissing) return explicit ? 'partial' : 'missing';
+  return '';
+}
+
 function classifyIssue(issue) {
+  var failedChallenge = String(issue || '').match(/Adversarial Challenge failed:\s*(FAIL_[A-Z_]+)/i);
+  if (failedChallenge) return failedChallenge[1].toUpperCase();
+  if (/Challenge has not been executed/i.test(issue)) return 'FAIL_CODE';
+  if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_CODE';
+  if (/code quality|duplication|dead code|naming|pattern violation|hardcoded secret|injection risk|input validation|Code Challenge/i.test(issue)) return 'FAIL_CODE';
   if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
@@ -215,6 +247,7 @@ function analyzeSpec(projectDir, specPath, opts) {
   var flags = riskFlags(action && action.trim() ? action : content);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var explicit = explicitChallengeVerdict(content);
+  var challengeRequired = challengeRequiredAfterCompletion(projectDir, specPath, content, validation.issues);
   var validationVerdict = challengeVerdictFromIssues(validation.issues);
   // Challenge Verdict from Spec is the authoritative independent quality gate.
   // Validation issues are separate blockers — they should not override an
@@ -227,6 +260,10 @@ function analyzeSpec(projectDir, specPath, opts) {
   // If Challenge passed but validation blockers remain, the task is not
   // truly archive-ready — blockers must be resolved first.
   var action = nextAction(verdict);
+  if (challengeRequired && (challengeRequired !== 'missing' || validationVerdict === 'FAIL_CODE')) {
+    target = 'Challenge';
+    action = 'run_challenge';
+  }
   if (action === 'archive_ready' && validation.issues && validation.issues.length) {
     action = 'repair_' + (VERDICT_TO_TARGET[validationVerdict] || 'Research')
       .toLowerCase()

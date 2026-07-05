@@ -7,6 +7,7 @@
 - **Execute Log 独立** — 在 execute-log-file 中记录步骤结果和偏差。
 - **Learning Check** — 当偏差、修复、关注点或重开经验产生可复用规则时，创建 learning-file。
 - **制品中文内容** — 保持制品标题和字段标签为英文；填写分析、决策、计划、证据和学习规则时使用中文。
+- **Spec 创建输入人工确认** — 创建 Spec 前必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
 - **Gate Policy** — 默认 gate-policy 为 auto；`auto-gate` 需要填写 `Gate Evidence:`；manual policy 需要人工审批。
 - **Autonomous Cruise** — 使用 `sdd next`、`sdd challenge`、`sdd cruise --engine auto` 进行动态路由、对抗审核和有界修复循环。仅在 `CRUISE_POLICY="autonomous"` 时复用宿主原生循环；否则使用 prompt-loop 补偿。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 记录运行账本。
 - **先 Debug 再重试** — 步骤失败时，先运行 debug 找根因再重试。
