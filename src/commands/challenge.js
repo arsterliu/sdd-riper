@@ -127,6 +127,7 @@ function run(projectDir, opts) {
   console.log('');
   console.log('### Execute Challenge');
   console.log('- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.');
+  console.log('- Challenge whether Execute was delegated to a subagent (standard/lite require subagent execution; orchestrator must not edit code files directly).');
   console.log('');
   console.log('### Archive Challenge');
   console.log('- Challenge whether archive would hide drift, failed verification, missing Learning, or a failed challenge verdict.');

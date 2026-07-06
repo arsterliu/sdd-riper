@@ -10,6 +10,7 @@
 - 创建 Spec 前，必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
 - 绝不在没有 gate evidence 的情况下越过 Plan：人工审批，或 auto policy 下的 `Plan Approved By: auto-gate` 加 `Gate Evidence:`。
 - 绝不用 Plan 替代 standard/lite Design。
+- **standard/lite 模式下，Execute 阶段的代码实现必须委托给 subagent。** 主 agent 只负责：(1) 派 subagent 按 Plan 步骤执行；(2) 读取 subagent 返回的执行摘要；(3) re-read 改动文件确认在 Plan 范围内；(4) 运行测试确认结果。主 agent 不得直接编辑代码文件。micro 模式不受此约束。
 - 绝不手动填写 Challenge Evidence 字段。始终使用 `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent"` 记录 challenge 结果。
 - 始终在 execute-log-file 引用的 Execute Log 中记录 Plan 偏差。
 - 当偏差、修复、关注点或重开经验产生可复用规则时，始终创建 Learning Record。
