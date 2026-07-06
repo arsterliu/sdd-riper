@@ -21,7 +21,8 @@ Dispatch a subagent when any condition is true:
 Never dispatch subagents for:
 
 - Requirement Review that requires human dialogue.
-- Confirmed Requirement finalization.
+- Confirmed Requirement finalization (all five elements: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent).
+- Research Gate approval (Research Reviewed By / Research Reviewed At).
 - Innovate option selection.
 - Plan writing.
 - Plan Approval.

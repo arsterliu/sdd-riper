@@ -46,7 +46,7 @@ function labelValue(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
       return next;
     }
   }
@@ -91,6 +91,7 @@ function classifyIssue(issue) {
   if (/Challenge has not been executed/i.test(issue)) return 'FAIL_LOG';
   if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_LOG';
   if (/hardcoded secret|injection risk|missing input validation|dead code|code duplication|Code Challenge/i.test(issue)) return 'FAIL_CODE';
+  if (/Research Reviewed By|Research Reviewed At/i.test(issue)) return 'FAIL_SPEC';
   if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
@@ -118,7 +119,7 @@ function challengeVerdictFromIssues(issues) {
 // "Data Model / Schema" — otherwise flag every standard spec).
 function stripLeadingLabels(text) {
   return String(text || '').split(/\r?\n/).map(function(line) {
-    return line.replace(/^\s*[A-Za-z][A-Za-z0-9 /_-]*:\s*/, '');
+    return line.replace(/^\s*[A-Za-z][A-Za-z0-9 /&_-]*:\s*/, '');
   }).join('\n');
 }
 
@@ -144,9 +145,43 @@ function actionText(projectDir, specPath) {
   return stripLeadingLabels(parts.join('\n'));
 }
 
-function riskFlags(content) {
-  var text = String(content || '').replace(/<!--[\s\S]*?-->/g, '').toLowerCase();
+function riskFlags(content, crSection) {
+  // Phase 1: extract signals from Confirmed Requirement structured fields
+  // (more precise than full-text keyword scanning).
   var flags = [];
+  var crText = String(crSection || '').replace(/<!--[\s\S]*?-->/g, '');
+  var hasStructuredFields = crText && /Scope Boundary:|Irreversibility:|Impact Radius:|Dependencies & Constraints:|Acceptance Intent:/i.test(crText);
+
+  if (hasStructuredFields) {
+    var irreversibility = labelValue(crText, 'Irreversibility');
+    var impactRadius = labelValue(crText, 'Impact Radius');
+    var depsConstraints = labelValue(crText, 'Dependencies & Constraints');
+    var scopeBoundary = labelValue(crText, 'Scope Boundary');
+
+    // Irreversibility → irreversible flag
+    if (irreversibility && !/\b(none|无|可逆|reversible)\b/i.test(irreversibility)) {
+      flags.push('irreversible');
+    }
+    // Impact Radius → public-api flag
+    if (impactRadius && /\b(public|external|公开|外部|api)\b/i.test(impactRadius)) {
+      flags.push('public-api');
+    }
+    // Dependencies & Constraints → security / billing / migration flags
+    if (depsConstraints) {
+      var dcLower = depsConstraints.toLowerCase();
+      if (/\b(security|auth|permission|credential|secret)\b/i.test(depsConstraints) || /权限|认证|授权|密钥|凭证/.test(depsConstraints)) flags.push('security');
+      if (/\b(billing|payment|invoice|charge)\b/i.test(depsConstraints) || /计费|支付|账单|扣费|收费/.test(depsConstraints)) flags.push('billing');
+      if (/\b(migration|migrate|backfill|schema)\b/i.test(depsConstraints) || /迁移|数据迁移|回填/.test(depsConstraints)) flags.push('migration');
+    }
+    // Scope Boundary → migration flag (if mentions schema/migration)
+    if (scopeBoundary && flags.indexOf('migration') === -1) {
+      if (/\b(schema|migration|migrate)\b/i.test(scopeBoundary) || /迁移|schema/.test(scopeBoundary)) flags.push('migration');
+    }
+  }
+
+  // Phase 2: fallback to full-text keyword scanning when no structured fields
+  // or to catch signals not present in Confirmed Requirement.
+  var text = String(content || '').replace(/<!--[\s\S]*?-->/g, '').toLowerCase();
   [
     ['security', /\b(security|auth|permission|credential|secret)\b/],
     ['billing', /\b(billing|payment|invoice|charge)\b/],
@@ -160,7 +195,7 @@ function riskFlags(content) {
     ['public-api', /公开接口|外部接口|api契约/],
     ['irreversible', /不可逆|破坏性|删除数据|清空数据/]
   ].forEach(function(item) {
-    if (item[1].test(text)) flags.push(item[0]);
+    if (flags.indexOf(item[0]) === -1 && item[1].test(text)) flags.push(item[0]);
   });
   return flags;
 }
@@ -244,7 +279,23 @@ function analyzeSpec(projectDir, specPath, opts) {
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var contextSource = common.getFrontmatterField(specPath, 'context-source') || '';
   var action = actionText(projectDir, specPath);
-  var flags = riskFlags(action && action.trim() ? action : content);
+  // Extract Confirmed Requirement section: standard uses ### under ## Research, lite uses ## section
+  var crSection;
+  if (mode === 'standard') {
+    var researchSection = sectionContent(specPath, 'Research');
+    var crLines = String(researchSection || '').split(/\r?\n/);
+    var crFound = false;
+    var crResult = [];
+    for (var ci = 0; ci < crLines.length; ci++) {
+      if (/^###\s+Confirmed Requirement/.test(crLines[ci])) { crFound = true; continue; }
+      if (crFound && /^###/.test(crLines[ci])) break;
+      if (crFound) crResult.push(crLines[ci]);
+    }
+    crSection = crResult.join('\n');
+  } else {
+    crSection = sectionContent(specPath, 'Confirmed Requirement');
+  }
+  var flags = riskFlags(action && action.trim() ? action : content, crSection);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var explicit = explicitChallengeVerdict(content);
   var challengeRequired = challengeRequiredAfterCompletion(projectDir, specPath, content, validation.issues);

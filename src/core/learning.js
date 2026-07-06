@@ -24,7 +24,7 @@ function firstRealLine(text) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
@@ -44,7 +44,7 @@ function labelHasContent(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
       return true;
     }
     continue;
@@ -175,7 +175,7 @@ function labelText(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var nx = lines[j].trim();
       if (!nx || /^#+\s/.test(nx) || nx.indexOf('<!--') === 0) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(nx)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(nx)) break;
       parts.push(nx);
     }
     return parts.join(' ');

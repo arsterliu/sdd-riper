@@ -58,13 +58,21 @@ var MICRO_PLAN_REQUIRED = [
   'Verification'
 ];
 
+var CONFIRMED_REQ_REQUIRED = [
+  'Scope Boundary',
+  'Irreversibility',
+  'Impact Radius',
+  'Dependencies & Constraints',
+  'Acceptance Intent'
+];
+
 function firstRealLine(section) {
   var visible = section.replace(/<!--[\s\S]*?-->/g, '');
   return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
@@ -114,7 +122,7 @@ function labelHasContent(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
       return true;
     }
     continue;
@@ -137,7 +145,7 @@ function labelValue(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
       return next;
     }
     continue;
@@ -230,6 +238,73 @@ function validatePlanGate(content, gatePolicy, archiveReady, issues) {
   }
 }
 
+function extractSubsectionContent(filePath, parentPattern, subPattern) {
+  // Extract content of a ### subsection within a ## section
+  var parentSection = common.extractSection(filePath, parentPattern, 800);
+  if (!parentSection) return '';
+  var lines = parentSection.split(/\r?\n/);
+  var found = false;
+  var result = [];
+  var subRegex = new RegExp('^###\\s+' + subPattern);
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    if (/^###/.test(line)) {
+      if (found) break;
+      if (subRegex.test(line)) { found = true; }
+      continue;
+    }
+    if (found) {
+      result.push(line);
+    }
+  }
+  return result.join('\n');
+}
+
+function validateConfirmedRequirement(specPath, mode, archiveReady, issues) {
+  if (mode === 'micro') return; // micro skips Research entirely
+  var crSection;
+  if (mode === 'standard') {
+    // In standard, Confirmed Requirement is a ### subsection under ## Research
+    crSection = extractSubsectionContent(specPath, 'Research', SECTION.confirmedRequirement);
+  } else {
+    // In lite, Confirmed Requirement is a ## section
+    crSection = common.extractSection(specPath, SECTION.confirmedRequirement, 400);
+  }
+  if (!firstRealLine(crSection)) {
+    issues.push('Confirmed Requirement is empty.');
+    return;
+  }
+  var missing = missingLabels(crSection, CONFIRMED_REQ_REQUIRED);
+  if (missing.length) {
+    if (archiveReady) {
+      issues.push('Confirmed Requirement missing required fields: ' + missing.join(', ') + '.');
+    } else {
+      issues.push('WARNING: Confirmed Requirement missing recommended fields: ' + missing.join(', ') + '.');
+    }
+  }
+}
+
+function validateResearchGate(content, mode, gatePolicy, archiveReady, issues) {
+  if (mode === 'micro') return; // micro skips Research entirely
+  var reviewedBy = labelValue(content, 'Research Reviewed By');
+  var reviewedAt = labelValue(content, 'Research Reviewed At');
+  if (!reviewedBy) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Research Reviewed By is empty.');
+    return;
+  }
+  if (!reviewedAt) {
+    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Research Reviewed At is empty.');
+  }
+  if (/^auto-gate$/i.test(reviewedBy)) {
+    if (gatePolicy === 'manual') {
+      issues.push('Manual gate policy requires human Research Reviewed By.');
+    }
+    if (!labelValue(content, 'Gate Evidence')) {
+      issues.push('Gate Evidence is required for auto-gate Research review.');
+    }
+  }
+}
+
 function validateChallengeVerdict(content, issues) {
   var verdict = labelValue(content, 'Challenge Verdict');
   if (/^FAIL_/i.test(verdict)) {
@@ -280,11 +355,9 @@ function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issu
   return challengeTime;
 }
 
-function validateModeArtifacts(projectDir, specPath, mode, issues) {
+function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues) {
   if (mode === 'standard') {
-    if (common.subsectionIsEmpty(specPath, SECTION.confirmedRequirement)) {
-      issues.push('Confirmed Requirement is empty.');
-    }
+    validateConfirmedRequirement(specPath, mode, archiveReady, issues);
     var innovate = sectionContent(specPath, SECTION.innovateOptions);
     if (!firstRealLine(innovate)) {
       issues.push('Innovate Options is empty.');
@@ -307,9 +380,7 @@ function validateModeArtifacts(projectDir, specPath, mode, issues) {
   }
 
   if (mode === 'lite') {
-    if (common.sectionIsEmpty(specPath, SECTION.confirmedRequirement)) {
-      issues.push('Confirmed Requirement is empty.');
-    }
+    validateConfirmedRequirement(specPath, mode, archiveReady, issues);
     var liteInnovate = sectionContent(specPath, SECTION.innovateOptions);
     if (!firstRealLine(liteInnovate)) {
       issues.push('Innovate Options must contain options or an explicit skip reason.');
@@ -538,12 +609,16 @@ function validateSpec(specPath, opts) {
     issues.push('Spec still contains unresolved placeholders.');
   }
   validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
+  validateResearchGate(content, mode, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
   validateChallengeVerdict(content, issues);
 
   var challengeTime = null;
 
   if (opts.archiveReady) {
-    validateModeArtifacts(projectDir, specPath, mode, issues);
+    validateModeArtifacts(projectDir, specPath, mode, !!opts.archiveReady, issues);
+  } else {
+    // Non archive-ready: check CR structured fields as WARNING only
+    validateConfirmedRequirement(specPath, mode, false, issues);
   }
 
   var logArtifact = artifactSection(projectDir, specPath, 'execute-log-file', SECTION.executeLog, issues, 'Execute Log', opts.archiveReady);

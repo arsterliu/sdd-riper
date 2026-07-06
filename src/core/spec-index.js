@@ -42,13 +42,31 @@ function firstRealLine(text) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
 
 function sectionText(filePath, pattern) {
   return common.extractSection(filePath, pattern, 500);
+}
+
+function subsectionText(filePath, parentPattern, subPattern) {
+  var parentSection = common.extractSection(filePath, parentPattern, 800);
+  if (!parentSection) return '';
+  var lines = parentSection.split(/\r?\n/);
+  var found = false;
+  var result = [];
+  var subRegex = new RegExp('^###\\s+' + subPattern);
+  for (var i = 0; i < lines.length; i++) {
+    if (/^###/.test(lines[i])) {
+      if (found) break;
+      if (subRegex.test(lines[i])) { found = true; }
+      continue;
+    }
+    if (found) result.push(lines[i]);
+  }
+  return result.join('\n');
 }
 
 function sectionHasContent(filePath, pattern) {
@@ -82,7 +100,7 @@ function labelHasContent(section, label) {
     for (var j = i + 1; j < lines.length; j++) {
       var next = lines[j].trim();
       if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /_-]*:[ \t]*/.test(next)) break;
+      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
       return true;
     }
     continue;
@@ -193,11 +211,24 @@ function completionState(projectDir, specPath, mode) {
   var acceptance = mode === 'micro'
     ? labelHasContent(plan, 'Acceptance') && labelHasContent(plan, 'Verification')
     : sectionHasContent(specPath, SECTION.acceptanceCriteria);
-  var research = mode === 'standard'
-    ? subsectionHasContent(specPath, SECTION.confirmedRequirement)
-    : mode === 'lite'
-      ? sectionHasContent(specPath, SECTION.confirmedRequirement)
-      : sectionHasContent(specPath, SECTION.intake);
+  var CONFIRMED_REQ_LABELS = ['Scope Boundary', 'Irreversibility', 'Impact Radius', 'Dependencies & Constraints', 'Acceptance Intent'];
+  var research;
+  if (mode === 'micro') {
+    research = sectionHasContent(specPath, SECTION.intake);
+  } else {
+    var crSection = mode === 'standard'
+      ? subsectionText(specPath, 'Research', SECTION.confirmedRequirement)
+      : sectionText(specPath, SECTION.confirmedRequirement);
+    // Structured fields present: require all 5 labels to have content
+    if (crSection && /Scope Boundary:|Irreversibility:|Impact Radius:|Dependencies & Constraints:|Acceptance Intent:/i.test(crSection)) {
+      research = CONFIRMED_REQ_LABELS.every(function(label) { return labelHasContent(crSection, label); });
+    } else {
+      // Legacy free-text: fall back to section-has-content check
+      research = mode === 'standard'
+        ? subsectionHasContent(specPath, SECTION.confirmedRequirement)
+        : sectionHasContent(specPath, SECTION.confirmedRequirement);
+    }
+  }
   var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
   var approvedBy = labelHasContent(content, 'Plan Approved By');
   var approvedAt = labelHasContent(content, 'Approved At');

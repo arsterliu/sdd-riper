@@ -102,6 +102,8 @@ function run(projectDir, opts) {
   console.log('');
   console.log('### Research Challenge');
   console.log('- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.');
+  console.log('- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.');
+  console.log('- Challenge whether Research Reviewed By and Research Reviewed At are properly recorded.');
   console.log('');
   console.log('### Design Challenge');
   console.log('- Challenge architecture, data model, interface contract, impact scope, compatibility, rollback, and failure modes.');

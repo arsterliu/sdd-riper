@@ -24,7 +24,7 @@ function firstRealLine(section) {
     return line &&
       !line.startsWith('|') &&
       !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /_-]*:\s*$/.test(line) &&
+      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
       !/^[-:]+$/.test(line);
   }) || '';
 }
@@ -80,9 +80,26 @@ function run(projectDir) {
       if (st !== 'archived') draft++;
       var sm = common.getFrontmatterField(sp, 'mode') || 'standard';
       var lw = 0;
-      if (sm === 'lite') { if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1; if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
-      else if (sm === 'micro') { if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1; }
-      else { if (common.subsectionIsEmpty(sp, SECTION.confirmedRequirement)) lw = 1; if (common.subsectionIsEmpty(sp, SECTION.openQuestions)) lw = 1; }
+      if (sm === 'lite') {
+        if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1;
+        if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1;
+      } else if (sm === 'micro') {
+        if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1;
+      } else {
+        if (common.subsectionIsEmpty(sp, SECTION.confirmedRequirement)) lw = 1;
+        if (common.subsectionIsEmpty(sp, SECTION.openQuestions)) lw = 1;
+      }
+      // Check Confirmed Requirement structured fields for standard/lite
+      if (sm !== 'micro') {
+        try {
+          var crContent = fs.readFileSync(sp, 'utf-8');
+          if (!/Scope Boundary:[ \t]*\S/m.test(crContent) || !/Irreversibility:[ \t]*\S/m.test(crContent) ||
+              !/Impact Radius:[ \t]*\S/m.test(crContent) || !/Dependencies & Constraints:[ \t]*\S/m.test(crContent) ||
+              !/Acceptance Intent:[ \t]*\S/m.test(crContent)) lw = 1;
+          // Check Research Gate
+          if (!/^Research Reviewed By:[ \t]*\S/m.test(crContent)) lw = 1;
+        } catch (e) {}
+      }
       try { if (/\[待确认\]/.test(fs.readFileSync(sp, 'utf-8'))) lw = 1; } catch (e) {}
       if (lw) warnResearch.push(f);
       if (common.sectionIsEmpty(sp, SECTION.innovateOptions)) {

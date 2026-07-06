@@ -117,7 +117,10 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  ├─ Findings：代码事实 + 项目约束 + 架构概览（sdd codemap 按需）           │
 │  ├─ Open Questions → AskUserQuestion 交互澄清                              │
 │  ├─ Assumptions：暂未确认的约束                                           │
-│  └─ Confirmed Requirement：校准后的需求边界                                │
+│  ├─ Research Gate: Research Reviewed By + Research Reviewed At              │
+│  └─ Confirmed Requirement：校准后的需求边界（5 要素）                      │
+│     Scope Boundary / Irreversibility / Impact Radius                       │
+│     / Dependencies & Constraints / Acceptance Intent                       │
 └──────────────────────────────┬──────────────────────────────────────────────┘
                                │
                                ▼
@@ -259,7 +262,9 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  sdd validate <dir> --archive-ready                                        │
 │  ┌─────────────────────────────────────────────────────────────────────┐    │
 │  │  归档门禁清单:                                                       │    │
-│  │  ┌─ Plan Gate: Approved By + Approved At + Gate Evidence（auto 时）  │    │
+│  │  ┌─ Research Gate: Research Reviewed By + Research Reviewed At（standard/lite 必填）│    │
+│  │  │   └─ Confirmed Requirement 5 要素非空（Scope Boundary / Irreversibility / Impact Radius / Dependencies & Constraints / Acceptance Intent）│    │
+│  │  ├─ Plan Gate: Approved By + Approved At + Gate Evidence（auto 时）  │    │
 │  │  ├─ Challenge Verdict: 非 FAIL_*                                    │    │
 │  │  ├─ Challenge Evidence: Executed By + Executed At + Evidence        │    │
 │  │  │   ├─ standard/lite: Executed By 含 subagent                      │    │
@@ -308,7 +313,7 @@ workflow.analyzeSpec()
     ├─ 读 Spec 内容: Plan Approved / Challenge Verdict / Gate Evidence
     ├─ 读 Design / Execute Log 内容
     ├─ validate.validateSpec(archiveReady: true) → issues[]
-    ├─ riskFlags(actionText) → security / billing / migration / public-api / irreversible
+    ├─ riskFlags(actionText, confirmedRequirement) → security / billing / migration / public-api / irreversible
     ├─ designMethodHint(mode, riskFlags) → advisory 方法论建议
     │
     ├─ challengeVerdict: 优先用 Spec 中显式值，无则从 issues 推导
@@ -341,7 +346,8 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 - Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料（PRD、UI 稿、原型等）放入 `mydocs/context/<task-name>/`，`sdd discover` 自动绑定 `context-source`。
 - Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过”其他”选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
-- Confirmed Requirement：校准后的需求边界。
+- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的门禁。standard/lite 要求 subagent 独立审查；micro 跳过。Gate Policy 与 Plan Gate 一致。
+- Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
 
 ### Innovate
 

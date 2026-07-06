@@ -49,7 +49,9 @@ function replaceSectionStart(content, heading, body) {
 }
 
 function fillApproval(content) {
-  return content
+  return fillConfirmedReq(content)
+    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent')
+    .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
     .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
 }
@@ -66,9 +68,20 @@ function fillChallenge(content, verdict, opts) {
 }
 
 function fillAutoApproval(content) {
-  return content
+  return fillConfirmedReq(content)
+    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: auto-gate')
+    .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
     .replace(/^Plan Approved By:$/m, 'Plan Approved By: auto-gate')
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.');
+}
+
+function fillConfirmedReq(content) {
+  return content
+    .replace(/^Scope Boundary:$/m, 'Scope Boundary: single module')
+    .replace(/^Irreversibility:$/m, 'Irreversibility: none')
+    .replace(/^Impact Radius:$/m, 'Impact Radius: internal only')
+    .replace(/^Dependencies & Constraints:$/m, 'Dependencies & Constraints: none')
+    .replace(/^Acceptance Intent:$/m, 'Acceptance Intent: behavior preserved');
 }
 
 function completionVerificationLog(timestamp) {
@@ -217,8 +230,7 @@ function makeStandardArchiveReady(demo, specFile) {
   var designFile = artifactPath(demo, specFile, 'design-file');
   var logFile = artifactPath(demo, specFile, 'execute-log-file');
   var content = fs.readFileSync(specFile, 'utf-8');
-  content = content
-    .replace(/^(### Confirmed Requirement\n)/m, '$1交付一个通过门禁校验的归档流程。\n');
+  content = content;
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 保留校验后的归档流程。Pros: 简单。Cons: 仅测试覆盖。\nOption B: 跳过归档。Pros: 无。Cons: 无法覆盖。\nSelected: 方案 A。');
   content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: 完整 standard spec 可以归档\nRequirement: archive-flow\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: 有效 standard spec\n  Given standard spec 包含设计、AC、审批、执行日志和 PASS 评审\n  When archive 执行\n  Then spec 被移动到 archive');
   content = fillApproval(content);
@@ -253,8 +265,7 @@ function makeStandardExecutedButUnchallenged(demo, specFile) {
   var designFile = artifactPath(demo, specFile, 'design-file');
   var logFile = artifactPath(demo, specFile, 'execute-log-file');
   var content = fs.readFileSync(specFile, 'utf-8');
-  content = content
-    .replace(/^(### Confirmed Requirement\n)/m, '$1交付一个已完成执行、等待 Challenge 的任务。\n');
+  content = content;
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 在执行完成后强制路由到 Challenge。Pros: 不会漏掉门禁。Cons: 需要显式记录结果。\nOption B: 只依赖归档校验。Pros: 改动小。Cons: 容易误导 agent。\nSelected: Option A。');
   content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: challenge required after execute\nRequirement: challenge-route\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Challenge required\n  Given standard spec 已完成执行\n  When next 或 resume 运行\n  Then 输出 Challenge 阶段');
   content = fillApproval(content);
@@ -1115,6 +1126,38 @@ describe('CLI commands', function() {
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Challenge Executed At must be after the last Execute Log step timestamp') !== -1);
+  });
+
+  it('validate requires Gate Evidence for auto-gate Research review', function() {
+    var demo = path.join(tmpBase, 'd4rg');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name rg-evidence --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-rg-evidence.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = fillConfirmedReq(c);
+    c = c
+      .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: auto-gate')
+      .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z');
+    fs.writeFileSync(sf, c, 'utf-8');
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Gate Evidence is required for auto-gate Research review') !== -1);
+  });
+
+  it('validate warns but does not block on missing CR fields when not archive-ready', function() {
+    var demo = path.join(tmpBase, 'd4crw');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name cr-warn --spec-version v1.0 --requirement x');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-cr-warn.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    // Fill only Scope Boundary, leave other CR fields empty
+    c = c.replace(/^Scope Boundary:$/m, 'Scope Boundary: single module');
+    fs.writeFileSync(sf, c, 'utf-8');
+    // Non archive-ready: CR missing fields should produce WARNING, not hard failure
+    var validate = require('../src/commands/validate');
+    var result = validate.validateSpec(sf, { archiveReady: false, projectDir: demo });
+    var crIssues = result.issues.filter(function(i) { return i.indexOf('Confirmed Requirement') !== -1; });
+    // Should have WARNING (not hard error) for missing CR fields
+    assert.ok(crIssues.some(function(i) { return i.indexOf('WARNING') !== -1; }), 'expected WARNING for missing CR fields: ' + crIssues.join('; '));
   });
 
   it('validate enforces lite design note and acceptance criteria', function() {

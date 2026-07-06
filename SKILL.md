@@ -175,7 +175,12 @@ Required outputs in Spec:
 - Findings (from code, docs, historical Specs, **and project conventions**: eslint/prettier/tsconfig rules, test framework, CI gates, etc. — Design and Execute must comply)
 - Open Questions
 - Assumptions
-- Confirmed Requirement
+- Confirmed Requirement (five structured fields: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent)
+- Research Reviewed By / Research Reviewed At (gate confirmation)
+
+Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
+
+Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require subagent independent review; micro skips. Gate Policy (manual/auto/advisory) applies as for Plan Gate.
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
@@ -210,7 +215,7 @@ This phase happens after Innovate and before Plan.
 
 ### Method Routing (advisory)
 
-Do not spread every methodology over every task. SDD routes design methodology from `mode` + `riskFlags`. `sdd next` and `sdd cruise` print `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` as advisory hints — follow them, but the orchestrator owns the final call.
+Do not spread every methodology over every task. SDD routes design methodology from `mode` + `riskFlags`. `riskFlags` extracts signals primarily from Confirmed Requirement structured fields (Irreversibility, Impact Radius, Dependencies & Constraints, Scope Boundary), falling back to full-text keyword scanning when structured fields are absent. `sdd next` and `sdd cruise` print `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` as advisory hints — follow them, but the orchestrator owns the final call.
 
 | Signal | Suggested methodology / focus |
 | :--- | :--- |

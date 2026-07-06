@@ -76,4 +76,43 @@ describe('riskFlags action-region scanning', function() {
     assert.ok(workflow.riskFlags('接入支付网关').indexOf('billing') !== -1);
     assert.ok(workflow.riskFlags('公开接口变更').indexOf('public-api') !== -1);
   });
+
+  it('extracts irreversible flag from Irreversibility label (AC-011)', function() {
+    var crSection = 'Scope Boundary: single module\nIrreversibility: 数据库 schema 变更，不可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('irreversible') !== -1, 'expected irreversible from Irreversibility label: ' + flags);
+  });
+
+  it('extracts public-api flag from Impact Radius label (AC-012)', function() {
+    var crSection = 'Scope Boundary: API layer\nIrreversibility: none\nImpact Radius: 涉及公开 API 接口\nDependencies & Constraints: none\nAcceptance Intent: API compatibility';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('public-api') !== -1, 'expected public-api from Impact Radius label: ' + flags);
+  });
+
+  it('extracts security/billing/migration from Dependencies & Constraints label (AC-013)', function() {
+    var crSection = 'Scope Boundary: auth module\nIrreversibility: none\nImpact Radius: internal\nDependencies & Constraints: 依赖认证服务和计费系统，涉及数据迁移\nAcceptance Intent: auth preserved';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('security') !== -1, 'expected security from Dependencies label: ' + flags);
+    assert.ok(flags.indexOf('billing') !== -1, 'expected billing from Dependencies label: ' + flags);
+    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from Dependencies label: ' + flags);
+  });
+
+  it('extracts migration from Scope Boundary label when not already flagged (AC-014)', function() {
+    var crSection = 'Scope Boundary: 涉及 schema 变更\nIrreversibility: none\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: schema preserved';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from Scope Boundary label: ' + flags);
+  });
+
+  it('falls back to full-text scanning when no structured fields (AC-015)', function() {
+    var crSection = '这是一个自由文本的 Confirmed Requirement，提到了 security 和 migration';
+    var flags = workflow.riskFlags('提到了 security 和 migration 的内容', crSection);
+    assert.ok(flags.indexOf('security') !== -1, 'expected security from full-text fallback: ' + flags);
+    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from full-text fallback: ' + flags);
+  });
+
+  it('Irreversibility none/reversible does not flag irreversible (AC-016)', function() {
+    var crSection = 'Scope Boundary: single module\nIrreversibility: none, fully reversible\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('irreversible') === -1, 'should not flag irreversible when none/reversible: ' + flags);
+  });
 });

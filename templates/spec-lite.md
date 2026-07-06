@@ -26,7 +26,16 @@ learning-file:
 
 ## Assumptions
 
+Research Reviewed By:
+Research Reviewed At:
+
 ## Confirmed Requirement
+<!-- Fill each label with analysis in Chinese. These five elements are the structured output of Research. -->
+Scope Boundary:
+Irreversibility:
+Impact Radius:
+Dependencies & Constraints:
+Acceptance Intent:
 
 ## Innovate Options
 <!-- Lite may skip Innovate only with explicit reason, e.g. Innovate: Skipped, Reason: <Chinese reason>. -->

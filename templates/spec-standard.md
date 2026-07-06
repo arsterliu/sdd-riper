@@ -43,7 +43,16 @@ When filling narrative content, write the actual analysis, decisions, plans, and
 
 ### Assumptions
 
+Research Reviewed By:
+Research Reviewed At:
+
 ### Confirmed Requirement
+<!-- Fill each label with analysis in Chinese. These five elements are the structured output of Research. -->
+Scope Boundary:
+Irreversibility:
+Impact Radius:
+Dependencies & Constraints:
+Acceptance Intent:
 
 ## Innovate Options
 <!-- Compare at least two options. Write the option analysis in Chinese. -->
