@@ -182,7 +182,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 └─────────────────────────────────────────────────┘
 ```
 
-- **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement。Findings 应包含项目编码惯例（eslint/tsconfig 等），确保后续不违背项目规范。
+- **Research**：澄清需求、约束、事实和不确定性，形成 Confirmed Requirement（5 个结构化要素：Scope Boundary / Irreversibility / Impact Radius / Dependencies & Constraints / Acceptance Intent）。Research Gate（Research Reviewed By / Research Reviewed At）确保产出经独立审查。Findings 应包含项目编码惯例（eslint/tsconfig 等），确保后续不违背项目规范。
 - **Innovate**：至少比较两个方案；lite 可跳过，但必须写明 Reason。
 - **Design/Acceptance**：standard/lite 在独立 Design 文件写设计，验收标准仍留在 Spec；micro 把 `Acceptance` / `Verification` 写入 Plan。
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。

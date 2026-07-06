@@ -609,7 +609,7 @@ standard/lite 模式下 `Challenge Executed By` 必须包含 `subagent`（对抗
 
 | 轴 | 审查什么 | FAIL verdict | 回跳目标 |
 | :--- | :--- | :--- | :--- |
-| Research Challenge | 确认需求是否匹配原始目标，隐含假设是否暴露 | FAIL_SPEC | Research |
+| Research Challenge | 确认需求是否匹配原始目标，隐含假设是否暴露，5 个结构化要素是否准确捕获，Research Gate 是否正确记录 | FAIL_SPEC | Research |
 | Design Challenge | 架构、数据模型、接口契约、影响范围、兼容性、回滚、失败模式 | FAIL_DESIGN | Design |
 | Acceptance Challenge | AC 是否可观察、可验证、可追踪到需求 | FAIL_ACCEPTANCE | Acceptance |
 | Plan Challenge | Plan 步骤是否可执行、有边界、从 Design 和 AC 推导 | FAIL_PLAN | Plan |
