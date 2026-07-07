@@ -184,6 +184,13 @@ Research Gate requires `Research Reviewed By` and `Research Reviewed At` before 
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
+Dispatch categories (see `protocols/subagent-dispatch.md` for full Phase Dispatch Map):
+
+- Requirement Review: **KEEP** (requires user interaction)
+- Findings evidence collection: **DELEGATABLE** (delegate when read volume is high)
+- Confirmed Requirement: **KEEP** (gate decision)
+- Research Gate review: **MUST_DELEGATE** (role separation — implementer cannot review own work)
+
 ## Innovate Phase
 
 Goal: define viable approaches before choosing.
@@ -208,6 +215,11 @@ Innovate: Skipped, Reason: ...
 ```
 
 micro skips Innovate.
+
+Dispatch categories:
+
+- Option exploration: **DELEGATABLE** (subagent can brainstorm, but high decision density makes inline natural for small tasks)
+- Option selection: **KEEP** (gate decision)
 
 ## Design / Acceptance Phase
 
@@ -273,6 +285,12 @@ Write design note in `design-file`, not in Spec. Keep labels in English and fill
 
 Write lightweight acceptance criteria in Spec. Keep them compact, but each AC must still use `AC-###` and include `Verification:` metadata.
 
+Dispatch categories:
+
+- Design writing: **DELEGATABLE** (brief cost is high; small tasks: inline, large tasks: delegate per module)
+- Acceptance Criteria writing: **DELEGATABLE** (same trade-off as Design)
+- Design review: **MUST_DELEGATE** (implemented through the Challenge phase — not a separate dispatch)
+
 ### Micro
 
 No standalone Design. Plan must include English labels for:
@@ -310,6 +328,11 @@ Gate Evidence: <required for auto-gate>
 ```
 
 Do not self-approve. `auto-gate` is allowed only when the evidence is explicit and verifiable.
+
+Dispatch categories:
+
+- Plan writing: **KEEP** (requires full upstream context — Design + AC)
+- Plan approval: **KEEP** (gate decision)
 
 ## Execute Phase
 
@@ -394,6 +417,11 @@ This replaces the former Review Verdict / Review Summary section in the Spec. Re
 
 Never rely on a subagent success report for final verification.
 
+Dispatch categories:
+
+- Code implementation: **DELEGATABLE** (Plan defines boundary; delegation saves context and protects Challenge independence. Small steps: inline may be acceptable)
+- Result verification: **KEEP** (orchestrator re-reads changed files and runs tests)
+
 `validate --archive-ready` cross-checks AC Coverage (L1-L4):
 - L1: every AC in Spec has a Coverage record in Execute Log
 - L2: all Coverage results are PASS (SKIPPED with human approval is OK)
@@ -429,6 +457,13 @@ Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_AC
 Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
 Challenge Summary: <evidence>
 ```
+
+Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+
+Dispatch categories:
+
+- Adversarial review: **MUST_DELEGATE** (role separation — the implementer cannot review their own work; standard/lite must dispatch)
+- Verdict aggregation: **KEEP** (orchestrator applies verdict precedence and records via `sdd challenge --record-result`)
 
 Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
 
@@ -509,6 +544,11 @@ Fill the generated `learning-file` with reusable decision rules in Chinese, not 
 
 Subagents may collect evidence for a Learning Record, but the orchestrator owns whether a lesson is required and writes the final rule.
 
+Dispatch categories:
+
+- Learning Record creation: **KEEP** (orchestrator decides whether a reusable lesson exists)
+- Evidence collection for Learning: **DELEGATABLE** (subagent can gather evidence, orchestrator writes the rule)
+
 ## Archive Phase
 
 Before archive:
@@ -535,6 +575,10 @@ Archive moves:
 - referenced Learning Record into `<docs-root>/archive/` when present
 
 Archive also updates the archived Spec references to archive-relative paths.
+
+Dispatch categories:
+
+- Archive execution: **KEEP** (orchestrator owns the archive decision and execution)
 
 Do not archive if the user reports a defect. Return to Execute / Challenge first.
 
