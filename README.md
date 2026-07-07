@@ -188,6 +188,8 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。
 - **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。最后一步是 Completion Verification（四轴自查 + AC Coverage 汇总）。
 - **Challenge**：Execute Completion Verification 完成后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
+
+每个阶段内的活动按三类分工：**KEEP**（orchestrator 必须做，如门禁决策）、**MUST_DELEGATE**（必须委托独立角色，如对抗评审）、**DELEGATABLE**（灵活可选，如代码实现）。详见 [GUIDE.md](./GUIDE.md) 第五节。
 - **Cruise**：Challenge 返回 `FAIL_*` 后进入。每轮按 Backtrack Target 修复、validate、再次 challenge，直到通过或达到迭代上限。`sdd cruise` 本身不执行模型循环，也不直接修复代码。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
 - **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。

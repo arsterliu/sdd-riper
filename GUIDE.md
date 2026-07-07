@@ -777,25 +777,80 @@ GATE_POLICY 控制 Plan 审批权——这是 SDD 最核心的治理门禁。默
 | micro + auto | 轻流程 + AI 自批 | 低风险小改动（最常见） |
 | micro + manual | 轻流程 + 人审批 | 小改动但涉及关键逻辑（如配置变更） |
 
-## 五、Subagent 策略
+## 五、编排模型：Phase Dispatch Map
 
-不采用“关键环节全部 subagent owner 化”。
+SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些活动必须由主 agent（orchestrator）做，哪些可以委托，哪些必须委托？**
 
-推荐策略是：
+### 三类活动
 
-- subagent 做 **evidence owner**：读取大量代码、历史 Spec、依赖文档，返回压缩证据。
-- subagent 做 **work-package owner**：在大执行任务中处理局部实现包。
-- subagent 做 **challenge axis owner**：分别检查 Challenge 的某个轴。
-- orchestrator 做 **decision owner**：需求边界、方案选择、Plan gate、最终 verdict、归档一致性都由主上下文负责。
+| 类别 | 含义 | 示例 |
+| :--- | :--- | :--- |
+| **KEEP** | orchestrator 必须自己做。涉及门禁决策、用户交互或跨产物判断。 | Plan 审批、Confirmed Requirement 终审、Challenge verdict 聚合 |
+| **MUST_DELEGATE** | 必须委托独立角色。角色分离是硬约束——实现者不能审查自己的工作。 | Challenge 对抗评审、Research Gate 审查 |
+| **DELEGATABLE** | orchestrator 可自行决定。取决于上下文负载、任务规模和角色分离收益。 | Design 编写、代码实现、Findings 证据收集 |
 
-不可交给 subagent 直接决定的事项：
+三类分法的设计意图：SDD 定义**原则**（什么必须委托、什么必须保留、什么灵活可选），宿主环境决定**策略**（subagent、不同对话、人工审核等具体执行方式）。
 
-- Final Challenge verdict。
-- Plan Approval。
-- Completion Verification。
-- 规范性产物的最终改写。
+### 各阶段 Dispatch Map
 
-micro 默认不派发 subagent。lite 只在代码阅读量大或上下文污染风险高时派发。standard 推荐在 Research、复杂 Execute、Challenge 评审中使用。
+| 阶段 | 活动 | 类别 | 理由 |
+| :--- | :--- | :--- | :--- |
+| Research | Requirement Review | KEEP | 需要用户交互（Open Questions、Assumptions） |
+| Research | Findings 证据收集 | DELEGATABLE | 代码/文档阅读量大时委托，子 agent 返回压缩证据 |
+| Research | Confirmed Requirement | KEEP | 门禁决策——orchestrator 终审 |
+| Research | Research Gate 审查 | MUST_DELEGATE | 角色分离——产出 Research 的人不能审查它 |
+| Innovate | 方案探索 | DELEGATABLE | 子 agent 可以头脑风暴，但小任务内联也自然 |
+| Innovate | 方案选择 | KEEP | 门禁决策 |
+| Design / Acceptance | Design 编写 | DELEGATABLE | Brief 成本高；小任务内联，大任务按模块委托 |
+| Design / Acceptance | AC 编写 | DELEGATABLE | 同 Design 的取舍 |
+| Design / Acceptance | Design 审查 | MUST_DELEGATE | 通过 Challenge 阶段实现，不是独立派发 |
+| Plan | Plan 编写 | KEEP | 需要完整的上游上下文（Design + AC） |
+| Plan | Plan 审批 | KEEP | 门禁决策 |
+| Execute | 代码实现 | DELEGATABLE | Plan 已定义边界；委托节省上下文且保护 Challenge 独立性 |
+| Execute | 结果验证 | KEEP | orchestrator 重读文件、跑测试——验证不可委托 |
+| Challenge | 对抗评审 | MUST_DELEGATE | 角色分离——实现者不能审查自己的工作 |
+| Challenge | Verdict 聚合 | KEEP | orchestrator 应用 verdict 优先级并记录 |
+| Learning Check | Learning Record 创建 | KEEP | orchestrator 决定是否存在可复用经验 |
+| Learning Check | 证据收集 | DELEGATABLE | 子 agent 可收集证据，orchestrator 写规则 |
+| Archive | 归档执行 | KEEP | orchestrator 拥有归档决策和执行 |
+
+### DELEGATABLE 决策框架
+
+当一个活动是 DELEGATABLE，orchestrator 基于三个信号决定：
+
+| 信号 | 低 | 高 |
+| :--- | :--- | :--- |
+| **上下文负载** | 早期阶段，spec 小 → 内联 | 多阶段已完成，spec 大 → 委托 |
+| **任务规模** | 1-2 文件，<100 行变更 → 内联 | 6+ 文件或多模块 → 委托 |
+| **角色分离收益** | 下游无独立审查依赖 → 仅省上下文 | 委托保护下游审查独立性 → 双重收益 |
+
+**关键行**：即使上下文负载低、任务规模小，如果委托能保护审查独立性（如 Execute → Challenge），也应该委托。一个内联 Execute 步骤看似无害，但会让 orchestrator 同时成为实现者和审查者——这正是导致自签 Challenge PASS 的模式。
+
+### 子 agent 的三个约束
+
+1. **Brief 自足**：orchestrator 将相关 Spec / Design / Execute Log 摘要直接贴入 brief，不让子 agent 自己找。
+2. **子 agent 不写 SDD 产物**：Spec（控制面决策）、Design（技术设计）、Execute Log（执行事实）、Learning Record（可复用规则）由 orchestrator 写入。子 agent 可以修改代码文件，但不能创建或修改 SDD 产物。
+3. **返回压缩**：verdict + summary + 证据指针 + 可选建议。禁止原始文件转储、长引用、verbose 推理链。
+
+### 委托后验证
+
+任何 DELEGATABLE 活动委托后，orchestrator 必须验证结果：
+
+1. **重读变更文件**——确认变更在 Plan 步骤或 brief 范围内。
+2. **运行测试**——确认子 agent 报告的测试结果与实际输出一致。
+3. **记录到 Execute Log**——追加步骤结果，包含子 agent 的摘要和 orchestrator 的验证。
+
+此验证是 KEEP 活动——不可委托。
+
+### 模式策略
+
+| 模式 | MUST_DELEGATE | DELEGATABLE |
+| :--- | :--- | :--- |
+| standard | 强制 | 默认委托（上下文负载高、产物要求多） |
+| lite | 强制 | 可选（上下文量大或角色分离需要时委托） |
+| micro | 不适用（跳过 Research Gate，内联 Challenge） | 默认内联 |
+
+完整的协议细节和 Brief Schema 模式见 `protocols/subagent-dispatch.md`。
 
 ## 六、两层方法论与方法论路由
 

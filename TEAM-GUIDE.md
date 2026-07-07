@@ -54,6 +54,8 @@ TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `GATE_P
 
 ## 4. 角色分工
 
+### 人与 AI 的分工
+
 - **核心研发 (Senior)**：
   - 使用 **Standard** 模式运行完整 RIPER 流程。
   - 负责编写和维护 `CodeMap` 和 `ProjectMap`。
@@ -62,13 +64,31 @@ TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `GATE_P
   - 写 `Technical Design` 时用 ADR（`protocols/adr.md`）记录选型；对高风险任务发起 `sdd challenge` 做独立对抗评审（见第 9 节）。
 
 - **初级研发 / 低经验同学**：
-  - 建议先从 **Lite** 模式入手，培养“思考后再动手”的习惯。
+  - 建议先从 **Lite** 模式入手，培养”思考后再动手”的习惯。
   - 重点关注 `Confirmed Requirement` 的 5 个结构化要素（Scope Boundary / Irreversibility / Impact Radius / Dependencies & Constraints / Acceptance Intent），确保理解不偏航。
 
 - **TL / 主管 (Team Lead)**：
   - 负责 `Plan Approved` 门禁。
   - 定期查看 `sdd status` 报告，识别进度风险；多项目 / 全员进度用 `sdd console` 看板更直观（见第 9 节）。
-  - 不必介入每一行代码，但必须把控“方案方向”。
+  - 不必介入每一行代码，但必须把控”方案方向”。
+
+### AI 内部的编排分工
+
+SDD 定义了 orchestrator（主 agent）和子 agent 之间的三类活动分工，确保”实现者不审查自己”的角色分离：
+
+| 类别 | 含义 | 典型活动 |
+| :--- | :--- | :--- |
+| **KEEP** | orchestrator 必须做 | Plan 审批、Confirmed Requirement 终审、Challenge verdict 聚合、归档 |
+| **MUST_DELEGATE** | 必须委托独立角色 | Challenge 对抗评审、Research Gate 审查 |
+| **DELEGATABLE** | 灵活可选 | Design 编写、代码实现、Findings 收集（取决于上下文负载和任务规模） |
+
+**对团队的意义**：
+
+- **角色分离是硬约束**：standard/lite 模式下，实现代码的人和审查代码的人不能是同一个 agent。这是防止”自签 PASS”的根本保障。具体执行方式（subagent、不同对话、人工审查）由团队和宿主环境决定。
+- **DELEGATABLE 活动没有唯一正确答案**：小任务内联效率高，大任务委托省上下文。团队可以根据实际情况调整——SDD 保留了灵活度。
+- **KEEP 活动不可下放**：门禁决策、最终裁决、归档执行必须由 orchestrator 完成，这是产物一致性的底线。
+
+完整 Dispatch Map 和决策框架见 `GUIDE.md` 第五节和 `protocols/subagent-dispatch.md`。
 
 ---
 
