@@ -15,19 +15,11 @@ var VERDICT_TO_TARGET = {
   FAIL_LEARNING: 'Learning Check'
 };
 
-var CRUISE_ENGINES = ['auto', 'prompt', 'local-loop', 'claude-code', 'codex', 'opencode'];
+var CRUISE_DRIVERS = ['auto', 'prompt', 'local-loop', 'claude-code', 'codex', 'opencode'];
 
-function normalizeCruiseEngine(value) {
+function normalizeCruiseDriver(value) {
   var raw = String(value || 'auto').trim().toLowerCase();
-  var aliases = {
-    claude: 'claude-code',
-    'claude-workflow': 'claude-code',
-    'dynamic-workflow': 'claude-code',
-    local: 'local-loop',
-    loop: 'local-loop'
-  };
-  var engine = aliases[raw] || raw;
-  return CRUISE_ENGINES.indexOf(engine) !== -1 ? engine : '';
+  return CRUISE_DRIVERS.indexOf(raw) !== -1 ? raw : '';
 }
 
 function sectionContent(specPath, pattern) {
@@ -89,9 +81,10 @@ function classifyIssue(issue) {
   var failedChallenge = String(issue || '').match(/Adversarial Challenge failed:\s*(FAIL_[A-Z_]+)/i);
   if (failedChallenge) return failedChallenge[1].toUpperCase();
   if (/Challenge has not been executed/i.test(issue)) return 'FAIL_LOG';
+  if (/Challenge requires independent reviewer evidence/i.test(issue)) return 'FAIL_LOG';
   if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_LOG';
   if (/hardcoded secret|injection risk|missing input validation|dead code|code duplication|Code Challenge/i.test(issue)) return 'FAIL_CODE';
-  if (/Research Reviewed By|Research Reviewed At/i.test(issue)) return 'FAIL_SPEC';
+  if (/Research Reviewed By|Research Reviewed At|Research Gate requires independent reviewer evidence/i.test(issue)) return 'FAIL_SPEC';
   if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
   if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
   if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
@@ -259,13 +252,13 @@ function nextAction(verdict) {
 
 function analyzeSpec(projectDir, specPath, opts) {
   opts = opts || {};
-  var gatePolicy = common.getGatePolicy(projectDir);
-  var cruisePolicy = common.getCruisePolicy(projectDir);
+  var approvalPolicy = common.getApprovalPolicy(projectDir);
+  var cruiseEnabled = common.getCruiseEnabled(projectDir);
   var maxIterations = common.getCruiseMaxIterations(projectDir);
   if (!specPath || !fs.existsSync(specPath)) {
     return {
-      gatePolicy: gatePolicy,
-      cruisePolicy: cruisePolicy,
+      approvalPolicy: approvalPolicy,
+      cruiseEnabled: cruiseEnabled,
       maxIterations: maxIterations,
       challengeVerdict: 'FAIL_SPEC',
       backtrackTarget: 'Research',
@@ -322,8 +315,8 @@ function analyzeSpec(projectDir, specPath, opts) {
       .replace(/\s+/g, '_');
   }
   return {
-    gatePolicy: gatePolicy,
-    cruisePolicy: cruisePolicy,
+    approvalPolicy: approvalPolicy,
+    cruiseEnabled: cruiseEnabled,
     maxIterations: maxIterations,
     challengeVerdict: verdict,
     backtrackTarget: target,
@@ -347,8 +340,8 @@ function analyzeProject(projectDir, opts) {
 
 module.exports = {
   VERDICT_TO_TARGET: VERDICT_TO_TARGET,
-  CRUISE_ENGINES: CRUISE_ENGINES,
-  normalizeCruiseEngine: normalizeCruiseEngine,
+  CRUISE_DRIVERS: CRUISE_DRIVERS,
+  normalizeCruiseDriver: normalizeCruiseDriver,
   analyzeSpec: analyzeSpec,
   analyzeProject: analyzeProject,
   challengeVerdictFromIssues: challengeVerdictFromIssues,

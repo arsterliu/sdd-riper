@@ -12,3 +12,8 @@
 | v1.0-ai-config-managed-block.md | 2026-07-02 | ai-config-managed-block | — |
 | v1.5-spec-version-policy.md | 2026-07-04 | spec-version-policy | — |
 | v1.6-challenge-required-after-completion.md | 2026-07-05 | challenge-required-after-completion | — |
+| v2.2-governance-config-simplification.md | 2026-07-08 | governance-config-simplification | — |
+| v1.0-bdd-e2e-closure-and-review-merge.md | 2026-07-09 | bdd-e2e-closure-and-review-merge | legacy-cleared |
+| v1.0-track-mydocs-in-git.md | 2026-07-09 | track-mydocs-in-git | legacy-cleared |
+| v2.0-cruise-runtime-adapter.md | 2026-07-09 | cruise-runtime-adapter | legacy-cleared |
+| v2.1-structured-confirmed-req-and-research-gate.md | 2026-07-09 | structured-confirmed-req-and-research-gate | legacy-cleared |

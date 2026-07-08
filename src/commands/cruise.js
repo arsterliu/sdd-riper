@@ -1,38 +1,34 @@
 var workflow = require('../core/workflow');
 var cruiseRun = require('../core/cruise-run');
 
-function canReuseNativeLoop(engine, state) {
-  if (state && state.cruisePolicy !== 'autonomous') return false;
-  return ['auto', 'claude-code', 'codex', 'opencode'].indexOf(engine) !== -1;
+function canReuseNativeLoop(driver, state) {
+  if (state && !state.cruiseEnabled) return false;
+  return ['auto', 'claude-code', 'codex', 'opencode'].indexOf(driver) !== -1;
 }
 
-function printEngineAdapter(engine, projectDir, state) {
-  console.log('### Engine adapter');
-  if (state.cruisePolicy === 'assisted') {
-    console.log('- Use prompt-loop guidance only; do not start a host-native autonomous loop for this run.');
-    console.log('- Ask for human confirmation before each repair iteration.');
-    console.log('- SDD remains the control protocol and artifact truth chain.');
-  } else if (engine === 'auto') {
+function printDriverAdapter(driver, projectDir, state) {
+  console.log('### Driver adapter');
+  if (driver === 'auto') {
     console.log('- Prefer the host agent native loop when it is available.');
     console.log('- Priority: Claude Code Dynamic Workflows, Codex native loop, opencode native loop, then fallback to the prompt loop below.');
     console.log('- SDD remains the control protocol: run sdd next / validate / review-execute / challenge to decide each transition.');
     console.log('- Do not move Spec, Design, Plan, Execute Log, or Learning state into a host-specific workflow file.');
-  } else if (engine === 'claude-code') {
+  } else if (driver === 'claude-code') {
     console.log('- Use Claude Code Dynamic Workflows when enabled.');
     console.log('- The workflow script should orchestrate agents; agents should run sdd next / validate / review-execute / challenge.');
     console.log('- Keep challenge review independent from implementation agents.');
     console.log('- If unavailable, fallback to the prompt loop below.');
-  } else if (engine === 'codex') {
+  } else if (driver === 'codex') {
     console.log('- Use the Codex native loop when the current Codex surface supports autonomous continuation.');
     console.log('- Treat this prompt as the loop contract, not as a request for SDD to own model execution.');
     console.log('- SDD remains the control protocol and the Spec artifact chain remains the source of truth.');
     console.log('- If unavailable, fallback to the prompt loop below.');
-  } else if (engine === 'opencode') {
+  } else if (driver === 'opencode') {
     console.log('- Use the opencode native loop when the current opencode runtime supports autonomous continuation.');
     console.log('- Treat this prompt as the loop contract, not as a request for SDD to own model execution.');
     console.log('- SDD remains the control protocol and the Spec artifact chain remains the source of truth.');
     console.log('- If unavailable, fallback to the prompt loop below.');
-  } else if (engine === 'local-loop') {
+  } else if (driver === 'local-loop') {
     console.log('- Use prompt-loop compensation only when the host agent has no native loop.');
     console.log('- SDD may record iteration snapshots, but it does not invoke a model or run an executor.');
     console.log('- Stop after ' + state.maxIterations + ' iterations or any high-risk flag.');
@@ -46,21 +42,22 @@ function printEngineAdapter(engine, projectDir, state) {
 function run(projectDir, opts) {
   opts = opts || {};
   var state = workflow.analyzeProject(projectDir, opts);
-  var engine = workflow.normalizeCruiseEngine(opts.engine);
-  if (!engine) {
-    console.error('[ERROR] Invalid cruise engine: ' + opts.engine);
-    console.error('Allowed engines: ' + workflow.CRUISE_ENGINES.join(', '));
+  var requestedDriver = opts.driver || 'auto';
+  var driver = workflow.normalizeCruiseDriver(requestedDriver);
+  if (!driver) {
+    console.error('[ERROR] Invalid cruise driver: ' + requestedDriver);
+    console.error('Allowed drivers: ' + workflow.CRUISE_DRIVERS.join(', '));
     process.exit(1);
   }
-  if (state.cruisePolicy === 'off') {
+  if (!state.cruiseEnabled) {
     console.log('## CRUISE DISABLED');
     console.log('');
     console.log('SPEC: ' + (state.specPath || 'none'));
-    console.log('ENGINE: ' + engine);
-    console.log('GATE_POLICY: ' + state.gatePolicy);
-    console.log('CRUISE_POLICY: ' + state.cruisePolicy);
+    console.log('DRIVER: ' + driver);
+    console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
+    console.log('CRUISE_ENABLED: false');
     console.log('CRUISE_DISABLED: true');
-    console.log('REASON: CRUISE_POLICY=off');
+    console.log('REASON: CRUISE_ENABLED=false');
     console.log('CURRENT_CHALLENGE_VERDICT: ' + state.challengeVerdict);
     console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
     console.log('NEXT_ACTION: ' + state.nextAction);
@@ -72,14 +69,13 @@ function run(projectDir, opts) {
     });
     return;
   }
-  console.log(state.cruisePolicy === 'assisted' ? '## ASSISTED CRUISE PROMPT' : '## AUTONOMOUS CRUISE PROMPT');
+  console.log('## AUTONOMOUS CRUISE PROMPT');
   console.log('');
   console.log('SPEC: ' + (state.specPath || 'none'));
-  console.log('ENGINE: ' + engine);
-  console.log('REUSE_NATIVE_LOOP: ' + (canReuseNativeLoop(engine, state) ? 'yes-when-available' : 'no'));
-  console.log('GATE_POLICY: ' + state.gatePolicy);
-  console.log('CRUISE_POLICY: ' + state.cruisePolicy);
-  console.log('ASSISTED_REVIEW_REQUIRED: ' + (state.cruisePolicy === 'assisted' ? 'true' : 'false'));
+  console.log('DRIVER: ' + driver);
+  console.log('REUSE_NATIVE_LOOP: ' + (canReuseNativeLoop(driver, state) ? 'yes-when-available' : 'no'));
+  console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
+  console.log('CRUISE_ENABLED: true');
   console.log('MAX_ITERATIONS: ' + state.maxIterations);
   console.log('CURRENT_CHALLENGE_VERDICT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
@@ -89,8 +85,8 @@ function run(projectDir, opts) {
     console.log(line);
   });
   console.log('');
-  printEngineAdapter(engine, projectDir, state);
-  console.log(state.cruisePolicy === 'assisted' ? '### Assisted repair loop' : '### Autonomous repair loop');
+  printDriverAdapter(driver, projectDir, state);
+  console.log('### Autonomous repair loop');
   console.log('Run a bounded repair loop for at most ' + state.maxIterations + ' iterations.');
   console.log('1. Inspect the current workflow state and blockers.');
   console.log('2. Repair only the artifact indicated by BACKTRACK_TARGET.');
@@ -111,7 +107,7 @@ function run(projectDir, opts) {
     console.log('- ' + issue);
   });
   if (opts.emitClaudePrompt) {
-    if (engine !== 'claude-code' && engine !== 'auto') {
+    if (driver !== 'claude-code' && driver !== 'auto') {
       console.log('');
       console.log('[CLAUDE_PROMPT] skipped: emit-claude-prompt currently supports claude-code/auto only.');
     } else {
@@ -122,7 +118,7 @@ function run(projectDir, opts) {
     }
   }
   if (opts.recordRun) {
-    var recorded = cruiseRun.appendRun(projectDir, state, { engine: engine, iteration: opts.iteration });
+    var recorded = cruiseRun.appendRun(projectDir, state, { driver: driver, iteration: opts.iteration });
     console.log('');
     console.log('[RUN_LEDGER] ' + recorded.relativePath);
     console.log('[RUN_LEDGER_STOP] ' + recorded.entry.stopReason);

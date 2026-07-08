@@ -3,10 +3,8 @@ const path = require('path');
 const { getDocsDir, isValidDocsDirName } = require('../../lib/common');
 const genAiConfigs = require('./_gen-ai-configs');
 
-var SDD_PROTOCOL_VERSION = '1.0';
-
 function run(projectDir, opts) {
-  var mode = opts.mode || 'standard';
+  var mode = opts.mode || 'micro';
   if (['standard','lite','micro'].indexOf(mode) === -1) {
     console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
     process.exit(3);
@@ -36,10 +34,7 @@ function run(projectDir, opts) {
   var configFile = path.join(projectDir, '.sdd-config');
   var configContent = [
     'DOCS_DIR="' + docsDir + '"',
-    'MODE="' + mode + '"',
-    'SDD_VERSION="' + SDD_PROTOCOL_VERSION + '"',
-    'GATE_POLICY="auto"',
-    'CRUISE_POLICY="autonomous"',
+    'APPROVAL_POLICY="agent"',
     'CRUISE_MAX_ITERATIONS="5"',
     ''
   ].join('\n');

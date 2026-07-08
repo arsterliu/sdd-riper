@@ -153,6 +153,32 @@ function labelValue(section, label) {
   return '';
 }
 
+function isAgentApproval(value) {
+  return /^agent:[^:\s]+$/i.test(value || '');
+}
+
+function isHumanApproval(value) {
+  return /^human:[^:\s]+$/i.test(value || '');
+}
+
+function isPlanApproval(value) {
+  return isAgentApproval(value) || isHumanApproval(value);
+}
+
+function isAuditableReviewer(value, mode) {
+  var reviewer = String(value || '').trim();
+  if (!reviewer) return false;
+  if (mode === 'micro' && /^inline$/i.test(reviewer)) return true;
+  if (/^subagent:[^:\s]+$/i.test(reviewer)) return true;
+  if (/^external-agent:[^:\s]+$/i.test(reviewer)) return true;
+  if (/^human:[^:\s]+$/i.test(reviewer)) return true;
+  return false;
+}
+
+function independentReviewerMessage(label) {
+  return label + ' requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>).';
+}
+
 function acceptanceBlocks(section) {
   var lines = section.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
   var blocks = [];
@@ -217,24 +243,26 @@ function validateLearningRecord(projectDir, specPath, triggers, issues) {
   });
 }
 
-function validatePlanGate(content, gatePolicy, archiveReady, issues) {
+function validatePlanGate(content, approvalPolicy, archiveReady, issues) {
   var approvedBy = labelValue(content, 'Plan Approved By');
   var approvedAt = labelValue(content, 'Approved At');
   var gateEvidence = labelValue(content, 'Gate Evidence');
   if (!approvedBy) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Plan Approved By is empty.');
+    issues.push('Plan Approved By is empty.');
     return;
   }
   if (!approvedAt) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Approved At is empty.');
+    issues.push('Approved At is empty.');
   }
-  if (/^auto-gate$/i.test(approvedBy)) {
-    if (gatePolicy === 'manual') {
-      issues.push('Manual gate policy requires human Plan Approved By.');
-    }
-    if (!gateEvidence) {
-      issues.push('Gate Evidence is required for auto-gate approval.');
-    }
+  if (!isPlanApproval(approvedBy)) {
+    issues.push('Plan Approved By must be agent:<id> or human:<name>.');
+    return;
+  }
+  if (approvalPolicy === 'human' && !isHumanApproval(approvedBy)) {
+    issues.push('Human approval policy requires Plan Approved By: human:<name>.');
+  }
+  if (isAgentApproval(approvedBy) && !gateEvidence) {
+    issues.push('Gate Evidence is required for agent approval.');
   }
 }
 
@@ -284,24 +312,19 @@ function validateConfirmedRequirement(specPath, mode, archiveReady, issues) {
   }
 }
 
-function validateResearchGate(content, mode, gatePolicy, archiveReady, issues) {
+function validateResearchGate(content, mode, archiveReady, issues) {
   if (mode === 'micro') return; // micro skips Research entirely
   var reviewedBy = labelValue(content, 'Research Reviewed By');
   var reviewedAt = labelValue(content, 'Research Reviewed At');
   if (!reviewedBy) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Research Reviewed By is empty.');
+    issues.push('Research Reviewed By is empty.');
     return;
   }
   if (!reviewedAt) {
-    if (gatePolicy !== 'advisory' || archiveReady) issues.push('Research Reviewed At is empty.');
+    issues.push('Research Reviewed At is empty.');
   }
-  if (/^auto-gate$/i.test(reviewedBy)) {
-    if (gatePolicy === 'manual') {
-      issues.push('Manual gate policy requires human Research Reviewed By.');
-    }
-    if (!labelValue(content, 'Gate Evidence')) {
-      issues.push('Gate Evidence is required for auto-gate Research review.');
-    }
+  if (!isAuditableReviewer(reviewedBy, mode)) {
+    issues.push(independentReviewerMessage('Research Gate'));
   }
 }
 
@@ -312,36 +335,27 @@ function validateChallengeVerdict(content, issues) {
   }
 }
 
-function validateChallengeEvidence(content, mode, gatePolicy, archiveReady, issues) {
+function validateChallengeEvidence(content, mode, archiveReady, issues) {
   var executedBy = labelValue(content, 'Challenge Executed By');
   var executedAt = labelValue(content, 'Challenge Executed At');
   var challengeEvidence = labelValue(content, 'Challenge Evidence');
   var challengeTime = null;
   if (!executedBy) {
-    if (gatePolicy !== 'advisory' || archiveReady) {
-      issues.push('Challenge has not been executed: Challenge Executed By is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
-    }
+    issues.push('Challenge has not been executed: Challenge Executed By is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
     return challengeTime;
   }
   if (!executedAt) {
-    if (gatePolicy !== 'advisory' || archiveReady) {
-      issues.push('Challenge Executed At is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
-    }
+    issues.push('Challenge Executed At is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
   }
   if (!challengeEvidence) {
-    if (gatePolicy !== 'advisory' || archiveReady) {
-      issues.push('Challenge Evidence is required for challenge execution. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
-    }
-  }
-  if (/^auto-gate$/i.test(executedBy)) {
-    if (gatePolicy === 'manual') {
-      issues.push('Manual gate policy requires human Challenge Executed By.');
-    }
+    issues.push('Challenge Evidence is required for challenge execution. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
   }
   if (mode === 'standard' || mode === 'lite') {
-    if (!/subagent/i.test(executedBy)) {
-      issues.push('Standard and lite modes require subagent Challenge execution.');
+    if (!isAuditableReviewer(executedBy, mode)) {
+      issues.push(independentReviewerMessage('Challenge'));
     }
+  } else if (!isAuditableReviewer(executedBy, mode)) {
+    issues.push(independentReviewerMessage('Challenge'));
   }
   // Challenge Executed At must be a valid ISO-8601 timestamp.
   // Temporal ordering against Execute Log is checked separately in validateSpec.
@@ -553,8 +567,8 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
       // SKIPPED requires human approval three-element gate
       if (!cov.approvedBy) {
         issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved By.');
-      } else if (/^auto-gate$/i.test(cov.approvedBy)) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED; Approved By cannot be auto-gate.');
+      } else if (!isHumanApproval(cov.approvedBy)) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED; Approved By must be human:<name>.');
       }
       if (!cov.approvedAt) {
         issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved At.');
@@ -608,8 +622,8 @@ function validateSpec(specPath, opts) {
   if (/<!-- \(not filled\) -->|\[TBD\]/.test(content)) {
     issues.push('Spec still contains unresolved placeholders.');
   }
-  validatePlanGate(content, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
-  validateResearchGate(content, mode, common.getGatePolicy(projectDir), !!opts.archiveReady, issues);
+  validatePlanGate(content, common.getApprovalPolicy(projectDir), !!opts.archiveReady, issues);
+  validateResearchGate(content, mode, !!opts.archiveReady, issues);
   validateChallengeVerdict(content, issues);
 
   var challengeTime = null;
@@ -634,7 +648,7 @@ function validateSpec(specPath, opts) {
     if (completionStatus !== 'DONE') {
       issues.push('Execute Log completion-verification is not DONE.');
     } else {
-      challengeTime = validateChallengeEvidence(content, mode, common.getGatePolicy(projectDir), true, issues);
+      challengeTime = validateChallengeEvidence(content, mode, true, issues);
     }
   }
 
@@ -642,7 +656,7 @@ function validateSpec(specPath, opts) {
   if (opts.archiveReady && challengeTime && logArtifact.path) {
     var lastStepTime = common.extractLastStepTimestamp(fullExecuteLog || fs.readFileSync(logArtifact.path, 'utf-8'));
     if (lastStepTime && challengeTime <= lastStepTime) {
-      issues.push('Challenge Executed At must be after the last Execute Log step timestamp. Run: sdd challenge <project-dir>, then record the refreshed independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent".');
+      issues.push('Challenge Executed At must be after the last Execute Log step timestamp. Run: sdd challenge <project-dir>, then record the refreshed independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
     }
   }
 

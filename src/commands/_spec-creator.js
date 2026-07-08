@@ -51,7 +51,7 @@ function fillIntake(specContent, mode, opts) {
 // behavior; just reminds the chooser that micro is the default and standard
 // must be earned. See protocols/mode-selection.md.
 function modeAdvisory(mode, explicit) {
-  var lines = ['[MODE] ' + mode + (explicit ? ' (from --mode)' : ' (from project default)') +
+  var lines = ['[MODE] ' + mode + (explicit ? ' (from --mode)' : ' (default micro)') +
     ' — rubric: protocols/mode-selection.md (default micro; escalate only on a named signal).'];
   if (mode === 'standard') {
     lines.push('  standard is the heaviest mode: confirm a real signal earns it (interface contract, irreversibility, risk, or 3+ stacked signals); otherwise prefer lite/micro.');
@@ -103,7 +103,7 @@ function run(projectDir, opts) {
     mode = opts.mode;
   }
 
-  var specTemplate = common.getSpecTemplate(projectDir, opts.mode || undefined);
+  var specTemplate = common.getSpecTemplate(projectDir, mode);
   if (!fs.existsSync(specTemplate)) {
     console.error('[ERROR] spec template not found at: ' + specTemplate);
     process.exit(1);

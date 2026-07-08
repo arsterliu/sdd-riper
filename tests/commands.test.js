@@ -50,10 +50,11 @@ function replaceSectionStart(content, heading, body) {
 
 function fillApproval(content) {
   return fillConfirmedReq(content)
-    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent')
+    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent:research-fixture')
     .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
-    .replace(/^Plan Approved By:$/m, 'Plan Approved By: Tester')
-    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z');
+    .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex')
+    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z')
+    .replace(/^Gate Evidence:$/m, 'Gate Evidence: fixture approval evidence');
 }
 
 function fillChallenge(content, verdict, opts) {
@@ -62,17 +63,18 @@ function fillChallenge(content, verdict, opts) {
     .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: ' + verdict)
     .replace(/^Backtrack Target:$/m, 'Backtrack Target: ' + (opts.backtrack || 'Ready'))
     .replace(/^Challenge Summary:$/m, 'Challenge Summary: ' + (opts.summary || 'ok.'))
-    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: ' + (opts.executedBy || 'subagent'))
+    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: ' + (opts.executedBy || 'subagent:challenge-fixture'))
     .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: ' + (opts.executedAt || '2026-01-01T00:01:00Z'))
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: ' + (opts.evidence || 'PASS - independent review'));
 }
 
 function fillAutoApproval(content) {
   return fillConfirmedReq(content)
-    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: auto-gate')
+    .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent:research-fixture')
     .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
-    .replace(/^Plan Approved By:$/m, 'Plan Approved By: auto-gate')
-    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.');
+    .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex')
+    .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z')
+    .replace(/^Gate Evidence:$/m, 'Gate Evidence: validate-ready evidence recorded by agent.');
 }
 
 function fillConfirmedReq(content) {
@@ -239,7 +241,7 @@ function makeStandardArchiveReady(demo, specFile) {
     .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
     .replace(/^Backtrack Target:$/m, 'Backtrack Target: Ready')
     .replace(/^Challenge Summary:$/m, 'Challenge Summary: all gates pass.')
-    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent')
+    .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent:archive-fixture')
     .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z')
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - independent review');
   fs.writeFileSync(specFile, content, 'utf-8');
@@ -386,8 +388,8 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('[CREATE]') !== -1);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', '.sdd-config')));
     var configText = fs.readFileSync(path.join(tmpBase, 'demo', '.sdd-config'), 'utf-8');
-    assert.match(configText, /^GATE_POLICY="auto"$/m);
-    assert.match(configText, /^CRUISE_POLICY="autonomous"$/m);
+    assert.match(configText, /^APPROVAL_POLICY="agent"$/m);
+    assert.strictEqual(configText.indexOf('CRUISE_POLICY='), -1);
     assert.match(configText, /^CRUISE_MAX_ITERATIONS="5"$/m);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'specs', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'design', '.gitkeep')));
@@ -399,7 +401,19 @@ describe('CLI commands', function() {
     assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);
     assert.ok(agentsText.indexOf('This project uses SDD-RIPER') !== -1);
     assert.ok(agentsText.indexOf('Do not manually fill Challenge Evidence fields') !== -1);
+    assert.ok(agentsText.indexOf('APPROVAL_POLICY') !== -1);
+    assert.ok(agentsText.indexOf('Independent Review') !== -1);
+    assert.ok(agentsText.indexOf('Cruise Driver') !== -1);
     assert.ok(claudeText.indexOf('Explicitly track RIPER phase transitions') !== -1);
+  });
+
+  it('init defaults generated AI config mode to micro', function() {
+    var demo = path.join(tmpBase, 'demo-default-init-mode');
+    run('init ' + demo);
+    var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
+    var configText = fs.readFileSync(path.join(demo, '.sdd-config'), 'utf-8');
+    assert.ok(agentsText.indexOf('- Mode: micro') !== -1);
+    assert.strictEqual(configText.indexOf('MODE='), -1);
   });
 
   it('init appends SDD-RIPER block to existing AI config files', function() {
@@ -458,7 +472,7 @@ describe('CLI commands', function() {
   it('discover creates spec, design, and execute log artifacts', function() {
     var demo = path.join(tmpBase, 'd2');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name my-login --spec-version v1.0 --requirement login');
+    var out = run('discover ' + demo + ' --task-name my-login --spec-version v1.0 --requirement login --mode standard');
     assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-my-login.md');
     var designFile = path.join(demo, 'mydocs', 'design', 'v1.0-my-login.design.md');
@@ -484,20 +498,33 @@ describe('CLI commands', function() {
     assert.ok(logText.indexOf('## Execute Log') !== -1);
   });
 
+  it('discover defaults new specs to micro when no mode is configured', function() {
+    var demo = path.join(tmpBase, 'd2-default-micro');
+    run('init ' + demo + ' --mode standard');
+    var out = run('discover ' + demo + ' --task-name default-micro --spec-version v1.0 --requirement x');
+    assert.ok(out.indexOf('[MODE] micro') !== -1, out);
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-default-micro.md');
+    var designFile = path.join(demo, 'mydocs', 'design', 'v1.0-default-micro.design.md');
+    var specText = fs.readFileSync(sf, 'utf-8');
+    assert.match(specText, /^mode: micro$/m);
+    assert.match(specText, /^design-file: ""$/m);
+    assert.ok(!fs.existsSync(designFile), 'micro discover should not create a standalone design artifact');
+  });
+
   it('discover accepts three-part versions and keeps version plus task-name unique', function() {
     var demo = path.join(tmpBase, 'd2-version3');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk --mode standard');
     assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-sdk-adapter.md')));
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'design', 'v1.3.6-sdk-adapter.design.md')));
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'logs', 'v1.3.6-sdk-adapter.execute.md')));
 
-    var parallel = run('discover ' + demo + ' --task-name api-contract --spec-version v1.3.6 --requirement api');
+    var parallel = run('discover ' + demo + ' --task-name api-contract --spec-version v1.3.6 --requirement api --mode standard');
     assert.ok(parallel.indexOf('SPEC CREATION PROMPT') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-api-contract.md')));
 
-    var duplicate = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk');
+    var duplicate = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3.6 --requirement sdk --mode standard');
     assert.ok(duplicate.indexOf('task-name must be unique within version') !== -1, duplicate);
     assert.ok(duplicate.indexOf('exit:') !== -1, duplicate);
   });
@@ -505,7 +532,7 @@ describe('CLI commands', function() {
   it('discover keeps two-part versions compatible', function() {
     var demo = path.join(tmpBase, 'd2-version2');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3 --requirement sdk');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version v1.3 --requirement sdk --mode standard');
     assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3-sdk-adapter.md')));
   });
@@ -513,7 +540,7 @@ describe('CLI commands', function() {
   it('discover rejects unsupported version formats with clear guidance', function() {
     var demo = path.join(tmpBase, 'd2-bad-version');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version 1.3.6 --requirement sdk');
+    var out = run('discover ' + demo + ' --task-name sdk-adapter --spec-version 1.3.6 --requirement sdk --mode standard');
     assert.ok(out.indexOf('Expected: v{N}.{M} or v{N}.{M}.{P}') !== -1, out);
     assert.ok(out.indexOf('exit:') !== -1, out);
   });
@@ -521,7 +548,7 @@ describe('CLI commands', function() {
   it('discover accepts --version alias and fills structured intake fields', function() {
     var demo = path.join(tmpBase, 'd2b');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name my-login --version v1.0 --requirement login --goal auth --constraints none');
+    var out = run('discover ' + demo + ' --task-name my-login --version v1.0 --requirement login --goal auth --constraints none --mode standard');
     assert.ok(out.indexOf('SPEC CREATION PROMPT') !== -1);
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-my-login.md');
     var c = fs.readFileSync(sf, 'utf-8');
@@ -539,7 +566,7 @@ describe('CLI commands', function() {
     var ctxDir = path.join(demo, 'mydocs', 'context', 'my-task');
     fs.mkdirSync(ctxDir, { recursive: true });
     fs.writeFileSync(path.join(ctxDir, 'prd.md'), '# PRD', 'utf-8');
-    var out = run('discover ' + demo + ' --task-name my-task --spec-version v1.0 --requirement x');
+    var out = run('discover ' + demo + ' --task-name my-task --spec-version v1.0 --requirement x --mode standard');
     assert.ok(out.indexOf('Context source: mydocs/context/my-task') !== -1, 'should report context-source in output');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-my-task.md');
     var c = fs.readFileSync(sf, 'utf-8');
@@ -549,7 +576,7 @@ describe('CLI commands', function() {
   it('discover uses --context override when provided', function() {
     var demo = path.join(tmpBase, 'd2d');
     run('init ' + demo + ' --mode standard');
-    var out = run('discover ' + demo + ' --task-name other --spec-version v1.0 --requirement x --context custom/path');
+    var out = run('discover ' + demo + ' --task-name other --spec-version v1.0 --requirement x --context custom/path --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-other.md');
     var c = fs.readFileSync(sf, 'utf-8');
     assert.ok(c.indexOf('context-source: "custom/path"') !== -1, 'spec should use explicit --context value');
@@ -560,7 +587,7 @@ describe('CLI commands', function() {
     run('init ' + demo + ' --mode standard');
     var ctxDir = path.join(demo, 'mydocs', 'context', 'ctx-task');
     fs.mkdirSync(ctxDir, { recursive: true });
-    run('discover ' + demo + ' --task-name ctx-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ctx-task --spec-version v1.0 --requirement x --mode standard');
     var out = run('resume ' + demo);
     assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/ctx-task') !== -1, 'resume should show context-source');
   });
@@ -568,7 +595,7 @@ describe('CLI commands', function() {
   it('archive and reopen preserve three-part versions', function() {
     var demo = path.join(tmpBase, 'd2-version-archive');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md');
     makeStandardArchiveReady(demo, sf);
 
@@ -588,8 +615,8 @@ describe('CLI commands', function() {
   it('archive honors an explicit version when same task-name exists in multiple versions', function() {
     var demo = path.join(tmpBase, 'd2-versioned-archive-target');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y --mode standard');
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
 
@@ -602,8 +629,8 @@ describe('CLI commands', function() {
   it('reopen honors an explicit version when archived task-name exists in multiple versions', function() {
     var demo = path.join(tmpBase, 'd2-versioned-reopen-target');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y --mode standard');
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
     run('archive ' + demo + ' v1.4-tri');
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
@@ -620,8 +647,8 @@ describe('CLI commands', function() {
   it('new-learning honors an explicit version when same task-name exists in multiple versions', function() {
     var demo = path.join(tmpBase, 'd2-versioned-learning-target');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y --mode standard');
 
     var created = run('new-learning ' + demo + ' v1.3.6-tri');
     assert.ok(created.indexOf('[LEARNING]') !== -1, created);
@@ -636,10 +663,10 @@ describe('CLI commands', function() {
   it('challenge record-result honors an explicit versioned --name', function() {
     var demo = path.join(tmpBase, 'd2-versioned-challenge-target');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x');
-    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y --mode standard');
 
-    var out = run('challenge ' + demo + ' --name v1.3.6-tri --record-result PASS --summary ok --executed-by subagent');
+    var out = run('challenge ' + demo + ' --name v1.3.6-tri --record-result PASS --summary ok --executed-by subagent:versioned-fixture');
     assert.ok(out.indexOf('v1.3.6-tri.md') !== -1, out);
     var oldSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
     var newSpec = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'), 'utf-8');
@@ -650,11 +677,11 @@ describe('CLI commands', function() {
   it('challenge record-result honors an explicit --spec path', function() {
     var demo = path.join(tmpBase, 'd2-spec-path-challenge-target');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x');
-    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y');
+    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y --mode standard');
     var alphaSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-alpha.md');
 
-    var out = run('challenge ' + demo + ' --spec ' + alphaSpec + ' --record-result PASS --summary ok --executed-by subagent');
+    var out = run('challenge ' + demo + ' --spec ' + alphaSpec + ' --record-result PASS --summary ok --executed-by subagent:path-fixture');
     assert.ok(out.indexOf('v1.0-alpha.md') !== -1, out);
     var alphaText = fs.readFileSync(alphaSpec, 'utf-8');
     var betaText = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.1-beta.md'), 'utf-8');
@@ -662,10 +689,23 @@ describe('CLI commands', function() {
     assert.match(betaText, /^Challenge Verdict:\s*$/m);
   });
 
+  it('challenge record-result requires explicit executed-by evidence', function() {
+    var demo = path.join(tmpBase, 'd2-challenge-executor-required');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-executor --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-executor.md');
+
+    var out = run('challenge ' + demo + ' --name challenge-executor --record-result PASS --summary ok');
+    assert.ok(out.indexOf('--executed-by') !== -1, out);
+    assert.ok(out.indexOf('exit:') !== -1, out);
+    var specText = fs.readFileSync(sf, 'utf-8');
+    assert.match(specText, /^Challenge Executed By:\s*$/m);
+  });
+
   it('resume routes executed standard specs without challenge evidence to challenge phase', function() {
     var demo = path.join(tmpBase, 'd2-resume-challenge-required');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('resume ' + demo);
@@ -676,7 +716,7 @@ describe('CLI commands', function() {
   it('next routes executed specs without challenge evidence to run_challenge', function() {
     var demo = path.join(tmpBase, 'd2-next-challenge-required');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('next ' + demo);
@@ -689,7 +729,7 @@ describe('CLI commands', function() {
   it('validate archive-ready explains how to run and record missing challenge', function() {
     var demo = path.join(tmpBase, 'd2-validate-challenge-required');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('validate ' + demo + ' --archive-ready');
@@ -702,9 +742,9 @@ describe('CLI commands', function() {
   it('recorded challenge pass no longer routes to run_challenge', function() {
     var demo = path.join(tmpBase, 'd2-challenge-recorded-ready');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
-    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent');
+    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent:challenge-fixture');
 
     var next = run('next ' + demo);
     assert.ok(next.indexOf('NEXT_ACTION: archive_ready') !== -1, next);
@@ -716,10 +756,10 @@ describe('CLI commands', function() {
   it('stale recorded challenge routes back to run_challenge after new execution', function() {
     var demo = path.join(tmpBase, 'd2-stale-challenge-rerun');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
     var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
-    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent');
+    run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent:challenge-fixture');
     var content = fs.readFileSync(specFile, 'utf-8')
       .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
     fs.writeFileSync(specFile, content, 'utf-8');
@@ -739,10 +779,10 @@ describe('CLI commands', function() {
   it('stale failed challenge routes to rerun challenge instead of old backtrack', function() {
     var demo = path.join(tmpBase, 'd2-stale-failed-challenge-rerun');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
     var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
-    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_CODE --summary old-failure --executed-by subagent');
+    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_CODE --summary old-failure --executed-by subagent:challenge-fixture');
     var content = fs.readFileSync(specFile, 'utf-8')
       .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
     fs.writeFileSync(specFile, content, 'utf-8');
@@ -757,10 +797,10 @@ describe('CLI commands', function() {
   it('stale non-code failed challenge routes to rerun challenge instead of old backtrack', function() {
     var demo = path.join(tmpBase, 'd2-stale-design-challenge-rerun');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
     var artifacts = makeStandardExecutedButUnchallenged(demo, specFile);
-    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_DESIGN --summary old-design-failure --executed-by subagent');
+    run('challenge ' + demo + ' --name challenge-route --record-result FAIL_DESIGN --summary old-design-failure --executed-by subagent:challenge-fixture');
     var content = fs.readFileSync(specFile, 'utf-8')
       .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z');
     fs.writeFileSync(specFile, content, 'utf-8');
@@ -775,14 +815,14 @@ describe('CLI commands', function() {
   it('partial challenge evidence routes back to run_challenge', function() {
     var demo = path.join(tmpBase, 'd2-partial-challenge-evidence');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md');
     makeStandardExecutedButUnchallenged(demo, specFile);
     var content = fs.readFileSync(specFile, 'utf-8')
       .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
       .replace(/^Backtrack Target:$/m, 'Backtrack Target: Ready')
       .replace(/^Challenge Summary:$/m, 'Challenge Summary: verdict exists but evidence is incomplete')
-      .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent')
+      .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent:challenge-fixture')
       .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - missing timestamp');
     fs.writeFileSync(specFile, content, 'utf-8');
 
@@ -800,7 +840,7 @@ describe('CLI commands', function() {
   it('blocked completion verification does not route to challenge yet', function() {
     var demo = path.join(tmpBase, 'd2-blocked-completion-no-challenge');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardBlockedCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var resume = run('resume ' + demo);
@@ -812,7 +852,7 @@ describe('CLI commands', function() {
   it('validate does not request challenge before completion verification is done', function() {
     var demo = path.join(tmpBase, 'd2-validate-blocked-completion-no-challenge');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardBlockedCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('validate ' + demo + ' --archive-ready');
@@ -823,7 +863,7 @@ describe('CLI commands', function() {
   it('completion verification status uses the latest appended completion block', function() {
     var demo = path.join(tmpBase, 'd2-latest-completion-status');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-route --spec-version v1.0 --requirement x --mode standard');
     makeStandardBlockedThenDoneCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var resume = run('resume ' + demo);
@@ -837,7 +877,7 @@ describe('CLI commands', function() {
     run('init ' + demo + ' --mode standard');
     var ctxDir = path.join(demo, 'mydocs', 'context', 'next-task');
     fs.mkdirSync(ctxDir, { recursive: true });
-    run('discover ' + demo + ' --task-name next-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name next-task --spec-version v1.0 --requirement x --mode standard');
     var out = run('next ' + demo);
     assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/next-task') !== -1, 'next should show context-source');
   });
@@ -852,7 +892,7 @@ describe('CLI commands', function() {
   it('archive and reopen flow moves referenced artifacts', function() {
     var demo = path.join(tmpBase, 'd4');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name arch --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name arch --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-arch.md');
     var artifacts = makeStandardArchiveReady(demo, sf);
     var out = run('archive ' + demo + ' arch');
@@ -875,7 +915,7 @@ describe('CLI commands', function() {
   it('archive requires and moves learning records when execution produced reusable lessons', function() {
     var demo = path.join(tmpBase, 'd4l');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name lessoned --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name lessoned --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-lessoned.md');
     var artifacts = makeStandardArchiveReady(demo, sf);
     var logContent = fs.readFileSync(artifacts.logFile, 'utf-8')
@@ -925,7 +965,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when required gates are missing', function() {
     var demo = path.join(tmpBase, 'd4b');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name blocked --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name blocked --spec-version v1.0 --requirement x --mode standard');
     var out = run('archive ' + demo + ' blocked');
     assert.ok(out.indexOf('Spec is not archive-ready') !== -1);
     assert.ok(out.indexOf('Plan Approved By is empty') !== -1);
@@ -936,7 +976,7 @@ describe('CLI commands', function() {
   it('validate enforces standard technical design contract fields', function() {
     var demo = path.join(tmpBase, 'd4s');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name strict-design --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name strict-design --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-strict-design.md');
     var artifacts = makeStandardArchiveReady(demo, sf);
     fs.writeFileSync(artifacts.designFile, [
@@ -957,28 +997,25 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Compatibility / Rollback') !== -1);
   });
 
-  it('validate supports auto gate approval only with gate evidence', function() {
+  it('validate rejects legacy auto-gate plan approval', function() {
     var demo = path.join(tmpBase, 'd4g');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name auto-gate --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name auto-gate --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-auto-gate.md');
     makeStandardArchiveReady(demo, sf);
     var content = fs.readFileSync(sf, 'utf-8')
-      .replace('Plan Approved By: Tester', 'Plan Approved By: auto-gate');
+      .replace(/^Plan Approved By:.*$/m, 'Plan Approved By: auto-gate')
+      .replace(/^Gate Evidence:.*$/m, 'Gate Evidence: legacy auto gate evidence should not pass');
     fs.writeFileSync(sf, content, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Gate Evidence is required for auto-gate approval') !== -1);
-
-    fs.writeFileSync(sf, content.replace('Approved At: 2026-01-01T00:00:00Z', 'Approved At: 2026-01-01T00:00:00Z\nGate Evidence: validate-ready evidence recorded by auto gate.'), 'utf-8');
-    var ok = run('validate ' + demo + ' --archive-ready');
-    assert.ok(ok.indexOf('RESULT: OK') !== -1);
+    assert.ok(blocked.indexOf('Plan Approved By must be agent:<id> or human:<name>') !== -1, blocked);
   });
 
   it('validate blocks archive when adversarial challenge failed', function() {
     var demo = path.join(tmpBase, 'd4h');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-fail --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-fail --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-fail.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
@@ -993,7 +1030,7 @@ describe('CLI commands', function() {
   it('validate requires challenge evidence fields for archive (AC-001)', function() {
     var demo = path.join(tmpBase, 'd4i');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-evidence --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-evidence --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-evidence.md');
     makeStandardArchiveReady(demo, sf);
     // Remove challenge evidence to test that validate catches the missing fields
@@ -1010,7 +1047,7 @@ describe('CLI commands', function() {
   it('validate requires Challenge Executed At when Executed By is present', function() {
     var demo = path.join(tmpBase, 'd4i2');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-at --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-at --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-at.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
@@ -1025,7 +1062,7 @@ describe('CLI commands', function() {
   it('validate requires Challenge Evidence when Executed By and At are present', function() {
     var demo = path.join(tmpBase, 'd4i3');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-ev --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-ev --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-ev.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
@@ -1054,13 +1091,13 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
+    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1);
   });
 
   it('validate passes when challenge evidence is complete (AC-002)', function() {
     var demo = path.join(tmpBase, 'd4j');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-ok --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-ok --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-ok.md');
     makeStandardArchiveReady(demo, sf);
 
@@ -1068,25 +1105,97 @@ describe('CLI commands', function() {
     assert.ok(result.indexOf('Challenge Executed By') === -1, 'no challenge evidence issues');
   });
 
-  it('validate rejects auto-gate challenge under manual policy (AC-003)', function() {
+  it('validate accepts agent plan approval with evidence by default', function() {
+    var demo = path.join(tmpBase, 'approval-agent-default');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name approval-agent --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-agent.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Plan Approved By:.*$/m, 'Plan Approved By: agent:codex')
+      .replace(/^Gate Evidence:.*$/m, 'Gate Evidence: tests passed');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('Plan Approved By') === -1, 'agent approval should pass with evidence: ' + result);
+  });
+
+  it('validate rejects agent plan approval when approval policy is human', function() {
+    var demo = path.join(tmpBase, 'approval-human-policy');
+    run('init ' + demo + ' --mode standard');
+    fs.appendFileSync(path.join(demo, '.sdd-config'), 'APPROVAL_POLICY="human"\n', 'utf-8');
+    run('discover ' + demo + ' --task-name approval-human --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-human.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Plan Approved By:.*$/m, 'Plan Approved By: agent:codex')
+      .replace(/^Gate Evidence:.*$/m, 'Gate Evidence: tests passed');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Human approval policy requires Plan Approved By: human:<name>') !== -1, blocked);
+  });
+
+  it('validate rejects bare plan approval when approval policy is human', function() {
+    var demo = path.join(tmpBase, 'approval-human-bare');
+    run('init ' + demo + ' --mode standard');
+    fs.appendFileSync(path.join(demo, '.sdd-config'), 'APPROVAL_POLICY="human"\n', 'utf-8');
+    run('discover ' + demo + ' --task-name approval-human-bare --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-human-bare.md');
+    makeStandardArchiveReady(demo, sf);
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Human approval policy requires Plan Approved By: human:<name>') !== -1, blocked);
+  });
+
+  it('validate accepts auditable independent reviewers for standard challenge', function() {
+    var demo = path.join(tmpBase, 'challenge-external-reviewer');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-external --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-external.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: external-agent:reviewer-1');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var result = run('validate ' + demo + ' --archive-ready');
+    assert.ok(result.indexOf('independent reviewer') === -1, 'external reviewer should pass: ' + result);
+  });
+
+  it('validate rejects ambiguous independent reviewers for standard challenge and research gate', function() {
+    var demo = path.join(tmpBase, 'reviewer-evidence-invalid');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name reviewer-invalid --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-reviewer-invalid.md');
+    makeStandardArchiveReady(demo, sf);
+    var c = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Research Reviewed By:.*$/m, 'Research Reviewed By: auto-gate')
+      .replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: reviewer');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Research Gate requires independent reviewer evidence') !== -1, blocked);
+    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1, blocked);
+  });
+
+  it('validate rejects legacy auto-gate challenge evidence (AC-003)', function() {
     var demo = path.join(tmpBase, 'd4k');
     run('init ' + demo + ' --mode standard');
-    fs.writeFileSync(path.join(demo, '.sdd-config'), 'GATE_POLICY=manual\n');
-    run('discover ' + demo + ' --task-name challenge-manual --spec-version v1.0 --requirement x');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-manual.md');
+    run('discover ' + demo + ' --task-name challenge-auto-gate --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-auto-gate.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
     c = c.replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: auto-gate');
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Manual gate policy requires human Challenge Executed By') !== -1);
+    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1, blocked);
   });
 
   it('validate rejects inline challenge for standard/lite modes (AC-004)', function() {
     var demo = path.join(tmpBase, 'd4l');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name challenge-inline-std --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name challenge-inline-std --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-std.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
@@ -1094,7 +1203,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Standard and lite modes require subagent Challenge execution') !== -1);
+    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1);
   });
 
   it('validate allows inline challenge for micro mode (AC-005)', function() {
@@ -1103,7 +1212,7 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name challenge-inline-micro --spec-version v1.0 --requirement x --mode micro');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-inline-micro.md');
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c.replace(/## Plan/, '## Plan\n\nImpact Scope: single file\nData Impact: none\nInterface Impact: none\nAcceptance: behavior preserved\nVerification: unit test\n\nPlan Approved By: auto-gate\nApproved At: 2026-06-30T00:00:00Z\nGate Policy: auto\nGate Evidence: micro plan complete');
+    c = c.replace(/## Plan/, '## Plan\n\nImpact Scope: single file\nData Impact: none\nInterface Impact: none\nAcceptance: behavior preserved\nVerification: unit test\n\nPlan Approved By: agent:codex\nApproved At: 2026-06-30T00:00:00Z\nGate Evidence: micro plan complete');
     c = fillChallenge(c, 'PASS', { executedBy: 'inline', evidence: 'PASS - inline review for micro' });
     fs.writeFileSync(sf, c);
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -1116,7 +1225,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when Challenge Executed At is before Execute Log step', function() {
     var demo = path.join(tmpBase, 'd4t');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name time-order --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name time-order --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-time-order.md');
     makeStandardArchiveReady(demo, sf);
     // Set Challenge time before Execute Log step time
@@ -1128,10 +1237,10 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Challenge Executed At must be after the last Execute Log step timestamp') !== -1);
   });
 
-  it('validate requires Gate Evidence for auto-gate Research review', function() {
+  it('validate rejects legacy auto-gate Research review', function() {
     var demo = path.join(tmpBase, 'd4rg');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name rg-evidence --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name rg-evidence --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-rg-evidence.md');
     var c = fs.readFileSync(sf, 'utf-8');
     c = fillConfirmedReq(c);
@@ -1140,13 +1249,13 @@ describe('CLI commands', function() {
       .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z');
     fs.writeFileSync(sf, c, 'utf-8');
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Gate Evidence is required for auto-gate Research review') !== -1);
+    assert.ok(blocked.indexOf('Research Gate requires independent reviewer evidence') !== -1, blocked);
   });
 
   it('validate warns but does not block on missing CR fields when not archive-ready', function() {
     var demo = path.join(tmpBase, 'd4crw');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name cr-warn --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name cr-warn --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-cr-warn.md');
     var c = fs.readFileSync(sf, 'utf-8');
     // Fill only Scope Boundary, leave other CR fields empty
@@ -1185,7 +1294,7 @@ describe('CLI commands', function() {
   it('validate requires acceptance verification metadata', function() {
     var demo = path.join(tmpBase, 'd4v');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-verification --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-verification --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-verification.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -1218,7 +1327,7 @@ describe('CLI commands', function() {
   it('generated artifacts keep English labels and request Chinese content', function() {
     var demo = path.join(tmpBase, 'd4e');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name english-labels --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name english-labels --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-english-labels.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -1227,6 +1336,7 @@ describe('CLI commands', function() {
     var logText = fs.readFileSync(logFile, 'utf-8');
     assert.ok(specText.indexOf('## Acceptance Criteria') !== -1);
     assert.ok(specText.indexOf('Plan Approved By:') !== -1);
+    assert.strictEqual(specText.indexOf('Gate Policy:'), -1);
     assert.ok(designText.indexOf('Selected Option / ADR:') !== -1);
     assert.ok(logText.indexOf('Status: DONE') !== -1);
     assert.ok(specText.indexOf('write') !== -1 || specText.indexOf('Chinese') !== -1);
@@ -1322,20 +1432,20 @@ describe('CLI commands', function() {
     run('init ' + demo + ' --mode standard');
     assert.ok(run('codemap ' + demo).indexOf('CodeMap') !== -1);
     assert.ok(run('review-execute ' + demo).indexOf('REVIEW EXECUTE PROMPT') !== -1);
-    run('discover ' + demo + ' --task-name dbg --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name dbg --spec-version v1.0 --requirement x --mode standard');
     assert.ok(run('debug ' + demo + ' --error e').indexOf('DEBUG PROMPT') !== -1);
   });
 
   it('next, challenge, and cruise expose autonomous workflow prompts', function() {
     var demo = path.join(tmpBase, 'd6c');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name cruise-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name cruise-task --spec-version v1.0 --requirement x --mode standard');
 
     var next = run('next ' + demo);
     assert.ok(next.indexOf('NEXT_ACTION: repair_research') !== -1);
     assert.ok(next.indexOf('BACKTRACK_TARGET: Research') !== -1);
-    assert.ok(next.indexOf('GATE_POLICY: auto') !== -1);
-    assert.ok(next.indexOf('CRUISE_POLICY: autonomous') !== -1);
+    assert.ok(next.indexOf('APPROVAL_POLICY: agent') !== -1);
+    assert.ok(next.indexOf('CRUISE_ENABLED: true') !== -1);
 
     var challenge = run('challenge ' + demo);
     assert.ok(challenge.indexOf('ADVERSARIAL REVIEW PROMPT') !== -1);
@@ -1352,7 +1462,7 @@ describe('CLI commands', function() {
 
     var cruise = run('cruise ' + demo);
     assert.ok(cruise.indexOf('AUTONOMOUS CRUISE PROMPT') !== -1);
-    assert.ok(cruise.indexOf('ENGINE: auto') !== -1);
+    assert.ok(cruise.indexOf('DRIVER: auto') !== -1);
     assert.ok(cruise.indexOf('REUSE_NATIVE_LOOP: yes-when-available') !== -1);
     assert.ok(cruise.indexOf('MAX_ITERATIONS: 5') !== -1);
     assert.ok(cruise.indexOf('repair loop') !== -1);
@@ -1360,23 +1470,23 @@ describe('CLI commands', function() {
     assert.ok(cruise.indexOf('sdd challenge') !== -1);
   });
 
-  it('cruise can target native host loop engines', function() {
+  it('cruise can target native host loop drivers', function() {
     var demo = path.join(tmpBase, 'd6e');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name native-loop --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name native-loop --spec-version v1.0 --requirement x --mode standard');
 
-    var claude = run('cruise ' + demo + ' --engine claude-code');
-    assert.ok(claude.indexOf('ENGINE: claude-code') !== -1);
+    var claude = run('cruise ' + demo + ' --driver claude-code');
+    assert.ok(claude.indexOf('DRIVER: claude-code') !== -1);
     assert.ok(claude.indexOf('Claude Code Dynamic Workflows') !== -1);
     assert.ok(claude.indexOf('fallback to the prompt loop') !== -1);
 
-    var codex = run('cruise ' + demo + ' --engine codex');
-    assert.ok(codex.indexOf('ENGINE: codex') !== -1);
+    var codex = run('cruise ' + demo + ' --driver codex');
+    assert.ok(codex.indexOf('DRIVER: codex') !== -1);
     assert.ok(codex.indexOf('Codex native loop') !== -1);
     assert.ok(codex.indexOf('SDD remains the control protocol') !== -1);
 
-    var opencode = run('cruise ' + demo + ' --engine opencode');
-    assert.ok(opencode.indexOf('ENGINE: opencode') !== -1);
+    var opencode = run('cruise ' + demo + ' --driver opencode');
+    assert.ok(opencode.indexOf('DRIVER: opencode') !== -1);
     assert.ok(opencode.indexOf('opencode native loop') !== -1);
     assert.ok(opencode.indexOf('SDD remains the control protocol') !== -1);
   });
@@ -1384,7 +1494,7 @@ describe('CLI commands', function() {
   it('next preserves explicit challenge PASS even when validation has blockers', function() {
     var demo = path.join(tmpBase, 'd6h');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name stale-pass --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name stale-pass --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-stale-pass.md');
     var c = fs.readFileSync(sf, 'utf-8')
       .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: PASS')
@@ -1399,57 +1509,74 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
   });
 
-  it('cruise respects off and assisted cruise policies', function() {
+  it('cruise can be disabled explicitly and ignores legacy cruise policy values', function() {
+    var disabledDemo = path.join(tmpBase, 'd6i-disabled');
+    run('init ' + disabledDemo + ' --mode standard');
+    run('discover ' + disabledDemo + ' --task-name cruise-disabled --spec-version v1.0 --requirement x --mode standard');
+    fs.appendFileSync(path.join(disabledDemo, '.sdd-config'), 'CRUISE_ENABLED="false"\n', 'utf-8');
+
+    var disabled = run('cruise ' + disabledDemo + ' --record-run');
+    assert.ok(disabled.indexOf('CRUISE_DISABLED: true') !== -1);
+    assert.equal(disabled.indexOf('### Autonomous repair loop'), -1);
+
     var offDemo = path.join(tmpBase, 'd6i');
     run('init ' + offDemo + ' --mode standard');
-    run('discover ' + offDemo + ' --task-name cruise-off --spec-version v1.0 --requirement x');
+    run('discover ' + offDemo + ' --task-name cruise-off --spec-version v1.0 --requirement x --mode standard');
     fs.writeFileSync(path.join(offDemo, '.sdd-config'),
       'DOCS_DIR="mydocs"\nMODE="standard"\nCRUISE_POLICY="off"\n', 'utf-8');
 
     var off = run('cruise ' + offDemo + ' --record-run');
     var offLedger = path.join(offDemo, 'mydocs', 'runs', 'v1.0-cruise-off.cruise.jsonl');
-    assert.ok(off.indexOf('CRUISE_DISABLED: true') !== -1);
-    assert.equal(off.indexOf('### Autonomous repair loop'), -1);
-    assert.ok(!fs.existsSync(offLedger));
-
-    var assistedDemo = path.join(tmpBase, 'd6j');
-    run('init ' + assistedDemo + ' --mode standard');
-    run('discover ' + assistedDemo + ' --task-name cruise-assisted --spec-version v1.0 --requirement x');
-    fs.writeFileSync(path.join(assistedDemo, '.sdd-config'),
-      'DOCS_DIR="mydocs"\nMODE="standard"\nCRUISE_POLICY="assisted"\n', 'utf-8');
-
-    var assisted = run('cruise ' + assistedDemo + ' --engine auto');
-    assert.ok(assisted.indexOf('## ASSISTED CRUISE PROMPT') !== -1);
-    assert.ok(assisted.indexOf('ASSISTED_REVIEW_REQUIRED: true') !== -1);
-    assert.ok(assisted.indexOf('REUSE_NATIVE_LOOP: no') !== -1);
+    assert.ok(off.indexOf('## AUTONOMOUS CRUISE PROMPT') !== -1);
+    assert.ok(off.indexOf('CRUISE_ENABLED: true') !== -1);
+    assert.ok(off.indexOf('REUSE_NATIVE_LOOP: yes-when-available') !== -1);
+    assert.ok(fs.existsSync(offLedger));
   });
 
   it('cruise reports local-loop as prompt-loop compensation', function() {
     var demo = path.join(tmpBase, 'd6k');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name local-loop-copy --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name local-loop-copy --spec-version v1.0 --requirement x --mode standard');
 
-    var out = run('cruise ' + demo + ' --engine local-loop');
+    var out = run('cruise ' + demo + ' --driver local-loop');
     assert.ok(out.indexOf('prompt-loop compensation') !== -1);
     assert.equal(out.indexOf('local bounded loop wrapper'), -1);
   });
 
-  it('cruise rejects invalid engines instead of falling back to auto', function() {
+  it('cruise rejects invalid drivers instead of falling back to auto', function() {
     var demo = path.join(tmpBase, 'd6l');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name bad-engine --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name bad-driver --spec-version v1.0 --requirement x --mode standard');
 
-    var out = run('cruise ' + demo + ' --engine typo-engine');
-    assert.ok(out.indexOf('Invalid cruise engine: typo-engine') !== -1);
+    var out = run('cruise ' + demo + ' --driver typo-engine');
+    assert.ok(out.indexOf('Invalid cruise driver: typo-engine') !== -1);
     assert.ok(out.indexOf('exit:') !== -1);
+
+    var localAlias = run('cruise ' + demo + ' --driver local');
+    assert.ok(localAlias.indexOf('Invalid cruise driver: local') !== -1, localAlias);
+    assert.ok(localAlias.indexOf('exit:') !== -1, localAlias);
+
+    var claudeAlias = run('cruise ' + demo + ' --driver claude');
+    assert.ok(claudeAlias.indexOf('Invalid cruise driver: claude') !== -1, claudeAlias);
+    assert.ok(claudeAlias.indexOf('exit:') !== -1, claudeAlias);
+  });
+
+  it('cruise rejects legacy engine option', function() {
+    var demo = path.join(tmpBase, 'd6l-engine');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name engine-option --spec-version v1.0 --requirement x --mode standard');
+
+    var out = run('cruise ' + demo + ' --engine codex');
+    assert.ok(out.indexOf("unknown option '--engine'") !== -1, out);
+    assert.ok(out.indexOf('exit:') !== -1, out);
   });
 
   it('cruise emits Claude ultracode prompt and records run ledger', function() {
     var demo = path.join(tmpBase, 'd6f');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name workflow-run --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name workflow-run --spec-version v1.0 --requirement x --mode standard');
 
-    var emitted = run('cruise ' + demo + ' --engine claude-code --emit-claude-prompt');
+    var emitted = run('cruise ' + demo + ' --driver claude-code --emit-claude-prompt');
     var workflowFile = path.join(demo, '.claude', 'workflows', 'sdd-cruise.md');
     assert.ok(emitted.indexOf('[CLAUDE_PROMPT]') !== -1);
     assert.ok(emitted.indexOf('ultracode:') !== -1);
@@ -1460,7 +1587,7 @@ describe('CLI commands', function() {
     assert.ok(emitted.indexOf('--record-run') !== -1);
     assert.ok(!fs.existsSync(workflowFile));
 
-    var recorded = run('cruise ' + demo + ' --engine local-loop --record-run --iteration 3');
+    var recorded = run('cruise ' + demo + ' --driver local-loop --record-run --iteration 3');
     var ledgerFile = path.join(demo, 'mydocs', 'runs', 'v1.0-workflow-run.cruise.jsonl');
     assert.ok(recorded.indexOf('[RUN_LEDGER]') !== -1);
     assert.ok(fs.existsSync(ledgerFile));
@@ -1468,7 +1595,8 @@ describe('CLI commands', function() {
     assert.equal(lines.length, 1);
     var entry = JSON.parse(lines[0]);
     assert.equal(entry.iteration, 3);
-    assert.equal(entry.engine, 'local-loop');
+    assert.equal(entry.driver, 'local-loop');
+    assert.equal(entry.engine, undefined);
     assert.equal(entry.nextAction, 'repair_research');
     assert.equal(entry.backtrackTarget, 'Research');
     assert.equal(entry.challengeVerdict, 'FAIL_SPEC');
@@ -1478,9 +1606,9 @@ describe('CLI commands', function() {
   it('console spec detail exposes latest cruise run ledger entry', async function() {
     var demo = path.join(tmpBase, 'd6g');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name console-run --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name console-run --spec-version v1.0 --requirement x --mode standard');
     fs.writeFileSync(path.join(demo, 'mydocs', 'runs', 'v1.0-console-run.cruise.jsonl'), 'bad-json\n', 'utf-8');
-    run('cruise ' + demo + ' --engine local-loop --record-run --iteration 2');
+    run('cruise ' + demo + ' --driver local-loop --record-run --iteration 2');
 
     var server = require('../src/commands/console').createServer(demo);
     await new Promise(function(resolve) { server.listen(0, '127.0.0.1', resolve); });
@@ -1491,7 +1619,8 @@ describe('CLI commands', function() {
       assert.equal(detail.body.cruiseRun.count, 1);
       assert.equal(detail.body.cruiseRun.malformedCount, 1);
       assert.equal(detail.body.cruiseRun.latest.iteration, 2);
-      assert.equal(detail.body.cruiseRun.latest.engine, 'local-loop');
+      assert.equal(detail.body.cruiseRun.latest.driver, 'local-loop');
+      assert.equal(detail.body.cruiseRun.latest.engine, undefined);
       assert.equal(detail.body.cruiseRun.latest.nextAction, 'repair_research');
     } finally {
       await new Promise(function(resolve) { server.close(resolve); });
@@ -1501,7 +1630,7 @@ describe('CLI commands', function() {
   it('next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack', function() {
     var demo = path.join(tmpBase, 'd6d');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name acceptance-backtrack --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name acceptance-backtrack --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-acceptance-backtrack.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -1522,7 +1651,7 @@ describe('CLI commands', function() {
   it('review-execute includes design and acceptance evidence in Axis 1', function() {
     var demo = path.join(tmpBase, 'd6b');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name review-design --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name review-design --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-review-design.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: review prompt includes acceptance evidence');
@@ -1596,7 +1725,7 @@ describe('CLI commands', function() {
   it('learnings lists the project index and recalls per spec (AC-003)', function() {
     var demo = path.join(tmpBase, 'd6learn');
     run('init ' + demo + ' --mode lite');
-    run('discover ' + demo + ' --task-name pay-retry --spec-version v1.0 --requirement "payment retry idempotency"');
+    run('discover ' + demo + ' --task-name pay-retry --spec-version v1.0 --requirement "payment retry idempotency" --mode standard');
     run('new-learning ' + demo + ' pay-retry');
     var lf = path.join(demo, 'mydocs', 'learnings', 'v1.0-pay-retry.learning.md');
     var c = fs.readFileSync(lf, 'utf-8')
@@ -1621,7 +1750,7 @@ describe('CLI commands', function() {
   it('console API exposes spec list, detail, and archive validation', async function() {
     var demo = path.join(tmpBase, 'd7');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name console-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name console-task --spec-version v1.0 --requirement x --mode standard');
     run('new-learning ' + demo + ' console-task');
     var openedFiles = [];
     var server = require('../src/commands/console').createServer(demo, {
@@ -1641,8 +1770,10 @@ describe('CLI commands', function() {
       var detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
       assert.equal(detail.statusCode, 200);
       assert.equal(detail.body.taskName, 'console-task');
-      assert.equal(detail.body.workflow.gatePolicy, 'auto');
-      assert.equal(detail.body.workflow.cruisePolicy, 'autonomous');
+      assert.equal(detail.body.workflow.approvalPolicy, 'agent');
+      assert.equal(detail.body.workflow.cruiseEnabled, true);
+      assert.equal(detail.body.workflow.gatePolicy, undefined);
+      assert.equal(detail.body.workflow.cruisePolicy, undefined);
       assert.equal(detail.body.workflow.maxIterations, 5);
       assert.equal(detail.body.workflow.nextAction, 'repair_research');
       assert.equal(detail.body.workflow.backtrackTarget, 'Research');
@@ -1697,7 +1828,7 @@ describe('CLI commands', function() {
   it('console can start without a project and select one through the API', async function() {
     var demo = path.join(tmpBase, 'd7b');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name selectable-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name selectable-task --spec-version v1.0 --requirement x --mode standard');
     var server = require('../src/commands/console').createServer();
     await new Promise(function(resolve) { server.listen(0, '127.0.0.1', resolve); });
     try {
@@ -1726,7 +1857,7 @@ describe('CLI commands', function() {
   it('console browse API can select a project directory', async function() {
     var demo = path.join(tmpBase, 'd7c');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name browsed-task --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name browsed-task --spec-version v1.0 --requirement x --mode standard');
     var server = require('../src/commands/console').createServer('', {
       browseProjectDir: function() { return demo; }
     });
@@ -1750,7 +1881,7 @@ describe('CLI commands', function() {
     var demoB = path.join(tmpBase, 'd7d-b');
     run('init ' + demoA + ' --mode standard');
     run('init ' + demoB + ' --mode lite');
-    run('discover ' + demoA + ' --task-name board-a --spec-version v1.0 --requirement x');
+    run('discover ' + demoA + ' --task-name board-a --spec-version v1.0 --requirement x --mode standard');
     run('discover ' + demoB + ' --task-name board-b --spec-version v1.0 --requirement x --mode lite');
     var server = require('../src/commands/console').createServer();
     await new Promise(function(resolve) { server.listen(0, '127.0.0.1', resolve); });
@@ -1776,7 +1907,8 @@ describe('CLI commands', function() {
   it('console copy matches gate and cruise control-plane semantics', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
     assert.ok(js.indexOf('Configured approval gate') !== -1);
-    assert.ok(js.indexOf('auto-gate also needs Gate Evidence') !== -1);
+    assert.ok(js.indexOf('agent approval needs Gate Evidence') !== -1);
+    assert.equal(js.indexOf('auto-gate'), -1);
     assert.ok(js.indexOf('next: ') !== -1);
     assert.ok(js.indexOf('gate evidence: ') !== -1);
     assert.equal(js.indexOf('Human approval recorded'), -1);
@@ -1891,11 +2023,12 @@ describe('CLI commands', function() {
     assert.ok(js.indexOf("verdict.indexOf('FAIL_') === 0") !== -1, 'backtrack only shown for FAIL_*');
   });
 
-  it('console renders cruise run with policy, iterations, and latest run (AC-003)', function() {
+  it('console renders cruise run with enabled state, iterations, and latest run (AC-003)', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
     var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
     assert.ok(js.indexOf('renderCruiseRun') !== -1, 'renderCruiseRun function exists');
-    assert.ok(js.indexOf('cruisePolicy') !== -1, 'reads cruisePolicy');
+    assert.ok(js.indexOf('cruiseEnabled') !== -1, 'reads cruiseEnabled');
+    assert.equal(js.indexOf('cruisePolicy'), -1);
     assert.ok(js.indexOf('maxIterations') !== -1, 'reads maxIterations');
     assert.ok(js.indexOf('cruise-latest') !== -1, 'latest run section class');
     assert.ok(html.indexOf('cruise-run') !== -1, 'cruise-run container in HTML');
@@ -1942,7 +2075,7 @@ describe('CLI commands', function() {
 
     var demo = path.join(tmpBase, 'dmr');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name method-route --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name method-route --spec-version v1.0 --requirement x --mode standard');
     var out = run('next ' + demo);
     assert.ok(out.indexOf('DESIGN_METHOD:') !== -1);
     assert.ok(out.indexOf('arc42') !== -1);
@@ -1986,6 +2119,9 @@ describe('CLI commands', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);
     assert.ok(run('install-skill --help').indexOf('cc-switch') !== -1);
+    var challengeHelp = run('challenge --help');
+    assert.ok(challengeHelp.indexOf('subagent:<id>|external-agent:<id>|human:<name>|inline') !== -1);
+    assert.strictEqual(challengeHelp.indexOf('subagent|inline'), -1);
     assert.ok(run('--version').indexOf('2.0.0') !== -1);
   });
 
@@ -1994,7 +2130,7 @@ describe('CLI commands', function() {
   it('validate reports AC without execution evidence (AC-001: coverage format)', function() {
     var demo = path.join(tmpBase, 'ac-cov-1');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-cov-test --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-cov-test --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-cov-test.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2020,7 +2156,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when AC has no coverage record (AC-002: L1)', function() {
     var demo = path.join(tmpBase, 'ac-cov-2');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-no-cov --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-no-cov --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-no-cov.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2042,7 +2178,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when AC coverage result is FAIL (AC-002: L2)', function() {
     var demo = path.join(tmpBase, 'ac-cov-3');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-fail-cov --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-fail-cov --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-fail-cov.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2063,7 +2199,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when AC test file not found (AC-002: L3)', function() {
     var demo = path.join(tmpBase, 'ac-cov-4');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-no-test-file --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-no-test-file --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-no-test-file.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2084,7 +2220,7 @@ describe('CLI commands', function() {
   it('validate blocks archive when SKIPPED AC lacks approval (AC-003)', function() {
     var demo = path.join(tmpBase, 'ac-cov-5');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-skipped --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-skipped --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2103,31 +2239,31 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('SKIPPED but missing Approved By') !== -1, 'should report missing Approved By: ' + blocked);
   });
 
-  it('validate blocks archive when SKIPPED AC has auto-gate approval (AC-003)', function() {
+  it('validate blocks archive when SKIPPED AC has agent approval (AC-003)', function() {
     var demo = path.join(tmpBase, 'ac-cov-6');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-skipped-auto --spec-version v1.0 --requirement x');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped-auto.md');
+    run('discover ' + demo + ' --task-name ac-skipped-agent --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped-agent.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC skipped auto-gate test.\n');
+    c = c.replace(/^(### Confirmed Requirement\n)/m, '$1AC skipped agent approval test.\n');
     c = replaceSectionStart(c, 'Innovate Options', 'Option A: test. Pros: ok. Cons: ok.\nSelected: Option A.');
-    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: e2e coverage\nRequirement: ac-skipped-auto\nType: functional\nVerification: e2e\nAutomated: yes\nTest: tests/e2e/login.spec.ts');
+    c = replaceSectionStart(c, 'Acceptance Criteria', '### AC-001: e2e coverage\nRequirement: ac-skipped-agent\nType: functional\nVerification: e2e\nAutomated: yes\nTest: tests/e2e/login.spec.ts');
     c = fillApproval(c);
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: auto-gate\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: agent:codex\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Approved By cannot be auto-gate') !== -1, 'should reject auto-gate for SKIPPED: ' + blocked);
+    assert.ok(blocked.indexOf('Approved By must be human:<name>') !== -1, 'should reject agent approval for SKIPPED: ' + blocked);
   });
 
   it('validate accepts SKIPPED AC with proper human approval (AC-003)', function() {
     var demo = path.join(tmpBase, 'ac-cov-7');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name ac-skipped-ok --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name ac-skipped-ok --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-ac-skipped-ok.md');
     var designFile = artifactPath(demo, sf, 'design-file');
     var logFile = artifactPath(demo, sf, 'execute-log-file');
@@ -2139,7 +2275,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: human-reviewer\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: human:reviewer\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('SKIPPED') === -1 || result.indexOf('RESULT: OK') !== -1, 'SKIPPED with approval should not block: ' + result);
@@ -2148,11 +2284,12 @@ describe('CLI commands', function() {
   it('new spec templates do not contain Review Verdict or Review Summary (AC-004)', function() {
     var demo = path.join(tmpBase, 'ac-review-merge');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name review-merge --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name review-merge --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-review-merge.md');
     var c = fs.readFileSync(sf, 'utf-8');
     assert.ok(c.indexOf('## Review Verdict') === -1, 'standard spec should not have Review Verdict section');
     assert.ok(c.indexOf('## Review Summary') === -1, 'standard spec should not have Review Summary section');
+    assert.ok(c.indexOf('Gate Policy:') === -1, 'standard spec should not have legacy Gate Policy field');
     assert.ok(c.indexOf('## Completion Verification') !== -1, 'standard spec should have Completion Verification section');
 
     // lite
@@ -2161,6 +2298,7 @@ describe('CLI commands', function() {
     c = fs.readFileSync(sfLite, 'utf-8');
     assert.ok(c.indexOf('## Review Verdict') === -1, 'lite spec should not have Review Verdict');
     assert.ok(c.indexOf('## Review Summary') === -1, 'lite spec should not have Review Summary');
+    assert.ok(c.indexOf('Gate Policy:') === -1, 'lite spec should not have legacy Gate Policy field');
     assert.ok(c.indexOf('## Completion Verification') !== -1, 'lite spec should have Completion Verification');
 
     // micro
@@ -2169,13 +2307,14 @@ describe('CLI commands', function() {
     c = fs.readFileSync(sfMicro, 'utf-8');
     assert.ok(c.indexOf('## Review Verdict') === -1, 'micro spec should not have Review Verdict');
     assert.ok(c.indexOf('## Review Summary') === -1, 'micro spec should not have Review Summary');
+    assert.ok(c.indexOf('Gate Policy:') === -1, 'micro spec should not have legacy Gate Policy field');
     assert.ok(c.indexOf('## Completion Verification') !== -1, 'micro spec should have Completion Verification');
   });
 
   it('validate does not require Review Verdict for new specs (AC-004)', function() {
     var demo = path.join(tmpBase, 'ac-no-review');
     run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name no-review --spec-version v1.0 --requirement x');
+    run('discover ' + demo + ' --task-name no-review --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-no-review.md');
     makeStandardArchiveReady(demo, sf);
 

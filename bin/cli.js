@@ -19,7 +19,7 @@ program
 
 program.command('init <project-dir>')
   .description('Initialize SDD-RIPER project structure')
-  .option('--mode <mode>', 'standard | lite | micro', 'standard')
+  .option('--mode <mode>', 'standard | lite | micro', 'micro')
   .option('--force', 'overwrite existing files')
   .option('--docs-dir <name>', 'docs directory name', 'mydocs')
   .action(function(p, o) { require('../src/commands/init')(p, o); });
@@ -60,14 +60,14 @@ program.command('challenge <project-dir>')
   .option('--name <slug>', 'spec task slug')
   .option('--record-result <verdict>', 'record challenge verdict (PASS|PASS_WITH_CONCERNS|FAIL_*) into spec')
   .option('--summary <text>', 'challenge summary (used with --record-result)')
-  .option('--executed-by <who>', 'who executed the challenge (subagent|inline, used with --record-result)')
+  .option('--executed-by <who>', 'who executed the challenge (subagent:<id>|external-agent:<id>|human:<name>|inline, used with --record-result)')
   .action(function(p, o) { require('../src/commands/challenge')(p, o); });
 
 program.command('cruise <project-dir>')
   .description('Generate autonomous cruise prompt')
   .option('--spec <path>', 'spec file')
   .option('--name <slug>', 'spec task slug')
-  .option('--engine <engine>', 'auto | prompt | local-loop | claude-code | codex | opencode', 'auto')
+  .option('--driver <driver>', 'auto | prompt | local-loop | claude-code | codex | opencode')
   .option('--emit-claude-prompt', 'emit a Claude Code ultracode workflow prompt')
   .option('--record-run', 'append current cruise state to the run ledger')
   .option('--iteration <n>', 'current cruise iteration', '1')

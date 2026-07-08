@@ -1,16 +1,18 @@
-# SDD-RIPER Cursor 规则
+# SDD-RIPER Cursor Rules
 
-RULE: 除非 <docs-root>/specs/（默认 mydocs/specs/）中存在任务 Spec，否则不写代码。
+RULE: 所有对话和制品正文使用中文；制品标题和字段标签保持英文。
+RULE: 无当前任务 Spec 不写代码；Spec 位于 <docs-root>/specs/，默认 mydocs/specs/。
 RULE: SDD-RIPER 阶段为 Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check。
-RULE: 制品标题和字段标签保持英文；填写的制品内容默认使用中文。
-RULE: Execute 阶段前必须填写 Plan Approved By 和 Approved At；auto-gate 还需要 Gate Evidence。
-RULE: 使用 sdd next / sdd challenge / sdd cruise --engine auto 进行自主工作流路由和对抗审核；使用 --emit-claude-prompt 获取 Claude Code ultracode 指引和 --record-run 记录运行账本。
+RULE: 创建 Spec 前必须让用户输入或确认 version 与 task-name，并询问是否有参考资料 / context。
+RULE: Plan Gate 只由 APPROVAL_POLICY=agent|human 控制；agent approval 使用 Plan Approved By: agent:<id>、Approved At 和 Gate Evidence；human approval 使用 Plan Approved By: human:<name>。
+RULE: Research / Challenge reviewer 使用 subagent:<id>、external-agent:<id> 或 human:<name>；micro Challenge 可使用 inline。
+RULE: 使用 sdd next / sdd challenge / sdd cruise --driver auto 进行动态路由、对抗审核和有界修复；使用 --emit-claude-prompt 获取 Claude Code ultracode 指引，用 --record-run 记录运行账本。
 RULE: standard/lite Design 存在于 design-file；Execute Log 存在于 execute-log-file。
-RULE: 原始材料（PRD、UI稿、原型等）放入 mydocs/context/<task-name>/；sdd discover 自动绑定 context-source。
+RULE: 原始材料（PRD、UI 稿、原型等）放入 mydocs/context/<task-name>/；sdd discover 自动绑定 context-source。
 RULE: 当偏差、修复、关注点或重开经验发生时，Learning Records 存在于 learning-file。
 RULE: 归档前运行 sdd validate <dir> --archive-ready。
 RULE: Spec 是控制面；代码必须匹配 Spec 和引用的制品。
-RULE: 先 Debug 再重试 — 步骤失败时，先运行 debug 找根因。
-RULE: 按需使用 `sdd codemap <dir>` 获取架构视图——扫描源代码实时生成，无过期文件。
-RULE: docs root 默认为 mydocs/，可通过 .sdd-config（DOCS_DIR=...）覆盖。
-RULE: mode=standard
+RULE: 先 Debug 再重试；步骤失败时先运行 debug 找根因。
+RULE: 按需使用 sdd codemap <dir> 获取实时架构视图，不持久化。
+RULE: docs root 默认 mydocs/，可通过 .sdd-config 的 DOCS_DIR=... 覆盖。
+RULE: 新任务未显式 discover --mode 时默认 micro；standard/lite 必须由任务风险触发。

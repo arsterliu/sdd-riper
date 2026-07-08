@@ -10,8 +10,9 @@
 - **Execute Log 独立**：每个 Plan 步骤和偏差记录在 `execute-log-file`。
 - **Learning 独立**：偏差、修复、关注点或重开经验的可复用规则记录在 `learning-file`。
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、设计细节、计划步骤、证据和学习规则时使用中文。
-- **Gate Policy**：`manual`（人签名）| `auto`（AI 附 `Gate Evidence:`）| `advisory`（同 auto，Challenge 时人工确认）。默认 auto。核心模块 / 高风险用 manual；不确定用 advisory。
-- **Autonomous Cruise**：使用 `sdd next`、`sdd challenge`、`sdd cruise` 路由、对抗审核和有界修复。仅在 `CRUISE_POLICY="autonomous"` 时优先使用宿主原生循环；否则回退到 prompt-loop 补偿。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。`CRUISE_POLICY="off"` 禁用 cruise 输出和运行记录。
+- **Approval Policy**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate。默认 agent；agent 批准必须写 `Gate Evidence:`。
+- **Independent Review**：Research / Challenge 的 reviewer 必须可审计：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。
+- **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。
 - **先 Debug 再重试**：失败步骤先经过 `sdd debug` 再重试。
 - **无验证不声明**：声明完成前运行全新测试 / lint / build。
 

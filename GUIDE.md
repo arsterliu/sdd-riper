@@ -31,7 +31,7 @@ harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳
 | Design | `<docs-root>/design/` | standard 的 `Technical Design` 或 lite 的 `Design Note`。micro 不创建独立 Design。 |
 | Execute Log | `<docs-root>/logs/` | 执行步骤、偏差、验证结果，append-only。 |
 | Learning Record | `<docs-root>/learnings/` | 偏差、BUGFIX、concern、reopen 暴露出的可复用决策规则。 |
-| Cruise Run | `<docs-root>/runs/` | 巡航 iteration、engine、verdict、回跳目标和停止原因，属于可观测性账本，不替代核心产物。 |
+| Cruise Run | `<docs-root>/runs/` | 巡航 iteration、driver、verdict、回跳目标和停止原因，属于可观测性账本，不替代核心产物。 |
 
 Spec 是控制面，不再承载完整技术设计、执行日志和经验库。这样 Challenge 和 Archive 可以分别审查规范、设计、执行事实和可复用经验。
 
@@ -149,9 +149,8 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  Plan                                                                      │
 │  ┌─ 从 Design + AC 拆成原子步骤                                            │
 │  ├─ 每步：文件路径 / 具体改动 / 对应 AC / 验证方式                         │
-│  └─ 门禁三选一 ──┬─ manual:  人工 Plan Approved By + Approved At            │
-│                   ├─ auto:    auto-gate + Gate Evidence                    │
-│                   └─ advisory: 同 auto，Challenge 时额外人工确认           │
+│  └─ Plan Approval ─┬─ agent: agent:<id> + Approved At + Evidence          │
+│                    └─ human: human:<name> + Approved At                    │
 │                                                                             │
 │  ★ Plan 未批准 → 禁止进入 Execute                                         │
 └──────────────────────────────┬──────────────────────────────────────────────┘
@@ -167,7 +166,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  │  │    ├─ Scenarios: "场景名": PASS|FAIL                                 │
 │  │  │    ├─ Test: <test file path>                                        │
 │  │  │    ├─ Method: tdd|bdd|manual                                        │
-│  │  │    └─ SKIPPED 专属: Reason + Approved By（非 auto-gate）+ Approved At│
+│  │  │    └─ SKIPPED 专属: Reason + Approved By: human:<name> + Approved At│
 │  │  ├─ Deviation: none | DEVIATED_MINOR | DEVIATED_MAJOR                  │
 │  │  └─ Timestamp: ISO-8601                                                │
 │  │                                                                         │
@@ -207,7 +206,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │                                                                             │
 │  结果必须通过命令写入（禁止手动填写）:                                     │
 │  sdd challenge <dir> --record-result "VERDICT" --summary "..."            │
-│                    --executed-by "subagent"                                │
+│                    --executed-by "subagent:<id>"                           │
 │  → 自动写入: Challenge Verdict / Backtrack Target / Challenge Summary     │
 │             Challenge Executed By / Challenge Executed At（当前时间戳）    │
 │             Challenge Evidence                                             │
@@ -222,7 +221,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Cruise（自主巡航）                                                        │
 │                                                                             │
-│  sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex]      │
+│  sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex]      │
 │              [--emit-claude-prompt] [--record-run] [--iteration N]         │
 │                                                                             │
 │  每轮循环:                                                                  │
@@ -235,7 +234,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  ├─ 达到 CRUISE_MAX_ITERATIONS（默认 5） → 人工介入                       │
 │  └─ 安全/权限/计费/迁移/公共 API/不可逆 → 立即停止，人工介入              │
 │                                                                             │
-│  CRUISE_POLICY: off（禁用）| assisted（每轮人工确认）| autonomous（原生loop）│
+│  CRUISE_ENABLED: true（默认开启）| false（禁用 prompt 和 run ledger）       │
 └──────────────────────────────┬──────────────────────────────────────────────┘
                                │ PASS / PASS_WITH_CONCERNS
                                ▼
@@ -264,11 +263,11 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  │  归档门禁清单:                                                       │    │
 │  │  ┌─ Research Gate: Research Reviewed By + Research Reviewed At（standard/lite 必填）│    │
 │  │  │   └─ Confirmed Requirement 5 要素非空（Scope Boundary / Irreversibility / Impact Radius / Dependencies & Constraints / Acceptance Intent）│    │
-│  │  ├─ Plan Gate: Approved By + Approved At + Gate Evidence（auto 时）  │    │
+│  │  ├─ Plan Gate: Approved By + Approved At + Gate Evidence（agent 批准时）│    │
 │  │  ├─ Challenge Verdict: 非 FAIL_*                                    │    │
 │  │  ├─ Challenge Evidence: Executed By + Executed At + Evidence        │    │
-│  │  │   ├─ standard/lite: Executed By 含 subagent                      │    │
-│  │  │   ├─ manual policy: 非 auto-gate                                 │    │
+│  │  │   ├─ standard/lite: Executed By 为可审计独立 reviewer             │    │
+│  │  │   ├─ micro: 可 inline                                            │    │
 │  │  │   └─ Executed At 晚于 Execute Log 最后 step Timestamp            │    │
 │  │  ├─ Mode Artifacts: Design 必填字段 / AC Verification 元数据       │    │
 │  │  ├─ Execute Log: 非空                                               │    │
@@ -334,9 +333,9 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 
 循环的执行优先复用宿主 agent 能力：Claude Code 可使用 Dynamic Workflows，Codex / opencode 如果当前运行面支持原生自主循环，也应直接复用。SDD 不自建模型执行 runtime；它只提供状态机、门禁、回跳映射和产物真相链。宿主不支持原生 loop 时，退回 `prompt` 或 `local-loop` prompt-loop 补偿模式；SDD 只记录 iteration 快照，不执行模型循环。
 
-`CRUISE_POLICY="off"` 会禁用巡航 prompt 和 run ledger；`assisted` 要求人在每轮修复之间确认；`autonomous` 才允许宿主原生 loop。
+`CRUISE_ENABLED=false` 会禁用巡航 prompt 和 run ledger。默认 cruise 开启，是否复用宿主原生 loop 由 `--driver` 和宿主能力决定。
 
-`sdd cruise --engine claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，用于 Console 和人工审计查看巡航状态。
+`sdd cruise --driver claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，用于 Console 和人工审计查看巡航状态。
 
 ### Research
 
@@ -346,7 +345,7 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 - Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料（PRD、UI 稿、原型等）放入 `mydocs/context/<task-name>/`，`sdd discover` 自动绑定 `context-source`。
 - Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过”其他”选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
-- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的门禁。standard/lite 要求 subagent 独立审查；micro 跳过。Gate Policy 与 Plan Gate 一致。
+- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。
 - Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
 
 ### Innovate
@@ -475,7 +474,7 @@ E2E 测试验证完整的用户路径，从入口到持久化。SDD 对 E2E 的�
 
 - **每个任务 3-5 个 E2E 场景即可**——覆盖核心路径和最关键的失败路径，不是追求覆盖率。
 - **E2E AC 必须提供 `Test:` 路径**——`validate --archive-ready` 会检查该路径是否存在（L3 门禁）。
-- **E2E 环境不可用时**：AC 标记为 `SKIPPED`，必须提供三要素（`Reason` + `Approved By` + `Approved At`）。`Approved By` 不能是 `auto-gate`——跳过验证是人工决策。Agent 应先尝试修复环境，无法修复时标记 BLOCKED 让人决定。
+- **E2E 环境不可用时**：AC 标记为 `SKIPPED`，必须提供三要素（`Reason` + `Approved By: human:<name>` + `Approved At`）。跳过验证是人工决策。Agent 应先尝试修复环境，无法修复时标记 BLOCKED 让人决定。
 - **不稳定的 E2E 测试**：flaky test 不等于 PASS。如果测试不稳定，先 debug 找根因，再决定修复或重写。不要通过重试来掩盖不稳定性。
 
 **测试金字塔在 SDD 中的映射：**
@@ -510,13 +509,12 @@ Plan 是执行契约，不是技术设计的替代品。Plan 必须从 Design �
 进入 Execute 前必须填写：
 
 ```text
-Plan Approved By: <user> | auto-gate
+Plan Approved By: agent:<id> | human:<name>
 Approved At: <timestamp>
-Gate Policy: manual | auto | advisory
-Gate Evidence: <auto/advisory 时必填>
+Gate Evidence: <agent:<id> 时必填>
 ```
 
-GATE_POLICY 的三种策略详细说明见第四节。这里强调核心规则：**auto-gate 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 validate 拦截。manual 策略下 AI 不能填写 `Plan Approved By`，必须由人工签名。
+APPROVAL_POLICY 的策略详细说明见第四节。这里强调核心规则：**agent approval 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 validate 拦截。
 
 **Plan 未批准时的行为**：如果 Plan 因 Open Questions 未解决而无法批准，Agent 应主动用 `AskUserQuestion` 交互式澄清每个问题，并给出建议答案选项，而非仅提示"存在问题"。澄清后更新 spec，再走门禁。
 
@@ -547,7 +545,7 @@ AC Coverage:
     Method: bdd
 ```
 
-E2E 环境不可用时，AC 标记为 `SKIPPED`，需人工批准三要素（Reason + Approved By + Approved At）。`Approved By` 不能是 `auto-gate`。
+E2E 环境不可用时，AC 标记为 `SKIPPED`，需人工批准三要素（Reason + `Approved By: human:<name>` + Approved At）。
 
 Execute 最后一个 Step 是 Completion Verification，包含四轴自查清单和 AC Coverage 全量汇总：
 
@@ -592,18 +590,12 @@ Challenge Summary: <evidence, ≤200 words>
 **执行证据门禁**：Challenge 完成后，必须在 Spec 中填写执行证据三要素：
 
 ```text
-Challenge Executed By: subagent | inline | auto-gate | <agent-id>
+Challenge Executed By: subagent:<id> | external-agent:<id> | human:<name> | inline
 Challenge Executed At: <ISO-8601>
 Challenge Evidence: <verdict + summary from independent agent>
 ```
 
-`validate --archive-ready` 强制校验三要素齐全，缺任何一项拦截归档。门禁策略复用 `GATE_POLICY`：
-
-- **manual**：`Challenge Executed By` 不能是 `auto-gate`，必须由人工填写
-- **auto**：AI 可填写 `auto-gate`，但三要素必须齐全
-- **advisory**：与 auto 行为一致，Challenge 阶段额外提示人工确认
-
-standard/lite 模式下 `Challenge Executed By` 必须包含 `subagent`（对抗审查的核心是"不是自己审自己"）；micro 模式下可以是 `inline`。
+`validate --archive-ready` 强制校验三要素齐全，缺任何一项拦截归档。standard/lite 模式下 `Challenge Executed By` 必须是可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro 模式下可以是 `inline`。
 
 **审查轴**：Challenge 从六个维度独立审查，每个维度都可触发 `FAIL_*`：
 
@@ -639,7 +631,7 @@ Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团
 **怎么运行**：
 
 ```text
-sdd cruise <project-dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+sdd cruise <project-dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
 ```
 
 Cruise 每一轮做三件事：
@@ -672,9 +664,9 @@ Cruise 每一轮做三件事：
 - 达到 `CRUISE_MAX_ITERATIONS`（默认 5）：必须停止，要求人工介入。
 - 遇到安全、权限、计费、数据迁移、公共 API、不可逆变更：必须停止，要求人工介入。
 
-**Engine 选择**：`--engine auto` 是默认值。策略是先复用宿主原生 loop；没有原生 loop 时，退回 prompt loop。无论使用哪个 engine，`Spec / Design / Plan / Execute Log / Learning` 都不能被宿主 workflow 文件替代。
+**Driver 选择**：`--driver auto` 是默认值。策略是先复用宿主原生 loop；没有原生 loop 时，退回 prompt loop。无论使用哪个 driver，`Spec / Design / Plan / Execute Log / Learning` 都不能被宿主 workflow 文件替代。
 
-**运行记录**：`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录每轮的 iteration、engine、verdict 和停止原因，用于 Console 和人工审计。
+**运行记录**：`sdd cruise --record-run --iteration N` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录每轮的 iteration、driver、verdict 和停止原因，用于 Console 和人工审计。
 
 ### Learning Check
 
@@ -714,14 +706,15 @@ sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
 
 不要重新 `discover`，否则会切断历史上下文。
 
-## 四、三种模式与门禁策略
+## 四、三种模式与审批策略
 
-SDD 用两个正交的配置轴定义一个任务怎么跑：
+SDD 用更少配置表达任务治理：
 
-- **Mode**（standard / lite / micro）— 决定工作流形状：几个阶段、多少制品、设计深度。
-- **GATE_POLICY**（manual / auto / advisory）— 决定治理松紧：谁来批 Plan、要不要人介入。
+- **Mode**（standard / lite / micro）写在 Spec 上，决定工作流形状：几个阶段、多少制品、设计深度。
+- **APPROVAL_POLICY**（agent / human）写在 `.sdd-config`，只控制 Plan Gate 谁能批准。
+- **Independent Review** 由 Spec 中的 reviewer evidence 表达，不由审批策略表达。
 
-两个轴组合才完整描述任务运行方式——`micro + manual`（小改动但涉及关键逻辑）和 `standard + auto`（重流程但 AI 可自批）是完全合理的组合。
+新项目默认 `APPROVAL_POLICY="agent"`；高风险或核心模块可改为 `human`。
 
 ### Mode
 
@@ -745,37 +738,34 @@ SDD 用两个正交的配置轴定义一个任务怎么跑：
 
 当任务涉及安全、权限、计费、数据迁移、公共接口、跨模块副作用或不可逆变更，即使只改一个文件，也应升级到 lite 或 standard。
 
-### GATE_POLICY
+### APPROVAL_POLICY
 
-GATE_POLICY 控制 Plan 审批权——这是 SDD 最核心的治理门禁。默认 `GATE_POLICY="auto"`，在 `.sdd-config` 中配置。
+APPROVAL_POLICY 控制 Plan 审批权——这是 SDD 最核心的治理门禁。默认 `APPROVAL_POLICY="agent"`，在 `.sdd-config` 中配置。
 
-| 策略 | Plan Approved By | Gate Evidence | Challenge 行为 | 适用场景 |
-| :--- | :--- | :--- | :--- | :--- |
-| **manual** | 必须由人填写 `<user>` | 不要求 | 正常 | 核心模块、高风险、关键业务逻辑、上线后不可逆 |
-| **auto** | AI 可填 `auto-gate` | **必须提供**（测试通过、lint 通过等事实依据） | 正常 | 常规开发、有测试覆盖的中低风险任务 |
-| **advisory** | AI 可填 `auto-gate` | **必须提供** | Challenge 阶段额外提示人工确认 | 边界场景——不完全放心 auto，但 manual 太重 |
+| 策略 | Plan Approved By | Gate Evidence | 适用场景 |
+| :--- | :--- | :--- | :--- |
+| **agent** | `agent:<id>` | **必须提供**（测试通过、lint 通过等事实依据） | 默认；常规开发、有测试覆盖的中低风险任务 |
+| **human** | `human:<name>` | 不要求 | 核心模块、高风险、关键业务逻辑、上线后不可逆 |
 
-**auto 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 `validate` 拦截。auto-gate 的核心是"AI 可以批准，但必须拿出证据"。
+**agent approval 不是无门禁**——缺少 `Gate Evidence:` 或 `Approved At:` 都会被 `validate` 拦截。
 
-**advisory 的定位**：它是 auto 和 manual 之间的缓冲。适用于"技术上可以 auto，但想让 TL 多看一眼"的场景，比如第一次使用新模式、团队刚上手 SDD、或任务在边界条件附近。advisory 不增加 Plan 阶段的人工等待，只在 Challenge 时提醒。
+Plan Gate 只由 `APPROVAL_POLICY=agent|human` 控制。
 
 **选择指南**：
 
-- 不确定就用 advisory——它不会阻塞流程，只会在 Challenge 时多一次人工确认。
-- 核心 / 高风险 / 不可逆 → manual。
-- 有信心、有覆盖 → auto。
-- 团队可以按模块设置不同策略：核心模块 `.sdd-config` 写 `GATE_POLICY="manual"`，常规模块用 auto。
+- 默认用 agent，并写清 Gate Evidence。
+- 核心 / 高风险 / 不可逆 → human。
+- 团队可以按模块设置不同策略：核心模块 `.sdd-config` 写 `APPROVAL_POLICY="human"`，常规模块用默认 agent。
 
-**Mode × GATE_POLICY 组合示例**：
+**Mode × APPROVAL_POLICY 组合示例**：
 
 | 组合 | 含义 | 典型场景 |
 | :--- | :--- | :--- |
-| standard + manual | 重流程 + 人审批 | 支付系统重构、用户认证改造 |
-| standard + auto | 重流程 + AI 可自批 | 有经验的常规标准任务 |
-| lite + advisory | 中等流程 + 人确认 | 首次用 lite 模式、边界改动 |
-| lite + auto | 中等流程 + AI 可自批 | 明确的中小改动 |
-| micro + auto | 轻流程 + AI 自批 | 低风险小改动（最常见） |
-| micro + manual | 轻流程 + 人审批 | 小改动但涉及关键逻辑（如配置变更） |
+| standard + human | 重流程 + 人审批 | 支付系统重构、用户认证改造 |
+| standard + agent | 重流程 + agent 可批 Plan | 有经验的常规标准任务 |
+| lite + agent | 中等流程 + agent 可批 Plan | 明确的中小改动 |
+| micro + agent | 轻流程 + agent 批 Plan | 低风险小改动（最常见） |
+| micro + human | 轻流程 + 人审批 | 小改动但涉及关键逻辑（如配置变更） |
 
 ## 五、编排模型：Phase Dispatch Map
 
@@ -904,7 +894,7 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 | `status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
 | `next` | 输出当前 workflow 状态、下一步和回跳目标。 |
 | `challenge` | 生成独立对抗评审 Prompt。 |
-| `cruise` | 生成巡航控制 Prompt；支持 `--engine`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
+| `cruise` | 生成巡航控制 Prompt；支持 `--driver`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
 | `console` | 启动本地只读 Web Console，查看 Spec 阶段、状态、产物健康度和归档门禁。 |
 | `validate` | 机器校验归档门禁。 |
 | `review-execute` | 生成四轴 Review Prompt。 |
@@ -925,8 +915,8 @@ Web Console 是文件系统产物的 projection，不是新的 source of truth�
 - 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/learnings/`、`<docs-root>/runs/`、`<docs-root>/archive/`。
 - 项目看板和 Spec 列表读取后台内存索引快照；首次加载或刷新时可能短暂显示 indexing，再自动更新。
 - 阶段由最早未满足门禁推导：Research、Innovate、Design、Acceptance、Plan、Execute、Learning、Ready、Archived。
-- 详情页展示 gate policy、cruise policy、challenge verdict 和 backtrack target。
-- 详情页展示最新 cruise run 的 iteration、engine 和 stop reason。
+- 详情页展示 approval policy、cruise enabled、challenge verdict 和 backtrack target。
+- 详情页展示最新 cruise run 的 iteration、driver 和 stop reason。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
 - 当前版本只读展示和校验，不直接编辑 Spec、Design、Execute Log 或 Learning；Edit 按钮只调用本机默认程序打开文件。
 - 后续如加入 archive / reopen / discover 操作，也应调用现有命令，而不是在 Web 层直接改文件。

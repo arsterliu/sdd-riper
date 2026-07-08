@@ -232,8 +232,12 @@ function completionState(projectDir, specPath, mode) {
   var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
   var approvedBy = labelHasContent(content, 'Plan Approved By');
   var approvedAt = labelHasContent(content, 'Approved At');
-  var autoGate = /^auto-gate$/i.test((content.match(/^[ \t]*Plan Approved By:[ \t]*(.*)$/m) || [])[1] || '');
-  var planApproved = approvedBy && approvedAt && (!autoGate || labelHasContent(content, 'Gate Evidence'));
+  var approver = (content.match(/^[ \t]*Plan Approved By:[ \t]*(.*)$/m) || [])[1] || '';
+  var agentApproval = /^agent:[^:\s]+$/i.test(approver);
+  var humanApproval = /^human:[^:\s]+$/i.test(approver);
+  var approvalPolicy = common.getApprovalPolicy(projectDir);
+  var planApproved = approvedBy && approvedAt && (humanApproval || (agentApproval && labelHasContent(content, 'Gate Evidence')));
+  if (approvalPolicy === 'human' && agentApproval) planApproved = false;
   // completionVerification: check if Execute Log contains a completion-verification step
   var fullLogContent = executeLog.hasContent && executeLog.path && fs.existsSync(executeLog.path)
     ? fs.readFileSync(executeLog.path, 'utf-8')
@@ -284,8 +288,8 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
     : validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var workflowState = opts.lightweight
     ? {
-      gatePolicy: common.getGatePolicy(projectDir),
-      cruisePolicy: common.getCruisePolicy(projectDir),
+      approvalPolicy: common.getApprovalPolicy(projectDir),
+      cruiseEnabled: common.getCruiseEnabled(projectDir),
       maxIterations: common.getCruiseMaxIterations(projectDir),
       challengeVerdict: '',
       backtrackTarget: '',

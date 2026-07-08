@@ -5,8 +5,8 @@ function run(projectDir, opts) {
   var state = workflow.analyzeProject(projectDir, opts);
   console.log('## SDD NEXT');
   console.log('SPEC: ' + (state.specPath || 'none'));
-  console.log('GATE_POLICY: ' + state.gatePolicy);
-  console.log('CRUISE_POLICY: ' + state.cruisePolicy);
+  console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
+  console.log('CRUISE_ENABLED: ' + (state.cruiseEnabled ? 'true' : 'false'));
   console.log('MAX_ITERATIONS: ' + state.maxIterations);
   console.log('CHALLENGE_VERDICT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);

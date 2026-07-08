@@ -31,7 +31,7 @@ var gateDefinitions = [
   ['innovate', 'Innovate', 'Options or explicit skip reason'],
   ['design', 'Design', 'Technical design or design note'],
   ['acceptance', 'Acceptance', 'Observable acceptance criteria'],
-  ['plan', 'Plan Gate', 'Configured approval gate, with Gate Evidence for auto-gate'],
+  ['plan', 'Plan Gate', 'Configured approval gate, with Gate Evidence for agent approval'],
   ['executeLog', 'Execute Log', 'Execution facts recorded with AC Coverage'],
   ['completionVerification', 'Completion Verification', 'Four-axis self-check and AC Coverage summary in Execute Log'],
   ['learning', 'Learning', 'Reusable lesson recorded when required'],
@@ -43,7 +43,7 @@ var blockerText = {
   innovate: 'Innovate needs options, or a documented skip reason in lite mode.',
   design: 'Design is missing or empty. Standard and lite specs need an external design artifact.',
   acceptance: 'Acceptance criteria are missing or incomplete.',
-  plan: 'Plan gate is missing. Fill Plan Approved By and Approved At; auto-gate also needs Gate Evidence.',
+  plan: 'Plan gate is missing. Fill Plan Approved By and Approved At; agent approval needs Gate Evidence.',
   execute: 'Execute Log is missing or empty. Record the execution facts before Challenge.',
   learning: 'Learning Check is required. Record the reusable lesson before Archive.',
   ready: 'All archive gates pass. This spec is ready to archive.',
@@ -364,11 +364,11 @@ function renderBlocker(spec) {
   var latestRun = run.latest || {};
   var runText = run.count
     ? ' / run: #' + esc(latestRun.iteration || '-') +
-      ' ' + esc(latestRun.engine || '-') +
+      ' ' + esc(latestRun.driver || '-') +
       ' ' + esc(latestRun.stopReason || '-')
     : ' / run: none';
-  var controlText = 'gate: ' + esc(workflow.gatePolicy || '-') +
-    ' / cruise: ' + esc(workflow.cruisePolicy || '-') +
+  var controlText = 'approval: ' + esc(workflow.approvalPolicy || '-') +
+    ' / cruise enabled: ' + esc(workflow.cruiseEnabled == null ? '-' : workflow.cruiseEnabled) +
     ' / next: ' + esc(workflow.nextAction || '-') +
     ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
     runText;
@@ -527,14 +527,14 @@ function renderCruiseRun(spec) {
   var run = spec.cruiseRun || {};
   var root = qs('cruise-run');
   root.innerHTML = '';
-  var policy = workflow.cruisePolicy || 'off';
+  var enabled = workflow.cruiseEnabled !== false;
   var maxIter = workflow.maxIterations || 5;
-  if (policy === 'off' && !run.count) {
+  if (!enabled && !run.count) {
     root.innerHTML = '<div class="cruise-run-row"><span class="pill not-started">Off</span> <span>Cruise is disabled</span></div>';
     return;
   }
   var html = '<div class="cruise-run-row">';
-  html += '<div class="cruise-meta"><span class="cruise-label">Policy</span><span class="pill ' + (policy === 'autonomous' ? 'progress' : policy === 'assisted' ? 'waiting' : 'not-started') + '">' + esc(policy) + '</span></div>';
+  html += '<div class="cruise-meta"><span class="cruise-label">Enabled</span><span class="pill ' + (enabled ? 'progress' : 'not-started') + '">' + esc(enabled ? 'true' : 'false') + '</span></div>';
   html += '<div class="cruise-meta"><span class="cruise-label">Max iterations</span><span>' + esc(maxIter) + '</span></div>';
   if (run.count) {
     var latest = run.latest || {};
@@ -542,7 +542,7 @@ function renderCruiseRun(spec) {
     var stopTone = STOP_REASON_TONES[stopReason] || 'not-started';
     var stopLabel = STOP_REASON_LABELS[stopReason] || stopReason;
     html += '<div class="cruise-latest">';
-    html += '<div class="cruise-meta"><span class="cruise-label">Latest run</span><span>#' + esc(latest.iteration || '-') + ' / ' + esc(latest.engine || '-') + '</span></div>';
+    html += '<div class="cruise-meta"><span class="cruise-label">Latest run</span><span>#' + esc(latest.iteration || '-') + ' / ' + esc(latest.driver || '-') + '</span></div>';
     html += '<div class="cruise-meta"><span class="cruise-label">Verdict</span><span class="pill ' + challengeVerdictTone(latest.challengeVerdict) + '">' + esc(latest.challengeVerdict || '-') + '</span></div>';
     html += '<div class="cruise-meta"><span class="cruise-label">Stop reason</span><span class="pill ' + stopTone + '">' + esc(stopLabel) + '</span></div>';
     html += '</div>';
@@ -550,7 +550,7 @@ function renderCruiseRun(spec) {
     if (run.malformedCount) {
       html += '<div class="cruise-meta"><span class="cruise-label">Corrupted entries</span><span class="pill bad">' + esc(run.malformedCount) + '</span></div>';
     }
-  } else if (policy !== 'off') {
+  } else if (enabled) {
     html += '<div class="cruise-meta"><span class="pill not-started">No runs recorded</span></div>';
   }
   html += '</div>';

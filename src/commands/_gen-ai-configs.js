@@ -16,11 +16,12 @@ function sddBlock(title, mode, bodyLines) {
     '- Do not write code without an active Spec.',
     '- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; do not infer them silently.',
     '- Before creating a Spec, ask whether reference materials / context exist, and bind them with `context-source` when provided.',
-    '- Do not move past Plan without gate evidence.',
+    '- Do not move past Plan without approval and gate evidence.',
     '- Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.',
     '- Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.',
     '- Record execution deviations in the referenced Execute Log.',
-    '- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent"`.',
+    '- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.',
+    '- Independent Review is separate from approval: Research/Challenge reviewers must be auditable (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`; micro Challenge may use `inline`).',
     '- Keep artifact headings and field labels in English; write artifact content in Chinese.',
     '- Debug before retrying failed steps.',
     '',
@@ -33,6 +34,9 @@ function sddBlock(title, mode, bodyLines) {
     '',
     'Project configuration:',
     '- Docs root defaults to `mydocs/`, override via `.sdd-config` (`DOCS_DIR=...`).',
+    '- `APPROVAL_POLICY=agent|human` controls only the Plan approval gate; `agent` approvals require `Gate Evidence`.',
+    '- Cruise is enabled by default; set `CRUISE_ENABLED=false` to turn it off and keep `CRUISE_MAX_ITERATIONS` as the iteration budget.',
+    '- Cruise Driver is selected with `sdd cruise --driver <driver>`.',
     '- Mode: ' + mode,
     ''
   ].concat(bodyLines || []).concat([BLOCK_END]).join('\n');
@@ -60,7 +64,7 @@ function upsertManagedBlock(existing, block) {
 }
 
 function run(projectDir, mode, force) {
-  if (!mode) mode = 'standard';
+  if (!mode) mode = 'micro';
   if (['standard','lite','micro'].indexOf(mode) === -1) {
     console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
     process.exit(3);
@@ -97,7 +101,7 @@ function run(projectDir, mode, force) {
     '',
     'Claude-specific reminder:',
     '- Explicitly track RIPER phase transitions.',
-    '- Standard/lite Challenge execution must include `subagent`; micro may use inline only when roles remain separated.'
+    '- Standard/lite Challenge execution must use auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro may use inline only when roles remain separated.'
   ]);
   writeConfig(path.join(projectDir, 'CLAUDE.md'), claudeContent);
 

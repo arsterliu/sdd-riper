@@ -148,7 +148,7 @@ sdd install-skill --target codex --clean
 | **Execute Log** | 执行事实产物。每个 Plan step 的结果、偏差、验证结果都追加到这里。 |
 | **Learning Record** | 经验沉淀产物。把偏差、BUGFIX、concern、reopen 暴露出的规律写成可复用决策规则。 |
 | **CodeMap** | 按需架构视图（`sdd codemap`），扫描源码实时输出，不持久化、永不过时。架构变更应记录到 Learning Record。 |
-| **Cruise Run** | 巡航可观测账本。记录 `sdd cruise --record-run` 时的 iteration、engine、next action、verdict 和停止原因，不替代 Spec / Design / Execute Log。 |
+| **Cruise Run** | 巡航可观测账本。记录 `sdd cruise --record-run` 时的 iteration、driver、next action、verdict 和停止原因，不替代 Spec / Design / Execute Log。 |
 
 ## 流程
 
@@ -204,9 +204,9 @@ Design 按模式分层约束：
 
 设计方法论按 `mode` + 风险路由：`sdd next` / `cruise` / `challenge` 会输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议，背后是「执行质量层（vendored superpowers）+ 设计方法层（DDD/C4/ADR/arc42）」两层方法论。细节见 [GUIDE.md](./GUIDE.md) 第六节与 [INTEGRATIONS.md](./INTEGRATIONS.md)。
 
-## 两个配置轴：Mode 与 GATE_POLICY
+## 默认治理策略
 
-SDD 用两个正交的配置轴定义任务运行方式：
+SDD 采用“约定大于配置”：新项目只需要少量配置，任务复杂度由每个 Spec 的 `mode` 表达，Plan 审批由 `APPROVAL_POLICY` 表达，Research / Challenge 的独立审查由 reviewer evidence 表达。
 
 ### Mode（工作流形状）
 
@@ -216,15 +216,24 @@ SDD 用两个正交的配置轴定义任务运行方式：
 | `lite` | 中小改动、上下文明确任务 | 独立 Design Note | 独立文件，必填 | 可选 |
 | `micro` | 单文件 bugfix、文案、低风险配置 | 不单独创建，写入 Plan | 独立文件，必填 | 默认不用 |
 
-### GATE_POLICY（治理松紧）
+### APPROVAL_POLICY（只控制 Plan Gate）
 
 | 策略 | 谁批 Plan | 核心规则 | 适用场景 |
 | :--- | :--- | :--- | :--- |
-| `manual` | 人工签名 | AI 不能填 `Plan Approved By` | 核心模块、高风险、不可逆 |
-| `auto` | AI（附证据） | 必须提供 `Gate Evidence:` + `Approved At:`，缺一拦截 | 常规开发、有测试覆盖 |
-| `advisory` | AI（附证据） | 同 auto，Challenge 阶段额外提示人工确认 | 边界场景、团队刚上手 |
+| `agent` | Agent（附证据） | `Plan Approved By: agent:<id>`，必须提供 `Approved At:` 和 `Gate Evidence:` | 默认策略 |
+| `human` | `human:<name>` | 必须使用 `Plan Approved By: human:<name>`，拒绝 agent / 裸签名 | 核心模块、高风险、不可逆 |
 
-新项目默认 `GATE_POLICY="auto"`、`CRUISE_POLICY="autonomous"`、`CRUISE_MAX_ITERATIONS="5"`。在 `.sdd-config` 中配置。不确定选哪个 → advisory；核心 / 高风险 → manual；有信心有覆盖 → auto。
+新项目默认 `.sdd-config`：
+
+```text
+DOCS_DIR="mydocs"
+APPROVAL_POLICY="agent"
+CRUISE_MAX_ITERATIONS="5"
+```
+
+任务模式由 `discover --mode` 明确选择，未指定时默认 `micro`。
+
+Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必须记录可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro Challenge 可用 `inline`。
 
 组合策略：
 
@@ -234,13 +243,11 @@ SDD 用两个正交的配置轴定义任务运行方式：
 
 ### Cruise 策略
 
-- **CRUISE_POLICY** 支持 `off | assisted | autonomous`：
-  - `off`：禁用巡航 prompt 和 run ledger。
-  - `assisted`：人在每轮修复之间确认。
-  - `autonomous`：允许宿主原生 loop（Claude Code Dynamic Workflows、Codex native loop 等）。
+- Cruise 默认开启。设置 `CRUISE_ENABLED=false` 可禁用巡航 prompt 和 run ledger。
+- 是否复用宿主原生 loop 由 `--driver` 和宿主能力决定。
 - `sdd challenge` 的 `FAIL_*` verdict 会阻止归档，并由 `sdd cruise` 映射回对应阶段修复。
-- `sdd cruise --engine claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt；真正的 workflow script 由 Claude Code 自己生成和执行。
-- `sdd cruise --record-run` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录 iteration、engine、next action、challenge verdict 和停止原因。
+- `sdd cruise --driver claude-code --emit-claude-prompt` 会输出包含 `ultracode:` 和 `/effort ultracode` 提示的 Claude Code workflow 启动 prompt。
+- `sdd cruise --record-run` 会追加 `<docs-root>/runs/<spec>.cruise.jsonl`，记录 iteration、driver、next action、challenge verdict 和停止原因。
 - SDD 不持有模型执行循环；`Spec / Design / Plan / Execute Log / Learning` 仍是真相源。
 
 ## 常用命令
@@ -254,7 +261,7 @@ SDD 用两个正交的配置轴定义任务运行方式：
 | `sdd status <dir>` | 检查结构和流程健康度。 |
 | `sdd next <dir>` | 输出当前 workflow 状态、下一步和回跳目标。 |
 | `sdd challenge <dir>` | 生成独立对抗评审 prompt。 |
-| `sdd cruise <dir> [--engine ...] [--emit-claude-prompt] [--record-run] [--iteration N]` | 生成巡航控制 prompt；可输出 Claude ultracode/workflow 启动提示并写入 run ledger，但不直接调用模型或执行循环。 |
+| `sdd cruise <dir> [--driver ...] [--emit-claude-prompt] [--record-run] [--iteration N]` | 生成巡航控制 prompt；可输出 Claude ultracode/workflow 启动提示并写入 run ledger，但不直接调用模型或执行循环。 |
 | `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
 | `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean]` | 把当前已安装包携带的完整 Skill 注册到 agent 环境。 |
 | `sdd validate <dir> --archive-ready` | 归档前门禁校验。 |
@@ -273,7 +280,7 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
 - 页面里选择项目目录。
 - 多项目看板预览。
 - 查看 Spec 阶段、状态、产物和归档门禁。
-- 查看最新 cruise run 的 iteration、engine 和停止原因。
+- 查看最新 cruise run 的 iteration、driver 和停止原因。
 - 每个产物按 `Spec / Design / Execute Log / Learning` 独立 Preview。
 - Preview 新开浏览器 tab，只读显示 Markdown 原文。
 - Preview 页提供 `Edit`，用本机默认程序打开对应文件。

@@ -29,7 +29,7 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 4. **Execute Log is an independent artifact**: every mode writes execution facts to `execute-log-file`.
 5. **Learning is a reusable decision asset**: when execution produces deviations, bugfixes, concerns, or reopen lessons, write a Learning Record in `learning-file` before archive.
 6. **Chinese Filled Content**: keep artifact template headings and human-readable field labels in English. Write the filled requirement analysis, option rationale, design explanations, plan steps, execution notes, evidence, and learning rules in Chinese.
-7. **Configured Plan Gate**: do not enter Execute until the configured gate is satisfied. Manual gates require human approval; auto gates require `Plan Approved By: auto-gate`, `Approved At:`, and `Gate Evidence:`.
+7. **Configured Plan Gate**: do not enter Execute until Plan approval is satisfied. `APPROVAL_POLICY=agent` allows `agent:<id>` with `Approved At:` and `Gate Evidence:`. `APPROVAL_POLICY=human` requires `Plan Approved By: human:<name>`.
 8. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
 9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
 10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency.
@@ -122,25 +122,25 @@ Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is uncle
 
 When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
 
-## Gate / Cruise Policy
+## Approval / Cruise Policy
 
-SDD uses two orthogonal configuration axes — **Mode** (standard / lite / micro) controls workflow shape (how many phases, how many artifacts); **GATE_POLICY** (manual / auto / advisory) controls governance tightness (who approves Plan, whether human must intervene). Both are set in `.sdd-config`:
+SDD keeps project configuration small. **Mode** is a Spec-level workflow shape. **APPROVAL_POLICY** only controls Plan approval. Independent Research/Challenge review is controlled by reviewer evidence in the Spec, not by approval policy.
 
 ```text
-GATE_POLICY="auto"              # manual | auto | advisory
-CRUISE_POLICY="autonomous"      # off | assisted | autonomous
+APPROVAL_POLICY="agent"         # agent | human
+CRUISE_ENABLED="true"           # true | false (optional; default true)
 CRUISE_MAX_ITERATIONS="5"
 ```
 
-Default is `auto` / `autonomous` / `5` when fields are missing.
+Default is `agent` / enabled / `5` when fields are missing.
 
-- `manual`: requires a human `Plan Approved By: <user>` and `Approved At:`. AI cannot self-approve.
-- `auto`: allows `Plan Approved By: auto-gate` only when `Gate Evidence:` and `Approved At:` are provided. Auto-gate is not gate-free — `validate` rejects any missing field.
-- `advisory`: same as `auto` for Plan approval, but Challenge phase adds an extra human confirmation prompt. Use when "technically auto, but TL should double-check."
+- `agent`: allows `Plan Approved By: agent:<id>` only when `Gate Evidence:` and `Approved At:` are provided.
+- `human`: requires `Plan Approved By: human:<name>` and `Approved At:`.
+- `CRUISE_ENABLED=false` disables cruise prompt output and run recording.
 
-**Selection guide**: unsure → advisory; core / high-risk / irreversible → manual; confident + covered → auto. Teams can set different policies per module.
+**Selection guide**: default to `agent` with evidence. Use `human` for core / high-risk / irreversible Plan approval.
 
-Cruise engine options:
+Cruise driver options:
 
 - `auto`: default. Prefer host-native loop, then fallback to prompt loop.
 - `claude-code`: generate instructions for Claude Code Dynamic Workflows when available.
@@ -151,7 +151,7 @@ Cruise engine options:
 
 Never move Spec, Design, Plan, Execute Log, Learning, or Challenge evidence into a host-specific workflow file as the source of truth.
 
-Use `sdd cruise "<PROJECT_ROOT>" --engine claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
+Use `sdd cruise "<PROJECT_ROOT>" --driver claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
 
 ## Mode Policy
 
@@ -180,7 +180,7 @@ Required outputs in Spec:
 
 Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
 
-Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require subagent independent review; micro skips. Gate Policy (manual/auto/advisory) applies as for Plan Gate.
+Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips.
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
@@ -270,7 +270,7 @@ It should also cover these fields when relevant:
 
 Write acceptance criteria in Spec with `AC-###` ids. Keep labels such as `Requirement:` / `Type:` / `Verification:` / `Automated:` / `Test:` / `Manual Evidence:` in English. The verification value remains one of `unit | integration | e2e | manual`. BDD / Gherkin scenario descriptions should be written in Chinese. E2E ACs must reference `Test:` or `Manual Evidence:`; manual ACs must include `Manual Evidence:`.
 
-Testing strategy mapping: `unit` → `Method: tdd` (default for logic), `integration` → `Method: tdd` or `bdd` (interface contracts, data flow), `e2e` → `Method: bdd` (critical user paths, 3-5 scenarios), `manual` → `Method: manual` (last resort, `Manual Evidence:` required). Flaky E2E tests are not PASS — debug the root cause first. When E2E environment is unavailable, mark AC as `SKIPPED` with `Reason` + `Approved By` (human, not auto-gate) + `Approved At`.
+Testing strategy mapping: `unit` → `Method: tdd` (default for logic), `integration` → `Method: tdd` or `bdd` (interface contracts, data flow), `e2e` → `Method: bdd` (critical user paths, 3-5 scenarios), `manual` → `Method: manual` (last resort, `Manual Evidence:` required). Flaky E2E tests are not PASS — debug the root cause first. When E2E environment is unavailable, mark AC as `SKIPPED` with `Reason` + `Approved By: human:<name>` + `Approved At`.
 
 ### Lite
 
@@ -321,13 +321,12 @@ Follow `writing-plans` for step granularity (see `vendored/superpowers/writing-p
 Before Execute, satisfy the configured gate and write:
 
 ```text
-Plan Approved By: <user>
+Plan Approved By: agent:<id> | human:<name>
 Approved At: <ISO timestamp>
-Gate Policy: manual | auto | advisory
-Gate Evidence: <required for auto-gate>
+Gate Evidence: <required for agent:<id>>
 ```
 
-Do not self-approve. `auto-gate` is allowed only when the evidence is explicit and verifiable.
+Agent approval is allowed only when the evidence is explicit and verifiable.
 
 Dispatch categories:
 
@@ -361,7 +360,7 @@ AC Coverage:
     Test: <test file path>
     Method: tdd | bdd | manual
     Reason: <required for SKIPPED: why E2E environment was unavailable>
-    Approved By: <required for SKIPPED: human name, not auto-gate>
+    Approved By: <required for SKIPPED: human:<name>>
     Approved At: <required for SKIPPED: ISO-8601>
 Deviation: none | <Chinese explanation>
 Timestamp: <ISO 8601>
@@ -370,7 +369,7 @@ Timestamp: <ISO 8601>
 
 AC Coverage is a structured record linking each step to the acceptance criteria it covers. Every step that implements or verifies an AC must include an `AC Coverage` entry. The `Scenarios` sub-field maps BDD/Gherkin scenarios to their test results. `Method` declares whether the step used TDD, BDD, or manual verification.
 
-When an E2E test cannot run because the environment is unavailable, mark the AC as `SKIPPED` with `Reason`, `Approved By`, and `Approved At`. `Approved By` cannot be `auto-gate` — skipping verification is a human decision. The agent should attempt to fix the environment first; only if it cannot, mark as BLOCKED and let the human decide to retry or skip.
+When an E2E test cannot run because the environment is unavailable, mark the AC as `SKIPPED` with `Reason`, `Approved By: human:<name>`, and `Approved At`. Skipping verification is a human decision. The agent should attempt to fix the environment first; only if it cannot, mark as BLOCKED and let the human decide to retry or skip.
 
 Deviation rules:
 
@@ -484,10 +483,10 @@ Briefs for challenge subagents must include source code (`source_code` in `artif
 
 1. 派发 subagent 执行对抗审查
 2. 收到 subagent 返回的 verdict + summary
-3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent"`
+3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent:<id>"`
 4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
 
-`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require `subagent` in `Challenge Executed By`; micro allows `inline`. Gate policy mirrors `GATE_POLICY`: manual rejects `auto-gate`, auto requires all three fields, advisory adds a human confirmation prompt. `Challenge Executed At` must be a valid ISO-8601 timestamp.
+`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. `Challenge Executed At` must be a valid ISO-8601 timestamp.
 
 Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
 
@@ -496,10 +495,10 @@ Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped p
 Run:
 
 ```text
-sdd cruise "<PROJECT_ROOT>" [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+sdd cruise "<PROJECT_ROOT>" [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
 ```
 
-The command generates a bounded repair-loop prompt according to `CRUISE_POLICY`. `off` disables cruise output and run recording, `assisted` requires human confirmation between iterations, and `autonomous` may reuse host-native loops. With `--engine auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The agent should repair only the artifact indicated by `BACKTRACK_TARGET`, run `sdd validate`, then run `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
+The command generates a bounded repair-loop prompt when `CRUISE_ENABLED` is true. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The agent should repair only the artifact indicated by `BACKTRACK_TARGET`, run `sdd validate`, then run `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
 
 Allowed Cruise writes:
 
@@ -635,7 +634,7 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd status <dir>`
 - `sdd next <dir>`
 - `sdd challenge <dir>`
-- `sdd cruise <dir> [--engine auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
+- `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
 - `sdd console [dir] [--port <port>]`
 - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
 - `sdd validate <dir> --archive-ready`

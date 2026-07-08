@@ -83,7 +83,6 @@ Scenario: <scenario name in Chinese>
 
 Plan Approved By:
 Approved At:
-Gate Policy:
 Gate Evidence:
 
 ## Execute Log Reference

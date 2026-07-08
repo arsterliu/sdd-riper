@@ -15,6 +15,16 @@ var VERDICTS = [
   'FAIL_LEARNING'
 ];
 
+function isAuditableExecutedBy(value, mode) {
+  var who = String(value || '').trim();
+  if (!who) return false;
+  if (mode === 'micro' && /^inline$/i.test(who)) return true;
+  if (/^subagent:[^:\s]+$/i.test(who)) return true;
+  if (/^external-agent:[^:\s]+$/i.test(who)) return true;
+  if (/^human:[^:\s]+$/i.test(who)) return true;
+  return false;
+}
+
 function resolveSpec(projectDir, opts) {
   var docsRoot = common.getDocsRoot(projectDir);
   var specsDir = path.join(docsRoot, 'specs');
@@ -38,9 +48,18 @@ function run(projectDir, opts) {
       console.error('[ERROR] No active spec found.');
       process.exit(1);
     }
+    if (!opts.executedBy) {
+      console.error('[ERROR] --executed-by is required with --record-result (use subagent:<id>|external-agent:<id>|human:<name>|inline).');
+      process.exit(3);
+    }
     var content = fs.readFileSync(specPath, 'utf-8');
+    var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
     var summary = opts.summary || '';
-    var executedBy = opts.executedBy || 'subagent';
+    var executedBy = opts.executedBy;
+    if (!isAuditableExecutedBy(executedBy, mode)) {
+      console.error('[ERROR] --executed-by must be subagent:<id>, external-agent:<id>, or human:<name>' + (mode === 'micro' ? ' (inline is also allowed for micro).' : '.'));
+      process.exit(3);
+    }
     var now = new Date().toISOString();
     var backtrack = workflow.VERDICT_TO_TARGET[verdict] || 'Research';
     // Replace the challenge fields in the spec
@@ -94,8 +113,8 @@ function run(projectDir, opts) {
     var diffBase = common.getFrontmatterField(state.specPath, 'diff-base');
     if (diffBase) console.log('DIFF_BASE: ' + diffBase);
   }
-  console.log('GATE_POLICY: ' + state.gatePolicy);
-  console.log('CRUISE_POLICY: ' + state.cruisePolicy);
+  console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
+  console.log('CRUISE_ENABLED: ' + (state.cruiseEnabled ? 'true' : 'false'));
   console.log('CURRENT_VERDICT_HINT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET_HINT: ' + state.backtrackTarget);
   console.log('ALLOWED_VERDICTS: ' + VERDICTS.join(' | '));
@@ -137,7 +156,7 @@ function run(projectDir, opts) {
   console.log('Challenge Summary: <evidence-backed summary>');
   console.log('');
   console.log('After the challenge agent returns, record the result with:');
-  console.log('  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent|inline"');
+  console.log('  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"');
 }
 
 module.exports = run;

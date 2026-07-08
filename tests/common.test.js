@@ -66,34 +66,34 @@ describe('common.js utilities', function() {
     assert.equal(common.getDocsRoot(projectDir), docsDir);
   });
 
-  it('getMode reads from config', function() {
-    assert.equal(common.getMode(projectDir), 'standard');
+  it('getMode ignores project config and defaults to micro', function() {
+    assert.equal(common.getMode(projectDir), 'micro');
     fs.writeFileSync(path.join(projectDir, '.sdd-config'),
       'DOCS_DIR="mydocs"\nMODE="lite"\n', 'utf-8');
-    assert.equal(common.getMode(projectDir), 'lite');
+    assert.equal(common.getMode(projectDir), 'micro');
   });
 
-  it('getMode defaults to standard', function() {
+  it('getMode defaults to micro', function() {
     var emptyDir = path.join(tmpBase, 'empty2');
     fs.mkdirSync(emptyDir, { recursive: true });
-    assert.equal(common.getMode(emptyDir), 'standard');
+    assert.equal(common.getMode(emptyDir), 'micro');
   });
 
-  it('reads gate and cruise policy defaults and configured values', function() {
-    assert.equal(common.getGatePolicy(projectDir), 'auto');
-    assert.equal(common.getCruisePolicy(projectDir), 'autonomous');
+  it('reads approval and cruise settings without legacy policy fallback', function() {
+    assert.equal(common.getApprovalPolicy(projectDir), 'agent');
+    assert.equal(common.getCruiseEnabled(projectDir), true);
     assert.equal(common.getCruiseMaxIterations(projectDir), 5);
 
     fs.writeFileSync(path.join(projectDir, '.sdd-config'),
-      'DOCS_DIR="mydocs"\nMODE="standard"\nGATE_POLICY="manual"\nCRUISE_POLICY="assisted"\nCRUISE_MAX_ITERATIONS="9"\n', 'utf-8');
-    assert.equal(common.getGatePolicy(projectDir), 'manual');
-    assert.equal(common.getCruisePolicy(projectDir), 'assisted');
+      'DOCS_DIR="mydocs"\nGATE_POLICY="manual"\nCRUISE_POLICY="off"\nCRUISE_MAX_ITERATIONS="9"\n', 'utf-8');
+    assert.equal(common.getApprovalPolicy(projectDir), 'agent');
+    assert.equal(common.getCruiseEnabled(projectDir), true);
     assert.equal(common.getCruiseMaxIterations(projectDir), 9);
 
     fs.writeFileSync(path.join(projectDir, '.sdd-config'),
-      'DOCS_DIR="mydocs"\nMODE="standard"\nGATE_POLICY="bad"\nCRUISE_POLICY="bad"\nCRUISE_MAX_ITERATIONS="0"\n', 'utf-8');
-    assert.equal(common.getGatePolicy(projectDir), 'auto');
-    assert.equal(common.getCruisePolicy(projectDir), 'autonomous');
+      'DOCS_DIR="mydocs"\nAPPROVAL_POLICY="human"\nCRUISE_ENABLED="false"\nCRUISE_MAX_ITERATIONS="0"\n', 'utf-8');
+    assert.equal(common.getApprovalPolicy(projectDir), 'human');
+    assert.equal(common.getCruiseEnabled(projectDir), false);
     assert.equal(common.getCruiseMaxIterations(projectDir), 5);
   });
 

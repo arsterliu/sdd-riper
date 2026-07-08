@@ -40,15 +40,14 @@
 
 这是 SDD-RIPER 的核心灵魂。无论任务多紧急，必须在 Spec 中完成计划拆解，并获得批准后，方可进入 Execute 阶段。
 
-**谁批准——由 GATE_POLICY 决定：**
+**谁批准——由 APPROVAL_POLICY 决定：**
 
 | 策略 | 谁批 Plan | TL 介入点 | 适合谁 |
 | :--- | :--- | :--- | :--- |
-| **manual** | 人（签名） | Plan 阶段 | 核心模块、高风险、新人 |
-| **auto** | AI（附 Gate Evidence） | Challenge 阶段 | 有经验同学、有测试覆盖的常规任务 |
-| **advisory** | AI（附 Gate Evidence） | Challenge 阶段 + 人工确认 | 边界场景、团队刚上手 |
+| **human** | `human:<name>` | Plan 阶段 | 核心模块、高风险、新人 |
+| **agent** | Agent（附 Gate Evidence） | Challenge 阶段 | 有经验同学、有测试覆盖的常规任务 |
 
-TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `GATE_POLICY=”manual”`，常规模块用 auto。不确定就用 advisory，它不阻塞流程，只多一次人工确认。
+TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `APPROVAL_POLICY="human"`，常规模块用默认 `agent`。
 
 ---
 
@@ -136,7 +135,7 @@ SDD 要求每个 AC 都声明 `Verification:` 类型（unit / integration / e2e 
 
 **TL 关注点**：
 - Challenge 时，检查 AC 的 `Verification` 是否匹配实际风险——高风险路径只有 unit 测试是不足的。
-- E2E `SKIPPED` 必须有人签字（`Approved By` 不能是 `auto-gate`），Agent 不能自行跳过验证。
+- E2E `SKIPPED` 必须由人工签字（`Approved By: human:<name>`），Agent 不能自行跳过验证。
 - Design 的 `Test Strategy` 字段不应为空——如果为空，说明设计者没想清楚怎么验证。
 
 ### 治理的折中策略
@@ -186,7 +185,7 @@ SDD 要求每个 AC 都声明 `Verification:` 类型（unit / integration / e2e 
 
 7. **坑：E2E 测试不稳定就标记 SKIPPED 掩盖问题**
    - *症结*：E2E 测试偶尔失败，Agent 直接标记 SKIPPED 继续推进，集成风险被隐藏。
-   - *解法*：flaky test 不是 PASS 也不是 SKIPPED 的理由。必须先 `sdd debug` 找根因，再决定修复或重写。SKIPPED 只用于环境确实不可用的情况，且必须有人签字（`Approved By` 不能是 `auto-gate`）。
+   - *解法*：flaky test 不是 PASS 也不是 SKIPPED 的理由。必须先 `sdd debug` 找根因，再决定修复或重写。SKIPPED 只用于环境确实不可用的情况，且必须有人签字（`Approved By: human:<name>`）。
 
 ---
 
@@ -212,7 +211,7 @@ Code Challenge 不替代 PR review：PR review 关注团队协作和风格；Cod
 
 ### 自主巡航（cruise）
 `sdd cruise <dir>` 生成有预算的巡航控制 prompt：每轮“next → 只修回跳目标 → validate → review / challenge → 回跳”，遇 PASS / 高风险 / 超过 `CRUISE_MAX_ITERATIONS` 即停。
-- `CRUISE_POLICY`：`off`（禁用）/ `assisted`（每轮人工确认）/ `autonomous`（允许宿主原生 loop）。按模块风险选：核心模块用 assisted，常规任务可 autonomous。
+- Cruise 默认开启；需要关闭时写 `CRUISE_ENABLED=false`。是否复用宿主原生 loop 由 `sdd cruise --driver ...` 和宿主能力决定。
 - 遇安全 / 权限 / 计费 / 数据迁移 / 公共 API / 不可逆变更，巡航必须停下要求人工介入。
 
 ### 进度看板（console）

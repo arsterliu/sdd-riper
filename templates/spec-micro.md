@@ -34,7 +34,6 @@ Blast Radius:
 
 Plan Approved By:
 Approved At:
-Gate Policy:
 Gate Evidence:
 
 ## Execute Log Reference
