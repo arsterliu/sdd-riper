@@ -2,6 +2,47 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var validate = require('./validate');
+var labelValue = require('../core/artifact-snapshot').labelValue;
+
+function firstMeaningfulLine(content) {
+  return String(content || '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/).map(function(line) {
+    return line.trim();
+  }).find(function(line) {
+    return line && !/^#+\s/.test(line) && !/^[-:]+$/.test(line);
+  }) || '';
+}
+
+function sectionFromContent(content, heading) {
+  var escaped = String(heading).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  var match = String(content || '').match(new RegExp('^## ' + escaped + '\\s*\\r?\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))', 'm'));
+  return match ? match[1] : '';
+}
+
+function buildArchiveSummary(sourceContent, designContent, learningContent, dateIso) {
+  var goal = firstMeaningfulLine(sectionFromContent(sourceContent, 'Summary')) || labelValue(sourceContent, 'requirement');
+  var selected = labelValue(designContent, 'Selected Option / ADR') || labelValue(sourceContent, 'Selected Option') || labelValue(sourceContent, 'Selected');
+  var constraints = labelValue(sourceContent, 'Dependencies & Constraints') || labelValue(sourceContent, 'constraints') || '无额外约束。';
+  var risks = labelValue(designContent, 'Risks / Trade-offs') || labelValue(learningContent, 'Decision Rule') || labelValue(sourceContent, 'Challenge Summary');
+  if (!goal || !selected || !constraints || !risks) return '';
+  return [
+    '',
+    '---',
+    '<!-- Archive summary on ' + dateIso + ' -->',
+    '',
+    '## 目标摘要',
+    goal,
+    '',
+    '## 最终方案',
+    selected,
+    '',
+    '## 关键约束',
+    constraints,
+    '',
+    '## 坑点与风险',
+    risks,
+    ''
+  ].join('\n');
+}
 
 function prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSpec, field, force) {
   var ref = common.getFrontmatterField(sourceSpec, field);
@@ -39,7 +80,7 @@ function run(projectDir, specName, opts) {
     process.exit(1);
   }
   var validation = validate.validateSpec(sourceSpec, { archiveReady: true, projectDir: projectDir });
-  if (!validation.ok) {
+  if (!validation.workflowState || !validation.workflowState.archiveReady) {
     console.error('[ERROR] Spec is not archive-ready. Run: sdd validate "' + projectDir + '" --spec "' + sourceSpec + '" --archive-ready');
     validation.issues.forEach(function(issue) { console.error('  - ' + issue); });
     process.exit(1);
@@ -66,7 +107,16 @@ function run(projectDir, specName, opts) {
     var replacement = artifact.field + ': "' + escaped + '"';
     sourceContent = sourceContent.replace(new RegExp('^' + artifact.field + ':.*', 'gm'), replacement);
   });
-  var summary = '\n---\n<!-- Archive summary on ' + dateIso + ' -->\n\n## 目标摘要\n<!-- (not filled) -->\n\n## 最终方案\n<!-- (not filled) -->\n\n## 关键约束\n<!-- (not filled) -->\n\n## 坑点与风险\n<!-- (not filled) -->\n';
+  var summary = buildArchiveSummary(
+    sourceContent,
+    designArtifact ? designArtifact.content : '',
+    learningArtifact ? learningArtifact.content : '',
+    dateIso
+  );
+  if (!summary) {
+    console.error('[ERROR] Archive summary could not be generated from Summary/Requirement, Selected Option / ADR, constraints, and risks/challenge evidence.');
+    process.exit(1);
+  }
   fs.writeFileSync(archiveFile, sourceContent + summary, 'utf-8');
   [designArtifact, logArtifact, learningArtifact].forEach(function(artifact) {
     if (!artifact) return;
@@ -81,8 +131,14 @@ function run(projectDir, specName, opts) {
   var taskNameVal = common.getFrontmatterField(archiveFile, 'task-name') || specSlug;
   var verdictVal = '—';
   try {
-    var vc = common.extractSection(archiveFile, 'Review (Verdict|Summary)', 5);
-    if (vc) { var vlines = vc.split(/\r?\n/); for (var i = 0; i < vlines.length; i++) { var t = vlines[i].trim(); if (t && !t.startsWith('<!--')) { verdictVal = t; break; } } }
+    var archivedContent = fs.readFileSync(archiveFile, 'utf-8');
+    var challengeVerdict = labelValue(archivedContent, 'Challenge Verdict');
+    if (challengeVerdict) {
+      verdictVal = challengeVerdict;
+    } else {
+      var vc = common.extractSection(archiveFile, 'Review (Verdict|Summary)', 5);
+      if (vc) { var vlines = vc.split(/\r?\n/); for (var i = 0; i < vlines.length; i++) { var t = vlines[i].trim(); if (t && !t.startsWith('<!--')) { verdictVal = t; break; } } }
+    }
   } catch (e) {}
   fs.appendFileSync(indexFile, '| ' + path.basename(archiveFile) + ' | ' + dateIso + ' | ' + taskNameVal + ' | ' + verdictVal + ' |\n');
   console.log('[ARCHIVE] ' + archiveFile);

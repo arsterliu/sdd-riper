@@ -12,8 +12,8 @@
 - **制品中文内容**：保持制品标题和字段标签为英文；填写分析、决策、计划、证据和学习规则时使用中文。
 - **Spec 创建输入人工确认**：创建 Spec 前必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
 - **Plan Approval**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate。默认 `agent`；agent 批准必须写 `Plan Approved By: agent:<id>`、`Approved At:` 和 `Gate Evidence:`；human 策略必须写 `Plan Approved By: human:<name>`。
-- **Independent Review**：Research / Challenge reviewer 必须是可审计身份：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可用 `inline`。
-- **Autonomous Cruise**：Cruise 默认开启；关闭时写 `CRUISE_ENABLED=false`。使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行动态路由、对抗审核和有界修复循环。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 记录运行账本。
+- **Independent Review**：Research / Challenge reviewer 必须是可审计身份：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可用 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+- **Autonomous Cruise**：Cruise 默认开启；关闭时写 `CRUISE_ENABLED=false`。使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行动态路由、对抗审核和有界修复循环。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 记录运行账本。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - **先 Debug 再重试**：步骤失败时，先运行 debug 找根因再重试。
 
 ## RIPER 工作流

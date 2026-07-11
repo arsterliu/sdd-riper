@@ -1,23 +1,8 @@
 var fs = require('fs');
 var path = require('path');
-var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
-var learning = require('../core/learning');
-
-var gitRepoCache = new Map();
-
-function isInsideGitRepo(projectDir) {
-  var key = path.resolve(projectDir);
-  if (gitRepoCache.has(key)) return gitRepoCache.get(key);
-  var result = false;
-  try {
-    result = execFileSync('git', ['rev-parse', '--is-inside-work-tree'], {
-      cwd: projectDir, encoding: 'utf-8', stdio: ['ignore', 'pipe', 'ignore']
-    }).trim() === 'true';
-  } catch (e) {}
-  gitRepoCache.set(key, result);
-  return result;
-}
+var reviewerGuidance = require('../core/reviewer-guidance');
+var specState = require('../core/spec-state');
 
 var SECTION = {
   confirmedRequirement: 'Confirmed Requirement',
@@ -103,14 +88,6 @@ function escapeRegExp(text) {
   return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-// A verdict line counts as PASS only when it carries a PASS token and no FAIL_
-// token, so a failing line that merely mentions the word "PASS" is not archived.
-function isPassVerdict(line) {
-  var s = String(line || '');
-  if (/\bFAIL_/i.test(s)) return false;
-  return /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(s);
-}
-
 function labelHasContent(section, label) {
   var lines = section.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
   var labelRegex = new RegExp('^' + escapeRegExp(label) + ':[ \\t]*(.*)$', 'i');
@@ -134,24 +111,7 @@ function missingLabels(section, labels) {
   return labels.filter(function(label) { return !labelHasContent(section, label); });
 }
 
-function labelValue(section, label) {
-  var lines = section.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var labelRegex = new RegExp('^' + escapeRegExp(label) + ':[ \\t]*(.*)$', 'i');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    var m = line.match(labelRegex);
-    if (!m) continue;
-    if (m[1] && m[1].trim()) return m[1].trim();
-    for (var j = i + 1; j < lines.length; j++) {
-      var next = lines[j].trim();
-      if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
-      return next;
-    }
-    continue;
-  }
-  return '';
-}
+var labelValue = require('../core/artifact-snapshot').labelValue;
 
 function isAgentApproval(value) {
   return /^agent:[^:\s]+$/i.test(value || '');
@@ -176,7 +136,7 @@ function isAuditableReviewer(value, mode) {
 }
 
 function independentReviewerMessage(label) {
-  return label + ' requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>).';
+  return label + ' requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>). ' + reviewerGuidance.inlineGuidance();
 }
 
 function acceptanceBlocks(section) {
@@ -224,22 +184,6 @@ function validateAcceptanceCriteria(section, modeLabel, issues) {
     if (/\bmanual\b/i.test(verification) && !labelHasContent(text, 'Manual Evidence')) {
       issues.push(modeLabel + ' Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
     }
-  });
-}
-
-function validateLearningRecord(projectDir, specPath, triggers, issues) {
-  if (!triggers.length) return;
-  var artifact = learning.learningArtifact(projectDir, specPath);
-  if (!artifact.ref) {
-    issues.push('Learning Record is required because: ' + triggers.join(', ') + '. Run: sdd new-learning <project-dir> <spec-name>.');
-    return;
-  }
-  if (!artifact.exists) {
-    issues.push('Learning Record file not found: ' + artifact.ref);
-    return;
-  }
-  learning.validateLearningContent(artifact.content).forEach(function(issue) {
-    issues.push(issue);
   });
 }
 
@@ -317,7 +261,7 @@ function validateResearchGate(content, mode, archiveReady, issues) {
   var reviewedBy = labelValue(content, 'Research Reviewed By');
   var reviewedAt = labelValue(content, 'Research Reviewed At');
   if (!reviewedBy) {
-    issues.push('Research Reviewed By is empty.');
+    issues.push('Research Reviewed By is empty. ' + reviewerGuidance.inlineGuidance());
     return;
   }
   if (!reviewedAt) {
@@ -329,44 +273,15 @@ function validateResearchGate(content, mode, archiveReady, issues) {
 }
 
 function validateChallengeVerdict(content, issues) {
-  var verdict = labelValue(content, 'Challenge Verdict');
+  var facts = specState.challengeFacts(content);
+  var verdict = facts.verdict;
+  if (verdict && !facts.allowed) {
+    issues.push('Challenge Verdict is invalid; allowed values: ' + specState.VERDICTS.join(', ') + '.');
+    return;
+  }
   if (/^FAIL_/i.test(verdict)) {
     issues.push('Adversarial Challenge failed: ' + verdict.toUpperCase() + '.');
   }
-}
-
-function validateChallengeEvidence(content, mode, archiveReady, issues) {
-  var executedBy = labelValue(content, 'Challenge Executed By');
-  var executedAt = labelValue(content, 'Challenge Executed At');
-  var challengeEvidence = labelValue(content, 'Challenge Evidence');
-  var challengeTime = null;
-  if (!executedBy) {
-    issues.push('Challenge has not been executed: Challenge Executed By is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
-    return challengeTime;
-  }
-  if (!executedAt) {
-    issues.push('Challenge Executed At is empty. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
-  }
-  if (!challengeEvidence) {
-    issues.push('Challenge Evidence is required for challenge execution. Run: sdd challenge <project-dir>, then record the independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
-  }
-  if (mode === 'standard' || mode === 'lite') {
-    if (!isAuditableReviewer(executedBy, mode)) {
-      issues.push(independentReviewerMessage('Challenge'));
-    }
-  } else if (!isAuditableReviewer(executedBy, mode)) {
-    issues.push(independentReviewerMessage('Challenge'));
-  }
-  // Challenge Executed At must be a valid ISO-8601 timestamp.
-  // Temporal ordering against Execute Log is checked separately in validateSpec.
-  if (executedAt && archiveReady) {
-    challengeTime = new Date(executedAt);
-    if (Number.isNaN(challengeTime.getTime())) {
-      issues.push('Challenge Executed At is not a valid ISO-8601 timestamp.');
-      challengeTime = null;
-    }
-  }
-  return challengeTime;
 }
 
 function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues) {
@@ -440,53 +355,7 @@ function resolveSpec(projectDir, opts) {
 // Parse AC Coverage records from Execute Log content.
 // Returns an array of { id, result, scenarios, test, method, reason, approvedBy, approvedAt }
 function parseAcCoverage(executeLogContent) {
-  var records = [];
-  var lines = String(executeLogContent || '').split(/\r?\n/);
-  // Match lines like "  - AC-001: PASS" or "  - AC-001: FAIL" or "  - AC-001: SKIPPED"
-  var acLine = /^\s*-\s*(AC-\d+)\s*:\s*(PASS|FAIL|SKIPPED)\b/i;
-  var scenarioLine = /^\s*-\s*"([^"]+)"\s*:\s*(PASS|FAIL)\b/i;
-  var testLine = /^\s*Test:\s*(.+)$/i;
-  var methodLine = /^\s*Method:\s*(.+)$/i;
-  var reasonLine = /^\s*Reason:\s*(.+)$/i;
-  var approvedByLine = /^\s*Approved By:\s*(.+)$/i;
-  var approvedAtLine = /^\s*Approved At:\s*(.+)$/i;
-  var current = null;
-  for (var i = 0; i < lines.length; i++) {
-    var m = lines[i].match(acLine);
-    if (m) {
-      current = {
-        id: m[1].toUpperCase(),
-        result: m[2].toUpperCase(),
-        scenarios: [],
-        test: '',
-        method: '',
-        reason: '',
-        approvedBy: '',
-        approvedAt: ''
-      };
-      records.push(current);
-      continue;
-    }
-    if (!current) continue;
-    // Check for sub-fields (indented under the AC Coverage entry)
-    var sm = lines[i].match(scenarioLine);
-    if (sm) { current.scenarios.push({ name: sm[1], result: sm[2].toUpperCase() }); continue; }
-    var tm = lines[i].match(testLine);
-    if (tm) { current.test = tm[1].trim(); continue; }
-    var mm = lines[i].match(methodLine);
-    if (mm) { current.method = mm[1].trim(); continue; }
-    var rm = lines[i].match(reasonLine);
-    if (rm) { current.reason = rm[1].trim(); continue; }
-    var abm = lines[i].match(approvedByLine);
-    if (abm) { current.approvedBy = abm[1].trim(); continue; }
-    var aam = lines[i].match(approvedAtLine);
-    if (aam) { current.approvedAt = aam[1].trim(); continue; }
-    // A new top-level AC line or a non-indented line ends the current record
-    if (/^\s*-\s*AC-\d+/i.test(lines[i]) || /^[A-Za-z]/.test(lines[i].trim())) {
-      current = null;
-    }
-  }
-  return records;
+  return specState.acCoverageRecords(executeLogContent);
 }
 
 // Parse AC IDs from Spec Acceptance Criteria section.
@@ -515,10 +384,10 @@ function parseAcDeclarations(acceptanceSection) {
   return declarations;
 }
 
-// Validate AC Coverage against Spec declarations (L1-L4).
+// Validate AC Coverage against Spec declarations (L1-L2 and advisory L4).
 // L1: every AC in Spec has a Coverage record in Execute Log
 // L2: all Coverage results are PASS (SKIPPED with approval is OK)
-// L3: Test path files exist (when projectDir is provided)
+// L3: Test path existence is owned by the central spec-state evaluator
 // L4 (limited): Scenario names in Coverage appear in Spec (warning only)
 function validateAcCoverage(specPath, projectDir, executeLogContent, archiveReady, issues) {
   if (!archiveReady) return;
@@ -527,29 +396,30 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
   var declarations = parseAcDeclarations(acceptanceSection);
   if (!declarations.length) return;
   var coverageRecords = parseAcCoverage(executeLogContent);
-  // If no coverage records at all, skip (gradual enforcement for old logs)
-  if (!coverageRecords.length) return;
-  // Build a map of coverage by AC id, merging per-step and summary entries
-  // (summary entries may lack Test paths; per-step entries have them)
+  if (!coverageRecords.length) {
+    declarations.forEach(function(decl) {
+      issues.push('AC Coverage: ' + decl.id + ' has no execution evidence in Execute Log.');
+    });
+    return;
+  }
+  // Build a map of coverage by AC id. The latest record is authoritative;
+  // older records may only contribute non-decision evidence omitted by a summary.
   var coverageMap = {};
   coverageRecords.forEach(function(r) {
     var existing = coverageMap[r.id];
     if (!existing) {
       coverageMap[r.id] = r;
     } else {
-      // Merge: prefer PASS/SKIPPED over FAIL, preserve Test path if available
-      if (r.result !== 'FAIL' && existing.result === 'FAIL') {
-        coverageMap[r.id] = r;
-      } else if (r.test && !existing.test) {
-        // Keep the entry that has a Test path
-        existing.test = r.test;
-      }
-      // Merge scenarios
+      var latest = Object.assign({}, r);
+      if (!latest.test) latest.test = existing.test;
+      if (!latest.method) latest.method = existing.method;
+      latest.scenarios = (existing.scenarios || []).slice();
       r.scenarios.forEach(function(s) {
-        if (!existing.scenarios.some(function(es) { return es.name === s.name; })) {
-          existing.scenarios.push(s);
+        if (!latest.scenarios.some(function(es) { return es.name === s.name; })) {
+          latest.scenarios.push(s);
         }
       });
+      coverageMap[r.id] = latest;
     }
   });
   // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
@@ -578,13 +448,6 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
       }
       return;
     }
-    // PASS — L3: check test path exists
-    if (cov.test && projectDir) {
-      var testPath = common.resolveProjectPath(projectDir, cov.test);
-      if (testPath && !fs.existsSync(testPath)) {
-        issues.push('AC Coverage: ' + decl.id + ' Test file not found: ' + cov.test);
-      }
-    }
   });
   // L4 (limited): check scenario names in coverage appear in spec declarations (warning only)
   // Warnings use a "WARNING:" prefix so they don't block archive readiness
@@ -612,21 +475,22 @@ function validateSpec(specPath, opts) {
 
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
-  var status = common.getFrontmatterField(specPath, 'status') || 'draft';
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
-  var isGitRepo = isInsideGitRepo(projectDir);
+  var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
 
-  if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {
-    issues.push('Missing diff-base frontmatter; Review cannot reliably know the task diff range.');
+  if (!opts.archiveReady) {
+    if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {
+      issues.push('Missing diff-base frontmatter; Review cannot reliably know the task diff range.');
+    }
+    if (/<!-- \(not filled\) -->|\[TBD\]/.test(content)) {
+      issues.push('Spec still contains unresolved placeholders.');
+    }
   }
-  if (/<!-- \(not filled\) -->|\[TBD\]/.test(content)) {
-    issues.push('Spec still contains unresolved placeholders.');
+  if (!opts.archiveReady) {
+    validatePlanGate(content, common.getApprovalPolicy(projectDir), false, issues);
+    validateResearchGate(content, mode, false, issues);
+    validateChallengeVerdict(content, issues);
   }
-  validatePlanGate(content, common.getApprovalPolicy(projectDir), !!opts.archiveReady, issues);
-  validateResearchGate(content, mode, !!opts.archiveReady, issues);
-  validateChallengeVerdict(content, issues);
-
-  var challengeTime = null;
 
   if (opts.archiveReady) {
     validateModeArtifacts(projectDir, specPath, mode, !!opts.archiveReady, issues);
@@ -637,44 +501,36 @@ function validateSpec(specPath, opts) {
 
   var logArtifact = artifactSection(projectDir, specPath, 'execute-log-file', SECTION.executeLog, issues, 'Execute Log', opts.archiveReady);
   var executeLog = logArtifact.content;
-  if (!firstRealLine(executeLog)) {
+  if (!opts.archiveReady && !firstRealLine(executeLog)) {
     issues.push('Execute Log is empty.');
   }
 
   var fullExecuteLog = '';
   if (opts.archiveReady && logArtifact.path && fs.existsSync(logArtifact.path)) {
     fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
-    var completionStatus = common.completionVerificationStatus(fullExecuteLog);
-    if (completionStatus !== 'DONE') {
-      issues.push('Execute Log completion-verification is not DONE.');
-    } else {
-      challengeTime = validateChallengeEvidence(content, mode, true, issues);
-    }
-  }
-
-  // Challenge Executed At must be after the last Execute Log step timestamp
-  if (opts.archiveReady && challengeTime && logArtifact.path) {
-    var lastStepTime = common.extractLastStepTimestamp(fullExecuteLog || fs.readFileSync(logArtifact.path, 'utf-8'));
-    if (lastStepTime && challengeTime <= lastStepTime) {
-      issues.push('Challenge Executed At must be after the last Execute Log step timestamp. Run: sdd challenge <project-dir>, then record the refreshed independent result with: sdd challenge <project-dir> --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline".');
-    }
   }
 
   // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
-  if (opts.archiveReady && logArtifact.path) {
+  if (opts.archiveReady && logArtifact.path && common.completionVerificationDone(fullExecuteLog)) {
     if (!fullExecuteLog) fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
     validateAcCoverage(specPath, projectDir, fullExecuteLog, true, issues);
   }
 
+  var blockingIssues = issues.filter(function(i) { return !/^WARNING:/i.test(i); });
+  var workflowState = specState.evaluate(specState.readSnapshot(projectDir, specPath), {
+    validationIssues: blockingIssues
+  });
   if (opts.archiveReady) {
-    validateLearningRecord(projectDir, specPath, learning.learningTriggers(content, executeLog, labelValue(content, 'Challenge Verdict')), issues);
+    var warnings = issues.filter(function(i) { return /^WARNING:/i.test(i); });
+    issues = warnings.concat(workflowState.blockers.map(function(blocker) { return blocker.message; }));
+    issues = issues.filter(function(issue, index, all) { return all.indexOf(issue) === index; });
   }
-
-  if (status === 'archived' && opts.archiveReady) {
-    issues.push('Spec is already archived.');
-  }
-
-  return { ok: issues.filter(function(i) { return !/^WARNING:/i.test(i); }).length === 0, issues: issues, specPath: specPath };
+  return {
+    ok: opts.archiveReady ? workflowState.archiveReady : blockingIssues.length === 0,
+    issues: issues,
+    specPath: specPath,
+    workflowState: workflowState
+  };
 }
 
 function run(projectDir, opts) {

@@ -115,4 +115,11 @@ describe('riskFlags action-region scanning', function() {
     var flags = workflow.riskFlags('no risk here', crSection);
     assert.ok(flags.indexOf('irreversible') === -1, 'should not flag irreversible when none/reversible: ' + flags);
   });
+
+  it('Chinese reversible wording suppresses irreversible while destructive wording still flags it', function() {
+    var reversible = 'Scope Boundary: single module\nIrreversibility: 无不可逆数据迁移，变更全部可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
+    var destructive = 'Scope Boundary: data cleanup\nIrreversibility: 数据永久删除且不可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: old data removed';
+    assert.ok(workflow.riskFlags('no destructive action', reversible).indexOf('irreversible') === -1);
+    assert.ok(workflow.riskFlags('delete data permanently', destructive).indexOf('irreversible') !== -1);
+  });
 });

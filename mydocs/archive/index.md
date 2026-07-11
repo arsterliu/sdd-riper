@@ -17,3 +17,5 @@
 | v1.0-track-mydocs-in-git.md | 2026-07-09 | track-mydocs-in-git | legacy-cleared |
 | v2.0-cruise-runtime-adapter.md | 2026-07-09 | cruise-runtime-adapter | legacy-cleared |
 | v2.1-structured-confirmed-req-and-research-gate.md | 2026-07-09 | structured-confirmed-req-and-research-gate | legacy-cleared |
+| v2.3-routing-and-archive-drift-fixes.md | 2026-07-09 | routing-and-archive-drift-fixes | PASS |
+| v2.5-workflow-control-plane-consistency-hardening.md | 2026-07-10 | workflow-control-plane-consistency-hardening | PASS |

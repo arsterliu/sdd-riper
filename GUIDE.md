@@ -15,7 +15,7 @@ harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳
 | 组件 | 角色 | 比喻 |
 | :--- | :--- | :--- |
 | `workflow`（内部状态引擎） | 只读分析 Spec + 门禁，输出 verdict / 回跳目标 / 下一步 / risk flags / 方法论建议 | 大脑读数 |
-| `cruise`（自主巡航） | 把状态包装成循环契约：每轮修哪块、何时停、FAIL 回退到哪；自己不跑 | 循环契约书 |
+| `cruise`（自主巡航） | 把状态包装成循环契约：每轮修哪块、何时停、FAIL 回退到哪；自己不跑、不越权写目标阶段产物 | 循环契约书 |
 | 宿主原生 loop（Claude Dynamic Workflows / Codex / opencode） | 真正一轮一轮执行 | 借来的发动机 |
 | `challenge`（对抗审核） | 独立只读 reviewer，给出真正裁决 | 每轮裁判 |
 
@@ -84,6 +84,8 @@ SDD-RIPER 按三层职责运行：
 - **调度面只驱动，不决策**：`sdd next` 推导状态但不自动执行；`sdd challenge` 生成对抗 prompt 但不做裁决；`sdd cruise` 生成循环 prompt 但不跑模型循环。
 - **产出面只记录，不回溯**：Execute Log 是 append-only；Learning Record 记录规则但不修改历史。架构变更记录到 Learning Record，不另存 codemap 文件。
 - **调度面依赖宿主执行**：代码修改由 Host Agent 执行，SDD 不自建模型 runtime。宿主支持原生 loop 时复用，否则退回 prompt-loop 补偿。
+
+Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。三者的职责不会因为使用原生 loop 或 prompt-loop 而合并。
 
 ## 三、RIPER 流程
 
@@ -345,7 +347,7 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 - Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料（PRD、UI 稿、原型等）放入 `mydocs/context/<task-name>/`，`sdd discover` 自动绑定 `context-source`。
 - Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过”其他”选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
 - Assumptions：暂时接受但需要追踪的假设。
-- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。
+- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 - Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
 
 ### Innovate
@@ -595,7 +597,7 @@ Challenge Executed At: <ISO-8601>
 Challenge Evidence: <verdict + summary from independent agent>
 ```
 
-`validate --archive-ready` 强制校验三要素齐全，缺任何一项拦截归档。standard/lite 模式下 `Challenge Executed By` 必须是可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro 模式下可以是 `inline`。
+`validate --archive-ready` 强制校验三要素齐全，缺任何一项拦截归档。standard/lite 模式下 `Challenge Executed By` 必须是可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro 模式下可以是 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 
 **审查轴**：Challenge 从六个维度独立审查，每个维度都可触发 `FAIL_*`：
 
@@ -627,6 +629,8 @@ Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团
 ### Cruise（自主巡航）
 
 **何时触发**：Challenge 返回 `FAIL_*` verdict 后自动进入。如果 Challenge 返回 `PASS` 或 `PASS_WITH_CONCERNS`，不需要 Cruise。
+
+**角色合同**：Cruise orchestrator 只读取状态、路由 `BACKTRACK_TARGET` 并控制迭代预算；main agent 进入目标阶段完成允许的修复；Challenge reviewer 只返回 verdict 与证据，保持 read-only。Cruise 不获得跨阶段写入权限。
 
 **怎么运行**：
 

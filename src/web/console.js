@@ -21,6 +21,7 @@ var phases = [
   ['acceptance', 'Acceptance'],
   ['plan', 'Plan'],
   ['execute', 'Execute'],
+  ['challenge', 'Challenge'],
   ['learning', 'Learning'],
   ['ready', 'Ready'],
   ['archived', 'Archived']
@@ -123,6 +124,20 @@ function validationTone(spec) {
 
 function gateValue(spec, key) {
   if (key === 'design' && spec.mode === 'micro') return true;
+  var workflowGate = {
+    research: 'research',
+    innovate: 'innovate',
+    design: 'design',
+    acceptance: 'acceptance',
+    plan: 'plan',
+    executeLog: 'execute',
+    completionVerification: 'completion',
+    learning: 'learning',
+    challengePass: 'challenge'
+  }[key];
+  if (workflowGate && spec.workflow && spec.workflow.gates && spec.workflow.gates[workflowGate]) {
+    return spec.workflow.gates[workflowGate].state === 'pass';
+  }
   return !!spec.completion[key];
 }
 

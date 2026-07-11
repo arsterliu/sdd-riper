@@ -211,6 +211,7 @@ Code Challenge 不替代 PR review：PR review 关注团队协作和风格；Cod
 
 ### 自主巡航（cruise）
 `sdd cruise <dir>` 生成有预算的巡航控制 prompt：每轮“next → 只修回跳目标 → validate → review / challenge → 回跳”，遇 PASS / 高风险 / 超过 `CRUISE_MAX_ITERATIONS` 即停。
+- Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - Cruise 默认开启；需要关闭时写 `CRUISE_ENABLED=false`。是否复用宿主原生 loop 由 `sdd cruise --driver ...` 和宿主能力决定。
 - 遇安全 / 权限 / 计费 / 数据迁移 / 公共 API / 不可逆变更，巡航必须停下要求人工介入。
 

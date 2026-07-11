@@ -2,40 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var learning = require('../core/learning');
-
-function executeCompletionDone(projectDir, specPath) {
-  var ref = common.getFrontmatterField(specPath, 'execute-log-file');
-  if (!ref) return false;
-  var logPath = common.resolveProjectPath(projectDir, ref);
-  if (!logPath || !fs.existsSync(logPath)) return false;
-  var content = fs.readFileSync(logPath, 'utf-8');
-  return common.completionVerificationDone(content);
-}
-
-function challengeRecorded(content) {
-  return /^[ \t]*Challenge Executed By:[ \t]*\S/m.test(content || '') &&
-    /^[ \t]*Challenge Executed At:[ \t]*\S/m.test(content || '') &&
-    /^[ \t]*Challenge Evidence:[ \t]*\S/m.test(content || '');
-}
-
-function labelValue(content, label) {
-  var escaped = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  var m = String(content || '').match(new RegExp('^' + escaped + ':[ \\t]*(.+)$', 'mi'));
-  return m ? m[1].trim() : '';
-}
-
-function challengeStale(projectDir, specPath, content) {
-  var executedAt = labelValue(content, 'Challenge Executed At');
-  if (!executedAt) return false;
-  var challengeTime = new Date(executedAt);
-  if (Number.isNaN(challengeTime.getTime())) return false;
-  var ref = common.getFrontmatterField(specPath, 'execute-log-file');
-  if (!ref) return false;
-  var logPath = common.resolveProjectPath(projectDir, ref);
-  if (!logPath || !fs.existsSync(logPath)) return false;
-  var lastStepTime = common.extractLastStepTimestamp(fs.readFileSync(logPath, 'utf-8'));
-  return !!(lastStepTime && challengeTime <= lastStepTime);
-}
+var workflow = require('../core/workflow');
 
 function run(projectDir) {
   var docsDir = common.getDocsDir(projectDir);
@@ -63,15 +30,18 @@ function run(projectDir) {
     if (specStatus === 'archived') {
       phaseHint = 'new_task';
     } else {
-      var content = fs.readFileSync(latestSpec, 'utf-8');
-      if (/^[ \t]*Plan Approved By:[ \t]*[^\s].*/m.test(content)) {
-        if (!executeCompletionDone(projectDir, latestSpec)) {
-          phaseHint = 'execute';
-        } else if (!challengeRecorded(content) || challengeStale(projectDir, latestSpec, content)) {
-          phaseHint = 'challenge';
-        } else {
-          phaseHint = 'archive';
-        }
+      var state = workflow.analyzeSpec(projectDir, latestSpec);
+      var action = state.nextAction || '';
+      if (action === 'archive_ready') {
+        phaseHint = 'archive';
+      } else if (action === 'run_challenge') {
+        phaseHint = 'challenge';
+      } else if (/^repair_(research|design|acceptance|plan|spec)/.test(action)) {
+        phaseHint = 'research_or_plan';
+      } else if (/^repair_(execute|execute_log|code|log)/.test(action)) {
+        phaseHint = 'execute';
+      } else if (/^repair_learning_check/.test(action)) {
+        phaseHint = 'archive';
       } else {
         phaseHint = 'research_or_plan';
       }

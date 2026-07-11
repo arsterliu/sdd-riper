@@ -1,55 +1,7 @@
 var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
-
-var SECTION = {
-  intake: 'Intake',
-  confirmedRequirement: 'Confirmed Requirement',
-  openQuestions: 'Open Questions',
-  innovateOptions: 'Innovate Options',
-  technicalDesign: 'Technical Design',
-  designNote: 'Design Note',
-  acceptanceCriteria: 'Acceptance Criteria',
-  executeLog: 'Execute Log',
-  review: 'Completion Verification'
-};
-
-function extractSectionText(filePath, pattern) {
-  return common.extractSection(filePath, pattern, 400);
-}
-
-function firstRealLine(section) {
-  var visible = stripHtmlComments(section);
-  return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
-    return line &&
-      !line.startsWith('|') &&
-      !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
-      !/^[-:]+$/.test(line);
-  }) || '';
-}
-
-function sectionHasRealContent(filePath, pattern) {
-  return !!firstRealLine(extractSectionText(filePath, pattern));
-}
-
-function stripHtmlComments(text) {
-  return text.replace(/<!--[\s\S]*?-->/g, '');
-}
-
-function planHasMicroAcceptance(filePath) {
-  var plan = stripHtmlComments(extractSectionText(filePath, 'Plan'));
-  return /(^|\n)Acceptance:[\s\S]*?(^|\n)Verification:/i.test(plan) &&
-    /(^|\n)Verification:[\s\S]*\S/i.test(plan);
-}
-
-function artifactHasContent(projectDir, specPath, field, sectionPattern) {
-  var ref = common.getFrontmatterField(specPath, field);
-  if (!ref) return false;
-  var artifactPath = common.resolveProjectPath(projectDir, ref);
-  if (!fs.existsSync(artifactPath)) return false;
-  return sectionHasRealContent(artifactPath, sectionPattern);
-}
+var workflow = require('../core/workflow');
 
 function run(projectDir) {
   var docsDir = common.getDocsDir(projectDir);
@@ -58,69 +10,52 @@ function run(projectDir) {
   console.log('[SDD Status] ' + projectDir);
 
   var missingDirs = [];
-  ['specs','design','logs','learnings','runs','context','archive'].forEach(function(d) {
-    if (!fs.existsSync(path.join(docsRoot, d))) missingDirs.push(docsDir + '/' + d);
+  ['specs', 'design', 'logs', 'learnings', 'runs', 'context', 'archive'].forEach(function(dir) {
+    if (!fs.existsSync(path.join(docsRoot, dir))) missingDirs.push(docsDir + '/' + dir);
   });
   if (missingDirs.length === 0) console.log('  Structure:    OK');
-  else { console.log('  Structure:    MISSING (' + missingDirs.join(' ') + ')'); exitCode = 1; }
+  else {
+    console.log('  Structure:    MISSING (' + missingDirs.join(' ') + ')');
+    exitCode = 1;
+  }
 
-  var aiConfigs = ['AGENTS.md','CLAUDE.md','.cursorrules','.github/copilot-instructions.md'];
-  var foundConfig = aiConfigs.find(function(f) { return fs.existsSync(path.join(projectDir, f)); });
+  var aiConfigs = ['AGENTS.md', 'CLAUDE.md', '.cursorrules', '.github/copilot-instructions.md'];
+  var foundConfig = aiConfigs.find(function(file) { return fs.existsSync(path.join(projectDir, file)); });
   console.log('  AI Config:    ' + (foundConfig ? 'OK (' + foundConfig + ' found)' : 'WARN (none found)'));
 
   var specsDir = path.join(docsRoot, 'specs');
-  var total = 0, draft = 0;
-  var warnResearch = [], warnInnovate = [], warnDesign = [], warnAcceptance = [], warnPlan = [], warnExecuteLog = [], warnReview = [];
+  var total = 0;
+  var draft = 0;
+  var warnResearch = [];
+  var warnInnovate = [];
+  var warnDesign = [];
+  var warnAcceptance = [];
+  var warnPlan = [];
+  var warnExecuteLog = [];
+  var warnChallenge = [];
+  var blockerDetails = [];
+
   if (fs.existsSync(specsDir)) {
-    fs.readdirSync(specsDir).forEach(function(f) {
-      if (f === '.gitkeep' || !f.endsWith('.md')) return;
-      var sp = path.join(specsDir, f);
+    fs.readdirSync(specsDir).forEach(function(file) {
+      if (file === '.gitkeep' || !file.endsWith('.md')) return;
+      var specPath = path.join(specsDir, file);
       total++;
-      var st = common.getFrontmatterField(sp, 'status') || 'draft';
-      if (st !== 'archived') draft++;
-      var sm = common.getFrontmatterField(sp, 'mode') || 'standard';
-      var lw = 0;
-      if (sm === 'lite') {
-        if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1;
-        if (common.sectionIsEmpty(sp, SECTION.openQuestions)) lw = 1;
-      } else if (sm === 'micro') {
-        if (common.sectionIsEmpty(sp, SECTION.intake)) lw = 1;
-      } else {
-        if (common.subsectionIsEmpty(sp, SECTION.confirmedRequirement)) lw = 1;
-        if (common.subsectionIsEmpty(sp, SECTION.openQuestions)) lw = 1;
-      }
-      // Check Confirmed Requirement structured fields for standard/lite
-      if (sm !== 'micro') {
-        try {
-          var crContent = fs.readFileSync(sp, 'utf-8');
-          if (!/Scope Boundary:[ \t]*\S/m.test(crContent) || !/Irreversibility:[ \t]*\S/m.test(crContent) ||
-              !/Impact Radius:[ \t]*\S/m.test(crContent) || !/Dependencies & Constraints:[ \t]*\S/m.test(crContent) ||
-              !/Acceptance Intent:[ \t]*\S/m.test(crContent)) lw = 1;
-          // Check Research Gate
-          if (!/^Research Reviewed By:[ \t]*\S/m.test(crContent)) lw = 1;
-        } catch (e) {}
-      }
-      try { if (/\[待确认\]/.test(fs.readFileSync(sp, 'utf-8'))) lw = 1; } catch (e) {}
-      if (lw) warnResearch.push(f);
-      if (common.sectionIsEmpty(sp, SECTION.innovateOptions)) {
-        try { var c = fs.readFileSync(sp, 'utf-8'); if (/^## Innovate Options/m.test(c) && !/Innovate: Skipped/.test(c)) warnInnovate.push(f); } catch (e) {}
-      }
-      if (sm === 'standard') {
-        if (!artifactHasContent(projectDir, sp, 'design-file', SECTION.technicalDesign)) warnDesign.push(f);
-        if (!sectionHasRealContent(sp, SECTION.acceptanceCriteria)) warnAcceptance.push(f);
-      } else if (sm === 'lite') {
-        if (!artifactHasContent(projectDir, sp, 'design-file', SECTION.designNote)) warnDesign.push(f);
-        if (!sectionHasRealContent(sp, SECTION.acceptanceCriteria)) warnAcceptance.push(f);
-      } else if (sm === 'micro') {
-        if (!planHasMicroAcceptance(sp)) warnAcceptance.push(f);
-      }
-      if (!artifactHasContent(projectDir, sp, 'execute-log-file', SECTION.executeLog)) warnExecuteLog.push(f);
-      try { var c2 = fs.readFileSync(sp, 'utf-8'); if (/Plan Approved By:/.test(c2) && /^Plan Approved By:[ \t]*$/m.test(c2)) warnPlan.push(f); } catch (e) {}
-      if (common.sectionIsEmpty(sp, SECTION.review)) {
-        try { var c3 = fs.readFileSync(sp, 'utf-8'); if (/^## Completion Verification/m.test(c3)) warnReview.push(f); } catch (e) {}
-      }
+      if ((common.getFrontmatterField(specPath, 'status') || 'draft') !== 'archived') draft++;
+
+      var state = workflow.analyzeSpec(projectDir, specPath);
+      if (state.gates.research.state !== 'pass') warnResearch.push(file);
+      if (state.gates.innovate.state !== 'pass') warnInnovate.push(file);
+      if (state.gates.design.state !== 'pass') warnDesign.push(file);
+      if (state.gates.acceptance.state !== 'pass') warnAcceptance.push(file);
+      if (state.gates.plan.state !== 'pass') warnPlan.push(file);
+      if (state.gates.execute.state !== 'pass' || state.gates.completion.state !== 'pass') warnExecuteLog.push(file);
+      if (state.gates.challenge.state !== 'pass') warnChallenge.push(file);
+      state.blockerDetails.forEach(function(blocker) {
+        blockerDetails.push({ file: file, blocker: blocker });
+      });
     });
   }
+
   console.log('  Specs:        ' + total + ' total (' + draft + ' active)');
   console.log('  Research:     ' + (warnResearch.length ? 'WARN (empty/pending in: ' + warnResearch.join(' ') + ')' : 'OK'));
   console.log('  Innovate:     ' + (warnInnovate.length ? 'WARN (empty in: ' + warnInnovate.join(' ') + ')' : 'OK'));
@@ -128,7 +63,13 @@ function run(projectDir) {
   console.log('  Acceptance:   ' + (warnAcceptance.length ? 'WARN (empty/incomplete in: ' + warnAcceptance.join(' ') + ')' : 'OK'));
   console.log('  Plan:         ' + (warnPlan.length ? 'WARN (missing approval in: ' + warnPlan.join(' ') + ')' : 'OK'));
   console.log('  Execute Log:  ' + (warnExecuteLog.length ? 'WARN (empty/missing in: ' + warnExecuteLog.join(' ') + ')' : 'OK'));
-  console.log('  Challenge:    ' + (warnReview.length ? 'WARN (empty verdict in: ' + warnReview.join(' ') + ')' : 'OK'));
+  console.log('  Challenge:    ' + (warnChallenge.length ? 'WARN (blocked/failed in: ' + warnChallenge.join(' ') + ')' : 'OK'));
+  console.log('  BLOCKERS:');
+  if (!blockerDetails.length) console.log('  - none');
+  blockerDetails.forEach(function(item) {
+    console.log('  - [' + item.blocker.code + '] ' + item.file + ': ' + item.blocker.message);
+  });
   process.exit(exitCode);
 }
+
 module.exports = run;

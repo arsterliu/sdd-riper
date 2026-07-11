@@ -2,18 +2,10 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var validate = require('../commands/validate');
+var specState = require('./spec-state');
+var risk = require('./risk');
 
-var VERDICT_TO_TARGET = {
-  PASS: 'Ready',
-  PASS_WITH_CONCERNS: 'Learning Check',
-  FAIL_SPEC: 'Research',
-  FAIL_DESIGN: 'Design',
-  FAIL_ACCEPTANCE: 'Acceptance',
-  FAIL_PLAN: 'Plan',
-  FAIL_CODE: 'Execute / Debug',
-  FAIL_LOG: 'Execute Log',
-  FAIL_LEARNING: 'Learning Check'
-};
+var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
 
 var CRUISE_DRIVERS = ['auto', 'prompt', 'local-loop', 'claude-code', 'codex', 'opencode'];
 
@@ -26,84 +18,10 @@ function sectionContent(specPath, pattern) {
   return common.extractSection(specPath, pattern, 400);
 }
 
-function labelValue(section, label) {
-  var lines = String(section || '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var escaped = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  var labelRegex = new RegExp('^' + escaped + ':[ \\t]*(.*)$', 'i');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    var m = line.match(labelRegex);
-    if (!m) continue;
-    if (m[1] && m[1].trim()) return m[1].trim();
-    for (var j = i + 1; j < lines.length; j++) {
-      var next = lines[j].trim();
-      if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
-      return next;
-    }
-  }
-  return '';
-}
-
-function explicitChallengeVerdict(content) {
-  var verdict = labelValue(content, 'Challenge Verdict').toUpperCase();
-  return VERDICT_TO_TARGET[verdict] ? verdict : '';
-}
-
-function executeCompletionDone(projectDir, specPath) {
-  var ref = common.getFrontmatterField(specPath, 'execute-log-file');
-  if (!ref) return false;
-  var logPath = common.resolveProjectPath(projectDir, ref);
-  if (!logPath || !fs.existsSync(logPath)) return false;
-  var content = fs.readFileSync(logPath, 'utf-8');
-  return common.completionVerificationDone(content);
-}
-
-function challengeRequiredAfterCompletion(projectDir, specPath, specContent, issues) {
-  if (!executeCompletionDone(projectDir, specPath)) return false;
-  var challengeStale = (issues || []).some(function(issue) {
-    return /Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue);
-  });
-  if (challengeStale) return 'stale';
-  var explicit = explicitChallengeVerdict(specContent);
-  var challengePartial = (issues || []).some(function(issue) {
-    return /Challenge Executed At is empty|Challenge Evidence is required/i.test(issue);
-  });
-  if (challengePartial) return 'partial';
-  var challengeMissing = (issues || []).some(function(issue) {
-    return /Challenge has not been executed|Challenge Executed By is empty/i.test(issue);
-  });
-  if (challengeMissing) return explicit ? 'partial' : 'missing';
-  return '';
-}
-
-function classifyIssue(issue) {
-  var failedChallenge = String(issue || '').match(/Adversarial Challenge failed:\s*(FAIL_[A-Z_]+)/i);
-  if (failedChallenge) return failedChallenge[1].toUpperCase();
-  if (/Challenge has not been executed/i.test(issue)) return 'FAIL_LOG';
-  if (/Challenge requires independent reviewer evidence/i.test(issue)) return 'FAIL_LOG';
-  if (/Challenge Executed At must be after the last Execute Log step timestamp/i.test(issue)) return 'FAIL_LOG';
-  if (/hardcoded secret|injection risk|missing input validation|dead code|code duplication|Code Challenge/i.test(issue)) return 'FAIL_CODE';
-  if (/Research Reviewed By|Research Reviewed At|Research Gate requires independent reviewer evidence/i.test(issue)) return 'FAIL_SPEC';
-  if (/Confirmed Requirement|Intake|Spec file not found/i.test(issue)) return 'FAIL_SPEC';
-  if (/Innovate/i.test(issue)) return 'FAIL_SPEC';
-  if (/Technical Design|Design Note|design-file|Design file/i.test(issue)) return 'FAIL_DESIGN';
-  if (/Acceptance Criteria|Verification|Automated Acceptance|E2E Acceptance|Manual Acceptance|AC Coverage/i.test(issue)) return 'FAIL_ACCEPTANCE';
-  if (/Plan Approved|Approved At|Gate Evidence|Micro Plan/i.test(issue)) return 'FAIL_PLAN';
-  if (/Execute Log/i.test(issue)) return 'FAIL_LOG';
-  if (/Learning Record|Learning/i.test(issue)) return 'FAIL_LEARNING';
-  if (/Challenge Executed|Challenge Evidence/i.test(issue)) return 'FAIL_LOG';
-  return 'FAIL_SPEC';
-}
+var labelValue = require('./artifact-snapshot').labelValue;
 
 function challengeVerdictFromIssues(issues) {
-  if (!issues || !issues.length) return 'PASS';
-  var priority = ['FAIL_SPEC', 'FAIL_DESIGN', 'FAIL_ACCEPTANCE', 'FAIL_PLAN', 'FAIL_CODE', 'FAIL_LOG', 'FAIL_LEARNING'];
-  var found = issues.map(classifyIssue);
-  for (var i = 0; i < priority.length; i++) {
-    if (found.indexOf(priority[i]) !== -1) return priority[i];
-  }
-  return found[0] || 'FAIL_SPEC';
+  return specState.verdictFromIssues(issues);
 }
 
 // Strip a leading "Label:" prefix from each line so keyword scanning sees the
@@ -152,7 +70,7 @@ function riskFlags(content, crSection) {
     var scopeBoundary = labelValue(crText, 'Scope Boundary');
 
     // Irreversibility → irreversible flag
-    if (irreversibility && !/\b(none|无|可逆|reversible)\b/i.test(irreversibility)) {
+    if (risk.classifyIrreversibility(irreversibility) === 'irreversible') {
       flags.push('irreversible');
     }
     // Impact Radius → public-api flag
@@ -180,16 +98,17 @@ function riskFlags(content, crSection) {
     ['billing', /\b(billing|payment|invoice|charge)\b/],
     ['migration', /\b(migration|migrate|backfill|schema)\b/],
     ['public-api', /\b(public api|api contract|external api)\b/],
-    ['irreversible', /\b(irreversible|destructive|delete data)\b/],
     // Chinese keyword counterparts — no word-boundary anchors (CJK has no \b)
     ['security', /权限|认证|授权|密钥|凭证/],
     ['billing', /计费|支付|账单|扣费|收费/],
     ['migration', /迁移|数据迁移|回填|schema/],
-    ['public-api', /公开接口|外部接口|api契约/],
-    ['irreversible', /不可逆|破坏性|删除数据|清空数据/]
+    ['public-api', /公开接口|外部接口|api契约/]
   ].forEach(function(item) {
     if (flags.indexOf(item[0]) === -1 && item[1].test(text)) flags.push(item[0]);
   });
+  if (flags.indexOf('irreversible') === -1 && risk.classifyIrreversibility(text) === 'irreversible') {
+    flags.push('irreversible');
+  }
   return flags;
 }
 
@@ -242,14 +161,6 @@ function formatDesignMethodLines(dm) {
   return lines;
 }
 
-function nextAction(verdict) {
-  if (verdict === 'PASS') return 'archive_ready';
-  return 'repair_' + String(VERDICT_TO_TARGET[verdict] || 'Research')
-    .toLowerCase()
-    .replace(/ \/ /g, '_')
-    .replace(/\s+/g, '_');
-}
-
 function analyzeSpec(projectDir, specPath, opts) {
   opts = opts || {};
   var approvalPolicy = common.getApprovalPolicy(projectDir);
@@ -290,38 +201,27 @@ function analyzeSpec(projectDir, specPath, opts) {
   }
   var flags = riskFlags(action && action.trim() ? action : content, crSection);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
-  var explicit = explicitChallengeVerdict(content);
-  var challengeRequired = challengeRequiredAfterCompletion(projectDir, specPath, content, validation.issues);
-  var validationVerdict = challengeVerdictFromIssues(validation.issues);
   // Challenge Verdict from Spec is the authoritative independent quality gate.
   // Validation issues are separate blockers — they should not override an
   // explicit Challenge PASS. Only when no Challenge Verdict exists do we
   // derive one from validation issues for routing purposes.
-  var verdict = explicit
-    ? explicit
-    : (validation.issues && validation.issues.length ? validationVerdict : 'PASS');
-  var target = VERDICT_TO_TARGET[verdict] || 'Research';
+  var evaluated = validation.workflowState || specState.evaluate(specState.readSnapshot(projectDir, specPath), {
+    validationIssues: (validation.issues || []).filter(function(issue) { return !/^WARNING:/i.test(issue); })
+  });
   // If Challenge passed but validation blockers remain, the task is not
   // truly archive-ready — blockers must be resolved first.
-  var action = nextAction(verdict);
-  if (challengeRequired && (challengeRequired !== 'missing' || validationVerdict === 'FAIL_CODE' || validationVerdict === 'FAIL_LOG')) {
-    target = 'Challenge';
-    action = 'run_challenge';
-  }
-  if (action === 'archive_ready' && validation.issues && validation.issues.length) {
-    action = 'repair_' + (VERDICT_TO_TARGET[validationVerdict] || 'Research')
-      .toLowerCase()
-      .replace(/ \/ /g, '_')
-      .replace(/\s+/g, '_');
-  }
   return {
     approvalPolicy: approvalPolicy,
     cruiseEnabled: cruiseEnabled,
     maxIterations: maxIterations,
-    challengeVerdict: verdict,
-    backtrackTarget: target,
-    nextAction: action,
+    challengeVerdict: evaluated.challengeVerdict,
+    backtrackTarget: evaluated.backtrackTarget,
+    nextAction: evaluated.nextAction,
     blockers: validation.issues || [],
+    blockerDetails: evaluated.blockers,
+    gates: evaluated.gates,
+    phase: evaluated.phase,
+    archiveReady: evaluated.archiveReady,
     riskFlags: flags,
     designMethod: designMethodHint(mode, flags),
     gateEvidence: labelValue(content, 'Gate Evidence'),

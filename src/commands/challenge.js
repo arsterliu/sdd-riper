@@ -1,5 +1,6 @@
 var workflow = require('../core/workflow');
 var common = require('../../lib/common');
+var reviewerGuidance = require('../core/reviewer-guidance');
 var fs = require('fs');
 var path = require('path');
 
@@ -54,7 +55,11 @@ function run(projectDir, opts) {
     }
     var content = fs.readFileSync(specPath, 'utf-8');
     var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
-    var summary = opts.summary || '';
+    var summary = String(opts.summary || '').trim();
+    if (!summary) {
+      console.error('[ERROR] --summary is required with --record-result and must contain evidence-backed text.');
+      process.exit(3);
+    }
     var executedBy = opts.executedBy;
     if (!isAuditableExecutedBy(executedBy, mode)) {
       console.error('[ERROR] --executed-by must be subagent:<id>, external-agent:<id>, or human:<name>' + (mode === 'micro' ? ' (inline is also allowed for micro).' : '.'));
@@ -119,6 +124,11 @@ function run(projectDir, opts) {
   console.log('BACKTRACK_TARGET_HINT: ' + state.backtrackTarget);
   console.log('ALLOWED_VERDICTS: ' + VERDICTS.join(' | '));
   console.log('');
+  console.log('### Reviewer Evidence');
+  reviewerGuidance.guidanceLines().forEach(function(line) {
+    console.log('- ' + line);
+  });
+  console.log('');
   console.log('### Research Challenge');
   console.log('- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.');
   console.log('- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.');
@@ -157,6 +167,8 @@ function run(projectDir, opts) {
   console.log('');
   console.log('After the challenge agent returns, record the result with:');
   console.log('  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"');
+  console.log('');
+  console.log('Reviewer authorization reminder: ' + reviewerGuidance.inlineGuidance());
 }
 
 module.exports = run;

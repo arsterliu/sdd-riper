@@ -8,8 +8,8 @@
 - **Spec 是控制面**：Spec 引用 Design / Execute Log / Learning，而非内嵌。
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、计划步骤、证据和学习规则时使用中文。
 - **Approval Policy**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate；默认 agent，agent 批准必须写 `Gate Evidence:`。
-- **Independent Review**：Research / Challenge reviewer 使用 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。
-- **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。
+- **Independent Review**：Research / Challenge reviewer 使用 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+- **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - **Execute Log 必需**：所有模式都将步骤结果写入 `execute-log-file`。
 - **Learning 条件性**：偏差、修复、关注点和重开经验需要 `learning-file`。
 - **先 Debug 再重试**。

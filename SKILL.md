@@ -180,7 +180,7 @@ Required outputs in Spec:
 
 Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
 
-Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips.
+Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips. If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
@@ -486,7 +486,7 @@ Briefs for challenge subagents must include source code (`source_code` in `artif
 3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent:<id>"`
 4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
 
-`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. `Challenge Executed At` must be a valid ISO-8601 timestamp.
+`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence. `Challenge Executed At` must be a valid ISO-8601 timestamp.
 
 Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
 
@@ -498,19 +498,9 @@ Run:
 sdd cruise "<PROJECT_ROOT>" [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
 ```
 
-The command generates a bounded repair-loop prompt when `CRUISE_ENABLED` is true. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The agent should repair only the artifact indicated by `BACKTRACK_TARGET`, run `sdd validate`, then run `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
+The command generates a bounded repair-loop prompt when `CRUISE_ENABLED` is true. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The main agent should re-enter the phase indicated by `BACKTRACK_TARGET`, obey that phase's gates and write boundaries, run `sdd validate`, then request `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
 
-Allowed Cruise writes:
-
-- Completion Verification updates in Execute Log.
-- Challenge evidence via `sdd challenge --record-result`.
-
-Forbidden Cruise writes:
-
-- implementation code
-- new features
-- Plan steps
-- silent Design rewrites to justify code
+Cruise orchestrator 只负责读取 `BACKTRACK_TARGET`、控制迭代预算并协调阶段重入。主 Agent 必须进入目标阶段，遵守该阶段的写入边界与门禁完成修复，再回到 Cruise 执行 validate 和 Challenge。Challenge reviewer 始终是 read-only：只返回 verdict 与证据，不修改实现代码、Plan、Design 或 SDD 制品。`FAIL_DESIGN` 允许主 Agent 在 Design 阶段基于审查证据修订设计，但禁止为了迎合既有代码而静默倒推设计。
 
 ## Learning Check Phase
 
@@ -636,7 +626,7 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd challenge <dir>`
 - `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
 - `sdd console [dir] [--port <port>]`
-- `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean]`
+- `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean] [--check]`
 - `sdd validate <dir> --archive-ready`
 - `sdd new-learning <dir> [spec-name]`
 - `sdd learnings <dir> [--for <spec>]` — project-level learnings, or relevance-ranked recall for a spec

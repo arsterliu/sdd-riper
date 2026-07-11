@@ -4,6 +4,7 @@ var common = require('../../lib/common');
 var validate = require('../commands/validate');
 var learning = require('./learning');
 var workflow = require('./workflow');
+var specState = require('./spec-state');
 var cruiseRun = require('./cruise-run');
 var specCache = new Map();
 
@@ -14,6 +15,7 @@ var PHASES = [
   'acceptance',
   'plan',
   'execute',
+  'challenge',
   'learning',
   'ready',
   'archived'
@@ -51,61 +53,8 @@ function sectionText(filePath, pattern) {
   return common.extractSection(filePath, pattern, 500);
 }
 
-function subsectionText(filePath, parentPattern, subPattern) {
-  var parentSection = common.extractSection(filePath, parentPattern, 800);
-  if (!parentSection) return '';
-  var lines = parentSection.split(/\r?\n/);
-  var found = false;
-  var result = [];
-  var subRegex = new RegExp('^###\\s+' + subPattern);
-  for (var i = 0; i < lines.length; i++) {
-    if (/^###/.test(lines[i])) {
-      if (found) break;
-      if (subRegex.test(lines[i])) { found = true; }
-      continue;
-    }
-    if (found) result.push(lines[i]);
-  }
-  return result.join('\n');
-}
-
 function sectionHasContent(filePath, pattern) {
   return !!firstRealLine(sectionText(filePath, pattern));
-}
-
-function subsectionHasContent(filePath, pattern) {
-  return !common.subsectionIsEmpty(filePath, pattern);
-}
-
-function escapeRegExp(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// A verdict line counts as PASS only when it carries a PASS token and no FAIL_
-// token, so a failing line that merely mentions the word "PASS" is not archived.
-function isPassVerdict(line) {
-  var s = String(line || '');
-  if (/\bFAIL_/i.test(s)) return false;
-  return /\bPASS\b|\bPASS_WITH_CONCERNS\b/.test(s);
-}
-
-function labelHasContent(section, label) {
-  var lines = stripHtmlComments(section).split(/\r?\n/);
-  var labelRegex = new RegExp('^' + escapeRegExp(label) + ':[ \\t]*(.*)$', 'i');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    var m = line.match(labelRegex);
-    if (!m) continue;
-    if (m[1] && m[1].trim()) return true;
-    for (var j = i + 1; j < lines.length; j++) {
-      var next = lines[j].trim();
-      if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
-      return true;
-    }
-    continue;
-  }
-  return false;
 }
 
 function parseFrontmatter(filePath) {
@@ -194,13 +143,8 @@ function completionState(projectDir, specPath, mode) {
   var executeLog = artifactState(projectDir, specPath, 'execute-log-file', SECTION.executeLog);
   var learningArtifact = learning.learningArtifact(projectDir, specPath);
   var learningContent = learningArtifact.content;
-  var plan = sectionText(specPath, SECTION.plan);
   var content = fs.readFileSync(specPath, 'utf-8');
-  // Challenge Verdict is the sole quality gate.
-  var challengeVerdict = '';
-  var cvMatch = content.match(/^[ \t]*Challenge Verdict:[ \t]*(.+)$/m);
-  if (cvMatch) challengeVerdict = cvMatch[1].trim().toUpperCase();
-  var challengePass = challengeVerdict === 'PASS' || challengeVerdict === 'PASS_WITH_CONCERNS';
+  var challengeVerdict = specState.challengeFacts(content).verdict;
   var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), challengeVerdict);
   var learningRequired = learningTriggers.length > 0;
   learningArtifact.hasContent = learningArtifact.exists ? !!learning.firstRealLine(learningContent) : false;
@@ -208,50 +152,15 @@ function completionState(projectDir, specPath, mode) {
   learningArtifact.triggers = learningTriggers;
   delete learningArtifact.content;
   if (!learningRequired && !learningArtifact.ref) learningArtifact.notRequired = true;
-  var acceptance = mode === 'micro'
-    ? labelHasContent(plan, 'Acceptance') && labelHasContent(plan, 'Verification')
-    : sectionHasContent(specPath, SECTION.acceptanceCriteria);
-  var CONFIRMED_REQ_LABELS = ['Scope Boundary', 'Irreversibility', 'Impact Radius', 'Dependencies & Constraints', 'Acceptance Intent'];
-  var research;
-  if (mode === 'micro') {
-    research = sectionHasContent(specPath, SECTION.intake);
-  } else {
-    var crSection = mode === 'standard'
-      ? subsectionText(specPath, 'Research', SECTION.confirmedRequirement)
-      : sectionText(specPath, SECTION.confirmedRequirement);
-    // Structured fields present: require all 5 labels to have content
-    if (crSection && /Scope Boundary:|Irreversibility:|Impact Radius:|Dependencies & Constraints:|Acceptance Intent:/i.test(crSection)) {
-      research = CONFIRMED_REQ_LABELS.every(function(label) { return labelHasContent(crSection, label); });
-    } else {
-      // Legacy free-text: fall back to section-has-content check
-      research = mode === 'standard'
-        ? subsectionHasContent(specPath, SECTION.confirmedRequirement)
-        : sectionHasContent(specPath, SECTION.confirmedRequirement);
-    }
-  }
-  var innovate = mode === 'micro' ? true : sectionHasContent(specPath, SECTION.innovateOptions);
-  var approvedBy = labelHasContent(content, 'Plan Approved By');
-  var approvedAt = labelHasContent(content, 'Approved At');
-  var approver = (content.match(/^[ \t]*Plan Approved By:[ \t]*(.*)$/m) || [])[1] || '';
-  var agentApproval = /^agent:[^:\s]+$/i.test(approver);
-  var humanApproval = /^human:[^:\s]+$/i.test(approver);
-  var approvalPolicy = common.getApprovalPolicy(projectDir);
-  var planApproved = approvedBy && approvedAt && (humanApproval || (agentApproval && labelHasContent(content, 'Gate Evidence')));
-  if (approvalPolicy === 'human' && agentApproval) planApproved = false;
-  // completionVerification: check if Execute Log contains a completion-verification step
-  var fullLogContent = executeLog.hasContent && executeLog.path && fs.existsSync(executeLog.path)
-    ? fs.readFileSync(executeLog.path, 'utf-8')
-    : (executeLog.content || '');
-  var completionVerification = executeLog.hasContent && /completion.verification|completion-verification/i.test(fullLogContent);
   return {
-    research: research,
-    innovate: innovate,
-    design: design.hasContent,
-    acceptance: acceptance,
-    plan: planApproved,
-    executeLog: executeLog.hasContent,
-    completionVerification: completionVerification,
-    challengePass: challengePass,
+    research: false,
+    innovate: false,
+    design: mode === 'micro',
+    acceptance: false,
+    plan: false,
+    executeLog: false,
+    completionVerification: false,
+    challengePass: false,
     designArtifact: design,
     executeLogArtifact: executeLog,
     learningArtifact: learningArtifact,
@@ -262,15 +171,7 @@ function completionState(projectDir, specPath, mode) {
 
 function inferPhase(status, mode, completion) {
   if (status === 'archived') return 'archived';
-  if (!completion.research) return 'research';
-  if (!completion.innovate) return 'innovate';
-  if (mode !== 'micro' && !completion.design) return 'design';
-  if (!completion.acceptance) return 'acceptance';
-  if (!completion.plan) return 'plan';
-  if (!completion.executeLog) return 'execute';
-  if (!completion.challengePass) return 'execute';
-  if (!completion.learning) return 'learning';
-  return 'ready';
+  return completion && completion.phase || 'research';
 }
 
 function parseSpecUncached(projectDir, specPath, location, opts) {
@@ -281,26 +182,47 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
   var parsedName = parseFileName(fileName);
   var mode = frontmatter.mode || 'standard';
   var status = frontmatter.status || (location === 'archive' ? 'archived' : 'draft');
+  var legacy = location === 'archive';
   var completion = completionState(projectDir, specPath, mode);
   var phase = inferPhase(status, mode, completion);
-  var archiveReady = opts.lightweight
+  var archiveReady = legacy || opts.lightweight
     ? null
     : validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
-  var workflowState = opts.lightweight
+  var workflowState = legacy
     ? {
       approvalPolicy: common.getApprovalPolicy(projectDir),
-      cruiseEnabled: common.getCruiseEnabled(projectDir),
-      maxIterations: common.getCruiseMaxIterations(projectDir),
+      cruiseEnabled: false,
+      maxIterations: 0,
       challengeVerdict: '',
       backtrackTarget: '',
-      nextAction: ''
+      nextAction: 'legacy_archive',
+      phase: 'archived',
+      archiveReady: false,
+      blockers: []
     }
-    : workflow.analyzeSpec(projectDir, specPath, { validation: archiveReady });
+    : workflow.analyzeSpec(projectDir, specPath, { validation: archiveReady || { issues: [] } });
+  if (!legacy && workflowState.phase) phase = workflowState.phase;
+  function gatePassed(gate) {
+    return !!(workflowState.gates && workflowState.gates[gate] && workflowState.gates[gate].state === 'pass');
+  }
+  var authoritativeCompletion = !legacy && workflowState.gates ? {
+    research: gatePassed('research'),
+    innovate: gatePassed('innovate'),
+    design: mode === 'micro' || gatePassed('design'),
+    acceptance: gatePassed('acceptance'),
+    plan: gatePassed('plan'),
+    executeLog: gatePassed('execute'),
+    completionVerification: gatePassed('completion'),
+    challengePass: gatePassed('challenge'),
+    learning: gatePassed('learning'),
+    learningRequired: !!(workflowState.facts && workflowState.facts.learningRequired)
+  } : completion;
   return {
     id: makeId(projectDir, specPath),
     fileName: fileName,
     relativePath: common.relativeToProject(projectDir, specPath),
     location: location,
+    legacy: legacy,
     version: parsedName.version,
     slug: parsedName.slug,
     taskName: frontmatter['task-name'] || parsedName.slug,
@@ -315,24 +237,25 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       learning: completion.learningArtifact
     },
     completion: {
-      research: completion.research,
-      innovate: completion.innovate,
-      design: completion.design,
-      acceptance: completion.acceptance,
-      plan: completion.plan,
-      executeLog: completion.executeLog,
-      completionVerification: completion.completionVerification,
-      challengePass: completion.challengePass,
-      learning: completion.learning,
-      learningRequired: completion.learningRequired
+      research: authoritativeCompletion.research,
+      innovate: authoritativeCompletion.innovate,
+      design: authoritativeCompletion.design,
+      acceptance: authoritativeCompletion.acceptance,
+      plan: authoritativeCompletion.plan,
+      executeLog: authoritativeCompletion.executeLog,
+      completionVerification: authoritativeCompletion.completionVerification,
+      challengePass: authoritativeCompletion.challengePass,
+      learning: authoritativeCompletion.learning,
+      learningRequired: authoritativeCompletion.learningRequired
     },
     workflow: workflowState,
     cruiseRun: cruiseRun.readLedger(projectDir, specPath),
     validate: {
-      ok: archiveReady ? archiveReady.ok : phase === 'ready',
+      ok: legacy ? null : (archiveReady ? archiveReady.ok : phase === 'ready'),
       issueCount: archiveReady ? archiveReady.issues.length : 0,
       issues: archiveReady ? archiveReady.issues : [],
-      lightweight: !!opts.lightweight
+      lightweight: !!opts.lightweight,
+      legacy: legacy
     }
   };
 }

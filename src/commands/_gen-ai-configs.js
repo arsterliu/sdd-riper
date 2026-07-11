@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const reviewerGuidance = require('../core/reviewer-guidance');
 
 var BLOCK_START = '<!-- sdd-riper:start -->';
 var BLOCK_END = '<!-- sdd-riper:end -->';
@@ -22,6 +23,8 @@ function sddBlock(title, mode, bodyLines) {
     '- Record execution deviations in the referenced Execute Log.',
     '- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.',
     '- Independent Review is separate from approval: Research/Challenge reviewers must be auditable (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`; micro Challenge may use `inline`).',
+    '- ' + reviewerGuidance.authorizationLine(),
+    '- ' + reviewerGuidance.integrityLine(),
     '- Keep artifact headings and field labels in English; write artifact content in Chinese.',
     '- Debug before retrying failed steps.',
     '',
@@ -37,6 +40,7 @@ function sddBlock(title, mode, bodyLines) {
     '- `APPROVAL_POLICY=agent|human` controls only the Plan approval gate; `agent` approvals require `Gate Evidence`.',
     '- Cruise is enabled by default; set `CRUISE_ENABLED=false` to turn it off and keep `CRUISE_MAX_ITERATIONS` as the iteration budget.',
     '- Cruise Driver is selected with `sdd cruise --driver <driver>`.',
+    '- Cruise orchestrator only routes and bounds iterations; the main agent re-enters `BACKTRACK_TARGET` under that phase\'s gates and write boundaries; the Challenge reviewer remains read-only.',
     '- Mode: ' + mode,
     ''
   ].concat(bodyLines || []).concat([BLOCK_END]).join('\n');

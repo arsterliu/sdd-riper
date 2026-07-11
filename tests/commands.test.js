@@ -59,13 +59,25 @@ function fillApproval(content) {
 
 function fillChallenge(content, verdict, opts) {
   opts = opts || {};
+  var summary = opts.summary || 'ok.';
+  var targets = {
+    PASS: 'Ready',
+    PASS_WITH_CONCERNS: 'Learning Check',
+    FAIL_SPEC: 'Research',
+    FAIL_DESIGN: 'Design',
+    FAIL_ACCEPTANCE: 'Acceptance',
+    FAIL_PLAN: 'Plan',
+    FAIL_CODE: 'Execute / Debug',
+    FAIL_LOG: 'Execute Log',
+    FAIL_LEARNING: 'Learning Check'
+  };
   return content
     .replace(/^Challenge Verdict:$/m, 'Challenge Verdict: ' + verdict)
-    .replace(/^Backtrack Target:$/m, 'Backtrack Target: ' + (opts.backtrack || 'Ready'))
-    .replace(/^Challenge Summary:$/m, 'Challenge Summary: ' + (opts.summary || 'ok.'))
+    .replace(/^Backtrack Target:$/m, 'Backtrack Target: ' + (opts.backtrack || targets[verdict] || 'Research'))
+    .replace(/^Challenge Summary:$/m, 'Challenge Summary: ' + summary)
     .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: ' + (opts.executedBy || 'subagent:challenge-fixture'))
     .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: ' + (opts.executedAt || '2026-01-01T00:01:00Z'))
-    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: ' + (opts.evidence || 'PASS - independent review'));
+    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: ' + (opts.evidence || verdict + ' - ' + summary));
 }
 
 function fillAutoApproval(content) {
@@ -101,6 +113,10 @@ function completionVerificationLog(timestamp) {
     'Verification: node --test tests\\commands.test.js',
     'Timestamp: ' + (timestamp || '2026-01-01T00:00:00Z')
   ].join('\n');
+}
+
+function withCompletionContract(logText) {
+  return logText + '\n---\n' + completionVerificationLog().replace('AC-001: PASS', 'AC-999: PASS');
 }
 
 function standardDesignContent() {
@@ -243,7 +259,7 @@ function makeStandardArchiveReady(demo, specFile) {
     .replace(/^Challenge Summary:$/m, 'Challenge Summary: all gates pass.')
     .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent:archive-fixture')
     .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z')
-    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - independent review');
+    .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - all gates pass.');
   fs.writeFileSync(specFile, content, 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', [
@@ -713,6 +729,36 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('Challenge Verdict') !== -1, out);
   });
 
+  it('resume does not execute when agent plan approval is missing gate evidence', function() {
+    var demo = path.join(tmpBase, 'd2-resume-plan-gate-incomplete');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name incomplete-plan --spec-version v1.0 --requirement x --mode standard');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-incomplete-plan.md');
+    var content = fs.readFileSync(specFile, 'utf-8');
+    content = fillConfirmedReq(content)
+      .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent:research-fixture')
+      .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
+      .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex');
+    fs.writeFileSync(specFile, content, 'utf-8');
+
+    var out = run('resume ' + demo);
+    assert.ok(out.indexOf('PHASE_HINT: research_or_plan') !== -1, out);
+    assert.ok(out.indexOf('PHASE_HINT: execute') === -1, out);
+  });
+
+  it('resume backtracks a fresh FAIL_CODE challenge to execute', function() {
+    var demo = path.join(tmpBase, 'd2-resume-failed-challenge');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name challenge-fails --spec-version v1.0 --requirement x --mode standard');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-fails.md');
+    makeStandardExecutedButUnchallenged(demo, specFile);
+    run('challenge ' + demo + ' --name challenge-fails --record-result FAIL_CODE --summary broken --executed-by subagent:challenge-fixture');
+
+    var out = run('resume ' + demo);
+    assert.ok(out.indexOf('PHASE_HINT: archive') === -1, out);
+    assert.ok(out.indexOf('PHASE_HINT: execute') !== -1, out);
+  });
+
   it('next routes executed specs without challenge evidence to run_challenge', function() {
     var demo = path.join(tmpBase, 'd2-next-challenge-required');
     run('init ' + demo + ' --mode standard');
@@ -889,6 +935,23 @@ describe('CLI commands', function() {
     assert.ok(run('status ' + demo).indexOf('Structure:    OK') !== -1);
   });
 
+  it('status warns when agent plan approval is missing gate evidence', function() {
+    var demo = path.join(tmpBase, 'd3-plan-gate-warn');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name incomplete-plan --spec-version v1.0 --requirement x --mode standard');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-incomplete-plan.md');
+    var content = fs.readFileSync(specFile, 'utf-8');
+    content = fillConfirmedReq(content)
+      .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent:research-fixture')
+      .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
+      .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex');
+    fs.writeFileSync(specFile, content, 'utf-8');
+
+    var out = run('status ' + demo);
+    assert.ok(out.indexOf('Plan:         WARN') !== -1, out);
+    assert.ok(out.indexOf('v1.0-incomplete-plan.md') !== -1, out);
+  });
+
   it('archive and reopen flow moves referenced artifacts', function() {
     var demo = path.join(tmpBase, 'd4');
     run('init ' + demo + ' --mode standard');
@@ -910,6 +973,23 @@ describe('CLI commands', function() {
     var patchSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-arch.md');
     assert.ok(fs.existsSync(patchSpec));
     assert.ok(fs.existsSync(artifactPath(demo, patchSpec, 'execute-log-file')));
+  });
+
+  it('archive index records Challenge Verdict for new specs', function() {
+    var demo = path.join(tmpBase, 'd4-challenge-verdict-index');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name arch-verdict --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-arch-verdict.md');
+    makeStandardArchiveReady(demo, sf);
+    var content = fs.readFileSync(sf, 'utf-8')
+      .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: PASS');
+    fs.writeFileSync(sf, content, 'utf-8');
+
+    var out = run('archive ' + demo + ' arch-verdict');
+    assert.ok(out.indexOf('[ARCHIVE]') !== -1 || out.indexOf('[MOVED]') !== -1, out);
+    var index = fs.readFileSync(path.join(demo, 'mydocs', 'archive', 'index.md'), 'utf-8');
+    assert.ok(index.indexOf('| v1.0-arch-verdict.md |') !== -1, index);
+    assert.ok(index.indexOf('| PASS |') !== -1, index);
   });
 
   it('archive requires and moves learning records when execution produced reusable lessons', function() {
@@ -1178,6 +1258,28 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1, blocked);
   });
 
+  it('validate and next surface reviewer guidance when research reviewer is missing', function() {
+    var demo = path.join(tmpBase, 'research-reviewer-missing-guidance');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name research-missing --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-research-missing.md');
+    var c = fs.readFileSync(sf, 'utf-8');
+    c = fillConfirmedReq(c)
+      .replace(/^Research Reviewed By:.*$/m, 'Research Reviewed By:')
+      .replace(/^Research Reviewed At:.*$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z');
+    fs.writeFileSync(sf, c, 'utf-8');
+
+    var blocked = run('validate ' + demo + ' --archive-ready');
+    assert.ok(blocked.indexOf('Research Reviewed By is empty') !== -1, blocked);
+    assert.ok(blocked.indexOf('Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>') !== -1, blocked);
+    assert.ok(blocked.indexOf('pause and request explicit user authorization before proceeding') !== -1, blocked);
+    assert.ok(blocked.indexOf('Do not skip the gate or fabricate reviewer evidence') !== -1, blocked);
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('REVIEWER_GUIDANCE:') !== -1, next);
+    assert.ok(next.indexOf('pause and request explicit user authorization before proceeding') !== -1, next);
+  });
+
   it('validate rejects legacy auto-gate challenge evidence (AC-003)', function() {
     var demo = path.join(tmpBase, 'd4k');
     run('init ' + demo + ' --mode standard');
@@ -1401,6 +1503,28 @@ describe('CLI commands', function() {
     assert.ok(!fs.existsSync(stale));
   });
 
+  it('install-skill detects same-version content drift without modifying the target', function() {
+    var installer = require('../src/commands/install-skill')._private;
+    assert.equal(typeof installer.checkOne, 'function', 'installer must expose a read-only integrity check');
+    var targetRoot = path.join(tmpBase, 'skill-integrity-target');
+    var target = installer.resolveTargets('codex', targetRoot)[0];
+    installer.installOne(target, { clean: true });
+    var skillFile = path.join(target.dir, 'SKILL.md');
+    fs.appendFileSync(skillFile, '\nGATE_POLICY="auto"\n', 'utf-8');
+    var before = fs.readFileSync(skillFile, 'utf-8');
+
+    var drift = installer.checkOne(target);
+    assert.equal(drift.ok, false);
+    assert.equal(drift.reason, 'content-drift');
+    assert.notEqual(drift.sourceFingerprint, drift.targetFingerprint);
+    assert.equal(fs.readFileSync(skillFile, 'utf-8'), before, 'check must be read-only');
+
+    installer.installOne(target, { clean: true });
+    var aligned = installer.checkOne(target);
+    assert.equal(aligned.ok, true);
+    assert.equal(aligned.sourceFingerprint, aligned.targetFingerprint);
+  });
+
   it('sdd codemap outputs on-demand architecture view', function() {
     var demo = path.join(tmpBase, 'd5');
     run('init ' + demo + ' --mode standard');
@@ -1459,6 +1583,14 @@ describe('CLI commands', function() {
     assert.ok(challenge.indexOf('Execute Challenge') !== -1);
     assert.ok(challenge.indexOf('Archive Challenge') !== -1);
     assert.ok(challenge.indexOf('FAIL_DESIGN') !== -1);
+    assert.ok(challenge.indexOf('subagent:<id>') !== -1, 'challenge should list subagent reviewer type');
+    assert.ok(challenge.indexOf('external-agent:<id>') !== -1, 'challenge should list external-agent reviewer type');
+    assert.ok(challenge.indexOf('human:<name>') !== -1, 'challenge should list human reviewer type');
+    assert.ok(challenge.indexOf('automated reviewer') !== -1, 'challenge should mention automated reviewer authorization');
+    assert.ok(challenge.indexOf('explicit user authorization') !== -1, 'challenge should require explicit user authorization');
+    assert.ok(challenge.indexOf('pause and request explicit user authorization before proceeding') !== -1, 'challenge should require pausing to request authorization');
+    assert.ok(challenge.indexOf('review bot') !== -1, 'challenge should include generic review bot language');
+    assert.ok(challenge.indexOf('Codex subagent') === -1, 'challenge prompt should not be Codex-specific');
 
     var cruise = run('cruise ' + demo);
     assert.ok(cruise.indexOf('AUTONOMOUS CRUISE PROMPT') !== -1);
@@ -1468,6 +1600,24 @@ describe('CLI commands', function() {
     assert.ok(cruise.indexOf('repair loop') !== -1);
     assert.ok(cruise.indexOf('sdd validate') !== -1);
     assert.ok(cruise.indexOf('sdd challenge') !== -1);
+  });
+
+  it('next surfaces platform-neutral authorization guidance when challenge is missing', function() {
+    var demo = path.join(tmpBase, 'd6c-next-reviewer-auth');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name reviewer-auth --spec-version v1.0 --requirement x --mode standard');
+    makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-reviewer-auth.md'));
+
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
+    assert.ok(next.indexOf('subagent:<id>') !== -1, next);
+    assert.ok(next.indexOf('external-agent:<id>') !== -1, next);
+    assert.ok(next.indexOf('human:<name>') !== -1, next);
+    assert.ok(next.indexOf('automated reviewer') !== -1, next);
+    assert.ok(next.indexOf('explicit user authorization') !== -1, next);
+    assert.ok(next.indexOf('pause and request explicit user authorization before proceeding') !== -1, next);
+    assert.ok(next.indexOf('review bot') !== -1, next);
+    assert.ok(next.indexOf('Codex subagent') === -1, next);
   });
 
   it('cruise can target native host loop drivers', function() {
@@ -2093,6 +2243,58 @@ describe('CLI commands', function() {
     assert.ok(agentsText.indexOf('ask whether reference materials / context exist') !== -1);
   });
 
+  it('generated AI configs include platform-neutral reviewer authorization guidance', function() {
+    var demo = path.join(tmpBase, 'reviewer-auth-ai-config');
+    run('init ' + demo + ' --mode standard');
+    ['AGENTS.md', 'CLAUDE.md', '.cursorrules', path.join('.github', 'copilot-instructions.md')].forEach(function(file) {
+      var text = fs.readFileSync(path.join(demo, file), 'utf-8');
+      assert.ok(text.indexOf('subagent:<id>') !== -1, file);
+      assert.ok(text.indexOf('external-agent:<id>') !== -1, file);
+      assert.ok(text.indexOf('human:<name>') !== -1, file);
+      assert.ok(text.indexOf('automated reviewer') !== -1, file);
+      assert.ok(text.indexOf('explicit user authorization') !== -1, file);
+      assert.ok(text.indexOf('pause and request explicit user authorization before proceeding') !== -1, file);
+      assert.ok(text.indexOf('review bot') !== -1, file);
+      assert.ok(text.indexOf('Codex subagent') === -1, file);
+    });
+  });
+
+  it('project docs and skill describe platform-neutral reviewer authorization', function() {
+    ['AGENTS.md', 'SKILL.md', 'README.md', 'GUIDE.md', path.join('protocols', 'sdd-riper-one.md'), path.join('protocols', 'sdd-riper-one-light.md')].forEach(function(file) {
+      var text = fs.readFileSync(path.resolve(file), 'utf-8');
+      assert.ok(text.indexOf('subagent:<id>') !== -1, file);
+      assert.ok(text.indexOf('external-agent:<id>') !== -1, file);
+      assert.ok(text.indexOf('human:<name>') !== -1, file);
+      assert.ok(text.indexOf('automated reviewer') !== -1, file);
+      assert.ok(text.indexOf('explicit user authorization') !== -1, file);
+      assert.ok(text.indexOf('pause and request explicit user authorization before proceeding') !== -1, file);
+      assert.ok(text.indexOf('review bot') !== -1, file);
+      assert.ok(text.indexOf('Codex subagent') === -1, file);
+    });
+  });
+
+  it('Cruise is documented as orchestrator while Challenge reviewer remains read-only', function() {
+    [
+      'AGENTS.md',
+      'CLAUDE.md',
+      'README.md',
+      'GUIDE.md',
+      'TEAM-GUIDE.md',
+      'SKILL.md',
+      path.join('protocols', 'sdd-riper-one.md'),
+      path.join('protocols', 'sdd-riper-one-light.md'),
+      path.join('src', 'commands', '_gen-ai-configs.js')
+    ].forEach(function(file) {
+      var text = fs.readFileSync(path.resolve(file), 'utf-8');
+      assert.equal(text.indexOf('Allowed Cruise writes'), -1, file);
+      assert.equal(text.indexOf('Forbidden Cruise writes'), -1, file);
+      assert.ok(text.indexOf('Cruise orchestrator') !== -1, file);
+      assert.ok(text.indexOf('main agent') !== -1 || text.indexOf('主 Agent') !== -1, file);
+      assert.ok(text.indexOf('Challenge reviewer') !== -1, file);
+      assert.ok(text.indexOf('read-only') !== -1 || text.indexOf('只读') !== -1, file);
+    });
+  });
+
   it('ADR method doc exists and is wired into SKILL.md', function() {
     assert.ok(fs.existsSync(path.resolve('protocols', 'adr.md')));
     var adr = fs.readFileSync(path.resolve('protocols', 'adr.md'), 'utf-8');
@@ -2118,7 +2320,9 @@ describe('CLI commands', function() {
   it('help and version', function() {
     assert.ok(run('--help').indexOf('init') !== -1);
     assert.ok(run('--help').indexOf('install-skill') !== -1);
-    assert.ok(run('install-skill --help').indexOf('cc-switch') !== -1);
+    var installHelp = run('install-skill --help');
+    assert.ok(installHelp.indexOf('cc-switch') !== -1);
+    assert.ok(installHelp.indexOf('--check') !== -1);
     var challengeHelp = run('challenge --help');
     assert.ok(challengeHelp.indexOf('subagent:<id>|external-agent:<id>|human:<name>|inline') !== -1);
     assert.strictEqual(challengeHelp.indexOf('subagent|inline'), -1);
@@ -2147,7 +2351,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
     // Write Execute Log with AC Coverage for AC-001 (must include ## Execute Log heading)
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement feature\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/ac-cov.test.js\n    Method: tdd\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement feature\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/ac-cov.test.js\n    Method: tdd\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('AC Coverage') === -1, 'AC-001 has coverage, should not report issue: ' + result);
@@ -2169,7 +2373,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
     // Write Execute Log with coverage for a different AC (not AC-001)
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-999: PASS\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-999: PASS\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('AC-001 has no execution evidence') !== -1, 'should report missing AC-001 coverage: ' + blocked);
@@ -2190,7 +2394,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: FAIL\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: FAIL\n    Test: tests/commands.test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('AC-001 verification failed') !== -1, 'should report AC-001 FAIL: ' + blocked);
@@ -2211,7 +2415,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/fake-test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/fake-test.js\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Test file not found') !== -1, 'should report test file not found: ' + blocked);
@@ -2233,7 +2437,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
     // SKIPPED without approval
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('SKIPPED but missing Approved By') !== -1, 'should report missing Approved By: ' + blocked);
@@ -2254,7 +2458,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: agent:codex\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: agent:codex\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Approved By must be human:<name>') !== -1, 'should reject agent approval for SKIPPED: ' + blocked);
@@ -2275,7 +2479,7 @@ describe('CLI commands', function() {
     c = fillChallenge(c, 'PASS');
     fs.writeFileSync(sf, c, 'utf-8');
     insertSectionContent(designFile, 'Technical Design', standardDesignContent());
-    insertSectionContent(logFile, 'Execute Log', 'Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: human:reviewer\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z');
+    insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: human:reviewer\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var result = run('validate ' + demo + ' --archive-ready');
     assert.ok(result.indexOf('SKIPPED') === -1 || result.indexOf('RESULT: OK') !== -1, 'SKIPPED with approval should not block: ' + result);

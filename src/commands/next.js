@@ -1,4 +1,5 @@
 var workflow = require('../core/workflow');
+var reviewerGuidance = require('../core/reviewer-guidance');
 
 function run(projectDir, opts) {
   opts = opts || {};
@@ -20,6 +21,12 @@ function run(projectDir, opts) {
   (state.blockers.length ? state.blockers : ['none']).forEach(function(issue) {
     console.log('- ' + issue);
   });
+  if (state.nextAction === 'run_challenge' || state.blockers.some(function(issue) { return /Challenge|Research Gate|Research Reviewed By|Research Reviewed At|independent reviewer/i.test(issue); })) {
+    console.log('REVIEWER_GUIDANCE:');
+    reviewerGuidance.guidanceLines().forEach(function(line) {
+      console.log('- ' + line);
+    });
+  }
 }
 
 module.exports = run;

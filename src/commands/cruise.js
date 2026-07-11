@@ -87,6 +87,9 @@ function run(projectDir, opts) {
   console.log('');
   printDriverAdapter(driver, projectDir, state);
   console.log('### Autonomous repair loop');
+  console.log('Cruise orchestrator routes the loop; it does not perform the phase repair itself.');
+  console.log('The main agent re-enters BACKTRACK_TARGET and follows that phase write boundaries and gates.');
+  console.log('The Challenge reviewer remains read-only and returns only verdict plus evidence.');
   console.log('Run a bounded repair loop for at most ' + state.maxIterations + ' iterations.');
   console.log('1. Inspect the current workflow state and blockers.');
   console.log('2. Repair only the artifact indicated by BACKTRACK_TARGET.');

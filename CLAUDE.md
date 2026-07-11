@@ -14,7 +14,7 @@
 - `APPROVAL_POLICY=agent` 时，Plan approval 使用 `Plan Approved By: agent:<id>`、`Approved At:` 和 `Gate Evidence:`。
 - `APPROVAL_POLICY=human` 时，Plan approval 必须使用 `Plan Approved By: human:<name>`。
 - 绝不让 Plan 替代 standard/lite Design。
-- standard/lite 模式下，实现者和审核者必须角色分离。Challenge / Research reviewer 使用 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可使用 `inline`。
+- standard/lite 模式下，实现者和审核者必须角色分离。Challenge / Research reviewer 使用 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可使用 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 - 绝不手动填写 Challenge Evidence 字段。始终使用 `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"` 记录 challenge 结果。
 - 始终在 `execute-log-file` 引用的 Execute Log 中记录 Plan 偏差。
 - 当偏差、修复、关注点或重开经验产生可复用规则时，始终创建 Learning Record。
@@ -31,7 +31,7 @@
 - `sdd validate <dir> --archive-ready` = 归档前检查 Spec、Design、Execute Log、Learning、审批和 challenge 门禁。
 - `sdd next <dir>` = 检查动态工作流状态和下一步动作。
 - `sdd challenge <dir>` = 生成独立对抗审核提示。
-- `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]` = 生成 cruise 提示，可输出 Claude ultracode/workflow 提示并记录运行账本；local-loop 是 prompt-loop 补偿，不是 SDD 模型执行器。
+- `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]` = 生成 cruise 提示，可输出 Claude ultracode/workflow 提示并记录运行账本；local-loop 是 prompt-loop 补偿，不是 SDD 模型执行器。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - `sdd new-learning <dir> [spec-name]` = 创建并绑定 Learning Record。
 - `sdd codemap <dir>` = 输出计算架构视图（按需，不持久化）。
 - `sdd resume <dir>` = 恢复已有任务 / 重载上下文。

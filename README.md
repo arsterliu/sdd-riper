@@ -113,7 +113,13 @@ sdd install-skill --target all
 sdd install-skill --target codex --clean
 ```
 
-更新后重启 Codex / Claude / OpenCode 会话，以及正在运行的 `sdd console`。
+可在不修改安装目录的前提下检查同版本内容漂移：
+
+```text
+sdd install-skill --target codex --check
+```
+
+检查一致或重新安装后，重启 Codex / Claude / OpenCode 会话，以及正在运行的 `sdd console`。
 
 ## 更新
 
@@ -190,7 +196,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 - **Challenge**：Execute Completion Verification 完成后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
 
 每个阶段内的活动按三类分工：**KEEP**（orchestrator 必须做，如门禁决策）、**MUST_DELEGATE**（必须委托独立角色，如对抗评审）、**DELEGATABLE**（灵活可选，如代码实现）。详见 [GUIDE.md](./GUIDE.md) 第五节。
-- **Cruise**：Challenge 返回 `FAIL_*` 后进入。每轮按 Backtrack Target 修复、validate、再次 challenge，直到通过或达到迭代上限。`sdd cruise` 本身不执行模型循环，也不直接修复代码。
+- **Cruise**：Challenge 返回 `FAIL_*` 后进入。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET`，遵守目标阶段门禁和写入边界完成修复；Challenge reviewer 始终保持 read-only。每轮完成后再 validate 和 challenge，直到通过或达到迭代上限。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
 - **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
 
@@ -233,7 +239,7 @@ CRUISE_MAX_ITERATIONS="5"
 
 任务模式由 `discover --mode` 明确选择，未指定时默认 `micro`。
 
-Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必须记录可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro Challenge 可用 `inline`。
+Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必须记录可审计独立 reviewer：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`。micro Challenge 可用 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 
 组合策略：
 
@@ -263,7 +269,7 @@ Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必�
 | `sdd challenge <dir>` | 生成独立对抗评审 prompt。 |
 | `sdd cruise <dir> [--driver ...] [--emit-claude-prompt] [--record-run] [--iteration N]` | 生成巡航控制 prompt；可输出 Claude ultracode/workflow 启动提示并写入 run ledger，但不直接调用模型或执行循环。 |
 | `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
-| `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean]` | 把当前已安装包携带的完整 Skill 注册到 agent 环境。 |
+| `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean] [--check]` | 安装 Skill，或用 `--check` 只读检查已安装内容是否漂移。 |
 | `sdd validate <dir> --archive-ready` | 归档前门禁校验。 |
 | `sdd review-execute <dir>` | 生成四轴 Review Prompt。 |
 | `sdd archive <dir> <spec-name>` | 归档完成任务及引用产物。 |
