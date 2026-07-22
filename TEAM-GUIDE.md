@@ -1,5 +1,7 @@
 # SDD-RIPER 团队落地指南
 
+Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication. 团队自动化必须在该状态停止并请求当前用户明确授权。
+
 ## 1. TL 决策速览（30秒版本）
 
 **为什么要引入 SDD-RIPER？**
@@ -222,3 +224,8 @@ Code Challenge 不替代 PR review：PR review 关注团队协作和风格；Cod
 Design 阶段不必凭感觉选方法论。`sdd next` / `cruise` / `challenge` 会按 `mode` + 风险输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 建议（advisory，最终由人拍板）。背后是两层可加载方法论：
 - **执行质量层**：`vendored/superpowers/` 内置的 brainstorming / TDD / 系统化调试 / 完成验证 / 计划撰写 / 子 agent / 分支收尾，绑定到 RIPER 各阶段动作（触点见 `INTEGRATIONS.md`）。
 - **设计方法层**：DDD / C4 / arc42 等按需进入 Design；其中 ADR 有本地写法 `protocols/adr.md`，Senior 写 `Technical Design` 的 `Selected Option / ADR` 字段时直接照它。
+## Verification Ownership
+
+团队在 Spec 中用 `Provider:` 为 E2E AC 选择具名验证配置。消费 workspace 负责直接声明并锁定 `@playwright/test`、安装匹配浏览器和维护 config/tests；SDD Core 负责解析注册表、执行 gate、校验 `@AC-###` 映射并保存不可变 Run；主 Agent 负责核验 freshness 并把 Run 引用写入 Execute Log。
+
+不得使用全局包、临时 npx、纯传递依赖或 Yarn PnP，不自动降级。v3.0 的正式 gate 只有 `playwright-test`；`playwright-mcp`、Custom Adapter 和统一 MCP Profile 尚未实现。

@@ -23,7 +23,7 @@ var phases = [
   ['execute', 'Execute'],
   ['challenge', 'Challenge'],
   ['learning', 'Learning'],
-  ['ready', 'Ready'],
+  ['archive_authorization', 'Awaiting Archive Authorization'],
   ['archived', 'Archived']
 ];
 
@@ -47,7 +47,7 @@ var blockerText = {
   plan: 'Plan gate is missing. Fill Plan Approved By and Approved At; agent approval needs Gate Evidence.',
   execute: 'Execute Log is missing or empty. Record the execution facts before Challenge.',
   learning: 'Learning Check is required. Record the reusable lesson before Archive.',
-  ready: 'All archive gates pass. This spec is ready to archive.',
+  archive_authorization: 'Completion gates pass. Explicit authorization from the current user is still required before Archive.',
   archived: 'This spec is archived.'
 };
 
@@ -109,7 +109,7 @@ function removeProjectDir(projectDir) {
 }
 
 function phaseTone(phase) {
-  if (phase === 'ready') return 'complete';
+  if (phase === 'archive_authorization') return 'waiting';
   if (phase === 'archived') return 'not-started';
   if (phase === 'plan') return 'waiting';
   return 'progress';
@@ -194,22 +194,22 @@ function renderMetrics() {
   var total = state.specs.length;
   var active = state.specs.filter(function(spec) { return spec.phase !== 'archived'; }).length;
   var blocked = state.specs.reduce(function(sum, spec) { return sum + (spec.validate.issueCount || 0); }, 0);
-  var ready = state.specs.filter(function(spec) { return spec.phase === 'ready'; }).length;
+  var awaitingAuthorization = state.specs.filter(function(spec) { return spec.phase === 'archive_authorization'; }).length;
   qs('metric-total').textContent = total;
   qs('metric-active').textContent = active;
   qs('metric-blocked').textContent = blocked;
-  qs('metric-ready').textContent = ready;
+  qs('metric-ready').textContent = awaitingAuthorization;
 }
 
 function projectSpark(summary) {
   var counts = summary.counts || {};
-  var complete = summary.ready || 0;
+  var complete = summary.awaitingArchiveAuthorization || 0;
   var progress = (counts.research || 0) + (counts.innovate || 0) + (counts.design || 0) +
     (counts.acceptance || 0) + (counts.execute || 0) + (counts.learning || 0);
   var waiting = counts.plan || 0;
   var notStarted = counts.archived || 0;
   return [
-    '<span class="mini-gate complete" title="ready: ' + esc(complete) + '"></span>',
+    '<span class="mini-gate waiting" title="awaiting archive authorization: ' + esc(complete) + '"></span>',
     '<span class="mini-gate progress" title="in progress: ' + esc(progress) + '"></span>',
     '<span class="mini-gate waiting" title="waiting approval: ' + esc(waiting) + '"></span>',
     '<span class="mini-gate not-started" title="archived: ' + esc(notStarted) + '"></span>'
@@ -239,7 +239,7 @@ function renderProjectBoard() {
       '<div class="project-stats">',
       '<div><span>Total</span><strong>' + esc(summary.total || 0) + '</strong></div>',
       '<div><span>Active</span><strong>' + esc(summary.active || 0) + '</strong></div>',
-      '<div><span>Ready</span><strong>' + esc(summary.ready || 0) + '</strong></div>',
+      '<div><span>Awaiting Auth</span><strong>' + esc(summary.awaitingArchiveAuthorization || 0) + '</strong></div>',
       '<div><span>Gates</span><strong>' + esc(summary.issueCountLightweight ? 'Open' : (summary.issueCount || 0)) + '</strong></div>',
       '</div>',
       '<div class="phase-spark">' + projectSpark(summary) + '</div>',
@@ -362,7 +362,7 @@ function renderSpecList() {
 
 function nextBlocker(spec) {
   spec = spec || {};
-  if (spec.phase === 'archived' || spec.phase === 'ready') return spec.phase;
+  if (spec.phase === 'archived' || spec.phase === 'archive_authorization') return spec.phase;
   return spec.phase || 'research';
 }
 
@@ -394,7 +394,7 @@ function renderBlocker(spec) {
   qs('next-blocker').innerHTML = [
     '<div class="blocker-card">',
     '<span class="pill ' + tone + '">' + esc(phase) + '</span>',
-    '<div><strong>' + (phase === 'ready' ? 'Ready to archive' : phase === 'archived' ? 'Archived' : 'Next blocker') + '</strong>',
+    '<div><strong>' + (phase === 'archive_authorization' ? 'Awaiting Archive Authorization' : phase === 'archived' ? 'Archived' : 'Next blocker') + '</strong>',
     '<span>' + esc(blockerText[phase] || 'Review this spec before moving forward.') + '</span>',
     '<span>' + controlText + '</span>',
     summaryHtml,
@@ -446,6 +446,107 @@ function renderBlockers(spec) {
   root.innerHTML = '<ul class="blockers-list">' + blockers.map(function(blocker) {
     return '<li class="blocker-item">' + esc(blocker) + '</li>';
   }).join('') + '</ul>';
+}
+
+function renderProviderReadiness(spec) {
+  var root = qs('provider-readiness');
+  var readiness = spec.workflow && spec.workflow.facts && spec.workflow.facts.providerReadiness || { state: 'ready' };
+  var required = Array.isArray(readiness.requiredProviders) ? readiness.requiredProviders : [];
+  var missing = Array.isArray(readiness.missingProviders) ? readiness.missingProviders : [];
+  root.innerHTML = '<div class="blockers-row"><span class="pill ' +
+    (readiness.state === 'ready' || readiness.state === 'configured' ? 'complete' : 'not-started') + '">' +
+    esc(readiness.state || 'ready') + '</span><span> Required: ' + esc(required.join(', ') || 'none') +
+    '; Missing: ' + esc(missing.join(', ') || 'none') + '</span></div>';
+}
+
+function verificationTone(value) {
+  if (value === 'ready' || value === 'PASS' || value === 'fresh' || value === 'passed') return 'complete';
+  if (value === 'configured' || value === 'configured-no-runs' || value === 'stale') return 'waiting';
+  if (value === 'blocked' || value === 'FAIL' || value === 'BLOCKED' || value === 'failed') return 'bad';
+  return 'not-started';
+}
+
+function verificationEmpty(title, message) {
+  return '<div class="verification-empty"><strong>' + esc(title) + '</strong><span>' + esc(message) + '</span></div>';
+}
+
+function renderVerificationEvidence(spec) {
+  var view = spec.verification;
+  var summaryRoot = qs('verification-summary');
+  var runsRoot = qs('verification-runs');
+  var matrixRoot = qs('verification-matrix');
+  var detailsRoot = qs('verification-details');
+  if (!view) {
+    summaryRoot.innerHTML = verificationEmpty('Loading evidence', 'Verification details are loaded only for the selected Spec.');
+    runsRoot.innerHTML = matrixRoot.innerHTML = detailsRoot.innerHTML = '';
+    return;
+  }
+  var providers = Array.isArray(view.providers) ? view.providers : [];
+  if (!providers.length) {
+    var requiredMessage = view.state === 'required'
+      ? 'A referenced Provider is not configured. Ask the agent to run verify init, then reload this page.'
+      : 'This Spec does not reference an E2E Provider.';
+    summaryRoot.innerHTML = verificationEmpty(view.state === 'required' ? 'Provider required' : 'No Provider required', requiredMessage);
+    runsRoot.innerHTML = matrixRoot.innerHTML = detailsRoot.innerHTML = '';
+    return;
+  }
+  summaryRoot.innerHTML = '<div class="verification-provider-grid">' + providers.map(function(provider) {
+    return [
+      '<article class="verification-provider-card">',
+      '<div class="verification-card-head"><strong>' + esc(provider.id) + '</strong><span class="pill ' + verificationTone(provider.readiness) + '">' + esc(provider.readiness) + '</span></div>',
+      '<dl><dt>Adapter</dt><dd>' + esc(provider.adapter) + '</dd><dt>Config</dt><dd>' + esc(provider.config) + '</dd>',
+      '<dt>Package</dt><dd>' + esc(provider.packageRoot) + '</dd><dt>Projects</dt><dd>' + esc((provider.projects || []).join(', ')) + '</dd>',
+      '<dt>Tool</dt><dd>' + esc(provider.toolVersion || 'not resolved') + '</dd></dl>',
+      (provider.issues || []).map(function(issue) { return '<p class="verification-issue">' + esc(issue) + '</p>'; }).join(''),
+      '</article>'
+    ].join('');
+  }).join('') + '</div>';
+
+  var allRuns = [];
+  providers.forEach(function(provider) {
+    (provider.runs || []).forEach(function(run) { allRuns.push({ provider: provider.id, run: run }); });
+  });
+  if (!allRuns.length) {
+    runsRoot.innerHTML = verificationEmpty('Configured, no Runs', 'The Provider is configured. Ask the agent to execute the formal verification gate.');
+    detailsRoot.innerHTML = '';
+  } else {
+    runsRoot.innerHTML = '<h4>Run history</h4><div class="verification-scroll"><table class="verification-table"><thead><tr>' +
+      '<th>Provider</th><th>Run</th><th>Created</th><th>Status</th><th>Gate</th><th>Freshness</th><th>Reasons</th></tr></thead><tbody>' +
+      allRuns.map(function(item) {
+        var run = item.run;
+        return '<tr><td>' + esc(item.provider) + '</td><td><code>' + esc(run.runId) + '</code></td><td>' + esc(formatDate(run.createdAt)) +
+          '</td><td><span class="pill ' + verificationTone(run.status) + '">' + esc(run.status) + '</span></td><td><span class="pill ' +
+          verificationTone(run.gateDecision) + '">' + esc(run.gateDecision) + '</span></td><td><span class="pill ' + verificationTone(run.freshness) + '">' +
+          esc(run.freshness) + '</span></td><td>' + esc((run.freshnessReasons || []).join(', ') || 'none') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    detailsRoot.innerHTML = '<h4>Diagnostics &amp; attachments</h4><div class="verification-detail-list">' + allRuns.map(function(item) {
+      var run = item.run;
+      var diagnostics = (run.diagnostics || []).map(function(diagnostic) {
+        return '<li><code>' + esc(diagnostic.code) + '</code> ' + esc(diagnostic.message) + '</li>';
+      }).join('');
+      var attachments = (run.attachments || []).map(function(attachment) {
+        return '<li><strong>' + esc(attachment.name) + '</strong> ' + esc(attachment.mediaType) + ' · ' + esc(attachment.size) +
+          ' bytes · <code>' + esc(attachment.sha256) + '</code> · <code>' + esc(attachment.path) + '</code></li>';
+      }).join('');
+      return '<details><summary>' + esc(item.provider + ' / ' + run.runId) + '</summary>' +
+        (diagnostics ? '<h5>Diagnostics</h5><ul>' + diagnostics + '</ul>' : '<p>No diagnostics.</p>') +
+        (attachments ? '<h5>Attachments</h5><ul>' + attachments + '</ul>' : '<p>No attachments.</p>') + '</details>';
+    }).join('') + '</div>';
+  }
+
+  matrixRoot.innerHTML = providers.map(function(provider) {
+    var matrix = provider.matrix || { acIds: [], projects: [], cells: [] };
+    if (!matrix.acIds.length || !matrix.projects.length) return verificationEmpty('No matrix targets', 'No AC × project targets are available.');
+    return '<h4>' + esc(provider.id) + ' coverage matrix</h4><div class="verification-scroll"><table class="verification-table verification-matrix-table"><thead><tr><th>Acceptance</th>' +
+      matrix.projects.map(function(project) { return '<th>' + esc(project) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+      matrix.acIds.map(function(acId) {
+        return '<tr><th>' + esc(acId) + '</th>' + matrix.projects.map(function(project) {
+          var cell = matrix.cells.find(function(candidate) { return candidate.acId === acId && candidate.project === project; }) || { state: 'missing', runId: '' };
+          return '<td><span class="pill ' + verificationTone(cell.state) + '">' + esc(cell.state) + '</span>' +
+            (cell.runId ? '<small>' + esc(cell.runId) + '</small>' : '') + '</td>';
+        }).join('') + '</tr>';
+      }).join('') + '</tbody></table></div>';
+  }).join('');
 }
 
 function renderDesignMethod(spec) {
@@ -736,9 +837,9 @@ function renderValidation(result) {
   result.issues = Array.isArray(result.issues) ? result.issues : [];
   var root = qs('validation-result');
   root.innerHTML = '';
-  qs('validation-summary').textContent = result.ok ? 'Archive-ready' : (result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's'));
+  qs('validation-summary').textContent = result.ok ? 'Completion-ready; authorization required' : (result.issues.length + ' issue' + (result.issues.length === 1 ? '' : 's'));
   if (result.ok) {
-    root.innerHTML = '<div class="validation-ok"><strong>Archive-ready validation</strong><span class="pill complete">OK</span></div>';
+    root.innerHTML = '<div class="validation-ok"><strong>Completion gate validation</strong><span class="pill complete">OK</span><span>Archive still requires explicit current-user authorization.</span></div>';
     return;
   }
   result.issues.forEach(function(issue) {
@@ -768,6 +869,8 @@ function renderDetail(spec) {
     renderRiskFlags(spec);
     renderChallengeVerdict(spec);
     renderBlockers(spec);
+    renderProviderReadiness(spec);
+    renderVerificationEvidence(spec);
     renderGateList(spec);
     renderArtifacts(spec);
     renderDesignMethod(spec);

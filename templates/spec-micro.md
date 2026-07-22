@@ -9,6 +9,9 @@ diff-base: ""
 design-file: ""
 execute-log-file: ""
 learning-file:
+project-profile-revision: ""
+project-profile-digest: ""
+affected-units: ""
 ---
 
 <!-- Keep template headings and labels in English. Fill actual narrative content in Chinese. -->
@@ -30,6 +33,7 @@ Data Impact:
 Interface Impact:
 Acceptance:
 Verification:
+Provider: <required for e2e; named provider id>
 Blast Radius:
 
 Plan Approved By:

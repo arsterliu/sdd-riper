@@ -15,6 +15,7 @@ function ledgerPath(projectDir, specPath) {
 }
 
 function stopReason(state, iteration) {
+  if (state.nextAction === 'request_archive_authorization') return 'human_required';
   if (state.riskFlags && state.riskFlags.length) return 'human_required';
   if (iteration >= state.maxIterations) return 'max_iterations';
   if (state.challengeVerdict === 'PASS') return 'pass';
@@ -114,6 +115,7 @@ function claudePrompt(projectDir, state) {
     '6. Record the run ledger with `sdd cruise "' + project + '" --driver claude-code --record-run --iteration <n>`.',
     '7. If the challenge verdict is `FAIL_*`, backtrack to the mapped target and continue.',
     '8. Stop on `PASS`, high-risk flags, or max iteration budget.',
+    '9. When NEXT_ACTION is request_archive_authorization, stop and request explicit archive authorization from the current user; agents must not construct authorization parameters.',
     '',
     'Current SDD state:',
     '- SPEC: ' + (state.specPath ? common.relativeToProject(projectDir, state.specPath) : 'none'),

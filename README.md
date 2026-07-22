@@ -1,5 +1,7 @@
 # SDD-RIPER
 
+Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication. 未获得当前用户明确授权时必须停止；`validate --archive-ready` 只证明完成条件满足，不授予归档许可。
+
 SDD-RIPER 是一套把 AI 协作开发落到文件系统的工作流。它用 **Spec** 管任务目标和门禁，用 **Design** 管技术设计，用 **Execute Log** 管执行事实，用 **Learning Record** 管可复用经验，用 **CodeMap**（按需计算视图）管架构认知。
 
 它不是模型执行器，也不是通用 agent 平台（不是 harness）。当前实现是一套 **Node CLI + 文件系统产物 + 本地观测 Console + Prompt/账本适配层**：CLI 负责创建、校验、归档和生成提示；真正的代码修改、命令执行、动态循环由人或宿主 agent 完成。Console 对项目状态是只读投影，自身从不写产物，唯一的副作用是把「打开文件」委托给本机默认程序。
@@ -198,7 +200,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 每个阶段内的活动按三类分工：**KEEP**（orchestrator 必须做，如门禁决策）、**MUST_DELEGATE**（必须委托独立角色，如对抗评审）、**DELEGATABLE**（灵活可选，如代码实现）。详见 [GUIDE.md](./GUIDE.md) 第五节。
 - **Cruise**：Challenge 返回 `FAIL_*` 后进入。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET`，遵守目标阶段门禁和写入边界完成修复；Challenge reviewer 始终保持 read-only。每轮完成后再 validate 和 challenge，直到通过或达到迭代上限。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
-- **Archive**：`validate --archive-ready` 通过后，Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
+- **Archive Authorization**：`validate --archive-ready` 通过后进入 `request_archive_authorization`，必须暂停并取得当前用户明确授权；随后 archive 才会把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
 
 Acceptance Criteria 使用 `AC-###` 编号，并必须声明 `Verification: unit | integration | e2e | manual`。BDD / Gherkin 的场景描述用中文表达可观察行为；E2E AC 必须提供 `Test:` 或 `Manual Evidence:`，manual AC 必须提供 `Manual Evidence:`。
 
@@ -270,9 +272,9 @@ Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必�
 | `sdd cruise <dir> [--driver ...] [--emit-claude-prompt] [--record-run] [--iteration N]` | 生成巡航控制 prompt；可输出 Claude ultracode/workflow 启动提示并写入 run ledger，但不直接调用模型或执行循环。 |
 | `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
 | `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean] [--check]` | 安装 Skill，或用 `--check` 只读检查已安装内容是否漂移。 |
-| `sdd validate <dir> --archive-ready` | 归档前门禁校验。 |
+| `sdd validate <dir> --archive-ready` | 校验归档完成条件；不授予归档许可。 |
 | `sdd review-execute <dir>` | 生成四轴 Review Prompt。 |
-| `sdd archive <dir> <spec-name>` | 归档完成任务及引用产物。 |
+| `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"` | 携带当前用户一次性明确授权，归档完成任务及引用产物。 |
 | `sdd reopen <dir> <slug> --defect <text>` | 基于归档任务创建修复 Spec。 |
 
 ## Web Console
@@ -314,3 +316,31 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
 - 流程与各阶段细节、设计理念、两层方法论、FAQ → [GUIDE.md](./GUIDE.md)
 - 团队落地、角色分工、巡航与自动化 → [TEAM-GUIDE.md](./TEAM-GUIDE.md)
 - SDD ↔ superpowers 集成图谱 → [INTEGRATIONS.md](./INTEGRATIONS.md)
+## Project Engineering Profile v3.4
+
+SDD 可以把已有项目的静态工程事实保存为可审计的 Project Engineering Profile。它描述 workspace units、前端/后端/契约等 roles、manifest、框架证据、工程命令引用和单元关系，但不会生成业务工程、安装依赖、执行 `commandRefs` 或自动初始化 Verification Provider。
+
+推荐流程：
+
+```text
+sdd init <dir>
+sdd profile detect <dir> --format json > candidate.json
+sdd profile review <dir> --candidate candidate.json --format json
+sdd profile confirm <dir> --candidate candidate.json --expected-digest <reviewed-digest> --confirmed-by "human:<name>" --confirmation-evidence "<当前用户对该摘要的明确授权>"
+sdd discover <dir> --task-name <name> --version <vN.M> --unit web api ...
+sdd profile check <dir>
+```
+
+`detect`、`review`、`show`、`check` 都是只读操作。候选文件可以人工修正，但应为人工分类补充 `confidence: human` 的 evidence；`confirm` 是唯一写入口，必须绑定 review 输出的精确 digest 和当前用户明确授权。`confirmed-by` 只是审计声明，不是身份认证，Agent 不得自行构造。
+
+确认后的事实写入 `<docs-root>/profiles/revisions/sha256-<digest>.json`，随后原子更新 `profiles/current.json`。新 Spec 固定 `project-profile-revision`、`project-profile-digest` 和 `affected-units`，后续 current 变化不会重解释历史任务。`check` 只报告 clean/drifted/missing/invalid，不自动覆盖。
+
+并发 confirm 使用项目根 `.sdd-project-profile.lock` 单锁：锁存在时立即失败，不等待或重试。持续锁定时，先确认没有运行中的 confirm，再人工删除空锁目录；禁止按时间自动清理。若收到 `SDD_PROFILE_CONFIRM_UNLOCK_FAILED`，配置可能已写成功，应先检查 current/revision。
+
+空白项目不会产生虚构 Profile：`profile detect` 返回 `PROFILE_STATE: empty` 和 bootstrap Spec 引导。v3.4 不包含框架选型、应用生成、领域质量 Profile 或 Console UI。
+
+## Verification Adapter v3.0
+
+E2E Acceptance 通过 `Provider:` 引用项目级具名配置，使用 `sdd verify init` 显式创建，并用 `sdd verify run --spec <spec>` 生成不可变 Verification Run。首版只注册具备正式 gate 能力的 `playwright-test` Adapter；Core 不依赖或自动安装 Playwright。
+
+Playwright 必须能从指定 workspace/packageRoot 解析、由祖先 workspace manifest 直接声明并受唯一 lockfile 管理。支持 npm/pnpm/Yarn node_modules workspace/hoist；不支持全局包、临时 npx、纯传递依赖或 Yarn PnP。缺包或浏览器时明确阻断，不自动降级。`playwright-mcp`、Custom Adapter、统一 MCP Profile 与 visual/a11y/performance runner 均为延期能力。

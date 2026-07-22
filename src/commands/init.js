@@ -30,6 +30,10 @@ function run(projectDir, opts) {
     var gk = path.join(d, '.gitkeep');
     if (!fs.existsSync(gk)) { fs.writeFileSync(gk, '', 'utf-8'); created++; }
   });
+  var profileRevisions = path.join(projectDir, docsDir, 'profiles', 'revisions');
+  if (!fs.existsSync(profileRevisions)) fs.mkdirSync(profileRevisions, { recursive: true });
+  var profileKeep = path.join(profileRevisions, '.gitkeep');
+  if (!fs.existsSync(profileKeep)) { fs.writeFileSync(profileKeep, '', 'utf-8'); created++; }
 
   var configFile = path.join(projectDir, '.sdd-config');
   var configContent = [

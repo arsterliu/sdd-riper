@@ -69,6 +69,15 @@ function run(projectDir) {
   blockerDetails.forEach(function(item) {
     console.log('  - [' + item.blocker.code + '] ' + item.file + ': ' + item.blocker.message);
   });
+  var latestSpec = common.findLatestSpec(specsDir);
+  if (latestSpec) {
+    var profileRevision = common.getFrontmatterField(latestSpec, 'project-profile-revision');
+    if (profileRevision) {
+      console.log('PROJECT_PROFILE_REVISION: ' + profileRevision);
+      console.log('PROJECT_PROFILE_DIGEST: ' + common.getFrontmatterField(latestSpec, 'project-profile-digest'));
+      console.log('AFFECTED_UNITS: ' + common.getFrontmatterField(latestSpec, 'affected-units'));
+    }
+  }
   process.exit(exitCode);
 }
 

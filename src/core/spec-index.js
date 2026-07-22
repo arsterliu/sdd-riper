@@ -17,7 +17,7 @@ var PHASES = [
   'execute',
   'challenge',
   'learning',
-  'ready',
+  'archive_authorization',
   'archived'
 ];
 
@@ -197,7 +197,7 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
       backtrackTarget: '',
       nextAction: 'legacy_archive',
       phase: 'archived',
-      archiveReady: false,
+      completionReady: false,
       blockers: []
     }
     : workflow.analyzeSpec(projectDir, specPath, { validation: archiveReady || { issues: [] } });
@@ -251,7 +251,7 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
     workflow: workflowState,
     cruiseRun: cruiseRun.readLedger(projectDir, specPath),
     validate: {
-      ok: legacy ? null : (archiveReady ? archiveReady.ok : phase === 'ready'),
+      ok: legacy ? null : (archiveReady ? archiveReady.ok : phase === 'archive_authorization'),
       issueCount: archiveReady ? archiveReady.issues.length : 0,
       issues: archiveReady ? archiveReady.issues : [],
       lightweight: !!opts.lightweight,

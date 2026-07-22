@@ -112,6 +112,23 @@ that makes future syncs easy and you take on derivative-work responsibilities.
 **Do not modify vendored content** — add SDD-RIPER-side adaptations in
 `protocols/` or in `SKILL.md` instead.
 
+## Known Upstream-Only References
+
+The byte-identical upstream copies of `writing-plans` and
+`subagent-driven-development` refer to `executing-plans` in their Plan header,
+execution handoff, or cross-session routing text. SDD-RIPER intentionally does
+not use those upstream workflow transitions. Its own `SKILL.md` and
+`INTEGRATIONS.md` override them with the SDD Execute Phase,
+`subagent-driven-development`, and host-native continuous execution.
+
+**Do not vendor `executing-plans`** merely to satisfy these upstream-only
+references, and do not patch the vendored `SKILL.md` files. After every manual
+sync, verify that the SDD-owned adaptation remains explicit by running:
+
+```bash
+node --test --test-name-pattern "SDD integration overrides upstream executing-plans handoffs" tests/commands.test.js
+```
+
 ## What NOT to do
 
 - Do not edit files inside `vendored/superpowers/<skill>/` (always re-sync upstream instead).

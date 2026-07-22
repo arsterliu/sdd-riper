@@ -12,6 +12,7 @@
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、设计细节、计划步骤、证据和学习规则时使用中文。
 - **Approval Policy**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate。默认 agent；agent 批准必须写 `Gate Evidence:`。
 - **Independent Review**：Research / Challenge 的 reviewer 必须可审计：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+- **Archive Authorization**：Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
 - **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - **先 Debug 再重试**：失败步骤先经过 `sdd debug` 再重试。
 - **无验证不声明**：声明完成前运行全新测试 / lint / build。
@@ -31,7 +32,7 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 - **Challenge**：独立对抗审核；FAIL_* 裁定回溯到映射的阶段并阻止归档。
 - **Learning Check**：执行产生可复用经验时创建 `learning-file`。
 - **Cruise Run**：cruise 记录运行时追加运行账本条目。
-- **Archive**：运行 `sdd validate <dir> --archive-ready`；`archive` 将 Spec 及引用的 Design / Execute Log / Learning 移入归档目录。
+- **Archive**：运行 `sdd validate <dir> --archive-ready` 只确认完成条件；等待当前用户明确授权后，使用 `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"` 移动 Spec 及引用产物并记录授权。
 
 ## 子代理策略
 
@@ -53,3 +54,6 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 - `standard`：完整流程；需外部 Technical Design；需外部 Execute Log；建议子代理负责证据/工作包/challenge 轴。
 - `lite`：需外部 Design Note；需外部 Execute Log；子代理可选。
 - `micro`：无独立 Design；Plan 须包含 Impact Scope、Data Impact、Interface Impact、Acceptance 和 Verification；需外部 Execute Log；默认避免子代理。
+## Verification Provider Boundary
+
+`Verification: e2e` 必须显式声明 `Provider:`。Provider 是项目配置，Adapter 是注册实现，Transport 仅属于 Adapter manifest。v3.0 只实现 `playwright-test` process Adapter；状态命令保持只读，缺失能力 fail closed 且不自动降级。

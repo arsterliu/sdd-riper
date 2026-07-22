@@ -32,6 +32,7 @@ program.command('discover <project-dir>')
   .option('--goal <text>', 'goal')
   .option('--constraints <text>', 'constraints')
   .option('--context <text>', 'context')
+  .option('--unit <ids...>', 'affected workspace unit ids (or project)')
   .option('--mode <mode>', 'spec mode')
   .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
   .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/discover')(p, o); });
@@ -95,6 +96,8 @@ program.command('validate <project-dir>')
 
 program.command('archive <project-dir> <spec-name>')
   .description('Archive completed Spec')
+  .option('--authorized-by <identity>', 'required one-shot human:<name> authorization')
+  .option('--authorization-evidence <text>', 'required single-line evidence of current user authorization')
   .option('--force', 'overwrite')
   .action(function(p, n, o) { require('../src/commands/archive')(p, n, o); });
 
@@ -130,5 +133,67 @@ program.command('debug <project-dir>')
   .option('--log <file>', 'log file')
   .option('--error <msg>', 'error message')
   .action(function(p, o) { require('../src/commands/debug')(p, o); });
+
+var verify = program.command('verify').description('Manage explicit verification providers and runs');
+verify.exitOverride(function(error) {
+  if (error.exitCode === 0) process.exit(0);
+  console.error('[SDD_VERIFY_USAGE] ' + String(error.message || 'invalid verify command usage').replace(/^error:\s*/i, ''));
+  process.exit(3);
+});
+
+verify.command('init <project-dir>')
+  .description('Create or update a named verification provider')
+  .requiredOption('--provider <name>', 'provider id')
+  .requiredOption('--adapter <id>', 'registered adapter id')
+  .requiredOption('--workspace-root <path>', 'workspace root relative to project')
+  .requiredOption('--package-root <path>', 'package root relative to workspace')
+  .requiredOption('--config <path>', 'adapter config relative to workspace')
+  .option('--project <name...>', 'configured project names')
+  .action(function(p, o) { require('../src/commands/verify').init(p, o); });
+
+verify.command('run <project-dir>')
+  .description('Run verification for a Spec')
+  .requiredOption('--spec <path>', 'spec path or name')
+  .option('--ac <id...>', 'target AC ids')
+  .option('--allow-env <name...>', 'explicit environment variable names to pass to the Adapter')
+  .action(function(p, o) { require('../src/commands/verify').run(p, o); });
+
+var profile = program.command('profile').description('Manage project engineering profiles');
+profile.exitOverride(function(error) {
+  if (error.exitCode === 0) process.exit(0);
+  console.error('[SDD_PROFILE_USAGE] ' + String(error.message || 'invalid profile command usage').replace(/^error:\s*/i, ''));
+  process.exit(3);
+});
+
+profile.command('detect <project-dir>')
+  .description('Detect a read-only project profile candidate')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/profile').detect(p, o); });
+
+profile.command('review <project-dir>')
+  .description('Validate and canonicalize a saved profile candidate')
+  .requiredOption('--candidate <file>', 'candidate JSON relative to project')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/profile').review(p, o); });
+
+profile.command('confirm <project-dir>')
+  .description('Confirm a reviewed profile candidate with explicit human authorization')
+  .option('--candidate <file>', 'candidate JSON relative to project')
+  .option('--expected-digest <digest>', 'exact reviewed sha256 digest')
+  .option('--confirmed-by <identity>', 'auditable human:<name> declaration')
+  .option('--confirmation-evidence <text>', 'single-line authorization evidence')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/profile').confirm(p, o); });
+
+profile.command('show <project-dir>')
+  .description('Show and validate a confirmed project profile revision')
+  .option('--revision <digest>', 'specific immutable profile digest')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/profile').show(p, o); });
+
+profile.command('check <project-dir>')
+  .description('Check confirmed profile facts for read-only drift')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/profile').check(p, o); });
 
 program.parse(normalizeCommandAliases(process.argv));

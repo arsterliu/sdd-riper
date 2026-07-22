@@ -19,3 +19,8 @@
 | v2.1-structured-confirmed-req-and-research-gate.md | 2026-07-09 | structured-confirmed-req-and-research-gate | legacy-cleared |
 | v2.3-routing-and-archive-drift-fixes.md | 2026-07-09 | routing-and-archive-drift-fixes | PASS |
 | v2.5-workflow-control-plane-consistency-hardening.md | 2026-07-10 | workflow-control-plane-consistency-hardening | PASS |
+| v3.0-verification-adapter-framework.md | 2026-07-12 | verification-adapter-framework | PASS |
+| v3.0-verification-adapter-framework.md | 2026-07-12 | verification-adapter-framework | PASS |
+| v3.1-console-verification-dogfood.md | 2026-07-12 | console-verification-dogfood | PASS |
+| v3.2-archive-authorization-gate.md | 2026-07-19 | archive-authorization-gate | PASS |
+| v3.4-project-engineering-profile.md | 2026-07-22 | project-engineering-profile | PASS_WITH_CONCERNS |

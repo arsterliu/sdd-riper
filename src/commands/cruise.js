@@ -6,6 +6,12 @@ function canReuseNativeLoop(driver, state) {
   return ['auto', 'claude-code', 'codex', 'opencode'].indexOf(driver) !== -1;
 }
 
+function printArchiveAuthorizationGuidance(state) {
+  if (state.nextAction !== 'request_archive_authorization') return;
+  console.log('ARCHIVE_AUTHORIZATION: required');
+  console.log('Stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from workflow completion.');
+}
+
 function printDriverAdapter(driver, projectDir, state) {
   console.log('### Driver adapter');
   if (driver === 'auto') {
@@ -67,6 +73,7 @@ function run(projectDir, opts) {
     (state.blockers.length ? state.blockers : ['none']).forEach(function(issue) {
       console.log('- ' + issue);
     });
+    printArchiveAuthorizationGuidance(state);
     return;
   }
   console.log('## AUTONOMOUS CRUISE PROMPT');
@@ -109,6 +116,7 @@ function run(projectDir, opts) {
   (state.blockers.length ? state.blockers : ['none']).forEach(function(issue) {
     console.log('- ' + issue);
   });
+  printArchiveAuthorizationGuidance(state);
   if (opts.emitClaudePrompt) {
     if (driver !== 'claude-code' && driver !== 'auto') {
       console.log('');

@@ -32,8 +32,8 @@ function run(projectDir) {
     } else {
       var state = workflow.analyzeSpec(projectDir, latestSpec);
       var action = state.nextAction || '';
-      if (action === 'archive_ready') {
-        phaseHint = 'archive';
+      if (action === 'request_archive_authorization') {
+        phaseHint = 'await_archive_authorization';
       } else if (action === 'run_challenge') {
         phaseHint = 'challenge';
       } else if (/^repair_(research|design|acceptance|plan|spec)/.test(action)) {
@@ -41,7 +41,7 @@ function run(projectDir) {
       } else if (/^repair_(execute|execute_log|code|log)/.test(action)) {
         phaseHint = 'execute';
       } else if (/^repair_learning_check/.test(action)) {
-        phaseHint = 'archive';
+        phaseHint = 'learning';
       } else {
         phaseHint = 'research_or_plan';
       }
@@ -62,7 +62,8 @@ function run(projectDir) {
     case 'research_or_plan': sectionsHint = 'Summary,Intake,Research,Innovate Options,Design Reference,Acceptance Criteria,Plan'; break;
     case 'execute': sectionsHint = 'Summary,Plan,Execute Log Reference'; break;
     case 'challenge': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Completion Verification,Challenge Verdict'; break;
-    case 'archive': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Completion Verification,Challenge Verdict'; break;
+    case 'learning': sectionsHint = 'Summary,Execute Log Reference,Completion Verification,Challenge Verdict'; break;
+    case 'await_archive_authorization': sectionsHint = 'Summary,Design Reference,Execute Log Reference,Completion Verification,Challenge Verdict'; break;
     default: sectionsHint = 'Summary,Intake,Plan'; break;
   }
   console.log('[SDD Resume] ' + projectDir);
@@ -83,6 +84,12 @@ function run(projectDir) {
   if (latestSpec && fs.existsSync(latestSpec)) {
     var ctxSrc = common.getFrontmatterField(latestSpec, 'context-source');
     if (ctxSrc) console.log('CONTEXT_SOURCE: ' + ctxSrc);
+    var profileRevision = common.getFrontmatterField(latestSpec, 'project-profile-revision');
+    if (profileRevision) {
+      console.log('PROJECT_PROFILE_REVISION: ' + profileRevision);
+      console.log('PROJECT_PROFILE_DIGEST: ' + common.getFrontmatterField(latestSpec, 'project-profile-digest'));
+      console.log('AFFECTED_UNITS: ' + common.getFrontmatterField(latestSpec, 'affected-units'));
+    }
   }
 }
 module.exports = run;

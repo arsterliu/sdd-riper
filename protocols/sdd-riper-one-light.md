@@ -9,6 +9,7 @@
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、计划步骤、证据和学习规则时使用中文。
 - **Approval Policy**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate；默认 agent，agent 批准必须写 `Gate Evidence:`。
 - **Independent Review**：Research / Challenge reviewer 使用 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+- **Archive Authorization**：Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
 - **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - **Execute Log 必需**：所有模式都将步骤结果写入 `execute-log-file`。
 - **Learning 条件性**：偏差、修复、关注点和重开经验需要 `learning-file`。
@@ -67,3 +68,6 @@ Micro 仍需外部 Execute Log、条件性 Learning Record 和配置的 Plan 门
 - Lite 有独立 challenge 代理时应使用它。
 - Micro 默认单代理执行。
 - 编排者拥有最终决策、Plan 审批、completion verification 和最终裁定。
+## Verification Provider Boundary
+
+E2E AC 使用 `Provider:` 引用具名配置；仅显式 `sdd verify run` 可以执行已注册 Adapter。v3.0 只实现 `playwright-test`，不支持 Yarn PnP、MCP 或任意 command 降级。

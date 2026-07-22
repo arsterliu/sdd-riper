@@ -66,13 +66,32 @@ function prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSp
   };
 }
 
+function archiveAuthorization(opts) {
+  opts = opts || {};
+  var authorizedBy = String(opts.authorizedBy || '').trim();
+  var evidence = String(opts.authorizationEvidence || '').trim();
+  if (!authorizedBy || !evidence) {
+    console.error('[ERROR] SDD_ARCHIVE_AUTHORIZATION_REQUIRED: archive requires --authorized-by "human:<name>" and --authorization-evidence "<single-line-text>" from the current user.');
+    process.exit(2);
+  }
+  if (!/^human:[^:\s]+$/i.test(authorizedBy) || /[\x00-\x1f\x7f]/.test(evidence)) {
+    console.error('[ERROR] SDD_ARCHIVE_AUTHORIZATION_INVALID: authorized-by must be human:<name> and authorization evidence must be non-empty single-line text without control characters.');
+    process.exit(2);
+  }
+  return {
+    authorizedBy: authorizedBy,
+    authorizedAt: new Date().toISOString(),
+    evidence: evidence
+  };
+}
+
 function run(projectDir, specName, opts) {
+  var authorization = archiveAuthorization(opts);
   var docsRoot = common.getDocsRoot(projectDir);
   var specsDir = path.join(docsRoot, 'specs');
   var archiveDir = path.join(docsRoot, 'archive');
   var force = !!opts.force;
   if (!fs.existsSync(specsDir)) { console.error('[ERROR] ' + specsDir + ' not found.'); process.exit(1); }
-  if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
   var specSlug = common.normalizeSlug(specName);
   var sourceSpec = common.findSourceSpecByRef(specsDir, specName);
   if (!sourceSpec) {
@@ -80,7 +99,7 @@ function run(projectDir, specName, opts) {
     process.exit(1);
   }
   var validation = validate.validateSpec(sourceSpec, { archiveReady: true, projectDir: projectDir });
-  if (!validation.workflowState || !validation.workflowState.archiveReady) {
+  if (!validation.workflowState || !validation.workflowState.completionReady) {
     console.error('[ERROR] Spec is not archive-ready. Run: sdd validate "' + projectDir + '" --spec "' + sourceSpec + '" --archive-ready');
     validation.issues.forEach(function(issue) { console.error('  - ' + issue); });
     process.exit(1);
@@ -107,6 +126,15 @@ function run(projectDir, specName, opts) {
     var replacement = artifact.field + ': "' + escaped + '"';
     sourceContent = sourceContent.replace(new RegExp('^' + artifact.field + ':.*', 'gm'), replacement);
   });
+  sourceContent += [
+    '',
+    '## Archive Authorization',
+    '',
+    'Archive Authorized By: ' + authorization.authorizedBy,
+    'Archive Authorized At: ' + authorization.authorizedAt,
+    'Archive Authorization Evidence: ' + authorization.evidence,
+    ''
+  ].join('\n');
   var summary = buildArchiveSummary(
     sourceContent,
     designArtifact ? designArtifact.content : '',
@@ -117,6 +145,7 @@ function run(projectDir, specName, opts) {
     console.error('[ERROR] Archive summary could not be generated from Summary/Requirement, Selected Option / ADR, constraints, and risks/challenge evidence.');
     process.exit(1);
   }
+  if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
   fs.writeFileSync(archiveFile, sourceContent + summary, 'utf-8');
   [designArtifact, logArtifact, learningArtifact].forEach(function(artifact) {
     if (!artifact) return;

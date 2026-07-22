@@ -37,7 +37,7 @@ function summarize(snapshot) {
     error: snapshot.error,
     total: specs.length,
     active: specs.filter(function(spec) { return spec.phase !== 'archived'; }).length,
-    ready: specs.filter(function(spec) { return spec.phase === 'ready'; }).length,
+    awaitingArchiveAuthorization: specs.filter(function(spec) { return spec.phase === 'archive_authorization'; }).length,
     issueCount: 0,
     issueCountLightweight: true,
     counts: snapshot.counts || {},

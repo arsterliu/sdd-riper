@@ -14,6 +14,16 @@ function run(projectDir, opts) {
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
   if (state.contextSource) console.log('CONTEXT_SOURCE: ' + state.contextSource);
+  if (state.profileRevision) {
+    console.log('PROJECT_PROFILE_REVISION: ' + state.profileRevision);
+    console.log('PROJECT_PROFILE_DIGEST: ' + state.profileDigest);
+    console.log('AFFECTED_UNITS: ' + state.affectedUnits.join(','));
+  }
+  if (state.profileAdvisory) {
+    console.log('PROFILE_ADVISORY: ' + state.profileAdvisory.kind);
+    console.log('PROFILE_FOCUS_FIELDS: ' + state.profileAdvisory.focusFields.join('; '));
+    console.log('PROFILE_GUIDANCE: ' + state.profileAdvisory.note);
+  }
   workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
     console.log(line);
   });
@@ -21,6 +31,10 @@ function run(projectDir, opts) {
   (state.blockers.length ? state.blockers : ['none']).forEach(function(issue) {
     console.log('- ' + issue);
   });
+  if (state.nextAction === 'request_archive_authorization') {
+    console.log('ARCHIVE_AUTHORIZATION: required');
+    console.log('GUIDANCE: Stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.');
+  }
   if (state.nextAction === 'run_challenge' || state.blockers.some(function(issue) { return /Challenge|Research Gate|Research Reviewed By|Research Reviewed At|independent reviewer/i.test(issue); })) {
     console.log('REVIEWER_GUIDANCE:');
     reviewerGuidance.guidanceLines().forEach(function(line) {

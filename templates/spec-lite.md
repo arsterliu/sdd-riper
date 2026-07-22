@@ -9,6 +9,9 @@ diff-base: ""
 design-file: ""
 execute-log-file: ""
 learning-file:
+project-profile-revision: ""
+project-profile-digest: ""
+affected-units: ""
 ---
 
 <!-- Keep template headings and labels in English. Fill actual narrative content in Chinese. -->
@@ -45,7 +48,9 @@ Acceptance Intent:
 design-file:
 
 ## Acceptance Criteria
-<!-- Use AC-### items with English metadata labels; write scenario text in Chinese. -->
+<!-- Use AC-### items with English metadata labels; write scenario text in Chinese.
+Provider: <required for e2e; named provider id>
+-->
 
 ## Plan
 

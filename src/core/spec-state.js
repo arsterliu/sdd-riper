@@ -3,6 +3,7 @@ var artifactSnapshot = require('./artifact-snapshot');
 var common = require('../../lib/common');
 var learning = require('./learning');
 var reviewerGuidance = require('./reviewer-guidance');
+var providerReadiness = require('../verification/readiness');
 
 var VERDICT_TO_TARGET = {
   PASS: 'Ready',
@@ -74,7 +75,7 @@ function blockerCode(issue, verdict) {
 
 function phaseFor(target, action, status) {
   if (status === 'archived') return 'archived';
-  if (action === 'archive_ready') return 'ready';
+  if (action === 'request_archive_authorization') return 'archive_authorization';
   if (action === 'run_challenge') return 'challenge';
   return {
     Research: 'research',
@@ -85,7 +86,7 @@ function phaseFor(target, action, status) {
     'Execute / Debug': 'execute',
     'Execute Log': 'execute',
     'Learning Check': 'learning',
-    Ready: 'ready'
+    Ready: 'archive_authorization'
   }[target] || 'research';
 }
 
@@ -281,7 +282,7 @@ function acCoverageContractIssues(specContent, executeLogContent, projectDir) {
 
 function readyAction(verdict, validationIssues) {
   if ((verdict === 'PASS' || verdict === 'PASS_WITH_CONCERNS') && (!validationIssues || !validationIssues.length)) {
-    return { target: 'Ready', action: 'archive_ready' };
+    return { target: 'Ready', action: 'request_archive_authorization' };
   }
   return null;
 }
@@ -436,6 +437,22 @@ function directGateBlockers(snapshot) {
   acceptanceContractIssues(content, mode).forEach(function(issue) {
     add('acceptance', issue, 'Acceptance', 'FAIL_ACCEPTANCE');
   });
+  var verificationReadiness = snapshot.projectDir
+    ? providerReadiness.inspect(content, snapshot.projectDir, snapshot.specPath)
+    : { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
+  verificationReadiness.issues.filter(function(issue) {
+    return /^E2E Acceptance Criteria require Provider/.test(issue);
+  }).forEach(function(issue) { add('acceptance', issue, 'Acceptance', 'FAIL_ACCEPTANCE'); });
+  verificationReadiness.missingProviders.forEach(function(providerId) {
+    var planText = sectionText(content, 'Plan');
+    var planned = planText.indexOf('sdd verify init') !== -1 && planText.indexOf(providerId) !== -1;
+    if (!planned) add('plan', 'Verification Provider is not configured and Plan has no explicit init step: ' + providerId + '.', 'Plan', 'FAIL_PLAN');
+  });
+  if (verificationReadiness.state === 'blocked') {
+    verificationReadiness.issues.forEach(function(issue) {
+      add('completion', issue, 'Execute Log', 'FAIL_LOG');
+    });
+  }
 
   if (mode === 'micro') {
     var microPlan = sectionText(content, 'Plan');
@@ -518,7 +535,7 @@ function evaluate(snapshot, options) {
 
   var verdict = facts.allowed ? facts.verdict : verdictFromIssues(blockers.map(function(blocker) { return blocker.message; }));
   var target = 'Ready';
-  var action = 'archive_ready';
+  var action = 'request_archive_authorization';
   var orderedGates = ['research', 'innovate', 'design', 'acceptance', 'plan', 'execute', 'completion'];
   var firstBlocked = orderedGates.find(function(gate) { return gates[gate].state === 'blocked'; });
   var challengeNeedsRerun = gates.challenge.blockers.some(function(blocker) {
@@ -545,13 +562,14 @@ function evaluate(snapshot, options) {
     phase: phaseFor(target, action, snapshot.location === 'active' && snapshot.status === 'archived' ? 'draft' : snapshot.status),
     nextAction: action,
     backtrackTarget: target,
-    archiveReady: action === 'archive_ready' && blockers.length === 0,
+    completionReady: action === 'request_archive_authorization' && blockers.length === 0,
     challengeVerdict: verdict,
     gates: gates,
     blockers: blockers,
     facts: {
       challenge: facts,
       completion: { done: gates.completion.state === 'pass' },
+      providerReadiness: snapshot.projectDir ? providerReadiness.inspect(snapshot.content || '', snapshot.projectDir, snapshot.specPath) : { state: 'ready' },
       learningRequired: learning.learningTriggers(snapshot.content || '', snapshot.executeLog && snapshot.executeLog.content || '', facts.verdict).length > 0
     }
   };

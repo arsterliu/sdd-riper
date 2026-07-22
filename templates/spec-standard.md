@@ -9,6 +9,9 @@ diff-base: ""
 design-file: ""
 execute-log-file: ""
 learning-file:
+project-profile-revision: ""
+project-profile-digest: ""
+affected-units: ""
 ---
 
 <!--
@@ -68,6 +71,7 @@ Use observable, verifiable, traceable criteria. Write scenario text in Chinese.
 Requirement: <requirement id or description>
 Type: functional | non-functional | compatibility | security
 Verification: unit | integration | e2e | manual
+Provider: <required for e2e; named provider id>
 Automated: yes | no
 Test: <test file / command; required for automated or e2e coverage>
 Manual Evidence: <required for manual verification or manual e2e evidence>

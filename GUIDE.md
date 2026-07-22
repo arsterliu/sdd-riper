@@ -1,5 +1,7 @@
 # SDD-RIPER 使用指南
 
+Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication. 归档调用必须携带当前用户给出的 `--authorized-by "human:<name>" --authorization-evidence "<text>"`。
+
 这份指南补充 README，说明流程细节、三种模式、产物边界、subagent 策略和验收标准写法。当前版本的 SDD-RIPER 是 Node CLI 和文件系统产物协议，不是模型执行 runtime；它通过 prompt、门禁和账本引导宿主 agent 或人工推进。
 
 ## 设计理念
@@ -282,7 +284,8 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  │  └─ diff-base frontmatter（git 仓库时）                             │    │
 │  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
-│  sdd archive <dir> <spec-name>                                             │
+│  sdd archive <dir> <spec-name> --authorized-by human:<name>                │
+│    --authorization-evidence <text>                                          │
 │  → 移动 Spec + Design + Execute Log + Learning 到 archive/                 │
 │  → 更新归档 Spec 内的引用路径                                              │
 └──────────────────────────────┬──────────────────────────────────────────────┘
@@ -319,7 +322,7 @@ workflow.analyzeSpec()
     │
     ├─ challengeVerdict: 优先用 Spec 中显式值，无则从 issues 推导
     ├─ backtrackTarget: VERDICT_TO_TARGET 映射
-    ├─ nextAction: PASS → archive_ready, FAIL_* → repair_<target>
+    ├─ nextAction: PASS → request_archive_authorization, FAIL_* → repair_<target>
     │   Challenge PASS + 有 validation blockers → repair_<target>（不跳过修复）
     └─ blockers: validate issues 列表
 
@@ -700,7 +703,7 @@ sdd new-learning <project-dir> [spec-name]
 sdd validate <project-dir> --archive-ready
 ```
 
-`archive` 会再次执行同一套校验，通过后把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起移动到 `<docs-root>/archive/`，并更新归档 Spec 内的引用。
+`validate --archive-ready` 只证明完成条件满足；此时 `next` 输出 `request_archive_authorization`，`resume` 输出 `await_archive_authorization`。Agent 必须停止并取得当前用户明确授权。随后 `archive` 携带 `--authorized-by "human:<name>" --authorization-evidence "<text>"` 再次执行同一套完成校验，通过后把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起移动到 `<docs-root>/archive/`，更新归档 Spec 内的引用并记录授权审计字段。
 
 修复已归档任务时使用：
 
@@ -942,3 +945,39 @@ Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execu
 ### 什么时候用 CodeMap？
 
 CodeMap 是按需计算视图（`sdd codemap <dir>`），不持久化、永不过时。在 Research 阶段需要架构概览时运行一次即可。架构事实变更应记录到 Learning Record。
+## Project Engineering Profile
+
+Project Engineering Profile 是项目级、可版本化的工程事实层，不是新的前端/后端工作流模式。一个仓库可包含多个 workspace unit；同一 unit 也可同时具有 `frontend`、`backend`、`contract`、`library`、`tool` 或 `unknown` roles。检测结果始终携带 evidence 和 confidence，未知事实保持 unknown。
+
+### 已有项目
+
+1. 运行 `sdd profile detect <dir> --format json` 并把 stdout 保存为项目内候选 JSON。
+2. 按需修正候选；人工补充的分类使用 `confidence: human` evidence。
+3. 运行 `sdd profile review <dir> --candidate <file> --format json`，取得规范化后的精确 digest。
+4. Agent 暂停并向当前用户请求对该精确 digest 的明确授权。
+5. 获得授权后运行 `sdd profile confirm ...`。`human:<name>` 与 evidence 是可审计声明，不提供 CLI 身份认证。
+6. 创建任务时用 `sdd discover ... --unit <id...>`；保留值 `project` 表示 SDD 自身或仓库整体范围。
+
+Spec 会固定 `project-profile-revision`、`project-profile-digest`、`affected-units`。Research 必须读取 Spec 指向的 exact revision，不能改读 `profiles/current.json`。跨多个 unit 只产生 `cross-unit` advisory，提醒检查 Interface Contract 和 Compatibility，不自动改变 mode。
+
+### 新项目
+
+`sdd init` 只创建 `profiles/revisions/.gitkeep`，不会运行 detector 或确认 Profile。空目录执行 detect 返回 empty 与 `create_bootstrap_spec`；先用 standard bootstrap Spec 记录产品意图，待 manifest 等工程事实出现后再 detect/review/confirm。
+
+### 漂移与恢复
+
+`sdd profile show` 校验并展示 current 或指定 revision；`sdd profile check` 重新只读检测，区分 clean、drifted、missing、invalid，并保留有效的 human evidence。它不自动 confirm、覆盖 current 或删除历史 revision。
+
+confirm 使用 `.sdd-project-profile.lock` 覆盖读取、复核、写 revision、切换 current 与解锁。锁冲突立即返回 `SDD_PROFILE_CONFIRM_LOCKED`。不要按锁年龄自动清理；持续锁定时，先确认没有活动 confirm，再人工删除空锁目录。`SDD_PROFILE_CONFIRM_UNLOCK_FAILED` 表示 current/revision 可能已提交，应先检查制品再决定是否重试。
+
+Profile 中的 `commandRefs` 只是名称引用。所有 profile 命令均不得执行工程脚本、联网、安装依赖、生成应用或自动创建 Provider；v3.4 也不提供 Profile Console UI、Frontend/Backend Quality Profile 或框架专属 runner。
+
+## Verification Provider
+
+当 AC 使用 `Verification: e2e` 时必须声明 `Provider: <provider-id>`。Provider 只包含 `adapter`、`workspaceRoot`、`packageRoot`、`config`、`projects` 等项目参数；transport、command、CLI 路径和浏览器 executable 由已注册 Adapter 决定，不能写入项目配置。
+
+在获批 Plan 的 Execute 阶段运行 `sdd verify init` 创建 Provider，再显式运行 `sdd verify run --spec <spec>`。`next`、`status`、`validate` 与 Console 只读计算 required/configured/ready/blocked，不启动浏览器。缺少 Playwright 或匹配浏览器时会给出诊断并阻断，不自动安装、不自动降级。支持受 lockfile 管理的 npm/pnpm/Yarn node_modules workspace/hoist，不支持 Yarn PnP。
+
+`verify init` 只使用项目级 `.sdd-verification.json.lock`，并在持锁期间完成共享配置的读取、修改、校验、临时文件写入和原子替换。同一项目不支持并发 init：锁已存在时立即返回 `SDD_VERIFY_INIT_LOCKED` / exit 2，不等待、不合并、不自动重试；调用者应稍后重试。若持续锁定，先确认没有仍在运行的 `verify init`，再人工删除项目根目录中的空锁目录并重试；不得仅按锁目录时间自动清理。若返回 `SDD_VERIFY_INIT_UNLOCK_FAILED`，配置可能已经写入，应先检查 `.sdd-verification.json` 再决定是否重试。
+
+v3.0 只实现 `playwright-test`；`playwright-mcp`、Custom Adapter 注册、统一 MCP Profile、visual、accessibility 和 performance 接入延后。

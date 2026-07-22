@@ -16,6 +16,14 @@ SDD-RIPER 提供**工作流契约**（阶段、门禁、审计链、文件系统
 | 完成验证 | Execute 阶段（完成验证门禁） | `verification-before-completion` | `vendored/superpowers/verification-before-completion/` | 全局 → vendored → 内联摘要 |
 | 归档前 git 门禁 | Archive 阶段 | `finishing-a-development-branch` | `vendored/superpowers/finishing-a-development-branch/` | 全局 → vendored → 内联摘要 |
 
+## SDD 适配优先级
+
+**SDD adaptation takes precedence**：全局或 vendored Superpowers 技能提供方法论参考，SDD-RIPER 的阶段、制品路径、门禁和执行路由拥有最终控制权。读取一个技能不表示继承它的全部上游工作流交接。
+
+- `writing-plans` 仅用于文件映射、原子步骤、TDD 和验证命令粒度；不得复制其上游 Plan Header 或 Execution Handoff，不得把未集成的 `executing-plans` 写成 SDD 必需技能。
+- `subagent-driven-development` 仅提供子 Agent 路由方法；其指向 `executing-plans` 的跨会话分支不适用于 SDD。非子 Agent 路径由主 Agent 进入 SDD Execute Phase，并复用宿主原生持续执行能力。
+- vendored 文件保持上游字节一致；所有覆盖规则写在 SDD 自有 `SKILL.md`、本映射和同步手册中。
+
 ## 解析语义
 
 每个触点的 SKILL.md 指令要求 AI 编排器在执行门禁前**先加载方法论**。解析按以下顺序：

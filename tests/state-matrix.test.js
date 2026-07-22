@@ -15,6 +15,7 @@ const {
 const specIndex = require('../src/core/spec-index');
 const specState = require('../src/core/spec-state');
 const projectIndexer = require('../src/core/project-indexer');
+const providerReadiness = require('../src/verification/readiness');
 
 const roots = [];
 
@@ -39,7 +40,8 @@ describe('authoritative workflow state matrix', function() {
     }, {
       validationIssues: ['Challenge Verdict is invalid; allowed values are required.']
     });
-    assert.strictEqual(state.archiveReady, false);
+    assert.strictEqual(state.completionReady, false);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'archiveReady'), false);
     assert.strictEqual(state.challengeVerdict, 'FAIL_SPEC');
     assert.strictEqual(state.backtrackTarget, 'Research');
     assert.strictEqual(state.nextAction, 'repair_research');
@@ -47,7 +49,7 @@ describe('authoritative workflow state matrix', function() {
     assert.ok(state.blockers.every(function(blocker) { return blocker.code && blocker.gate && blocker.target; }));
   });
 
-  it('evaluateProjectSpec returns the same archive-ready result as the command adapter', function() {
+  it('evaluateProjectSpec routes completed work to archive authorization without an archive action', function() {
     const fixture = addLearningRecord(createArchiveReadyStandard(project('evaluate-project'), 'evaluate-project'));
     let spec = fs.readFileSync(fixture.specPath, 'utf-8');
     spec = spec
@@ -61,9 +63,20 @@ describe('authoritative workflow state matrix', function() {
     fs.writeFileSync(fixture.specPath, spec, 'utf-8');
 
     const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
-    assert.strictEqual(state.archiveReady, true);
-    assert.strictEqual(state.nextAction, 'archive_ready');
+    assert.strictEqual(state.completionReady, true);
+    assert.strictEqual(state.phase, 'archive_authorization');
+    assert.strictEqual(state.nextAction, 'request_archive_authorization');
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'archiveReady'), false);
     assert.deepStrictEqual(state.blockers, []);
+
+    specIndex.clearCache();
+    const indexed = specIndex.listSpecs(fixture.projectDir);
+    assert.strictEqual(indexed.specs[0].phase, 'archive_authorization');
+    assert.strictEqual(indexed.counts.archive_authorization, 1);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(indexed.counts, 'ready'), false);
+    const summary = projectIndexer.summarize(indexed);
+    assert.strictEqual(summary.awaitingArchiveAuthorization, 1);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(summary, 'ready'), false);
   });
 
   it('rejects an unknown Challenge Verdict instead of deriving PASS', function() {
@@ -101,7 +114,7 @@ describe('authoritative workflow state matrix', function() {
     fs.writeFileSync(fixture.specPath, spec, 'utf-8');
 
     const state = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-    assert.strictEqual(state.archiveReady, false);
+    assert.strictEqual(state.completionReady, false);
     assert.strictEqual(state.gates.challenge.state, 'blocked');
     assert.ok(state.gates.challenge.blockers.some(function(blocker) {
       return /Challenge Evidence does not match/i.test(blocker.message);
@@ -142,7 +155,7 @@ describe('authoritative workflow state matrix', function() {
       });
       assert.strictEqual(indexed.completion.challengePass, false, scenario.name);
       assert.strictEqual(indexed.workflow.gates.challenge.state, 'blocked', scenario.name);
-      assert.notStrictEqual(indexed.phase, 'ready', scenario.name);
+      assert.notStrictEqual(indexed.phase, 'archive_authorization', scenario.name);
     });
   });
 
@@ -167,7 +180,7 @@ describe('authoritative workflow state matrix', function() {
     projectIndexer.enqueueRefresh(fixture.projectDir, true);
     await new Promise(function(resolve) { setImmediate(resolve); });
     const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
-    assert.strictEqual(summary.ready, 0);
+    assert.strictEqual(summary.awaitingArchiveAuthorization, 0);
     assert.strictEqual(summary.latestSpec.phase, 'acceptance');
   });
 
@@ -207,14 +220,14 @@ describe('authoritative workflow state matrix', function() {
       scenario.mutate(fixture);
 
       const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-      assert.strictEqual(pure.archiveReady, false, scenario.name + ': pure evaluator');
+      assert.strictEqual(pure.completionReady, false, scenario.name + ': pure evaluator');
       assert.strictEqual(pure.gates.completion.state, 'blocked', scenario.name + ': completion gate');
 
       specIndex.clearCache();
       const full = specIndex.listSpecs(fixture.projectDir).specs[0];
       specIndex.clearCache();
       const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-      assert.notStrictEqual(full.phase, 'ready', scenario.name + ': full');
+      assert.notStrictEqual(full.phase, 'archive_authorization', scenario.name + ': full');
       assert.strictEqual(lightweight.phase, full.phase, scenario.name + ': lightweight');
       assert.strictEqual(lightweight.completion.completionVerification, false, scenario.name);
 
@@ -222,7 +235,7 @@ describe('authoritative workflow state matrix', function() {
       projectIndexer.enqueueRefresh(fixture.projectDir, true);
       await new Promise(function(resolve) { setImmediate(resolve); });
       const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
-      assert.strictEqual(summary.ready, 0, scenario.name + ': project summary');
+      assert.strictEqual(summary.awaitingArchiveAuthorization, 0, scenario.name + ': project summary');
     }
   });
 
@@ -245,7 +258,7 @@ describe('authoritative workflow state matrix', function() {
     fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
 
     const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-    assert.strictEqual(pure.archiveReady, true, JSON.stringify(pure.blockers));
+    assert.strictEqual(pure.completionReady, true, JSON.stringify(pure.blockers));
 
     const fullValidation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
     assert.strictEqual(fullValidation.status, 0, fullValidation.output);
@@ -254,7 +267,7 @@ describe('authoritative workflow state matrix', function() {
     const full = specIndex.listSpecs(fixture.projectDir).specs[0];
     specIndex.clearCache();
     const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-    assert.strictEqual(full.phase, 'ready');
+    assert.strictEqual(full.phase, 'archive_authorization');
     assert.strictEqual(lightweight.phase, full.phase);
   });
 
@@ -282,7 +295,7 @@ describe('authoritative workflow state matrix', function() {
       fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
 
       const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-      assert.strictEqual(pure.archiveReady, false, latestResult + ': pure evaluator');
+      assert.strictEqual(pure.completionReady, false, latestResult + ': pure evaluator');
       assert.strictEqual(pure.gates.completion.state, 'blocked', latestResult + ': completion gate');
 
       const fullValidation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
@@ -292,7 +305,7 @@ describe('authoritative workflow state matrix', function() {
       const full = specIndex.listSpecs(fixture.projectDir).specs[0];
       specIndex.clearCache();
       const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-      assert.notStrictEqual(full.phase, 'ready', latestResult + ': full');
+      assert.notStrictEqual(full.phase, 'archive_authorization', latestResult + ': full');
       assert.strictEqual(lightweight.phase, full.phase, latestResult + ': lightweight');
     });
   });
@@ -313,21 +326,21 @@ describe('authoritative workflow state matrix', function() {
     fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
 
     const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-    assert.strictEqual(pure.archiveReady, false, 'pure evaluator');
+    assert.strictEqual(pure.completionReady, false, 'pure evaluator');
     assert.strictEqual(pure.gates.completion.state, 'blocked', 'completion gate');
 
     specIndex.clearCache();
     const full = specIndex.listSpecs(fixture.projectDir).specs[0];
     specIndex.clearCache();
     const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-    assert.notStrictEqual(full.phase, 'ready', 'full');
+    assert.notStrictEqual(full.phase, 'archive_authorization', 'full');
     assert.strictEqual(lightweight.phase, full.phase, 'lightweight');
 
     projectIndexer.clear();
     projectIndexer.enqueueRefresh(fixture.projectDir, true);
     await new Promise(function(resolve) { setImmediate(resolve); });
     const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
-    assert.strictEqual(summary.ready, 0, 'project summary');
+    assert.strictEqual(summary.awaitingArchiveAuthorization, 0, 'project summary');
   });
 
   it('full, lightweight and project indexing agree on remaining archive-only blockers', async function() {
@@ -379,20 +392,20 @@ describe('authoritative workflow state matrix', function() {
       scenario.mutate(fixture);
 
       const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-      assert.strictEqual(pure.archiveReady, false, scenario.name + ': pure evaluator');
+      assert.strictEqual(pure.completionReady, false, scenario.name + ': pure evaluator');
 
       specIndex.clearCache();
       const full = specIndex.listSpecs(fixture.projectDir).specs[0];
       specIndex.clearCache();
       const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-      assert.notStrictEqual(full.phase, 'ready', scenario.name + ': full');
+      assert.notStrictEqual(full.phase, 'archive_authorization', scenario.name + ': full');
       assert.strictEqual(lightweight.phase, full.phase, scenario.name + ': lightweight');
 
       projectIndexer.clear();
       projectIndexer.enqueueRefresh(fixture.projectDir, true);
       await new Promise(function(resolve) { setImmediate(resolve); });
       const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
-      assert.strictEqual(summary.ready, 0, scenario.name + ': project summary');
+      assert.strictEqual(summary.awaitingArchiveAuthorization, 0, scenario.name + ': project summary');
     }
   });
 
@@ -403,7 +416,7 @@ describe('authoritative workflow state matrix', function() {
       const content = complete.replace(new RegExp('^' + label + ':.*$', 'm'), label + ':');
       fs.writeFileSync(fixture.specPath, content, 'utf-8');
       const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-      assert.strictEqual(pure.archiveReady, false, label);
+      assert.strictEqual(pure.completionReady, false, label);
       assert.strictEqual(pure.gates.plan.state, 'blocked', label);
     });
 
@@ -427,7 +440,7 @@ describe('authoritative workflow state matrix', function() {
     fs.writeFileSync(fixture.specPath, spec, 'utf-8');
 
     const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-    assert.strictEqual(pure.archiveReady, false);
+    assert.strictEqual(pure.completionReady, false);
     assert.notStrictEqual(pure.phase, 'archived');
     assert.ok(pure.blockers.some(function(blocker) {
       return /Active Spec cannot declare status: archived/.test(blocker.message);
@@ -445,7 +458,7 @@ describe('authoritative workflow state matrix', function() {
     await new Promise(function(resolve) { setImmediate(resolve); });
     const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
     assert.strictEqual(summary.active, 1);
-    assert.strictEqual(summary.ready, 0);
+    assert.strictEqual(summary.awaitingArchiveAuthorization, 0);
   });
 
   it('status prints authoritative blocker code and message', function() {
@@ -473,7 +486,7 @@ describe('authoritative workflow state matrix', function() {
     ].join('\n'), 'utf-8');
 
     const state = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-    assert.strictEqual(state.archiveReady, false);
+    assert.strictEqual(state.completionReady, false);
     assert.strictEqual(state.gates.completion.state, 'blocked');
   });
 
@@ -519,7 +532,7 @@ describe('authoritative workflow state matrix', function() {
     assert.doesNotMatch(result.output, /PHASE_HINT: (execute|archive)/);
   });
 
-  it('PASS_WITH_CONCERNS converges to archive_ready after Learning is complete', function() {
+  it('PASS_WITH_CONCERNS converges to archive authorization after Learning is complete', function() {
     const fixture = addLearningRecord(createArchiveReadyStandard(project('concerns-ready'), 'concerns-ready'));
     let spec = fs.readFileSync(fixture.specPath, 'utf-8');
     spec = spec
@@ -535,7 +548,8 @@ describe('authoritative workflow state matrix', function() {
     const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
     assert.strictEqual(validation.status, 0, validation.output);
     const next = runCli(['next', fixture.projectDir], fixture.projectDir);
-    assert.match(next.output, /NEXT_ACTION: archive_ready/);
+    assert.match(next.output, /NEXT_ACTION: request_archive_authorization/);
+    assert.doesNotMatch(next.output, /NEXT_ACTION: archive_ready/);
     assert.match(next.output, /BLOCKERS:\s*\r?\n- none/);
   });
 
@@ -588,7 +602,7 @@ describe('authoritative workflow state matrix', function() {
 
   it('archive generates a complete summary without unresolved placeholders', function() {
     const fixture = createArchiveReadyStandard(project('archive-summary'), 'archive-summary');
-    const archived = runCli(['archive', fixture.projectDir, fixture.taskName], fixture.projectDir);
+    const archived = runCli(['archive', fixture.projectDir, fixture.taskName, '--authorized-by', 'human:fixture', '--authorization-evidence', 'user approved this archive'], fixture.projectDir);
     assert.strictEqual(archived.status, 0, archived.output);
     const archivePath = path.join(fixture.projectDir, 'mydocs', 'archive', 'v1.0-' + fixture.taskName + '.md');
     const content = fs.readFileSync(archivePath, 'utf-8');
@@ -600,7 +614,7 @@ describe('authoritative workflow state matrix', function() {
 
   it('marks historical archives as read-only legacy without re-declaring current archive readiness', function() {
     const fixture = createArchiveReadyStandard(project('archive-legacy-boundary'), 'archive-legacy-boundary');
-    const archived = runCli(['archive', fixture.projectDir, fixture.taskName], fixture.projectDir);
+    const archived = runCli(['archive', fixture.projectDir, fixture.taskName, '--authorized-by', 'human:fixture', '--authorization-evidence', 'user approved this archive'], fixture.projectDir);
     assert.strictEqual(archived.status, 0, archived.output);
 
     specIndex.clearCache();
@@ -613,5 +627,36 @@ describe('authoritative workflow state matrix', function() {
     assert.strictEqual(indexed.phase, 'archived');
     assert.strictEqual(indexed.validate.legacy, true);
     assert.strictEqual(indexed.validate.ok, null);
+  });
+
+  it('requires an explicit Provider for every e2e AC', function() {
+    const result = providerReadiness.inspect('## Acceptance Criteria\n### AC-001: web\nVerification: e2e\nTest: tests/web.test.js', project('provider-required'));
+    assert.strictEqual(result.state, 'required');
+    assert.deepStrictEqual(result.issues, ['E2E Acceptance Criteria require Provider for: AC-001.']);
+  });
+
+  it('reports configured providers without loading project code', function() {
+    const root = project('provider-configured');
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(path.join(root, '.sdd-verification.json'), JSON.stringify({ schemaVersion: 1, providers: {
+      'web-e2e': { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: 'apps/web', config: 'apps/web/playwright.config.ts', projects: ['chromium'] }
+    } }));
+    const result = providerReadiness.inspect('## Acceptance Criteria\n### AC-001: web\nVerification: e2e\nProvider: web-e2e\nTest: tests/web.test.js', root);
+    assert.strictEqual(result.state, 'configured');
+    assert.deepStrictEqual(result.requiredProviders, ['web-e2e']);
+    assert.deepStrictEqual(result.missingProviders, []);
+  });
+
+  it('routes an unplanned missing Provider to the Plan gate', function() {
+    const root = project('provider-plan-blocker');
+    fs.mkdirSync(root, { recursive: true });
+    const state = specState.evaluate({
+      exists: true, projectDir: root, status: 'draft', mode: 'standard',
+      content: '## Acceptance Criteria\n### AC-001: web\nVerification: e2e\nProvider: web-e2e\nTest: tests/web.test.js\n## Plan\nStep: implement UI'
+    });
+    assert.ok(state.blockers.some(function(blocker) {
+      return blocker.gate === 'plan' && /no explicit init step: web-e2e/.test(blocker.message);
+    }));
+    assert.strictEqual(state.facts.providerReadiness.state, 'required');
   });
 });

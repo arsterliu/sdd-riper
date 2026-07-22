@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const http = require('http');
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 
 const CLI = 'node ' + path.resolve('bin/cli.js');
 const tmpBase = path.join(os.tmpdir(), 'sdd-cmd-test-' + Date.now());
@@ -55,6 +55,41 @@ function fillApproval(content) {
     .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex')
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z')
     .replace(/^Gate Evidence:$/m, 'Gate Evidence: fixture approval evidence');
+}
+
+function runArgs(args, cwd) {
+  var result = spawnSync(process.execPath, [path.resolve('bin/cli.js')].concat(args), {
+    encoding: 'utf-8',
+    cwd: cwd || tmpBase
+  });
+  return {
+    status: result.status,
+    output: (result.stdout || '') + (result.stderr || '')
+  };
+}
+
+function snapshotTree(root) {
+  var result = {};
+  function visit(dir) {
+    if (!fs.existsSync(dir)) return;
+    fs.readdirSync(dir).sort().forEach(function(name) {
+      var absolute = path.join(dir, name);
+      var relative = path.relative(root, absolute).replace(/\\/g, '/');
+      var stat = fs.statSync(absolute);
+      if (stat.isDirectory()) {
+        result[relative + '/'] = 'dir';
+        visit(absolute);
+      } else {
+        result[relative] = fs.readFileSync(absolute, 'utf-8');
+      }
+    });
+  }
+  visit(root);
+  return result;
+}
+
+function archiveAuthorizationArgs() {
+  return ['--authorized-by', 'human:fixture', '--authorization-evidence', 'user approved this archive'];
 }
 
 function fillChallenge(content, verdict, opts) {
@@ -615,7 +650,7 @@ describe('CLI commands', function() {
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md');
     makeStandardArchiveReady(demo, sf);
 
-    var archived = run('archive ' + demo + ' tri');
+    var archived = run('archive ' + demo + ' tri --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(archived.indexOf('[ARCHIVE]') !== -1, archived);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.md')));
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.design.md')));
@@ -636,7 +671,7 @@ describe('CLI commands', function() {
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
 
-    var archived = run('archive ' + demo + ' v1.3.6-tri');
+    var archived = run('archive ' + demo + ' v1.3.6-tri --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(archived.indexOf('[ARCHIVE]') !== -1, archived);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.md')));
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md')), 'v1.4 should remain active');
@@ -648,9 +683,9 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
     run('discover ' + demo + ' --task-name tri --spec-version v1.4 --requirement y --mode standard');
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md'));
-    run('archive ' + demo + ' v1.4-tri');
+    run('archive ' + demo + ' v1.4-tri --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'));
-    run('archive ' + demo + ' v1.3.6-tri');
+    run('archive ' + demo + ' v1.3.6-tri --authorized-by human:fixture --authorization-evidence "user approved this archive"');
 
     var reopened = run('reopen ' + demo + ' v1.3.6-tri --defect regression --mode micro');
     assert.ok(reopened.indexOf('[CREATE]') !== -1, reopened);
@@ -793,7 +828,8 @@ describe('CLI commands', function() {
     run('challenge ' + demo + ' --name challenge-route --record-result PASS --summary ok --executed-by subagent:challenge-fixture');
 
     var next = run('next ' + demo);
-    assert.ok(next.indexOf('NEXT_ACTION: archive_ready') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: request_archive_authorization') !== -1, next);
+    assert.ok(next.indexOf('NEXT_ACTION: archive_ready') === -1, next);
     assert.ok(next.indexOf('NEXT_ACTION: run_challenge') === -1, next);
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1, ok);
@@ -958,7 +994,7 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name arch --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-arch.md');
     var artifacts = makeStandardArchiveReady(demo, sf);
-    var out = run('archive ' + demo + ' arch');
+    var out = run('archive ' + demo + ' arch --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(out.indexOf('[ARCHIVE]') !== -1 || out.indexOf('[MOVED]') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.0-arch.md')));
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.0-arch.design.md')));
@@ -975,6 +1011,81 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(artifactPath(demo, patchSpec, 'execute-log-file')));
   });
 
+  it('archive authorization failures are fail-closed before any filesystem write', function() {
+    [
+      { name: 'missing', args: [] },
+      { name: 'partial', args: ['--authorized-by', 'human:fixture'] },
+      { name: 'agent', args: ['--authorized-by', 'agent:codex', '--authorization-evidence', 'claimed approval'] },
+      { name: 'empty', args: ['--authorized-by', 'human:fixture', '--authorization-evidence', '   '] },
+      { name: 'multiline', args: ['--authorized-by', 'human:fixture', '--authorization-evidence', 'line one\nline two'] },
+      { name: 'force', args: ['--force'] }
+    ].forEach(function(scenario) {
+      var demo = path.join(tmpBase, 'd4-auth-' + scenario.name);
+      run('init ' + demo + ' --mode standard');
+      run('discover ' + demo + ' --task-name auth-' + scenario.name + ' --spec-version v1.0 --requirement x --mode standard');
+      var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-auth-' + scenario.name + '.md');
+      makeStandardArchiveReady(demo, sf);
+      var before = snapshotTree(demo);
+
+      var result = runArgs(['archive', demo, 'auth-' + scenario.name].concat(scenario.args), demo);
+
+      assert.equal(result.status, 2, scenario.name + ': ' + result.output);
+      assert.match(result.output, /SDD_ARCHIVE_AUTHORIZATION_(REQUIRED|INVALID)/, scenario.name);
+      assert.deepStrictEqual(snapshotTree(demo), before, scenario.name + ' must not write any file or directory');
+    });
+  });
+
+  it('archive records one-shot human authorization in the archived Spec', function() {
+    var demo = path.join(tmpBase, 'd4-auth-success');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name auth-success --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-auth-success.md');
+    makeStandardArchiveReady(demo, sf);
+    assert.doesNotMatch(fs.readFileSync(sf, 'utf-8'), /Archive Authorized By:/);
+
+    var result = runArgs(['archive', demo, 'auth-success'].concat(archiveAuthorizationArgs()), demo);
+
+    assert.equal(result.status, 0, result.output);
+    var archived = fs.readFileSync(path.join(demo, 'mydocs', 'archive', 'v1.0-auth-success.md'), 'utf-8');
+    assert.match(archived, /^## Archive Authorization$/m);
+    assert.match(archived, /^Archive Authorized By: human:fixture$/m);
+    assert.match(archived, /^Archive Authorized At: \d{4}-\d{2}-\d{2}T/m);
+    assert.match(archived, /^Archive Authorization Evidence: user approved this archive$/m);
+  });
+
+  it('archive completion failure with valid authorization does not create archive output', function() {
+    var demo = path.join(tmpBase, 'd4-auth-not-ready');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name auth-not-ready --spec-version v1.0 --requirement x --mode standard');
+    var archiveDir = path.join(demo, 'mydocs', 'archive');
+    fs.rmSync(archiveDir, { recursive: true, force: true });
+    var before = snapshotTree(demo);
+
+    var result = runArgs(['archive', demo, 'auth-not-ready'].concat(archiveAuthorizationArgs()), demo);
+
+    assert.notEqual(result.status, 0, result.output);
+    assert.match(result.output, /Spec is not archive-ready/);
+    assert.deepStrictEqual(snapshotTree(demo), before);
+  });
+
+  it('completed command routing stops to request archive authorization', function() {
+    var demo = path.join(tmpBase, 'd4-auth-routing');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name auth-routing --spec-version v1.0 --requirement x --mode standard');
+    makeStandardArchiveReady(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-auth-routing.md'));
+
+    var next = run('next ' + demo);
+    var resume = run('resume ' + demo);
+    var cruise = run('cruise ' + demo + ' --record-run --iteration 1');
+
+    assert.match(next, /NEXT_ACTION: request_archive_authorization/);
+    assert.doesNotMatch(next, /archive_ready/);
+    assert.match(resume, /PHASE_HINT: await_archive_authorization/);
+    assert.doesNotMatch(resume, /PHASE_HINT: archive(?:\r?\n|$)/);
+    assert.match(cruise, /NEXT_ACTION: request_archive_authorization/);
+    assert.match(cruise, /\[RUN_LEDGER_STOP\] human_required/);
+  });
+
   it('archive index records Challenge Verdict for new specs', function() {
     var demo = path.join(tmpBase, 'd4-challenge-verdict-index');
     run('init ' + demo + ' --mode standard');
@@ -985,7 +1096,7 @@ describe('CLI commands', function() {
       .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: PASS');
     fs.writeFileSync(sf, content, 'utf-8');
 
-    var out = run('archive ' + demo + ' arch-verdict');
+    var out = run('archive ' + demo + ' arch-verdict --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(out.indexOf('[ARCHIVE]') !== -1 || out.indexOf('[MOVED]') !== -1, out);
     var index = fs.readFileSync(path.join(demo, 'mydocs', 'archive', 'index.md'), 'utf-8');
     assert.ok(index.indexOf('| v1.0-arch-verdict.md |') !== -1, index);
@@ -1035,7 +1146,7 @@ describe('CLI commands', function() {
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1);
 
-    var archived = run('archive ' + demo + ' lessoned');
+    var archived = run('archive ' + demo + ' lessoned --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(archived.indexOf('[LEARNING]') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.0-lessoned.learning.md')));
     var archivedSpec = fs.readFileSync(path.join(demo, 'mydocs', 'archive', 'v1.0-lessoned.md'), 'utf-8');
@@ -1046,7 +1157,7 @@ describe('CLI commands', function() {
     var demo = path.join(tmpBase, 'd4b');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name blocked --spec-version v1.0 --requirement x --mode standard');
-    var out = run('archive ' + demo + ' blocked');
+    var out = run('archive ' + demo + ' blocked --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(out.indexOf('Spec is not archive-ready') !== -1);
     assert.ok(out.indexOf('Plan Approved By is empty') !== -1);
     assert.ok(out.indexOf('Technical Design is empty') !== -1);
@@ -2243,6 +2354,34 @@ describe('CLI commands', function() {
     assert.ok(agentsText.indexOf('ask whether reference materials / context exist') !== -1);
   });
 
+  it('Console labels completed active work as awaiting archive authorization', function() {
+    var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
+    assert.match(js, /Awaiting Archive Authorization/);
+    assert.doesNotMatch(js, /Ready to archive/);
+    assert.doesNotMatch(js, /All archive gates pass\. This spec is ready to archive\./);
+  });
+
+  it('archive help and Agent protocols require current explicit user authorization', function() {
+    var help = run('archive --help');
+    assert.match(help, /--authorized-by <identity>/);
+    assert.match(help, /--authorization-evidence <text>/);
+
+    [
+      'README.md',
+      'GUIDE.md',
+      'TEAM-GUIDE.md',
+      'SKILL.md',
+      'protocols/sdd-riper-one.md',
+      'protocols/sdd-riper-one-light.md',
+      'src/commands/_gen-ai-configs.js'
+    ].forEach(function(file) {
+      var text = fs.readFileSync(path.resolve(file), 'utf-8');
+      assert.match(text, /request explicit archive authorization from the current user/i, file);
+      assert.match(text, /must not construct archive authorization/i, file);
+      assert.match(text, /audit declaration, not identity authentication/i, file);
+    });
+  });
+
   it('generated AI configs include platform-neutral reviewer authorization guidance', function() {
     var demo = path.join(tmpBase, 'reviewer-auth-ai-config');
     run('init ' + demo + ' --mode standard');
@@ -2302,6 +2441,28 @@ describe('CLI commands', function() {
     assert.ok(adr.indexOf('Alternatives') !== -1);
     var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
     assert.ok(skill.indexOf('protocols/adr.md') !== -1);
+  });
+
+  it('SDD integration overrides upstream executing-plans handoffs', function() {
+    var writingPlans = fs.readFileSync(path.resolve('vendored', 'superpowers', 'writing-plans', 'SKILL.md'), 'utf-8');
+    var subagentDevelopment = fs.readFileSync(path.resolve('vendored', 'superpowers', 'subagent-driven-development', 'SKILL.md'), 'utf-8');
+    assert.ok(writingPlans.indexOf('executing-plans') !== -1, 'upstream writing-plans reference should remain byte-identical');
+    assert.ok(subagentDevelopment.indexOf('executing-plans') !== -1, 'upstream subagent reference should remain byte-identical');
+
+    var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
+    assert.ok(skill.indexOf('Do not copy the upstream Plan Document Header or Execution Handoff') !== -1);
+    assert.ok(skill.indexOf('SDD Execute Phase') !== -1);
+    assert.ok(skill.indexOf('host-native continuous execution') !== -1);
+    assert.ok(skill.indexOf('The upstream `executing-plans` route does not apply inside SDD-RIPER') !== -1);
+
+    var integrations = fs.readFileSync(path.resolve('INTEGRATIONS.md'), 'utf-8');
+    assert.ok(integrations.indexOf('SDD adaptation takes precedence') !== -1);
+    assert.ok(integrations.indexOf('executing-plans') !== -1);
+
+    var sync = fs.readFileSync(path.resolve('vendored', 'superpowers', 'SYNC.md'), 'utf-8');
+    assert.ok(sync.indexOf('Known Upstream-Only References') !== -1);
+    assert.ok(sync.indexOf('Do not vendor `executing-plans`') !== -1);
+    assert.ok(sync.indexOf('SDD integration overrides upstream executing-plans handoffs') !== -1);
   });
 
   it('doctor passes on the real repo and fails on dangling references', function() {
@@ -2556,5 +2717,91 @@ describe('CLI commands', function() {
     var phasesMatch = consoleSrc.match(/var phases = \[([\s\S]*?)\];/);
     assert.ok(phasesMatch, 'should find phases array');
     assert.ok(phasesMatch[1].indexOf("'review'") === -1, 'phases should not include review');
+  });
+
+  it('templates document Provider for e2e AC without exposing transport or command', function() {
+    ['spec-standard.md', 'spec-lite.md', 'spec-micro.md'].forEach(function(file) {
+      var content = fs.readFileSync(path.resolve('templates', file), 'utf-8');
+      assert.ok(content.indexOf('Provider: <required for e2e') !== -1, file);
+      assert.ok(content.indexOf('Provider: <transport') === -1, file);
+      assert.ok(content.indexOf('Provider: <command') === -1, file);
+    });
+  });
+
+  it('Console exposes read-only Provider readiness and no execution button', function() {
+    var html = fs.readFileSync(path.resolve('src/web/index.html'), 'utf-8');
+    var consoleSrc = fs.readFileSync(path.resolve('src/web/console.js'), 'utf-8');
+    assert.ok(html.indexOf('id="provider-readiness"') !== -1);
+    assert.ok(consoleSrc.indexOf('function renderProviderReadiness') !== -1);
+    assert.ok(consoleSrc.indexOf('verify-run-button') === -1);
+  });
+
+  it('Console spec detail adds a versioned read-only Verification projection', async function() {
+    var demo = path.join(tmpBase, 'console-verification-detail');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name verification-detail --spec-version v1.0 --requirement x --mode standard');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-verification-detail.md');
+    insertSectionContent(specFile, 'Acceptance Criteria', [
+      '### AC-003: Console works',
+      'Requirement: console evidence',
+      'Type: functional',
+      'Verification: e2e',
+      'Provider: console-e2e',
+      'Automated: yes',
+      'Test: tests/console.spec.js'
+    ].join('\n'));
+    fs.writeFileSync(path.join(demo, '.sdd-verification.json'), JSON.stringify({
+      schemaVersion: 1,
+      providers: {
+        'console-e2e': {
+          adapter: 'playwright-test', workspaceRoot: '.', packageRoot: 'apps/web',
+          config: 'apps/web/playwright.config.js', projects: ['chromium']
+        }
+      }
+    }), 'utf-8');
+
+    var server = require('../src/commands/console').createServer(demo);
+    await new Promise(function(resolve) { server.listen(0, '127.0.0.1', resolve); });
+    try {
+      var list = await waitForSpecs(server, 1);
+      assert.equal(Object.prototype.hasOwnProperty.call(list.body.specs[0], 'verification'), false);
+      var detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+      assert.equal(detail.statusCode, 200);
+      assert.equal(detail.body.verification.schemaVersion, 1);
+      assert.equal(detail.body.verification.providers[0].id, 'console-e2e');
+      var cached = require('../src/core/spec-index').getSpec(demo, list.body.specs[0].id);
+      assert.equal(Object.prototype.hasOwnProperty.call(cached, 'verification'), false, 'detail response must not mutate cached spec facts');
+      var html = fs.readFileSync(path.resolve('src/web/index.html'), 'utf-8');
+      assert.doesNotMatch(html, /verify-run-button|verify-init-button/);
+    } finally {
+      await new Promise(function(resolve) { server.close(resolve); });
+    }
+  });
+
+  it('Console renders Verification runs, freshness, matrix, diagnostics, attachments, and responsive empty states', function() {
+    var html = fs.readFileSync(path.resolve('src/web/index.html'), 'utf-8');
+    var js = fs.readFileSync(path.resolve('src/web/console.js'), 'utf-8');
+    var css = fs.readFileSync(path.resolve('src/web/console.css'), 'utf-8');
+    ['verification-summary', 'verification-runs', 'verification-matrix', 'verification-details'].forEach(function(id) {
+      assert.ok(html.indexOf('id="' + id + '"') !== -1, id + ' section is required');
+    });
+    assert.ok(js.indexOf('function renderVerificationEvidence') !== -1);
+    assert.ok(js.indexOf('configured-no-runs') !== -1);
+    assert.ok(js.indexOf('freshnessReasons') !== -1);
+    assert.ok(js.indexOf('attachment.path') !== -1);
+    assert.ok(css.indexOf('.verification-scroll') !== -1);
+    assert.match(css, /\.verification-scroll\s*\{[^}]*overflow-x:\s*auto/s);
+    assert.match(css, /@media\s*\(max-width:\s*820px\)[\s\S]*\.verification-provider-grid/s);
+    assert.doesNotMatch(html + js, /verify-run-button|verify-init-button/);
+  });
+
+  it('docs state the v3.0 adapter scope and deferred boundaries', function() {
+    var docs = ['README.md', 'GUIDE.md', 'TEAM-GUIDE.md'].map(function(file) {
+      return fs.readFileSync(path.resolve(file), 'utf-8');
+    }).join('\n');
+    assert.ok(docs.indexOf('playwright-test') !== -1);
+    assert.ok(docs.indexOf('playwright-mcp') !== -1);
+    assert.ok(docs.indexOf('不自动降级') !== -1);
+    assert.ok(docs.indexOf('Yarn PnP') !== -1);
   });
 });

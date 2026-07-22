@@ -115,7 +115,7 @@ function summarizeProject(projectDir, opts) {
     configured: info.configured,
     total: 0,
     active: 0,
-    ready: 0,
+    awaitingArchiveAuthorization: 0,
     issueCount: 0,
     counts: {},
     latestSpec: null,
@@ -330,7 +330,14 @@ function createServer(projectDir, opts) {
         if (!detailProject) return;
         var spec = specIndex.getSpec(detailProject.projectDir, detailMatch[1]);
         if (!spec) sendJson(res, 404, { error: 'Spec not found.' });
-        else sendJson(res, 200, spec);
+        else {
+          var specPath = path.join(detailProject.projectDir, spec.relativePath);
+          var specContent = fs.readFileSync(specPath, 'utf-8');
+          var verification = require('../verification/evidence').buildConsoleProjection(
+            specContent, detailProject.projectDir, specPath
+          );
+          sendJson(res, 200, Object.assign({}, spec, { verification: verification }));
+        }
         return;
       }
       var validateMatch = pathname.match(/^\/api\/specs\/([^/]+)\/validate$/);

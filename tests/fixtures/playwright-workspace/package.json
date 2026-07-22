@@ -1,0 +1,13 @@
+{
+  "name": "sdd-playwright-contract-fixture",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "bootstrap": "npm ci --cache .npm-cache && npm run install:chromium",
+    "install:chromium": "playwright install chromium",
+    "test:console": "playwright test --config=playwright.console.config.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.52.0"
+  }
+}

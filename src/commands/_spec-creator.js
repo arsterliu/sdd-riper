@@ -2,6 +2,8 @@ var fs = require('fs');
 var path = require('path');
 var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
+var profileStore = require('../profile/store');
+var ProfileError = require('../profile/errors').ProfileError;
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -78,6 +80,24 @@ function fillArtifactTemplate(templatePath, taskName, mode, specRelPath) {
   return content;
 }
 
+function profileContext(projectDir, units) {
+  var resolved = profileStore.resolveCurrent(projectDir);
+  if (!resolved) return { revision: '', digest: '', units: '' };
+  var requested = Array.isArray(units) ? units : units ? [units] : [];
+  requested = requested.map(function(value) { return String(value).trim(); }).filter(Boolean);
+  requested = Array.from(new Set(requested)).sort();
+  if (!requested.length) {
+    throw new ProfileError('SDD_PROFILE_AFFECTED_UNITS_REQUIRED', 'confirmed profile requires --unit <id...> or --unit project', {}, 3);
+  }
+  var known = {};
+  resolved.revision.profile.units.forEach(function(unit) { known[unit.id] = true; });
+  var unknown = requested.filter(function(unit) { return unit !== 'project' && !known[unit]; });
+  if (unknown.length) {
+    throw new ProfileError('SDD_PROFILE_UNIT_UNKNOWN', 'unknown affected unit: ' + unknown.join(', '), { units: unknown }, 3);
+  }
+  return { revision: resolved.current.revision, digest: resolved.current.profileDigest, units: requested.join(',') };
+}
+
 function run(projectDir, opts) {
   var docsDir = common.getDocsDir(projectDir);
   var docsRoot = path.join(projectDir, docsDir);
@@ -122,6 +142,16 @@ function run(projectDir, opts) {
     process.exit(1);
   }
 
+  var projectProfile;
+  try { projectProfile = profileContext(projectDir, opts.unit); }
+  catch (error) {
+    if (error instanceof ProfileError) {
+      console.error('[' + error.code + '] ' + error.message.replace(error.code + ': ', ''));
+      process.exit(error.exitCode);
+    }
+    throw error;
+  }
+
   var specOut = path.join(specsDir, opts.version + '-' + taskName + '.md');
   var specRel = common.relativeToProject(projectDir, specOut);
   var designOut = mode === 'micro' ? '' : path.join(designDir, opts.version + '-' + taskName + '.design.md');
@@ -154,6 +184,9 @@ function run(projectDir, opts) {
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
   specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');
   specContent = specContent.replace(/^execute-log-file:.*/gm, 'execute-log-file: "' + yamlQuote(logRel) + '"');
+  specContent = specContent.replace(/^project-profile-revision:.*/m, 'project-profile-revision: "' + yamlQuote(projectProfile.revision) + '"');
+  specContent = specContent.replace(/^project-profile-digest:.*/m, 'project-profile-digest: "' + yamlQuote(projectProfile.digest) + '"');
+  specContent = specContent.replace(/^affected-units:.*/m, 'affected-units: "' + yamlQuote(projectProfile.units) + '"');
   specContent = fillIntake(specContent, mode, opts);
 
   fs.writeFileSync(specOut, specContent, 'utf-8');
@@ -176,8 +209,12 @@ function run(projectDir, opts) {
   if (contextSource) console.log('### Context source: ' + contextSource);
   if (designOut) console.log('### Design file: ' + designOut);
   console.log('### Execute Log file: ' + logOut);
+  if (projectProfile.revision) {
+    console.log('### Project Profile revision: ' + projectProfile.revision);
+    console.log('### Affected units: ' + projectProfile.units);
+  }
   console.log('');
   console.log(workflowHint(mode));
 }
 
-module.exports = { run: run };
+module.exports = { run: run, _private: { profileContext: profileContext } };

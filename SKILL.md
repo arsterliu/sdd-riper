@@ -34,6 +34,8 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
 10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency.
 11. **Challenge Failures Backtrack**: adversarial challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
+12. **Explicit Archive Authorization**: Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
+13. **Exact Project Profile Context**: when a Spec declares `project-profile-revision`, Research must read that exact revision and must never substitute `profiles/current.json`. Before `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest. Profile `commandRefs` are facts and must not be executed automatically; detection and inheritance must not install dependencies or initialize a Verification Provider.
 
 ## CLI Rule
 
@@ -61,6 +63,9 @@ Spec frontmatter contains:
 design-file: "mydocs/design/<vN.M-or-vN.M.P>-task.design.md"
 execute-log-file: "mydocs/logs/<vN.M-or-vN.M.P>-task.execute.md"
 learning-file: ""
+project-profile-revision: "profiles/revisions/sha256-<digest>.json"
+project-profile-digest: "sha256:<digest>"
+affected-units: "web,api"
 ```
 
 Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.
@@ -104,7 +109,8 @@ Use `PHASE_HINT`:
 - `new_task`: ask whether to run `discover`.
 - `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.
 - `execute`: enter Execute only if Plan approval is present.
-- `archive`: run Challenge / Learning Check / Archive checks.
+- `learning`: complete the Learning Check.
+- `await_archive_authorization`: stop and request explicit archive authorization from the current user; do not run archive yet.
 
 For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
 
@@ -317,6 +323,8 @@ Every step should include:
 - verification command or check
 
 Follow `writing-plans` for step granularity (see `vendored/superpowers/writing-plans/SKILL.md` — read on demand; prefer the global skill if loaded).
+
+SDD scope adaptation: reuse only its file mapping, bite-sized step, TDD, and verification-command guidance. **Do not copy the upstream Plan Document Header or Execution Handoff** into an SDD Plan, because those sections belong to the upstream Superpowers workflow and may require skills that SDD-RIPER does not vendor. The Plan remains in the active Spec. Execute it through the **SDD Execute Phase**, `subagent-driven-development` when delegation is appropriate, or **host-native continuous execution** in the current session. Never declare `executing-plans` as a required SDD skill.
 
 Before Execute, satisfy the configured gate and write:
 
@@ -546,14 +554,16 @@ Before archive:
 sdd validate "<PROJECT_ROOT>" --archive-ready
 ```
 
-If validation fails, fix listed gates first.
+If validation fails, fix listed gates first. A successful validation only proves completion readiness and does not authorize Archive.
+
+When `NEXT_ACTION: request_archive_authorization` appears, stop and ask the current user for explicit authorization. Do not infer authorization from Ready, PASS, Plan Approval, Challenge, prior messages, or prior authorization. The CLI records `human:<name>` as an audit declaration, not identity authentication, so an agent must never fabricate it.
 
 Before archiving, finish the development branch cleanly — commits, branch hygiene, no stray work-in-progress — following `finishing-a-development-branch` (see `vendored/superpowers/finishing-a-development-branch/SKILL.md` — read on demand; prefer the global skill if loaded).
 
 Then run:
 
 ```text
-sdd archive "<PROJECT_ROOT>" "<spec-name>"
+sdd archive "<PROJECT_ROOT>" "<spec-name>" --authorized-by "human:<name>" --authorization-evidence "<current user authorization evidence>"
 ```
 
 Archive moves:
@@ -584,6 +594,8 @@ Default mode is micro. Reopen creates a new active Spec and a new Execute Log; s
 ## Subagent Policy
 
 Use `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract, and `subagent-driven-development` for general routing technique (see `vendored/superpowers/subagent-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded).
+
+The upstream `executing-plans` route does not apply inside SDD-RIPER. When work is not delegated to subagents, the main agent follows the approved Plan through the SDD Execute Phase and reuses host-native continuous execution; it does not hand off to an unvendored skill or a separate Superpowers session.
 
 Subagents are:
 
@@ -632,6 +644,6 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd learnings <dir> [--for <spec>]` — project-level learnings, or relevance-ranked recall for a spec
 - `sdd review-execute <dir>`
 - `sdd debug <dir> --error <msg>`
-- `sdd archive <dir> <spec-name>`
+- `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"`
 - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
 - `sdd codemap <dir>`

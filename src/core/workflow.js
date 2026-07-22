@@ -182,6 +182,9 @@ function analyzeSpec(projectDir, specPath, opts) {
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var contextSource = common.getFrontmatterField(specPath, 'context-source') || '';
+  var profileRevision = common.getFrontmatterField(specPath, 'project-profile-revision') || '';
+  var profileDigest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
+  var affectedUnits = (common.getFrontmatterField(specPath, 'affected-units') || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean);
   var action = actionText(projectDir, specPath);
   // Extract Confirmed Requirement section: standard uses ### under ## Research, lite uses ## section
   var crSection;
@@ -221,13 +224,21 @@ function analyzeSpec(projectDir, specPath, opts) {
     blockerDetails: evaluated.blockers,
     gates: evaluated.gates,
     phase: evaluated.phase,
-    archiveReady: evaluated.archiveReady,
+    completionReady: evaluated.completionReady,
     riskFlags: flags,
     designMethod: designMethodHint(mode, flags),
     gateEvidence: labelValue(content, 'Gate Evidence'),
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
     contextSource: contextSource || undefined,
+    profileRevision: profileRevision || undefined,
+    profileDigest: profileDigest || undefined,
+    affectedUnits: affectedUnits,
+    profileAdvisory: affectedUnits.length > 1 ? {
+      kind: 'cross-unit',
+      focusFields: ['Interface Contract', 'Compatibility / Rollback'],
+      note: 'Cross-unit scope: explicitly review interface contracts and compatibility; mode remains unchanged.'
+    } : undefined,
     reviewBrief: sectionContent(specPath, 'Review (Verdict|Summary)')
   };
 }

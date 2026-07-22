@@ -478,6 +478,8 @@ function validateSpec(specPath, opts) {
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
   var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
 
+  validateProfileReference(projectDir, specPath, issues);
+
   if (!opts.archiveReady) {
     if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {
       issues.push('Missing diff-base frontmatter; Review cannot reliably know the task diff range.');
@@ -526,11 +528,39 @@ function validateSpec(specPath, opts) {
     issues = issues.filter(function(issue, index, all) { return all.indexOf(issue) === index; });
   }
   return {
-    ok: opts.archiveReady ? workflowState.archiveReady : blockingIssues.length === 0,
+    ok: opts.archiveReady ? workflowState.completionReady : blockingIssues.length === 0,
     issues: issues,
     specPath: specPath,
     workflowState: workflowState
   };
+}
+
+function validateProfileReference(projectDir, specPath, issues) {
+  var revisionRef = common.getFrontmatterField(specPath, 'project-profile-revision') || '';
+  var digest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
+  var unitsText = common.getFrontmatterField(specPath, 'affected-units') || '';
+  if (!revisionRef && !digest && !unitsText) return;
+  if (!revisionRef || !digest || !unitsText) {
+    issues.push('Project Profile reference is incomplete: revision, digest, and affected-units must be declared together.');
+    return;
+  }
+  if (!/^sha256:[a-f0-9]{64}$/i.test(digest)) {
+    issues.push('Project Profile digest is invalid.');
+    return;
+  }
+  try {
+    var resolved = require('../profile/store').resolveRevision(projectDir, digest);
+    if (resolved.relative !== revisionRef) issues.push('Project Profile revision path does not match its digest.');
+    var known = {};
+    resolved.revision.profile.units.forEach(function(unit) { known[unit.id] = true; });
+    var requested = unitsText.split(',').map(function(value) { return value.trim(); }).filter(Boolean);
+    if (!requested.length) issues.push('Project Profile affected-units is empty.');
+    requested.forEach(function(unit) {
+      if (unit !== 'project' && !known[unit]) issues.push('Project Profile references unknown affected unit: ' + unit + '.');
+    });
+  } catch (error) {
+    issues.push('Project Profile reference is invalid: ' + (error.code || error.message) + '.');
+  }
 }
 
 function run(projectDir, opts) {
@@ -546,6 +576,10 @@ function run(projectDir, opts) {
   console.log('SPEC: ' + (result.specPath || 'none'));
   if (result.ok) {
     console.log('RESULT: OK');
+    if (opts.archiveReady) {
+      console.log('COMPLETION_READY: yes');
+      console.log('ARCHIVE_AUTHORIZATION: required-at-archive');
+    }
     return;
   }
   console.log('RESULT: FAIL');
