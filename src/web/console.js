@@ -122,6 +122,24 @@ function validationTone(spec) {
   return 'progress';
 }
 
+function readable(value) {
+  value = String(value == null ? '' : value).replace(/_/g, ' ');
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : '-';
+}
+
+function workStateValue(spec) {
+  var value = spec && spec.workState;
+  if (!value || typeof value !== 'object' || !value.id || !value.label) {
+    return { id: 'unavailable', label: 'State unavailable', tone: 'not-started' };
+  }
+  return {
+    id: String(value.id),
+    label: String(value.label),
+    tone: value.tone === 'complete' || value.tone === 'progress' || value.tone === 'waiting'
+      ? value.tone : 'not-started'
+  };
+}
+
 function gateValue(spec, key) {
   if (key === 'design' && spec.mode === 'micro') return true;
   var workflowGate = {
@@ -176,6 +194,8 @@ function filteredSpecs() {
       spec.mode,
       spec.status,
       spec.phase,
+      spec.workState && spec.workState.id,
+      spec.workState && spec.workState.label,
       spec.relativePath,
       spec.reviewVerdict
     ].join(' ').toLowerCase().indexOf(query) !== -1;
@@ -192,12 +212,14 @@ function filteredSpecs() {
 
 function renderMetrics() {
   var total = state.specs.length;
-  var active = state.specs.filter(function(spec) { return spec.phase !== 'archived'; }).length;
-  var blocked = state.specs.reduce(function(sum, spec) { return sum + (spec.validate.issueCount || 0); }, 0);
-  var awaitingAuthorization = state.specs.filter(function(spec) { return spec.phase === 'archive_authorization'; }).length;
+  var active = state.specs.filter(function(spec) { return workStateValue(spec).id !== 'archived'; }).length;
+  var needsRepair = state.specs.filter(function(spec) { return workStateValue(spec).id === 'needs_repair'; }).length;
+  var awaitingAuthorization = state.specs.filter(function(spec) {
+    return workStateValue(spec).id === 'awaiting_archive_authorization';
+  }).length;
   qs('metric-total').textContent = total;
   qs('metric-active').textContent = active;
-  qs('metric-blocked').textContent = blocked;
+  qs('metric-blocked').textContent = needsRepair;
   qs('metric-ready').textContent = awaitingAuthorization;
 }
 
@@ -294,6 +316,7 @@ function resetProjectView(message) {
   qs('spec-detail').classList.add('hidden');
   qs('empty-detail').classList.remove('hidden');
   qs('empty-detail').innerHTML = '<strong>No project loaded</strong><span>Enter a project directory to inspect specs.</span>';
+  renderProjectProfile(null);
   render();
 }
 
@@ -334,24 +357,17 @@ function renderSpecList() {
     return;
   }
   specs.forEach(function(spec) {
-    var stats = gateStats(spec);
+    var workState = workStateValue(spec);
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'spec-item' + (state.selectedId === spec.id ? ' active' : '');
     button.innerHTML = [
-      '<div class="spec-row">',
-      '<span class="spec-name">' + esc(spec.taskName) + '</span>',
-      '<span class="pill ' + phaseTone(spec.phase) + '">' + esc(spec.phase) + '</span>',
-      '</div>',
-      '<div class="spec-row meta">',
-      '<span>' + esc(spec.version) + ' / ' + esc(spec.mode) + ' / ' + stats.done + '/' + stats.total + ' gates</span>',
-      '<span class="pill ' + validationTone(spec) + '">' + (spec.validate.ok ? 'valid' : esc(spec.validate.issueCount) + ' issues') + '</span>',
-      '</div>',
-      renderMiniGates(spec),
-      '<div class="spec-row meta">',
-      '<span class="path">' + esc(spec.relativePath) + '</span>',
-      '<span>' + esc(formatDate(spec.updatedAt)) + '</span>',
-      '</div>'
+      '<span class="spec-board-task"><strong>' + esc(spec.taskName) + '</strong>',
+      '<small>' + esc(spec.version) + ' / ' + esc(spec.mode) + '</small></span>',
+      '<span class="spec-board-cell"><span class="pill ' + (spec.status === 'archived' ? 'complete' : 'neutral') + '">' + esc(readable(spec.status)) + '</span></span>',
+      '<span class="spec-board-cell"><span class="pill ' + phaseTone(spec.phase) + '">' + esc(readable(spec.phase)) + '</span></span>',
+      '<span class="spec-board-cell"><span class="pill ' + esc(workState.tone) + '">' + esc(workState.label) + '</span></span>',
+      '<span class="spec-board-updated">' + esc(formatDate(spec.updatedAt)) + '</span>'
     ].join('');
     button.addEventListener('click', function() {
       loadDetail(spec.id, spec);
@@ -468,6 +484,133 @@ function verificationTone(value) {
 
 function verificationEmpty(title, message) {
   return '<div class="verification-empty"><strong>' + esc(title) + '</strong><span>' + esc(message) + '</span></div>';
+}
+
+function diagnosticHtml(values) {
+  values = Array.isArray(values) ? values : [];
+  if (!values.length) return '';
+  return '<div class="projection-diagnostics">' + values.map(function(item) {
+    item = item || {};
+    return '<div class="projection-diagnostic"><code>' + esc(item.code || 'attention') + '</code>' +
+      '<span>' + esc(item.message || 'No additional detail is available.') + '</span>' +
+      (item.recovery ? '<small>' + esc(item.recovery) + '</small>' : '') + '</div>';
+  }).join('') + '</div>';
+}
+
+function profileTone(state) {
+  if (state === 'confirmed') return 'complete';
+  if (state === 'missing') return 'waiting';
+  if (state === 'invalid') return 'bad';
+  return 'not-started';
+}
+
+function renderProjectProfile(info) {
+  var root = qs('project-profile');
+  var view = info && info.profile;
+  if (!view || view.schemaVersion !== 1) {
+    root.innerHTML = '<div class="project-profile-head"><div><h2>Project Profile</h2><p>Read-only project context</p></div>' +
+      '<span class="pill not-started">Unavailable</span></div>' +
+      '<div class="projection-empty">Load an initialized project to inspect its confirmed Profile summary.</div>';
+    return;
+  }
+  var units = Array.isArray(view.units) ? view.units : [];
+  root.innerHTML = [
+    '<div class="project-profile-head"><div><h2>Project Profile</h2><p>Read-only project context</p></div>',
+    '<span class="pill ' + profileTone(view.state) + '">' + esc(readable(view.state)) + '</span></div>',
+    '<div class="profile-summary-grid">',
+    '<div><span>Revision</span><strong>' + esc(view.revision || '-') + '</strong></div>',
+    '<div><span>Digest</span><strong>' + esc(view.digest || '-') + '</strong></div>',
+    '<div><span>Units</span><strong>' + esc(view.unitCount || 0) + '</strong></div>',
+    '<div><span>Relations</span><strong>' + esc(view.relationCount || 0) + '</strong></div>',
+    '</div>',
+    units.length ? '<div class="profile-units">' + units.map(function(unit) {
+      return '<div class="profile-unit"><strong>' + esc(unit.id) + '</strong><span>' + esc((unit.roles || []).join(', ') || 'no roles') + '</span></div>';
+    }).join('') + '</div>' : '',
+    diagnosticHtml(view.diagnostics)
+  ].join('');
+}
+
+function qualityTone(state) {
+  if (state === 'available') return 'complete';
+  if (state === 'blocking') return 'waiting';
+  if (state === 'not_applicable') return 'not-started';
+  return 'bad';
+}
+
+function qualityStateLabel(state) {
+  if (state === 'not_applicable') return 'Not applicable';
+  return readable(state);
+}
+
+function qualitySourceHtml(source) {
+  source = source || {};
+  var declared = Array.isArray(source.declaredAffectedUnits) ? source.declaredAffectedUnits : [];
+  var effective = Array.isArray(source.effectiveAffectedUnits) ? source.effectiveAffectedUnits : [];
+  if (!source.profileRevision && !source.profileDigest && !declared.length && !effective.length) return '';
+  return '<div class="quality-source"><strong>Exact Profile input</strong><dl>' +
+    '<dt>Revision</dt><dd>' + esc(source.profileRevision || '-') + '</dd>' +
+    '<dt>Digest</dt><dd>' + esc(source.profileDigest || '-') + '</dd>' +
+    '<dt>Declared units</dt><dd>' + esc(declared.join(', ') || 'none') + '</dd>' +
+    '<dt>Effective units</dt><dd>' + esc(effective.join(', ') || 'none') + '</dd>' +
+    '</dl></div>';
+}
+
+function qualityFocusHtml(values) {
+  values = Array.isArray(values) ? values : [];
+  if (!values.length) return '';
+  return '<div class="quality-group"><h4>Policy focus</h4><div class="quality-focus-list">' + values.map(function(item) {
+    item = item || {};
+    var reasons = (item.reasons || []).map(function(reason) {
+      if (reason.kind === 'role') return reason.unitId + ' / ' + reason.role;
+      if (reason.kind === 'relation') return reason.from + ' → ' + reason.to + ' / ' + reason.relationKind;
+      return '';
+    }).filter(Boolean);
+    return '<div class="quality-focus"><strong>' + esc(item.id || '-') + '</strong><span>' +
+      esc((item.recommendedCapabilities || []).join(', ') || 'no capabilities') + '</span>' +
+      (reasons.length ? '<small>' + esc(reasons.join('; ')) + '</small>' : '') + '</div>';
+  }).join('') + '</div></div>';
+}
+
+function qualityAcHtml(values, mappings) {
+  values = Array.isArray(values) ? values : [];
+  mappings = Array.isArray(mappings) ? mappings : [];
+  if (!values.length && !mappings.length) return '';
+  return '<div class="quality-group"><h4>Acceptance mapping</h4><div class="quality-scroll"><table class="quality-table"><thead><tr>' +
+    '<th>AC</th><th>Verification</th><th>Provider</th><th>Capability</th></tr></thead><tbody>' +
+    values.map(function(fact) {
+      fact = fact || {};
+      var mapping = mappings.find(function(item) { return item && item.acId === fact.acId; }) || {};
+      return '<tr><th>' + esc(fact.acId || '-') + '</th><td>' + esc(fact.verification || '-') + '</td><td>' +
+        esc(fact.provider || '-') + '</td><td>' + esc(mapping.verificationCapability || '-') + '</td></tr>';
+    }).join('') + '</tbody></table></div></div>';
+}
+
+function qualityReadinessHtml(readiness) {
+  if (!readiness) return '';
+  return '<div class="quality-group"><h4>E2E readiness</h4><div class="quality-readiness"><span class="pill ' +
+    verificationTone(readiness.state) + '">' + esc(readiness.state || 'unknown') + '</span><span>Required: ' +
+    esc((readiness.requiredProviders || []).join(', ') || 'none') + '; Missing: ' +
+    esc((readiness.missingProviders || []).join(', ') || 'none') + '</span>' +
+    ((readiness.issues || []).length ? '<small>' + esc(readiness.issues.join('; ')) + '</small>' : '') + '</div></div>';
+}
+
+function renderQualityPlan(spec) {
+  var root = qs('quality-plan');
+  var view = spec && spec.qualityPlan;
+  if (!view || view.schemaVersion !== 1) {
+    root.innerHTML = '<div class="projection-empty"><strong>Quality Plan unavailable</strong><span>Quality details are loaded only for the selected Spec.</span></div>';
+    return;
+  }
+  root.innerHTML = [
+    '<div class="quality-overview"><div><strong>Current Quality Plan</strong><span>Derived from the selected Spec only</span></div>',
+    '<span class="pill ' + qualityTone(view.state) + '">' + esc(qualityStateLabel(view.state)) + '</span></div>',
+    view.policyVersion ? '<div class="quality-policy-version">Policy version: ' + esc(view.policyVersion) + '</div>' : '',
+    qualitySourceHtml(view.source),
+    qualityFocusHtml(view.policyFocus),
+    qualityAcHtml(view.acFacts, view.acMappings),
+    qualityReadinessHtml(view.e2eReadiness),
+    diagnosticHtml(view.diagnostics)
+  ].join('');
 }
 
 function renderVerificationEvidence(spec) {
@@ -864,11 +1007,13 @@ function renderDetail(spec) {
     qs('detail-mode').textContent = text(spec.mode);
     qs('detail-status').textContent = text(spec.status);
     qs('detail-phase').textContent = text(spec.phase);
+    qs('detail-work-state').textContent = workStateValue(spec).label;
     qs('detail-updated').textContent = formatDate(spec.updatedAt);
     renderBlocker(spec);
     renderRiskFlags(spec);
     renderChallengeVerdict(spec);
     renderBlockers(spec);
+    renderQualityPlan(spec);
     renderProviderReadiness(spec);
     renderVerificationEvidence(spec);
     renderGateList(spec);
@@ -895,8 +1040,10 @@ function showDetailError(err) {
   qs('detail-mode').textContent = '-';
   qs('detail-status').textContent = '-';
   qs('detail-phase').textContent = '-';
+  qs('detail-work-state').textContent = '-';
   qs('detail-updated').textContent = '-';
   qs('next-blocker').innerHTML = '';
+  qs('quality-plan').innerHTML = '<div class="projection-empty"><strong>Quality Plan unavailable</strong><span>Unable to render this selected Spec.</span></div>';
   qs('gate-list').innerHTML = '';
   qs('artifact-list').innerHTML = '';
   renderValidation({ ok: false, issues: [err.message || String(err)] });
@@ -1046,6 +1193,7 @@ function renderProject(info) {
   qs('project-error').textContent = '';
   qs('project-input').value = info && info.projectDir ? info.projectDir : '';
   qs('project-state').textContent = info && info.configured ? 'Loaded' : 'Not loaded';
+  renderProjectProfile(info);
   if (info && info.configured) {
     addProjectDir(info.projectDir);
     qs('project-path').textContent = info.projectDir + ' / ' + info.docsDir;

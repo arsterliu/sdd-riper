@@ -29,6 +29,7 @@ function safeMessage(value) {
   text = text.replace(/(^|\s)\/(?:[^\s"'<>/]+\/)*[^\s"'<>]*/g, function(_, prefix) {
     return prefix + '[PATH]';
   });
+  text = text.replace(/\.\.[\\/][^\s"'<>]*/g, '[PATH]');
   return text.slice(0, 1000);
 }
 

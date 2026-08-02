@@ -14,6 +14,11 @@ function run(projectDir, opts) {
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
   if (state.contextSource) console.log('CONTEXT_SOURCE: ' + state.contextSource);
+  if (state.visualEvidence && state.visualEvidence.state !== 'not-applicable') {
+    console.log('VISUAL_EVIDENCE_STATE: ' + state.visualEvidence.state);
+    console.log('PLAN_READINESS: ' + state.visualEvidence.planReadiness);
+    console.log('BASELINE_STATUS: ' + state.visualEvidence.baselineStatus);
+  }
   if (state.profileRevision) {
     console.log('PROJECT_PROFILE_REVISION: ' + state.profileRevision);
     console.log('PROJECT_PROFILE_DIGEST: ' + state.profileDigest);

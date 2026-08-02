@@ -8,6 +8,11 @@ var execFileSync = childProcess.execFileSync;
 var common = require('../../lib/common');
 var specIndex = require('../core/spec-index');
 var projectIndexer = require('../core/project-indexer');
+var consoleProjection = require('../console/projection');
+var profileStore = require('../profile/store');
+var qualityInput = require('../quality/input');
+var qualityPlanner = require('../quality/planner');
+var verificationReadiness = require('../verification/readiness');
 
 var WEB_ROOT = path.resolve(__dirname, '..', 'web');
 
@@ -54,7 +59,7 @@ function projectInfo(projectDir) {
   }
   var resolved = path.resolve(projectDir);
   var docsRoot = common.getDocsRoot(resolved);
-  return {
+  var info = {
     projectDir: resolved,
     docsDir: common.getDocsDir(resolved),
     docsRoot: docsRoot,
@@ -64,6 +69,12 @@ function projectInfo(projectDir) {
     maxIterations: common.getCruiseMaxIterations(resolved),
     cwd: process.cwd()
   };
+  if (info.configured) {
+    info.profile = consoleProjection.projectProfileView(resolved, {
+      resolveCurrent: profileStore.resolveCurrent
+    });
+  }
+  return info;
 }
 
 function browseProjectDir() {
@@ -136,6 +147,14 @@ function summarizeProject(projectDir, opts) {
     summary.error = e.message || String(e);
   }
   return summary;
+}
+
+function withWorkStates(snapshot) {
+  return Object.assign({}, snapshot, {
+    specs: (snapshot.specs || []).map(function(spec) {
+      return Object.assign({}, spec, { workState: consoleProjection.workStateForSpec(spec) });
+    })
+  });
 }
 
 function sendJson(res, status, payload) {
@@ -321,7 +340,7 @@ function createServer(projectDir, opts) {
         var listProject = requireProject(currentProjectDir, res);
         if (!listProject) return;
         var snapshot = projectIndexer.getSnapshot(listProject.projectDir, { refresh: parsed.query.refresh === '1' });
-        sendJson(res, 200, snapshot);
+        sendJson(res, 200, withWorkStates(snapshot));
         return;
       }
       var detailMatch = pathname.match(/^\/api\/specs\/([^/]+)$/);
@@ -336,7 +355,16 @@ function createServer(projectDir, opts) {
           var verification = require('../verification/evidence').buildConsoleProjection(
             specContent, detailProject.projectDir, specPath
           );
-          sendJson(res, 200, Object.assign({}, spec, { verification: verification }));
+          var qualityPlan = consoleProjection.qualityPlanView(spec, detailProject.projectDir, specPath, {
+            loadQualityInput: qualityInput.loadQualityInput,
+            inspectReadiness: verificationReadiness.inspect,
+            buildQualityPlan: qualityPlanner.buildQualityPlan
+          });
+          sendJson(res, 200, Object.assign({}, spec, {
+            workState: consoleProjection.workStateForSpec(spec),
+            verification: verification,
+            qualityPlan: qualityPlan
+          }));
         }
         return;
       }

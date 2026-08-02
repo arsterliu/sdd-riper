@@ -61,7 +61,7 @@
           <strong id="metric-active">0</strong>
         </div>
         <div class="metric">
-          <span>Blocked Gates</span>
+          <span>Needs repair</span>
           <strong id="metric-blocked">0</strong>
         </div>
         <div class="metric">
@@ -70,11 +70,13 @@
         </div>
       </section>
 
+      <section id="project-profile" class="project-profile" aria-label="Project Profile summary" aria-live="polite"></section>
+
       <section class="workspace">
-        <aside class="spec-panel" aria-label="Spec inventory">
+        <aside class="spec-panel" aria-label="Spec status board">
           <div class="panel-head">
             <div>
-              <h2>Specs</h2>
+              <h2>Spec Status Board</h2>
               <p id="spec-total">0 total</p>
             </div>
             <select id="sort-order" aria-label="Sort specs">
@@ -90,7 +92,18 @@
           </div>
 
           <div id="phase-tabs" class="phase-tabs" aria-label="Phase filters"></div>
-          <div id="spec-list" class="spec-list"></div>
+          <div class="spec-board-scroll">
+            <div id="spec-status-board" class="spec-status-board">
+              <div class="spec-board-header" aria-hidden="true">
+                <span>Task</span>
+                <span>Lifecycle</span>
+                <span>Current Phase</span>
+                <span>Work State</span>
+                <span>Updated</span>
+              </div>
+              <div id="spec-list" class="spec-list"></div>
+            </div>
+          </div>
         </aside>
 
         <section class="detail" aria-label="Spec detail">
@@ -125,6 +138,10 @@
                 <strong id="detail-phase"></strong>
               </div>
               <div>
+                <span>Work State</span>
+                <strong id="detail-work-state"></strong>
+              </div>
+              <div>
                 <span>Updated</span>
                 <strong id="detail-updated"></strong>
               </div>
@@ -140,6 +157,14 @@
               <div id="risk-flags" class="risk-flags"></div>
               <div id="challenge-verdict" class="challenge-verdict"></div>
               <div id="blockers" class="blockers"></div>
+            </section>
+
+            <section class="detail-section">
+              <div class="section-title">
+                <h3>Quality Plan</h3>
+                <span>Read-only policy explanation</span>
+              </div>
+              <div id="quality-plan" class="quality-plan"></div>
             </section>
 
             <section class="detail-section">

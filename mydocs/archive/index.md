@@ -24,3 +24,8 @@
 | v3.1-console-verification-dogfood.md | 2026-07-12 | console-verification-dogfood | PASS |
 | v3.2-archive-authorization-gate.md | 2026-07-19 | archive-authorization-gate | PASS |
 | v3.4-project-engineering-profile.md | 2026-07-22 | project-engineering-profile | PASS_WITH_CONCERNS |
+| v3.3-fix-vendored-execution-skill-references.md | 2026-07-22 | fix-vendored-execution-skill-references | PASS_WITH_CONCERNS |
+| v2.4-reviewer-authorization-hints.md | 2026-07-22 | reviewer-authorization-hints | PASS_WITH_CONCERNS |
+| v3.5-quality-policy-routing.md | 2026-07-25 | quality-policy-routing | PASS_WITH_CONCERNS |
+| v3.6-console-quality-plan-dogfood.md | 2026-07-30 | console-quality-plan-dogfood | PASS |
+| v3.7-visual-evidence-contract.md | 2026-07-31 | visual-evidence-contract | PASS |

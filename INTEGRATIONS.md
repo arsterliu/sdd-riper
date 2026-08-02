@@ -2,6 +2,8 @@
 
 SDD-RIPER 提供**工作流契约**（阶段、门禁、审计链、文件系统状态）。[obra/superpowers](https://github.com/obra/superpowers) 项目提供**执行质量方法论**（如何做好 TDD、系统性调试、完成前验证等），以及 Innovate 阶段使用的**设计澄清方法**（`brainstorming`）。
 
+视觉证据合同是 SDD 的本地任务级能力，不依赖 Superpowers、Figma、浏览器或外部视觉 runner；它仅在用户明确要求视觉保真或 UI 设计质量确认时由 skill 条件式引导。
+
 本文件是两者的桥梁：列出每个调用 superpowers 的 SDD-RIPER 触点、对应技能、vendored 备份路径和运行时解析顺序。
 
 ## 触点索引

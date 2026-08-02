@@ -21,6 +21,7 @@ var VERDICTS = Object.keys(VERDICT_TO_TARGET);
 
 function classifyIssue(issue) {
   var text = String(issue || '');
+  if (/Visual evidence is not ready for Plan/i.test(text)) return 'FAIL_PLAN';
   var failedChallenge = text.match(/Adversarial Challenge failed:\s*(FAIL_[A-Z_]+)/i);
   if (failedChallenge) return failedChallenge[1].toUpperCase();
   if (/Challenge has not been executed|Challenge Verdict is (empty|invalid)|Challenge Summary is empty|Backtrack Target (is empty|does not match)|Challenge Evidence|Challenge Executed/i.test(text)) return 'FAIL_LOG';
@@ -308,6 +309,7 @@ function isAuditableReviewer(value, mode) {
 
 function gateFromIssue(issue) {
   var text = String(issue || '');
+  if (/Visual evidence is not ready for Plan/i.test(text)) return 'plan';
   if (/Challenge|Adversarial/i.test(text)) return 'challenge';
   if (/Learning/i.test(text)) return 'learning';
   if (/completion-verification|Completion Verification|AC Coverage/i.test(text)) return 'completion';

@@ -197,9 +197,11 @@ select {
 
 .project-rail,
 .workbench,
+.project-profile,
 .spec-panel,
 .detail {
   min-height: 0;
+  min-width: 0;
 }
 
 .project-rail {
@@ -211,6 +213,7 @@ select {
 .current-project,
 .project-board,
 .overview,
+.project-profile,
 .spec-panel,
 .detail {
   background: var(--surface);
@@ -407,7 +410,7 @@ select {
 .workbench {
   display: grid;
   gap: 12px;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .overview {
@@ -440,10 +443,119 @@ select {
   margin-top: 2px;
 }
 
+.project-profile {
+  display: grid;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.project-profile-head,
+.quality-overview {
+  align-items: center;
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.project-profile-head h2,
+.quality-overview strong {
+  font-size: 14px;
+  margin: 0;
+}
+
+.project-profile-head p,
+.quality-overview span,
+.projection-empty,
+.projection-diagnostic span,
+.projection-diagnostic small {
+  color: var(--muted);
+}
+
+.project-profile-head p,
+.quality-overview span {
+  font-size: 12px;
+  margin: 2px 0 0;
+}
+
+.profile-summary-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: minmax(150px, 1.7fr) minmax(150px, 1.7fr) repeat(2, minmax(80px, 0.7fr));
+}
+
+.profile-summary-grid div,
+.profile-unit,
+.quality-source,
+.quality-focus,
+.quality-readiness,
+.projection-empty,
+.projection-diagnostic {
+  background: var(--surface-soft);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  min-width: 0;
+  padding: 9px 10px;
+}
+
+.profile-summary-grid span {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  margin-bottom: 3px;
+}
+
+.profile-summary-grid strong {
+  display: block;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.profile-units {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.profile-unit {
+  align-items: baseline;
+  display: flex;
+  gap: 7px;
+}
+
+.profile-unit span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.projection-empty {
+  display: grid;
+  gap: 3px;
+}
+
+.projection-diagnostics {
+  display: grid;
+  gap: 7px;
+}
+
+.projection-diagnostic {
+  display: grid;
+  gap: 3px;
+}
+
+.projection-diagnostic code {
+  color: var(--waiting);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.projection-diagnostic small {
+  font-size: 12px;
+}
+
 .workspace {
   display: grid;
   gap: 12px;
-  grid-template-columns: minmax(330px, 38%) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1.3fr) minmax(340px, 0.7fr);
   min-height: 0;
 }
 
@@ -517,29 +629,97 @@ select {
 }
 
 .spec-list {
-  overflow: auto;
-  padding: 10px;
+  display: grid;
+  min-width: 800px;
+}
+
+.spec-board-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.spec-status-board {
+  min-width: 800px;
+}
+
+.spec-board-header,
+.spec-item {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(190px, 1.5fr) minmax(96px, 0.75fr) minmax(112px, 0.9fr) minmax(178px, 1.35fr) minmax(148px, 1fr);
+  min-width: 800px;
+}
+
+.spec-board-header {
+  background: var(--surface-soft);
+  border-bottom: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 8px 12px;
+  text-transform: uppercase;
 }
 
 .spec-item {
+  align-items: center;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 8px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
   cursor: pointer;
-  display: grid;
-  gap: 9px;
-  margin-bottom: 8px;
-  padding: 10px;
+  margin: 0;
+  padding: 11px 12px;
   text-align: left;
   width: 100%;
 }
 
 .spec-item:hover {
-  border-color: var(--line-strong);
+  background: var(--surface-soft);
 }
 
 .spec-item.active {
-  border-color: var(--progress);
+  background: var(--progress-soft);
+  box-shadow: inset 3px 0 0 var(--progress);
+}
+
+.spec-board-task,
+.spec-board-cell,
+.spec-board-updated {
+  min-width: 0;
+}
+
+.spec-board-task {
+  display: grid;
+  gap: 3px;
+}
+
+.spec-board-task strong,
+.spec-board-task small,
+.spec-board-updated {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.spec-board-task strong {
+  font-weight: 750;
+}
+
+.spec-board-task small,
+.spec-board-updated {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.spec-board-cell {
+  align-items: center;
+  display: flex;
 }
 
 .spec-row,
@@ -624,7 +804,7 @@ select {
 .status-strip {
   display: grid;
   gap: 10px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 12px 14px;
 }
 
@@ -692,6 +872,98 @@ select {
 
 .section-title span {
   font-size: 12px;
+}
+
+.quality-plan {
+  display: grid;
+  gap: 10px;
+}
+
+.quality-overview > div {
+  display: grid;
+  gap: 2px;
+}
+
+.quality-policy-version {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.quality-source {
+  display: grid;
+  gap: 7px;
+}
+
+.quality-source dl {
+  display: grid;
+  font-size: 12px;
+  gap: 4px 9px;
+  grid-template-columns: 108px minmax(0, 1fr);
+  margin: 0;
+}
+
+.quality-source dt {
+  color: var(--muted);
+}
+
+.quality-source dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.quality-group {
+  display: grid;
+  gap: 7px;
+}
+
+.quality-group h4 {
+  font-size: 12px;
+  margin: 0;
+}
+
+.quality-focus-list {
+  display: grid;
+  gap: 7px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.quality-focus {
+  display: grid;
+  gap: 3px;
+}
+
+.quality-focus span,
+.quality-focus small,
+.quality-readiness span:not(.pill) {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.quality-readiness {
+  align-items: flex-start;
+  display: grid;
+  gap: 6px;
+}
+
+.quality-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+
+.quality-table {
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 560px;
+  width: 100%;
+}
+
+.quality-table th,
+.quality-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 8px;
+  text-align: left;
+  vertical-align: top;
 }
 
 .gate-list,
@@ -839,7 +1111,7 @@ select {
   color: var(--text);
 }
 
-@media (max-width: 1180px) {
+@media (max-width: 1680px) {
   .app-shell {
     grid-template-columns: 300px minmax(0, 1fr);
   }
@@ -887,6 +1159,7 @@ select {
   }
 
   .overview,
+  .profile-summary-grid,
   .status-strip,
   .gate-list,
   .artifact-list {
@@ -949,6 +1222,7 @@ select {
   }
 
   .overview,
+  .profile-summary-grid,
   .status-strip,
   .gate-list,
   .artifact-list,

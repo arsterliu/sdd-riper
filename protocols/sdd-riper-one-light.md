@@ -41,6 +41,8 @@ Design Note 须覆盖 Approach、Impact Scope、Interface / Data Impact、Compat
 Plan -> Execute* -> Challenge -> Learning Check -> Archive
 ```
 
+如用户明确要求 UI 视觉保真或设计质量确认，先询问后运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction`，并在 Plan 前以 `sdd visual inspect` 核对状态；不得因 frontend 标签自动启用，也不得伪造基线或宣称截图 diff 已通过。
+
 Micro 跳过 Research、Innovate 和独立 Design。Plan 须包含：
 
 - Scope

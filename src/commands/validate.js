@@ -3,6 +3,7 @@ var path = require('path');
 var common = require('../../lib/common');
 var reviewerGuidance = require('../core/reviewer-guidance');
 var specState = require('../core/spec-state');
+var visualEvidence = require('../visual-evidence/contract');
 
 var SECTION = {
   confirmedRequirement: 'Confirmed Requirement',
@@ -479,6 +480,15 @@ function validateSpec(specPath, opts) {
   var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
 
   validateProfileReference(projectDir, specPath, issues);
+
+  if (!opts.archiveReady) {
+    var visual = visualEvidence.inspect(specPath, projectDir);
+    if (visual.planReadiness === 'blocked') {
+      visual.diagnostics.forEach(function(diagnostic) {
+        issues.push('Visual evidence is not ready for Plan: ' + diagnostic.code + '.');
+      });
+    }
+  }
 
   if (!opts.archiveReady) {
     if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {

@@ -353,6 +353,10 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 - Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 - Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
 
+### Visual Evidence（按需）
+
+视觉合同不因任务属于 frontend 而自动启用。只有用户明确要求 UI 视觉保真或设计质量确认时，Research/Innovate 才先询问并在确认后运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction`。它在任务 Context 下创建 `visual-evidence.json`，记录来源、路由/状态/视口、基线与人工批准；`sdd visual inspect`、普通 `validate` 和 `next` 会显示 `not-applicable`、`blocked`、`pending-approval` 或 `ready`。`direction` 允许方向批准后先进入 Plan，并以 pending 表示首版截图待 Execute 补齐；该补齐由任务自己的 manual AC 和 Execute Log 记录。视觉合同不联网、不启动浏览器、不等同于截图 diff PASS，也不新增 Archive Gate；visual runner 仍是后续能力。
+
 ### Innovate
 
 目标是定义方案，而不是写一句“使用现有实现”。standard 至少比较两个方案：
@@ -902,7 +906,8 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 | `next` | 输出当前 workflow 状态、下一步和回跳目标。 |
 | `challenge` | 生成独立对抗评审 Prompt。 |
 | `cruise` | 生成巡航控制 Prompt；支持 `--driver`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
-| `console` | 启动本地只读 Web Console，查看 Spec 阶段、状态、产物健康度和归档门禁。 |
+| `console` | 启动本地只读 Web Console，查看全项目 Spec 态势、Profile / Quality 摘要、Verification 证据和归档门禁。 |
+| `quality plan <project-dir>` | 显式生成基于 AC、精确 Profile 与既有 e2e readiness 的临时只读质量策略投影。 |
 | `validate` | 机器校验归档门禁。 |
 | `review-execute` | 生成四轴 Review Prompt。 |
 | `archive` | 归档 Spec 及引用产物。 |
@@ -915,13 +920,18 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 
 ## 八、Web Console
 
-`sdd console [project-dir]` 会启动一个本地只读控制台，用于查看每个 Spec 的阶段、状态、Design / Execute Log / Learning 引用健康度和 `validate --archive-ready` 门禁问题。`project-dir` 可选；不传时在页面里输入或加载项目目录。
+`sdd console [project-dir]` 会启动一个本地只读控制台。首屏优先展示全项目 Spec 的总量与态势板；每行固定显示 Lifecycle、Current Phase、派生 Work State 和更新时间。选择 Spec 后，详情再展示 Project Profile、Quality Plan、既有 Verification、Design / Execute Log / Learning 引用健康度和 `validate --archive-ready` 门禁问题。`project-dir` 可选；不传时在页面里输入或加载项目目录。
 
 Web Console 是文件系统产物的 projection，不是新的 source of truth：
 
 - 数据来源仍然是 `<docs-root>/specs/`、`<docs-root>/design/`、`<docs-root>/logs/`、`<docs-root>/learnings/`、`<docs-root>/runs/`、`<docs-root>/archive/`。
 - 项目看板和 Spec 列表读取后台内存索引快照；首次加载或刷新时可能短暂显示 indexing，再自动更新。
 - 阶段由最早未满足门禁推导：Research、Innovate、Design、Acceptance、Plan、Execute、Learning、Ready、Archived。
+- Lifecycle（`draft | archived`）、Current Phase 和 Work State 是三层不同语义。Work State 仅是基于既有 workflow facts 的只读摘要：`Needs repair` 必须有显式失败的 Challenge verdict；普通尚未到达的 Gate 或 archive validation issue 仍是 `In progress`，不能被汇总成“Blocked Gates”。
+- 项目 Profile 只读取 `profiles/current.json` 与其 immutable revision，安全显示 `confirmed` / `missing` / `invalid`、revision / digest、unit 数量和 unit id / roles。它不跑 drift detector，也不显示 sourceSnapshot、evidence、manifest、commandRefs、confirmation 或原始错误。
+- Quality Plan 只对选中的活动 Spec 计算，且只使用该 Spec 固定的 exact `project-profile-revision` / `project-profile-digest` / `affected-units`；不得回退到 current Profile。归档 Spec 的 Quality 状态为 `not_applicable`。它只展示白名单的 AC、policy focus、AC mapping、E2E readiness 与脱敏诊断，始终是说明性派生物，不拥有新的通过/失败、Plan、下一步或归档指令。
+- Profile、Quality 与 Verification 都由服务端只读投影；Console 不调用 `profile` / `quality` / `verify` CLI，不确认 Profile、不执行 Provider、不安装依赖或启动浏览器。
+- 窄屏时，态势板、Quality / Verification 表格只在各自区域横向滚动，页面本身不产生横向溢出。
 - 详情页展示 approval policy、cruise enabled、challenge verdict 和 backtrack target。
 - 详情页展示最新 cruise run 的 iteration、driver 和 stop reason。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
@@ -970,7 +980,53 @@ Spec 会固定 `project-profile-revision`、`project-profile-digest`、`affected
 
 confirm 使用 `.sdd-project-profile.lock` 覆盖读取、复核、写 revision、切换 current 与解锁。锁冲突立即返回 `SDD_PROFILE_CONFIRM_LOCKED`。不要按锁年龄自动清理；持续锁定时，先确认没有活动 confirm，再人工删除空锁目录。`SDD_PROFILE_CONFIRM_UNLOCK_FAILED` 表示 current/revision 可能已提交，应先检查制品再决定是否重试。
 
-Profile 中的 `commandRefs` 只是名称引用。所有 profile 命令均不得执行工程脚本、联网、安装依赖、生成应用或自动创建 Provider；v3.4 也不提供 Profile Console UI、Frontend/Backend Quality Profile 或框架专属 runner。
+Profile 中的 `commandRefs` 只是名称引用。所有 profile 命令均不得执行工程脚本、联网、安装依赖、生成应用或自动创建 Provider；v3.4 的领域命令不提供 Profile 编辑或确认 UI。v3.6 仅在 Console 中增加 current Profile 的安全只读摘要，仍不提供 Frontend/Backend Quality Profile 或框架专属 runner。
+
+## Quality Policy Routing
+
+`sdd quality plan <project-dir> [--spec <path> | --name <slug>] [--format text|json]` 是显式、只读、临时的解释命令。它不创建 Quality Plan 文件，也不写回 Spec、Profile、Provider、Run 或业务工程；每次只根据当次读取到的输入生成投影。
+
+AC 是唯一验收真相。Quality Plan 只读地说明“已存在的 AC 使用哪一种 evidence capability”及“已确认工程事实建议关注哪些证据”，不拥有独立的通过/失败、coverage、approval、状态迁移、下一步指令或归档资格。因此它不形成第二套门禁；任何需要改变验收契约的建议，都必须回到 Spec、Acceptance 和 Plan Gate 显式完成。
+
+### 输入与选择
+
+命令沿用现有活动 Spec 的选择规则：
+
+- `--spec <path>` 选择指定 Spec；相对或绝对路径均可，但词法路径和真实路径都必须位于 `<docs-root>/specs` 内；
+- `--name <slug>` 选择该任务名的最新 Spec；
+- 两者都省略时选择确定性的最新活动 Spec；
+- 同时提供两者是 usage error，exit 3。
+
+输入快照由一次安全 Spec 读取构成。外部路径、指向外部文件的符号链接、docs root/specs 目录自身的真实路径逃逸均返回 `spec_path_escape` / exit 2，且命令不会读取其内容；省略 selector 时也会在读取候选 frontmatter 前逐项完成词法与 realpath 校验，任一逃逸候选均 fail-closed。词法 docs root/specs 与其 realpath root 分开判断，所以链接到项目内目标的 docs root/specs 仍是合法输入。Planner 只使用该 Spec 固定的 `project-profile-revision`、`project-profile-digest` 与 `affected-units` 调用精确 revision resolver，绝不读取或回退到 `profiles/current.json`。缺少 Profile 返回 `profile-required`；三项绑定不完整、revision/digest 损坏、未知 unit 或 `project` 与显式 unit 混用会 fail-closed（exit 2）。修复输入后重新执行该只读命令即可。
+
+`affected-units: project` 必须单独出现，并稳定展开为绑定 Profile 的全部 unit；显式 unit 去重但不扩大范围。role 为 `frontend`、`backend`、`contract`、`library`、`tool` 时分别产生技术栈中立的关注点；`unknown` 只产生诊断，不做猜测。只有 `depends-on` relation 两端都在有效范围内才加入跨单元关注点；单端在范围内报告 `related-unit-out-of-scope`，未映射 relation 报告 attention diagnostic。
+
+### 输出与 capability
+
+输出 Schema 为 `schemaVersion: 1`，内建规则目录为 `policyVersion: "1"`。text 和 JSON 都包含 source（精确 Profile 与声明/有效范围）、`acFacts`、`policyFocus`、`acMappings`、可选 `e2eReadiness` 与 diagnostics；数组使用稳定顺序。它不会输出 `PHASE_HINT`、`NEXT_ACTION`、通过/失败或归档资格。
+
+AC 的既有 `Verification` 逐项保持原义，并仅映射为一个 evidence capability：
+
+| Verification | capability |
+| :--- | :--- |
+| `unit` | `unit-evidence` |
+| `integration` | `integration-evidence` |
+| `e2e` | `e2e-evidence` |
+| `manual` | `manual-evidence` |
+
+manual AC 的 `Manual Evidence` 原样保留为事实；Policy Focus 只展示由 role 或 relation 形成的 reason 和建议 capability，绝不宣称已经被 AC 覆盖。
+
+### e2e readiness 与只读边界
+
+只有所有 `Verification: e2e` AC 都绑定 `Provider:` 时，Quality Plan 才调用一次既有 readiness 并原样展示其聚合 `required`、`configured`、`blocked` 或 `ready` 快照。无 e2e、manual-only 或任一 e2e 未绑定 Provider 时，不读取 readiness，也不会把“无 e2e 时的 ready”传播为 Provider 就绪；未绑定路线只报告 gap。特别是 `configured` 仅表示已有配置，不等于 Adapter、浏览器或 workspace 实际可执行。
+
+该命令不会初始化 Provider、安装依赖或运行验证，也不会执行 Profile detect/review/confirm、Provider/Adapter、浏览器、项目脚本或网络调用。唯一允许的既有路径是：当有 fresh e2e Run 时，经既有 readiness 间接复用固定 argv 的本地只读 Git freshness 检查；Quality 模块自身不启动子进程，也不能扩张此例外。
+
+### Exit 语义
+
+- exit 0：形成可审阅投影；Provider 缺失、configured、blocked、unknown role 或 relation gap 作为 diagnostics，不改变 workflow。
+- exit 2：无法建立可靠输入或读取既有 freshness，例如 `profile-required`、损坏精确引用、`scope-ambiguous`、未知 unit、Spec 不可读或 `readiness-unavailable`。
+- exit 3：用法错误，例如非法 `--format` 或同时提供 `--spec` 与 `--name`。
 
 ## Verification Provider
 

@@ -190,6 +190,8 @@ Research Gate requires `Research Reviewed By` and `Research Reviewed At` before 
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
+When a task explicitly requests UI visual fidelity or formal UI design-quality confirmation, ask whether to enable the optional visual evidence contract. Do not infer this from a frontend role alone. After the user confirms, run `sdd visual init <dir> --spec <spec> --mode fidelity|direction`, fill the Context manifest, and run `sdd visual inspect` before Plan approval. Use `direction` only after a human has approved the design direction; never fabricate a Figma source, screenshot baseline, or visual diff PASS. This contract is not a visual Provider and does not create an Archive Gate.
+
 Dispatch categories (see `protocols/subagent-dispatch.md` for full Phase Dispatch Map):
 
 - Requirement Review: **KEEP** (requires user interaction)
@@ -647,3 +649,5 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"`
 - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
 - `sdd codemap <dir>`
+- `sdd visual init <dir> --spec <path> --mode fidelity|direction`
+- `sdd visual inspect <dir> --spec <path>`

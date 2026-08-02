@@ -55,6 +55,17 @@ program.command('next <project-dir>')
   .option('--name <slug>', 'spec task slug')
   .action(function(p, o) { require('../src/commands/next')(p, o); });
 
+var visual = program.command('visual').description('Manage task visual evidence contracts');
+visual.command('init <project-dir>')
+  .description('Create and bind a visual evidence contract for an active Spec')
+  .requiredOption('--spec <path>', 'active spec file')
+  .requiredOption('--mode <mode>', 'fidelity | direction')
+  .action(function(p, o) { require('../src/commands/visual').runInit(p, o); });
+visual.command('inspect <project-dir>')
+  .description('Inspect a visual evidence contract without writing files')
+  .requiredOption('--spec <path>', 'active spec file')
+  .action(function(p, o) { require('../src/commands/visual').inspect(p, o); });
+
 program.command('challenge <project-dir>')
   .description('Generate adversarial review prompt, or record challenge result with --record-result')
   .option('--spec <path>', 'spec file')
@@ -157,6 +168,20 @@ verify.command('run <project-dir>')
   .option('--ac <id...>', 'target AC ids')
   .option('--allow-env <name...>', 'explicit environment variable names to pass to the Adapter')
   .action(function(p, o) { require('../src/commands/verify').run(p, o); });
+
+var quality = program.command('quality').description('Generate read-only quality policy projections');
+quality.exitOverride(function(error) {
+  if (error.exitCode === 0) process.exit(0);
+  console.error('[SDD_QUALITY_USAGE] ' + String(error.message || 'invalid quality command usage').replace(/^error:\s*/i, ''));
+  process.exit(3);
+});
+
+quality.command('plan <project-dir>')
+  .description('Project a read-only quality policy plan for a Spec')
+  .option('--spec <path>', 'spec file')
+  .option('--name <slug>', 'spec task slug')
+  .option('--format <format>', 'text | json', 'text')
+  .action(function(p, o) { require('../src/commands/quality').plan(p, o); });
 
 var profile = program.command('profile').description('Manage project engineering profiles');
 profile.exitOverride(function(error) {

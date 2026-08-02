@@ -264,18 +264,21 @@ Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必�
 | :--- | :--- |
 | `sdd init <dir>` | 初始化项目结构。 |
 | `sdd discover <dir> --task-name <name> --version <vN.M\|vN.M.P> --requirement <text> [--context <source\|none>]` | 创建 Spec、Design、Execute Log；创建前 version/task-name/context 必须由用户输入或确认。 |
+| `sdd visual init <dir> --spec <path> --mode <fidelity\|direction>` | 为明确需要视觉保真或 UI 设计质量确认的活动 Spec 创建并绑定视觉证据清单。 |
+| `sdd visual inspect <dir> --spec <path>` | 只读检查视觉合同的 Plan Readiness 与首版基线状态。 |
 | `sdd new-learning <dir> [spec-name]` | 创建并绑定 Learning Record。 |
 | `sdd resume <dir>` | 恢复当前任务上下文。 |
 | `sdd status <dir>` | 检查结构和流程健康度。 |
 | `sdd next <dir>` | 输出当前 workflow 状态、下一步和回跳目标。 |
 | `sdd challenge <dir>` | 生成独立对抗评审 prompt。 |
 | `sdd cruise <dir> [--driver ...] [--emit-claude-prompt] [--record-run] [--iteration N]` | 生成巡航控制 prompt；可输出 Claude ultracode/workflow 启动提示并写入 run ledger，但不直接调用模型或执行循环。 |
-| `sdd console [dir]` | 启动本地 Web Console，可选择项目目录，查看每个 Spec 的阶段、状态、产物健康度和归档门禁。 |
+| `sdd console [dir]` | 启动本地只读 Web Console，查看全项目 Spec 态势、Profile / Quality 摘要、Verification 证据和归档门禁。 |
 | `sdd install-skill --target codex\|cc-switch\|claude\|opencode\|all [--clean] [--check]` | 安装 Skill，或用 `--check` 只读检查已安装内容是否漂移。 |
 | `sdd validate <dir> --archive-ready` | 校验归档完成条件；不授予归档许可。 |
 | `sdd review-execute <dir>` | 生成四轴 Review Prompt。 |
 | `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"` | 携带当前用户一次性明确授权，归档完成任务及引用产物。 |
 | `sdd reopen <dir> <slug> --defect <text>` | 基于归档任务创建修复 Spec。 |
+| `sdd quality plan <project-dir> [--spec <path> | --name <slug>] [--format text|json]` | 显式生成一次性的只读质量策略投影，解释 AC、精确 Profile、范围和既有 e2e readiness；不改变工作流。 |
 
 ## Web Console
 
@@ -287,7 +290,11 @@ Console 用于观测和诊断，不替代 agent 执行 SDD。它对 Spec 状态�
 
 - 页面里选择项目目录。
 - 多项目看板预览。
-- 查看 Spec 阶段、状态、产物和归档门禁。
+- 首屏以 Spec 态势板展示全量计数，以及每个 Spec 的 Lifecycle、Current Phase、派生 Work State 和更新时间；`Needs repair` 只表示显式 Challenge 回退，不把普通后续 Gate 或校验问题误称为阻塞。
+- 项目级 Project Profile 只读取 current pointer，安全展示 `confirmed` / `missing` / `invalid`、revision / digest、单元数量与角色摘要；不显示证据、manifest、command reference 或确认说明。
+- 选中活动 Spec 时，只读展示其精确绑定 Profile revision 推导的 Quality Plan、AC 映射、policy focus 与既有 E2E readiness；归档 Spec 明确显示 Quality Plan `not applicable`，不会用 current Profile 回退计算历史结果。
+- 查看既有 Verification Provider、Run、freshness、矩阵、诊断与附件摘要；Console 不运行 Provider、不安装依赖、不启动浏览器。
+- 查看 Spec 阶段、产物和归档门禁。
 - 查看最新 cruise run 的 iteration、driver 和停止原因。
 - 每个产物按 `Spec / Design / Execute Log / Learning` 独立 Preview。
 - Preview 新开浏览器 tab，只读显示 Markdown 原文。
@@ -337,10 +344,22 @@ sdd profile check <dir>
 
 并发 confirm 使用项目根 `.sdd-project-profile.lock` 单锁：锁存在时立即失败，不等待或重试。持续锁定时，先确认没有运行中的 confirm，再人工删除空锁目录；禁止按时间自动清理。若收到 `SDD_PROFILE_CONFIRM_UNLOCK_FAILED`，配置可能已写成功，应先检查 current/revision。
 
-空白项目不会产生虚构 Profile：`profile detect` 返回 `PROFILE_STATE: empty` 和 bootstrap Spec 引导。v3.4 不包含框架选型、应用生成、领域质量 Profile 或 Console UI。
+空白项目不会产生虚构 Profile：`profile detect` 返回 `PROFILE_STATE: empty` 和 bootstrap Spec 引导。v3.4 的领域实现不包含框架选型、应用生成或领域质量 Profile；其已确认 current pointer 摘要由 v3.6 以只读方式接入 Console，不提供 detect/review/confirm UI。
+
+## Quality Policy Routing v3.5
+
+`sdd quality plan <project-dir> [--spec <path> | --name <slug>] [--format text|json]` 是一个显式调用、一次性输出的只读解释入口。它从选定 Spec 的 AC、Spec 固定的 `project-profile-revision` / `project-profile-digest` / `affected-units` 和既有 e2e Provider/Run 事实，生成可审阅的 Quality Plan；不会保存新的 Plan 制品，也不会修改 Spec、Profile、Provider 或 Run。
+
+AC 是唯一验收真相。Quality Plan 只把 AC 的 `Verification` 映射为 evidence capability，并解释受影响 unit 的 role / relation 所建议关注点；它不标记 coverage、approval、pass/fail、下一阶段或归档资格，不形成第二套门禁。若输出提示需要调整 AC 或 Plan，仍须通过原有 Spec、Acceptance 与 Plan Gate 显式处理。
+
+命令只读取 `<docs-root>/specs` 内的选定 Spec：`--spec` 可使用相对或绝对路径，但其词法路径和真实路径都必须留在相应根内；默认选择也会在读取候选内容前完成该检查，任一逃逸候选以 exit 2 拒绝。docs root/specs 若链接到项目内目标仍合法，外部路径或符号链接逃逸不会被读取。它只使用该任务绑定的精确 Profile revision，绝不回退到 `profiles/current.json`。缺少或损坏精确 Profile、范围混用 `project` 与显式 unit、或未知 unit 时以 exit 2 返回诊断；Provider 缺失、unknown role、relation 未映射等普通 gap 仍可获得 exit 0 的可审阅投影。
+
+只有全部 `Verification: e2e` AC 都声明 `Provider:` 时，输出才原样附带既有 `required` / `configured` / `blocked` / `ready` 聚合 readiness；`configured` 不表示实际可执行。manual、无 e2e 或未绑定 Provider 的 e2e 不会获得 Provider ready。该命令不会初始化 Provider、安装依赖或运行验证，也不会调用 detect/review/confirm、项目脚本或网络。
 
 ## Verification Adapter v3.0
 
 E2E Acceptance 通过 `Provider:` 引用项目级具名配置，使用 `sdd verify init` 显式创建，并用 `sdd verify run --spec <spec>` 生成不可变 Verification Run。首版只注册具备正式 gate 能力的 `playwright-test` Adapter；Core 不依赖或自动安装 Playwright。
 
-Playwright 必须能从指定 workspace/packageRoot 解析、由祖先 workspace manifest 直接声明并受唯一 lockfile 管理。支持 npm/pnpm/Yarn node_modules workspace/hoist；不支持全局包、临时 npx、纯传递依赖或 Yarn PnP。缺包或浏览器时明确阻断，不自动降级。`playwright-mcp`、Custom Adapter、统一 MCP Profile 与 visual/a11y/performance runner 均为延期能力。
+视觉证据合同是可选的任务级设计输入与人工批准记录：只有用户明确要求视觉保真或 UI 设计质量确认时才启用。`fidelity` 记录已有设计稿/基线；`direction` 记录无稿时经人工批准的设计方向，首版基线可在 Execute 后补齐。它不运行截图 diff，也不改变 Archive Gate。`playwright-mcp`、Custom Adapter、统一 MCP Profile 与 visual/a11y/performance runner 仍为延期能力。
+
+Playwright 必须能从指定 workspace/packageRoot 解析、由祖先 workspace manifest 直接声明并受唯一 lockfile 管理。支持 npm/pnpm/Yarn node_modules workspace/hoist；不支持全局包、临时 npx、纯传递依赖或 Yarn PnP。缺包或浏览器时明确阻断，不自动降级。

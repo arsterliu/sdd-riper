@@ -24,6 +24,7 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 ```
 
 - **Research**：需求审视、发现、待澄清问题、假设、已确认需求。
+- **Visual Evidence（按需）**：仅在用户明确要求 UI 视觉保真或设计质量确认时，询问后运行 `sdd visual init` 并在 Plan 前用 `sdd visual inspect` 检查；不得按 frontend 标签自动启用，不得伪造基线或把状态解释为 diff 通过。
 - **Innovate**：比较至少两个方案，记录被否决的方案。
 - **Design**：在 `design-file` 中写技术设计；标签如 Selected Option / ADR、Requirement Traceability、Impact Scope、Architecture View、Data Model / Schema、Interface Contract、Compatibility / Rollback、Test Strategy 保持英文，内容用中文填写。
 - **Acceptance**：在 Spec 中写 `AC-###` 验收标准；元数据标签如 `Requirement:`、`Verification:`、`Test:`、`Manual Evidence:` 保持英文，BDD / Gherkin 场景描述用中文。

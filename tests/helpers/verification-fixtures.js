@@ -68,19 +68,58 @@ function cleanupOwnedProject(state) {
   return true;
 }
 
-function specContent(taskName, title, providerId, acIds) {
+function specContent(taskName, title, providerId, acIds, options) {
+  options = options || {};
   var acceptance = acIds.map(function(id) {
     return ['### ' + id + ': ' + title, 'Verification: e2e', 'Provider: ' + providerId, 'Test: tests/console.spec.js'].join('\n');
   }).join('\n\n');
   return [
-    '---', 'date: 2026-07-12', 'task-name: "' + taskName + '"', 'mode: standard', 'status: draft',
+    '---', 'date: 2026-07-12', 'task-name: "' + taskName + '"', 'mode: standard', 'status: ' + (options.status || 'draft'),
     'design-file: "mydocs/design/' + taskName + '.design.md"',
-    'execute-log-file: "mydocs/logs/' + taskName + '.execute.md"', '---',
+    'execute-log-file: "mydocs/logs/' + taskName + '.execute.md"',
+    'project-profile-revision: "' + (options.profileRevision || '') + '"',
+    'project-profile-digest: "' + (options.profileDigest || '') + '"',
+    'affected-units: "' + (options.affectedUnits || '') + '"', '---',
     '## Summary', title, '## Research', '### Confirmed Requirement', 'Scope Boundary: fixture',
     '## Acceptance Criteria', acceptance, '## Plan', 'Step 1: fixture verification.',
     'Plan Approved By: agent:fixture', 'Approved At: 2026-07-12T00:00:00Z', 'Gate Evidence: fixture evidence',
     '## Completion Verification', 'Challenge Verdict:'
   ].join('\n') + '\n';
+}
+
+function writeConfirmedProfile(root) {
+  var canonical = require('../../src/profile/canonical');
+  var profile = {
+    detectorVersion: 1,
+    sourceSnapshot: [{ path: 'package.json', kind: 'manifest', size: 1, sha256: 'a'.repeat(64) }],
+    units: [{
+      id: 'web', root: '.', roles: ['frontend'], languages: ['javascript'], runtimes: ['node'],
+      frameworks: [{ id: 'playwright', confidence: 'high', evidenceIds: ['web-evidence'] }],
+      manifests: ['package.json'], commandRefs: [{ kind: 'test', name: 'test:console', source: 'package.json' }],
+      evidence: [{ id: 'web-evidence', path: 'package.json', kind: 'manifest', claim: 'fixture-secret-profile-evidence', confidence: 'high' }]
+    }],
+    relations: []
+  };
+  var digest = canonical.digestProfile(profile);
+  var revision = 'profiles/revisions/' + digest.replace(':', '-') + '.json';
+  write(path.join(root, 'mydocs', revision), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'sdd-project-profile-revision',
+    profileDigest: digest,
+    profile: profile,
+    confirmation: {
+      confirmedBy: 'human:fixture',
+      confirmedAt: '2026-07-12T00:00:00Z',
+      evidence: 'fixture-secret-profile-confirmation'
+    }
+  }, null, 2));
+  write(path.join(root, 'mydocs/profiles/current.json'), JSON.stringify({
+    schemaVersion: 1,
+    kind: 'sdd-project-profile-current',
+    revision: revision,
+    profileDigest: digest
+  }, null, 2));
+  return { revision: revision, digest: digest };
 }
 
 function baseRun(root, specFile, provider, runId, createdAt, decision, targetAcs) {
@@ -137,12 +176,16 @@ function createConsoleE2EProject() {
   write(path.join(root, 'node_modules/@playwright/test/package.json'), JSON.stringify({ name: '@playwright/test', version: '1.52.0' }));
   write(path.join(root, 'playwright.config.js'), 'module.exports = {};\n');
 
+  var profile = writeConfirmedProfile(root);
   var evidenceSpec = path.join(root, 'mydocs/specs/v1.0-evidence-view.md');
   var noRunsSpec = path.join(root, 'mydocs/specs/v1.0-no-runs.md');
   var requiredSpec = path.join(root, 'mydocs/specs/v1.0-provider-required.md');
-  write(evidenceSpec, specContent('evidence-view', 'Evidence view', 'console-e2e', ['AC-003', 'AC-004', 'AC-005', 'AC-006', 'AC-007']));
-  write(noRunsSpec, specContent('no-runs', 'No runs', 'console-e2e', ['AC-003']));
+  var archivedSpec = path.join(root, 'mydocs/archive/v0.9-archived-quality.md');
+  var profileBound = { profileRevision: profile.revision, profileDigest: profile.digest, affectedUnits: 'web' };
+  write(evidenceSpec, specContent('evidence-view', 'Evidence view', 'console-e2e', ['AC-003', 'AC-004', 'AC-005', 'AC-006', 'AC-007'], profileBound));
+  write(noRunsSpec, specContent('no-runs', 'No runs', 'console-e2e', ['AC-003'], profileBound));
   write(requiredSpec, specContent('provider-required', 'Provider required', 'missing-e2e', ['AC-003']));
+  write(archivedSpec, specContent('archived-quality', 'Archived quality', 'console-e2e', ['AC-003'], { status: 'archived' }));
   ['evidence-view', 'no-runs', 'provider-required'].forEach(function(name) {
     write(path.join(root, 'mydocs/design/' + name + '.design.md'), '## Technical Design\nTest Strategy: fixture.\n');
     write(path.join(root, 'mydocs/logs/' + name + '.execute.md'), '# Execute Log\n');

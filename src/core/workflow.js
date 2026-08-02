@@ -4,6 +4,7 @@ var common = require('../../lib/common');
 var validate = require('../commands/validate');
 var specState = require('./spec-state');
 var risk = require('./risk');
+var visualEvidenceContract = require('../visual-evidence/contract');
 
 var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
 
@@ -182,6 +183,7 @@ function analyzeSpec(projectDir, specPath, opts) {
   var content = fs.readFileSync(specPath, 'utf-8');
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var contextSource = common.getFrontmatterField(specPath, 'context-source') || '';
+  var visualEvidence = visualEvidenceContract.inspect(specPath, projectDir);
   var profileRevision = common.getFrontmatterField(specPath, 'project-profile-revision') || '';
   var profileDigest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
   var affectedUnits = (common.getFrontmatterField(specPath, 'affected-units') || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean);
@@ -204,6 +206,14 @@ function analyzeSpec(projectDir, specPath, opts) {
   }
   var flags = riskFlags(action && action.trim() ? action : content, crSection);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
+  if (visualEvidence.planReadiness === 'blocked') {
+    validation = Object.assign({}, validation, {
+      workflowState: null,
+      issues: (validation.issues || []).concat(visualEvidence.diagnostics.map(function(diagnostic) {
+        return 'Visual evidence is not ready for Plan: ' + diagnostic.code + '.';
+      }))
+    });
+  }
   // Challenge Verdict from Spec is the authoritative independent quality gate.
   // Validation issues are separate blockers — they should not override an
   // explicit Challenge PASS. Only when no Challenge Verdict exists do we
@@ -231,6 +241,7 @@ function analyzeSpec(projectDir, specPath, opts) {
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
     contextSource: contextSource || undefined,
+    visualEvidence: visualEvidence,
     profileRevision: profileRevision || undefined,
     profileDigest: profileDigest || undefined,
     affectedUnits: affectedUnits,

@@ -5,6 +5,8 @@ mode: micro
 status: draft
 reopened-from: ""
 context-source: ""
+visual-evidence: ""
+visual-evidence-file: ""
 diff-base: ""
 design-file: ""
 execute-log-file: ""

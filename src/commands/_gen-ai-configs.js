@@ -20,6 +20,7 @@ function sddBlock(title, mode, bodyLines) {
     '- Do not move past Plan without approval and gate evidence.',
     '- Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.',
     '- Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.',
+    '- Only when the user explicitly requires UI visual fidelity or formal UI design-quality confirmation, ask whether to enable visual evidence; after confirmation use `sdd visual init ... --mode fidelity|direction` and `sdd visual inspect` before Plan approval. Do not infer this from a frontend role, fabricate a visual baseline, or treat readiness as visual diff PASS.',
     '- When a Spec declares `project-profile-revision`, Research must read that exact revision; never substitute `profiles/current.json`.',
     '- Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.',
     '- Profile `commandRefs` are facts and must not be executed automatically.',

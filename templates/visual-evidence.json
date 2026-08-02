@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "mode": "__MODE__",
+  "sources": [
+    {
+      "id": "design-source",
+      "type": "direction",
+      "reference": ""
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "",
+      "route": "",
+      "state": "",
+      "viewport": { "width": 0, "height": 0 },
+      "baseline": { "path": "", "status": "pending" }
+    }
+  ],
+  "approval": {
+    "approvedBy": "",
+    "approvedAt": ""
+  }
+}
