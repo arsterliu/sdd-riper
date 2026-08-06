@@ -5,6 +5,8 @@ mode: standard
 status: draft   # draft | archived
 reopened-from: ""
 context-source: ""
+ui-impact: ""
+visual-context-intent: ""
 visual-evidence: ""
 visual-evidence-file: ""
 diff-base: ""

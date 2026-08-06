@@ -29,3 +29,6 @@
 | v3.5-quality-policy-routing.md | 2026-07-25 | quality-policy-routing | PASS_WITH_CONCERNS |
 | v3.6-console-quality-plan-dogfood.md | 2026-07-30 | console-quality-plan-dogfood | PASS |
 | v3.7-visual-evidence-contract.md | 2026-07-31 | visual-evidence-contract | PASS |
+| v3.8-visual-context-guidance.md | 2026-08-04 | visual-context-guidance | PASS |
+| v3.9-visual-verification-provider.md | 2026-08-04 | visual-verification-provider | PASS_WITH_CONCERNS |
+| v4.0-architecture-redundancy-audit.md | 2026-08-05 | architecture-redundancy-audit | PASS |

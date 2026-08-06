@@ -2,6 +2,7 @@
 
 var fs = require('fs');
 var path = require('path');
+var crypto = require('crypto');
 
 function frontmatterValue(content, key) {
   var match = String(content || '').match(new RegExp('^' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':\\s*"?([^"\\r\\n]*)"?\\s*$', 'm'));
@@ -16,6 +17,63 @@ function result(state, planReadiness, baselineStatus, diffStatus, diagnostics) {
     diffStatus: diffStatus,
     diagnostics: diagnostics || []
   };
+}
+
+function digest(value) { return crypto.createHash('sha256').update(value).digest('hex'); }
+
+function visualRunProviderAndWorkspaceAreCurrent(projectDir, run) {
+  try {
+    var verificationConfig = require('../verification/config').loadVerificationConfig(projectDir);
+    var provider = verificationConfig.providers[run.providerId];
+    if (!provider || provider.adapter !== run.adapterId || digest(JSON.stringify(provider)) !== run.providerDigest) return false;
+    var registry = require('../verification/registry');
+    var adapter = registry.requireCapability(registry.resolveAdapter(provider.adapter), 'visual-gate');
+    if (digest(JSON.stringify(adapter)) !== run.adapterManifestDigest) return false;
+    var resolved = require('../verification/workspace').resolveWorkspace(provider, projectDir, adapter);
+    var configFile = require('../verification/workspace').resolveConfigFile(resolved.workspaceRoot, provider.config);
+    return resolved.toolVersion === run.workspace.resolvedToolVersion &&
+      digest(fs.readFileSync(resolved.declaringManifest)) === run.workspace.manifestDigest &&
+      digest(fs.readFileSync(resolved.lockfile)) === run.workspace.lockfileDigest &&
+      digest(fs.readFileSync(configFile)) === run.workspace.configDigest;
+  } catch (_) {
+    return false;
+  }
+}
+
+function withVisualRunProjection(base, specPath, projectDir, manifestPath) {
+  if (base.state !== 'ready') return base;
+  var run;
+  try { run = require('../visual-verification/run-store').runsForSpec(projectDir, require('../../lib/common').getDocsDir(projectDir), specPath)[0]; }
+  catch (error) { return result(base.state, base.planReadiness, base.baselineStatus, 'stale', [{ code: error.code || 'VISUAL_RUN_INVALID' }]); }
+  if (!run) return base;
+  var configPath = path.join(path.resolve(projectDir), 'sdd.visual.config.json');
+  var currentSpec = fs.readFileSync(specPath, 'utf8');
+  var stale = run.spec.specDigest !== digest(currentSpec) || run.spec.visualContractDigest !== digest(fs.readFileSync(manifestPath)) ||
+    !fs.existsSync(configPath) || run.spec.configDigest !== digest(fs.readFileSync(configPath));
+  if (!stale) {
+    try {
+      var manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+      var contextRoot = path.resolve(projectDir, frontmatterValue(currentSpec, 'context-source'));
+      var scenarios = {};
+      (manifest.scenarios || []).forEach(function(scenario) { scenarios[scenario.id] = scenario; });
+      stale = (run.visual && run.visual.scenarios || []).some(function(summary) {
+        var scenario = scenarios[summary.scenarioId];
+        var baseline = scenario && scenario.baseline && scenario.baseline.path;
+        var baselinePath = baseline && path.resolve(contextRoot, baseline);
+        return !baselinePath || !fs.existsSync(baselinePath) || digest(fs.readFileSync(baselinePath)) !== summary.baselineDigest;
+      });
+    } catch (_) { stale = true; }
+  }
+  if (!stale) {
+    stale = !visualRunProviderAndWorkspaceAreCurrent(projectDir, run);
+  }
+  if (!stale) {
+    try {
+      stale = require('../verification/fingerprint').captureCodeState(projectDir, require('../../lib/common').getDocsDir(projectDir)).aggregateDigest !== run.codeStateAfter.aggregateDigest;
+    } catch (_) { stale = true; }
+  }
+  if (stale) return result(base.state, base.planReadiness, base.baselineStatus, 'stale', [{ code: 'VISUAL_RUN_STALE' }]);
+  return result(base.state, base.planReadiness, base.baselineStatus, String(run.gateDecision || '').toLowerCase(), []);
 }
 
 function isInside(parentPath, childPath) {
@@ -113,7 +171,7 @@ function inspect(specPath, projectDir) {
     if (invalidScenario) {
       return result('blocked', 'blocked', 'unknown', 'not-run', [{ code: 'VISUAL_EVIDENCE_SCHEMA_INVALID' }]);
     }
-    return result('ready', 'ready', 'approved', 'not-run');
+    return withVisualRunProjection(result('ready', 'ready', 'approved', 'not-run'), specPath, projectDir, manifestPath);
   }
 
   var invalidDirectionBaseline = manifest.scenarios.some(function(scenario) { return invalidBaseline(contextPath, scenario.baseline, false); });

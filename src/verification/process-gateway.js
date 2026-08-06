@@ -33,10 +33,14 @@ function sanitizeDiagnostic(value, env, explicitNames) {
     function(_, key) { return key + '=[REDACTED]'; });
 }
 
-function buildInvocation(resolved, provider, reporterPath, outputFile, nonce, allowEnv) {
+function buildInvocation(resolved, provider, reporterPath, outputFile, nonce, allowEnv, targetFiles) {
   var cli = path.join(path.dirname(resolved.toolPackage), 'cli.js');
   var args = [cli, 'test', '--config=' + provider.config, '--reporter=' + reporterPath];
   (provider.projects || []).forEach(function(project) { args.push('--project=' + project); });
+  if (targetFiles && targetFiles.length) {
+    args.push('--');
+    targetFiles.forEach(function(file) { args.push(file); });
+  }
   var env = inheritedEnvironment(allowEnv);
   var localBrowsers = path.join(resolved.workspaceRoot || resolved.packageRoot, '.playwright-browsers');
   if (fs.existsSync(localBrowsers) && fs.statSync(localBrowsers).isDirectory()) {

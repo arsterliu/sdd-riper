@@ -65,6 +65,16 @@ visual.command('inspect <project-dir>')
   .description('Inspect a visual evidence contract without writing files')
   .requiredOption('--spec <path>', 'active spec file')
   .action(function(p, o) { require('../src/commands/visual').inspect(p, o); });
+visual.command('discover <project-dir>')
+  .description('Discover local visual Context materials without writing files')
+  .requiredOption('--spec <path>', 'active spec file')
+  .action(function(p, o) { require('../src/commands/visual').runDiscover(p, o); });
+visual.command('select <project-dir>')
+  .description('Record the one-time visual context intent for an active Spec')
+  .requiredOption('--spec <path>', 'active spec file')
+  .requiredOption('--ui-impact <value>', 'yes | no')
+  .option('--intent <intent>', 'not-required | direction | fidelity')
+  .action(function(p, o) { require('../src/commands/visual').runSelect(p, o); });
 
 program.command('challenge <project-dir>')
   .description('Generate adversarial review prompt, or record challenge result with --record-result')
@@ -168,6 +178,11 @@ verify.command('run <project-dir>')
   .option('--ac <id...>', 'target AC ids')
   .option('--allow-env <name...>', 'explicit environment variable names to pass to the Adapter')
   .action(function(p, o) { require('../src/commands/verify').run(p, o); });
+
+verify.command('visual <project-dir>')
+  .description('Run controlled visual verification for a fidelity visual contract')
+  .requiredOption('--spec <path>', 'active spec path or name')
+  .action(function(p, o) { require('../src/commands/verify').runVisual(p, o); });
 
 var quality = program.command('quality').description('Generate read-only quality policy projections');
 quality.exitOverride(function(error) {

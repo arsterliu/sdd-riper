@@ -2,7 +2,7 @@
 
 SDD-RIPER 提供**工作流契约**（阶段、门禁、审计链、文件系统状态）。[obra/superpowers](https://github.com/obra/superpowers) 项目提供**执行质量方法论**（如何做好 TDD、系统性调试、完成前验证等），以及 Innovate 阶段使用的**设计澄清方法**（`brainstorming`）。
 
-视觉证据合同是 SDD 的本地任务级能力，不依赖 Superpowers、Figma、浏览器或外部视觉 runner；它仅在用户明确要求视觉保真或 UI 设计质量确认时由 skill 条件式引导。
+视觉 Context 引导与严格视觉证据合同是 SDD 的本地任务级能力，不依赖 Superpowers 或 Figma。每个新 Spec 先由精确 Profile / `affected-units` 或一次 UI 影响问题记录 `ui-impact`；纯后端跳过，前端或混合任务通过 `sdd visual select` 一次性记录 `visual-context-intent`。`sdd visual discover` 统一扫描本地材料、报告候选和缺口。Figma URL 与普通 URL 一样只作为 reference 候选：不联网读取、不自动批准；Figma MCP 获取器属于后续独立 Spec。只有显式 `sdd visual init` 才启用严格合同与对应 Plan 门禁。除显式 `sdd verify visual` 外，视觉 Context 与合同步骤不启动浏览器或执行截图 diff。对于人工批准基线的 fidelity 合同，显式配置的 `playwright-visual` Provider 可以通过 `sdd verify visual` 运行受控截图与显式 diff；它不替换 baseline，也不提供通用浏览器控制。
 
 本文件是两者的桥梁：列出每个调用 superpowers 的 SDD-RIPER 触点、对应技能、vendored 备份路径和运行时解析顺序。
 

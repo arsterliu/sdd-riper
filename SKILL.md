@@ -190,7 +190,13 @@ Research Gate requires `Research Reviewed By` and `Research Reviewed At` before 
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
-When a task explicitly requests UI visual fidelity or formal UI design-quality confirmation, ask whether to enable the optional visual evidence contract. Do not infer this from a frontend role alone. After the user confirms, run `sdd visual init <dir> --spec <spec> --mode fidelity|direction`, fill the Context manifest, and run `sdd visual inspect` before Plan approval. Use `direction` only after a human has approved the design direction; never fabricate a Figma source, screenshot baseline, or visual diff PASS. This contract is not a visual Provider and does not create an Archive Gate.
+### Visual Context Guidance
+
+For every new Spec, first establish `ui-impact`. Use the bound exact Project Profile and `affected-units` when they identify a frontend unit; when they do not establish the answer, ask the user once whether the task affects a user interface. A pure backend Spec records `ui-impact: no` and skips visual guidance. Any frontend or mixed Spec records `ui-impact: yes` and must make one `visual-context-intent` selection with `sdd visual select`: `not-required`, `direction`, or `fidelity`.
+
+Users may place PNG/PDF/SVG, screenshots, Markdown/TXT notes, and URL references together in `context-source`. Run `sdd visual discover <dir> --spec <spec>` to report local material candidates, gaps, and only the questions that cannot be inferred reliably. Do not treat candidates as confirmed design evidence. A Figma URL is handled exactly like every other URL reference: discovery only records it and does not access the network to read its content. A future Figma MCP importer is a separate Spec, not a branch of this workflow.
+
+`not-required` never blocks Plan because Context is empty. `direction` and `fidelity` become strict only after the user explicitly runs `sdd visual init <dir> --spec <spec> --mode fidelity|direction`; then use `sdd visual inspect` before Plan approval. For an approved `fidelity` contract only, a project may configure the separate `playwright-visual` Provider and an exact, project-local `sdd.visual.config.json` scenario mapping, then run `sdd verify visual <dir> --spec <spec>`. A configured mask is only a static pixel rectangle `{x,y,width,height}`; selectors and runtime expressions are not allowed. The command accepts no URL, command, selector, threshold, mask, or environment pass-through; it reads human-approved baselines, persists current/diff evidence in `mydocs/runs/visual/`, and never creates, approves, or replaces a baseline. Provider, workspace, config, contract, baseline and code-state changes make prior evidence stale; a worktree mutation yields an auditable BLOCKED Run without current/diff attachments. Never fabricate a source, screenshot baseline, approval, browser result, or screenshot diff PASS. This contract does not create an Archive Gate.
 
 Dispatch categories (see `protocols/subagent-dispatch.md` for full Phase Dispatch Map):
 
@@ -651,3 +657,6 @@ SDD-RIPER draws on two methodology layers. The **execution-quality** layer is th
 - `sdd codemap <dir>`
 - `sdd visual init <dir> --spec <path> --mode fidelity|direction`
 - `sdd visual inspect <dir> --spec <path>`
+- `sdd visual select <dir> --spec <path> --ui-impact yes|no [--intent not-required|direction|fidelity]`
+- `sdd visual discover <dir> --spec <path>`
+- `sdd verify visual <dir> --spec <path>`

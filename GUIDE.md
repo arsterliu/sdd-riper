@@ -353,9 +353,13 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 - Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
 - Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
 
-### Visual Evidence（按需）
+### Visual Context Guidance（按需）
 
-视觉合同不因任务属于 frontend 而自动启用。只有用户明确要求 UI 视觉保真或设计质量确认时，Research/Innovate 才先询问并在确认后运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction`。它在任务 Context 下创建 `visual-evidence.json`，记录来源、路由/状态/视口、基线与人工批准；`sdd visual inspect`、普通 `validate` 和 `next` 会显示 `not-applicable`、`blocked`、`pending-approval` 或 `ready`。`direction` 允许方向批准后先进入 Plan，并以 pending 表示首版截图待 Execute 补齐；该补齐由任务自己的 manual AC 和 Execute Log 记录。视觉合同不联网、不启动浏览器、不等同于截图 diff PASS，也不新增 Archive Gate；visual runner 仍是后续能力。
+每个新 Spec 在 Research 前先确定 `ui-impact`：优先读取 Spec 绑定的精确 Profile 与 `affected-units`；仍无法判断时，SDD 只问一次“是否影响用户界面”。纯后端任务记录 `ui-impact: no` 并跳过。前端或混合任务记录 `ui-impact: yes`，必须通过 `sdd visual select` 一次性选择 `visual-context-intent`：`not-required`、`direction` 或 `fidelity`。
+
+用户可以把本地设计图、截图、PDF/SVG、文字说明和 URL 放进同一 Context。`sdd visual discover` 只读扫描，输出候选、缺口和无法可靠推断时才需要的补问；候选不是自动确认的设计稿。Figma URL 与普通 URL 使用同一种 reference 候选，不联网读取内容、不自动批准、不启动浏览器，也不执行截图 diff。实际 Figma MCP 获取器会在后续独立 Spec 中实现。
+
+`not-required` 与 `ui-impact: no` 绝不因缺少视觉材料阻塞 Plan。只有用户明确运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction` 后，严格 `visual-evidence` 合同才会启用；它记录来源、路由/状态/视口、基线与人工批准。`sdd visual inspect`、普通 `validate` 和 `next` 会显示 `not-applicable`、`blocked`、`pending-approval` 或 `ready`；当已有匹配的 Visual Run 时，inspect 还会投影 `not-run`、`pass`、`fail` 或 `stale` diff 状态。`direction` 允许方向批准后先进入 Plan，并以 pending 表示首版截图待 Execute 补齐；该补齐由任务自己的 manual AC 和 Execute Log 记录。视觉合同不新增 Archive Gate。
 
 ### Innovate
 
@@ -1036,4 +1040,4 @@ manual AC 的 `Manual Evidence` 原样保留为事实；Policy Focus 只展示�
 
 `verify init` 只使用项目级 `.sdd-verification.json.lock`，并在持锁期间完成共享配置的读取、修改、校验、临时文件写入和原子替换。同一项目不支持并发 init：锁已存在时立即返回 `SDD_VERIFY_INIT_LOCKED` / exit 2，不等待、不合并、不自动重试；调用者应稍后重试。若持续锁定，先确认没有仍在运行的 `verify init`，再人工删除项目根目录中的空锁目录并重试；不得仅按锁目录时间自动清理。若返回 `SDD_VERIFY_INIT_UNLOCK_FAILED`，配置可能已经写入，应先检查 `.sdd-verification.json` 再决定是否重试。
 
-v3.0 只实现 `playwright-test`；`playwright-mcp`、Custom Adapter 注册、统一 MCP Profile、visual、accessibility 和 performance 接入延后。
+`playwright-test` 继续只服务 `Verification: e2e`；`playwright-visual` 是独立 Provider。对于审批完成的 fidelity 合同，先以 `sdd verify init` 配置 `playwright-visual`，再在项目根目录维护静态 `sdd.visual.config.json`：每个合同 scenario id 精确映射到一个项目内 `testFile`、`testTitle`、Playwright project、有限阈值与可选静态 masks。每个 mask 都是像素矩形 `{x,y,width,height}`，用于从 diff 分母和差异图中排除动态区域；不支持 CSS 选择器或运行时表达式。随后运行 `sdd verify visual <dir> --spec <spec>`。命令不接受 URL、命令、选择器、阈值、掩码或环境变量透传；Reporter 只接受绑定场景的一张 PNG current screenshot，读取人工批准的 Context baseline，生成 current/diff 附件并原子写入 `mydocs/runs/visual/`。Visual Run 会校验 Provider、adapter、package/lockfile、Playwright config、合同、基线与代码状态；任一变化都会将旧结果标为 stale。若执行改动了工作树，仍写入带稳定诊断的 BLOCKED Run，但不会保存 current/diff 附件。baseline 的创建、更新和批准始终由人完成。Figma MCP、Custom Adapter、统一 MCP Profile、accessibility 和 performance 接入仍延后。

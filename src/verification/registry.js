@@ -2,8 +2,12 @@
 
 var contract = require('./contract');
 var playwrightTest = require('./adapters/playwright-test/manifest');
+var playwrightVisual = require('./adapters/playwright-visual/manifest');
 
-var REGISTRY = Object.freeze({ 'playwright-test': playwrightTest });
+var REGISTRY = Object.freeze({
+  'playwright-test': playwrightTest,
+  'playwright-visual': playwrightVisual
+});
 
 function resolveAdapter(adapterId) {
   var manifest = REGISTRY[adapterId];

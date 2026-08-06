@@ -5,6 +5,8 @@ mode: lite
 status: draft
 reopened-from: ""
 context-source: ""
+ui-impact: ""
+visual-context-intent: ""
 visual-evidence: ""
 visual-evidence-file: ""
 diff-base: ""

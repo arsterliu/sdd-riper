@@ -184,6 +184,7 @@ function analyzeSpec(projectDir, specPath, opts) {
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var contextSource = common.getFrontmatterField(specPath, 'context-source') || '';
   var visualEvidence = visualEvidenceContract.inspect(specPath, projectDir);
+  var visualContext = validate.visualContextStatus(specPath, projectDir);
   var profileRevision = common.getFrontmatterField(specPath, 'project-profile-revision') || '';
   var profileDigest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
   var affectedUnits = (common.getFrontmatterField(specPath, 'affected-units') || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean);
@@ -206,7 +207,14 @@ function analyzeSpec(projectDir, specPath, opts) {
   }
   var flags = riskFlags(action && action.trim() ? action : content, crSection);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
-  if (visualEvidence.planReadiness === 'blocked') {
+  var visualContextIssue = validate.visualContextSelectionIssue(visualContext);
+  if (!opts.archiveReady && visualContextIssue && (validation.issues || []).indexOf(visualContextIssue) === -1) {
+    validation = Object.assign({}, validation, {
+      workflowState: null,
+      issues: (validation.issues || []).concat([visualContextIssue])
+    });
+  }
+  if (!opts.archiveReady && visualEvidence.planReadiness === 'blocked') {
     validation = Object.assign({}, validation, {
       workflowState: null,
       issues: (validation.issues || []).concat(visualEvidence.diagnostics.map(function(diagnostic) {
@@ -241,6 +249,7 @@ function analyzeSpec(projectDir, specPath, opts) {
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
     contextSource: contextSource || undefined,
+    visualContext: visualContext,
     visualEvidence: visualEvidence,
     profileRevision: profileRevision || undefined,
     profileDigest: profileDigest || undefined,

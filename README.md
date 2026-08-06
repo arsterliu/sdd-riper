@@ -264,8 +264,11 @@ Research Gate 和 Challenge 不由 `APPROVAL_POLICY` 批准。standard/lite 必�
 | :--- | :--- |
 | `sdd init <dir>` | 初始化项目结构。 |
 | `sdd discover <dir> --task-name <name> --version <vN.M\|vN.M.P> --requirement <text> [--context <source\|none>]` | 创建 Spec、Design、Execute Log；创建前 version/task-name/context 必须由用户输入或确认。 |
-| `sdd visual init <dir> --spec <path> --mode <fidelity\|direction>` | 为明确需要视觉保真或 UI 设计质量确认的活动 Spec 创建并绑定视觉证据清单。 |
+| `sdd visual select <dir> --spec <path> --ui-impact <yes\|no> [--intent <not-required\|direction\|fidelity>]` | 为前端或混合 Spec 一次性记录 `ui-impact` 与 `visual-context-intent`；纯后端选择 `no` 并跳过。 |
+| `sdd visual discover <dir> --spec <path>` | 只读扫描本地 Context，报告材料候选、缺口和最小补问；不联网、不写入批准或严格合同。 |
+| `sdd visual init <dir> --spec <path> --mode <fidelity\|direction>` | 在用户确认后，为明确需要视觉保真或 UI 设计质量确认的活动 Spec 创建并绑定严格视觉证据清单。 |
 | `sdd visual inspect <dir> --spec <path>` | 只读检查视觉合同的 Plan Readiness 与首版基线状态。 |
+| `sdd verify visual <dir> --spec <path>` | 对已批准的 `fidelity` 合同执行受控 Playwright 截图、显式阈值 diff，并写入独立 Visual Run；不创建或更新基线。 |
 | `sdd new-learning <dir> [spec-name]` | 创建并绑定 Learning Record。 |
 | `sdd resume <dir>` | 恢复当前任务上下文。 |
 | `sdd status <dir>` | 检查结构和流程健康度。 |
@@ -358,8 +361,14 @@ AC 是唯一验收真相。Quality Plan 只把 AC 的 `Verification` 映射为 e
 
 ## Verification Adapter v3.0
 
-E2E Acceptance 通过 `Provider:` 引用项目级具名配置，使用 `sdd verify init` 显式创建，并用 `sdd verify run --spec <spec>` 生成不可变 Verification Run。首版只注册具备正式 gate 能力的 `playwright-test` Adapter；Core 不依赖或自动安装 Playwright。
+E2E Acceptance 通过 `Provider:` 引用项目级具名配置，使用 `sdd verify init` 显式创建，并用 `sdd verify run --spec <spec>` 生成不可变 Verification Run。`playwright-test` 只提供 e2e `gate`；`playwright-visual` 是独立的 `visual-gate`，不会改变 e2e Run schema 或覆盖语义。Core 不依赖或自动安装 Playwright。
 
-视觉证据合同是可选的任务级设计输入与人工批准记录：只有用户明确要求视觉保真或 UI 设计质量确认时才启用。`fidelity` 记录已有设计稿/基线；`direction` 记录无稿时经人工批准的设计方向，首版基线可在 Execute 后补齐。它不运行截图 diff，也不改变 Archive Gate。`playwright-mcp`、Custom Adapter、统一 MCP Profile 与 visual/a11y/performance runner 仍为延期能力。
+### Visual Context Guidance
+
+新 Spec 先根据精确 Project Profile / `affected-units` 判断 `ui-impact`；无法判断时 SDD 只问一次是否影响用户界面。纯后端任务选择 `ui-impact: no` 并跳过；前端或混合任务必须用 `sdd visual select` 一次性记录 `visual-context-intent`：不做视觉验收、方向确认或高保真验收。
+
+用户可把图片、PDF/SVG、说明文档、截图和 URL 一起放入 Context；`sdd visual discover` 只读分类候选、报告缺口和最小补问。Figma URL 与普通 URL 是同一种 reference 候选：本期不联网读取、不自动批准，也不启动浏览器或截图 diff。需要实际导入 Figma 时，使用未来独立的 Figma MCP Spec；它不改变本地 Context 工作流。
+
+只有用户确认并显式运行 `sdd visual init` 后，既有视觉证据合同才会启用严格 Plan 门禁。`not-required` 即使 Context 为空也不会阻塞；`direction` 不启动视觉 runner。对于已批准基线的 `fidelity`，项目可显式配置 `playwright-visual` Provider 和静态 `sdd.visual.config.json` 场景映射，再运行 `sdd verify visual --spec <spec>`。该命令只执行配置内的测试文件，保存 current/diff 附件到 `mydocs/runs/visual/`，以显式阈值决定 PASS/FAIL；它不接收 URL、任意命令、环境变量或选择器参数，不创建、批准或替换基线，也不改变 Archive Gate。`playwright-mcp`、Custom Adapter、统一 MCP Profile、Figma 导入、a11y 与性能 runner 仍为延期能力。
 
 Playwright 必须能从指定 workspace/packageRoot 解析、由祖先 workspace manifest 直接声明并受唯一 lockfile 管理。支持 npm/pnpm/Yarn node_modules workspace/hoist；不支持全局包、临时 npx、纯传递依赖或 Yarn PnP。缺包或浏览器时明确阻断，不自动降级。
