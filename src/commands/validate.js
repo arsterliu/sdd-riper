@@ -3,6 +3,8 @@ var path = require('path');
 var common = require('../../lib/common');
 var reviewerGuidance = require('../core/reviewer-guidance');
 var specState = require('../core/spec-state');
+var governanceContract = require('../core/governance-contract');
+var providerReadiness = require('../verification/readiness');
 var visualEvidence = require('../visual-evidence/contract');
 
 var SECTION = {
@@ -101,14 +103,6 @@ function visualContextSelectionIssue(status) {
   return '';
 }
 
-var MICRO_PLAN_REQUIRED = [
-  'Impact Scope',
-  'Data Impact',
-  'Interface Impact',
-  'Acceptance',
-  'Verification'
-];
-
 var CONFIRMED_REQ_REQUIRED = [
   'Scope Boundary',
   'Irreversibility',
@@ -193,12 +187,7 @@ function isPlanApproval(value) {
 
 function isAuditableReviewer(value, mode) {
   var reviewer = String(value || '').trim();
-  if (!reviewer) return false;
-  if (mode === 'micro' && /^inline$/i.test(reviewer)) return true;
-  if (/^subagent:[^:\s]+$/i.test(reviewer)) return true;
-  if (/^external-agent:[^:\s]+$/i.test(reviewer)) return true;
-  if (/^human:[^:\s]+$/i.test(reviewer)) return true;
-  return false;
+  return governanceContract.isAuditableReviewer(mode, reviewer);
 }
 
 function independentReviewerMessage(label) {
@@ -244,7 +233,7 @@ function validateAcceptanceCriteria(section, modeLabel, issues) {
     if (/^yes$/i.test(automated) && !labelHasContent(text, 'Test')) {
       issues.push(modeLabel + ' Automated Acceptance Criteria require Test for: ' + block.id + '.');
     }
-    if (/\be2e\b/i.test(verification) && !labelHasContent(text, 'Test') && !labelHasContent(text, 'Manual Evidence')) {
+    if (governanceContract.requiresProvider(verification) && !labelHasContent(text, 'Test') && !labelHasContent(text, 'Manual Evidence')) {
       issues.push(modeLabel + ' E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
     }
     if (/\bmanual\b/i.test(verification) && !labelHasContent(text, 'Manual Evidence')) {
@@ -345,7 +334,7 @@ function validateChallengeVerdict(content, issues) {
     issues.push('Challenge Verdict is invalid; allowed values: ' + specState.VERDICTS.join(', ') + '.');
     return;
   }
-  if (/^FAIL_/i.test(verdict)) {
+  if (verdict && facts.allowed && !facts.passed) {
     issues.push('Adversarial Challenge failed: ' + verdict.toUpperCase() + '.');
   }
 }
@@ -398,7 +387,7 @@ function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues)
 
   if (mode === 'micro') {
     var plan = sectionContent(specPath, SECTION.plan);
-    MICRO_PLAN_REQUIRED.forEach(function(label) {
+    governanceContract.modeFields(mode).required.forEach(function(label) {
       if (!labelHasContent(plan, label)) {
         issues.push('Micro Plan must include ' + label + '.');
       }
@@ -543,6 +532,7 @@ function validateSpec(specPath, opts) {
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
   var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
+  var snapshot = specState.readSnapshot(projectDir, specPath);
 
   validateProfileReference(projectDir, specPath, issues);
 
@@ -579,6 +569,12 @@ function validateSpec(specPath, opts) {
     validateConfirmedRequirement(specPath, mode, false, issues);
   }
 
+  if (snapshot.location === 'active') {
+    providerReadiness.inspect(content, projectDir, specPath).issues.filter(function(issue) {
+      return /^E2E Acceptance Criteria require Provider/.test(issue);
+    }).forEach(function(issue) { issues.push(issue); });
+  }
+
   var logArtifact = artifactSection(projectDir, specPath, 'execute-log-file', SECTION.executeLog, issues, 'Execute Log', opts.archiveReady);
   var executeLog = logArtifact.content;
   if (!opts.archiveReady && !firstRealLine(executeLog)) {
@@ -597,7 +593,7 @@ function validateSpec(specPath, opts) {
   }
 
   var blockingIssues = issues.filter(function(i) { return !/^WARNING:/i.test(i); });
-  var workflowState = specState.evaluate(specState.readSnapshot(projectDir, specPath), {
+  var workflowState = specState.evaluate(snapshot, {
     validationIssues: blockingIssues
   });
   if (opts.archiveReady) {

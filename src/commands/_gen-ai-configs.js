@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const reviewerGuidance = require('../core/reviewer-guidance');
+const governanceContract = require('../core/governance-contract');
 
 var BLOCK_START = '<!-- sdd-riper:start -->';
 var BLOCK_END = '<!-- sdd-riper:end -->';
@@ -15,6 +16,9 @@ function sddBlock(title, mode, bodyLines) {
     'Hard rules:',
     '- Load the latest active Spec before implementation.',
     '- Do not write code without an active Spec.',
+    '- Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.',
+    '- When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.',
+    '- Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.',
     '- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; do not infer them silently.',
     '- Before creating a Spec, ask whether reference materials / context exist, and bind them with `context-source` when provided.',
     '- Do not move past Plan without approval and gate evidence.',
@@ -60,17 +64,55 @@ function ensureTrailingNewline(text) {
   return text.endsWith('\n') ? text : text + '\n';
 }
 
+function markerOffsets(text, marker) {
+  var offsets = [];
+  var offset = text.indexOf(marker);
+  while (offset !== -1) {
+    offsets.push(offset);
+    offset = text.indexOf(marker, offset + marker.length);
+  }
+  return offsets;
+}
+
+function lastGeneratedManagedBlock(existing, starts, ends, block) {
+  var candidate = null;
+  starts.forEach(function(start) {
+    var end = ends.find(function(offset) { return offset > start; });
+    var nextStart = starts.find(function(offset) { return offset > start; });
+    if (end === undefined || (nextStart !== undefined && nextStart < end)) return;
+
+    var content = existing.slice(start, end + BLOCK_END.length);
+    if (content !== block) return;
+    candidate = { start: start, end: end + BLOCK_END.length };
+  });
+  return candidate;
+}
+
 function upsertManagedBlock(existing, block) {
-  var start = existing.indexOf(BLOCK_START);
-  var end = existing.indexOf(BLOCK_END);
-  if (start !== -1 && end !== -1 && end > start) {
-    end += BLOCK_END.length;
+  var starts = markerOffsets(existing, BLOCK_START);
+  var ends = markerOffsets(existing, BLOCK_END);
+  if (starts.length === 1 && ends.length === 1 && starts[0] < ends[0]) {
+    var start = starts[0];
+    var end = ends[0] + BLOCK_END.length;
     return {
       content: existing.slice(0, start) + block + existing.slice(end),
       action: 'update'
     };
   }
-  var prefix = ensureTrailingNewline(existing.trimEnd());
+  if (starts.length !== 0 || ends.length !== 0) {
+    var previous = lastGeneratedManagedBlock(existing, starts, ends, block);
+    if (previous) {
+      return {
+        content: existing.slice(0, previous.start) + block + existing.slice(previous.end),
+        action: 'update'
+      };
+    }
+    return {
+      content: ensureTrailingNewline(existing) + '\n' + block + '\n',
+      action: 'merge'
+    };
+  }
+  var prefix = ensureTrailingNewline(existing);
   return {
     content: prefix + '\n' + block + '\n',
     action: 'merge'
@@ -78,7 +120,7 @@ function upsertManagedBlock(existing, block) {
 }
 
 function run(projectDir, mode, force) {
-  if (!mode) mode = 'micro';
+  if (!mode) mode = governanceContract.defaults.mode;
   if (['standard','lite','micro'].indexOf(mode) === -1) {
     console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
     process.exit(3);

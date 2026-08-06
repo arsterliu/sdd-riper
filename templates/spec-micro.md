@@ -29,15 +29,20 @@ affected-units: ""
 ## Plan
 <!-- Required labels below stay English; fill values in Chinese where possible. -->
 
-Scope:
-Touched Files:
-Change:
+Required fields:
 Impact Scope:
 Data Impact:
 Interface Impact:
 Acceptance:
 Verification:
+
+Conditional field:
 Provider: <required for e2e; named provider id>
+
+Recommended fields:
+Scope:
+Touched Files:
+Change:
 Blast Radius:
 
 Plan Approved By:

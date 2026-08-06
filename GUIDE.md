@@ -95,6 +95,8 @@ Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRAC
 Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
+当 AC 写 `Verification: e2e` 时，必须同时声明 `Provider: <provider-id>`。已归档（archived）和历史（legacy）制品始终可读，无需迁移；读取历史制品不得静默改写它们。
+
 Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage 汇总），替代了原独立的 Review 阶段。Challenge 是 Execute 之后的唯一质量门禁。`PASS_WITH_CONCERNS` 直接进入 Learning Check（不再回退到 Review）。
 
 ### 全链路流转图

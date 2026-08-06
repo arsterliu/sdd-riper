@@ -1,6 +1,7 @@
 'use strict';
 
 var config = require('./config');
+var governanceContract = require('../core/governance-contract');
 
 function label(text, name) {
   var match = String(text).match(new RegExp('^' + name + ':\\s*(.+)$', 'mi'));
@@ -38,13 +39,13 @@ function verificationContract(content, providerId) {
     mode: frontmatterValue(content, 'mode'),
     taskName: frontmatterValue(content, 'task-name'),
     acs: acceptanceBlocks(content).filter(function(ac) {
-      return /^e2e$/i.test(ac.verification) && ac.provider === providerId;
+      return governanceContract.requiresProvider(ac.verification) && ac.provider === providerId;
     }).map(function(ac) { return { id: ac.id, contract: ac.contract }; })
   };
 }
 
 function inspect(specContent, projectDir, specPath) {
-  var targets = acceptanceBlocks(specContent).filter(function(ac) { return /^e2e$/i.test(ac.verification); });
+  var targets = acceptanceBlocks(specContent).filter(function(ac) { return governanceContract.requiresProvider(ac.verification); });
   var issues = [];
   targets.forEach(function(ac) {
     if (!ac.provider) issues.push('E2E Acceptance Criteria require Provider for: ' + ac.id + '.');

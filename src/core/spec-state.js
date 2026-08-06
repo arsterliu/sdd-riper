@@ -4,20 +4,13 @@ var common = require('../../lib/common');
 var learning = require('./learning');
 var reviewerGuidance = require('./reviewer-guidance');
 var providerReadiness = require('../verification/readiness');
+var governanceContract = require('./governance-contract');
 
-var VERDICT_TO_TARGET = {
-  PASS: 'Ready',
-  PASS_WITH_CONCERNS: 'Learning Check',
-  FAIL_SPEC: 'Research',
-  FAIL_DESIGN: 'Design',
-  FAIL_ACCEPTANCE: 'Acceptance',
-  FAIL_PLAN: 'Plan',
-  FAIL_CODE: 'Execute / Debug',
-  FAIL_LOG: 'Execute Log',
-  FAIL_LEARNING: 'Learning Check'
-};
-
-var VERDICTS = Object.keys(VERDICT_TO_TARGET);
+var VERDICTS = Object.freeze(governanceContract.verdicts.slice());
+var VERDICT_TO_TARGET = Object.freeze(VERDICTS.reduce(function(targets, verdict) {
+  targets[verdict] = governanceContract.backtrackTarget(verdict);
+  return targets;
+}, {}));
 
 function classifyIssue(issue) {
   var text = String(issue || '');
@@ -37,8 +30,10 @@ function classifyIssue(issue) {
 }
 
 function verdictFromIssues(issues) {
-  if (!issues || !issues.length) return 'PASS';
-  var priority = ['FAIL_SPEC', 'FAIL_DESIGN', 'FAIL_ACCEPTANCE', 'FAIL_PLAN', 'FAIL_CODE', 'FAIL_LOG', 'FAIL_LEARNING'];
+  if (!issues || !issues.length) {
+    return VERDICTS.find(function(verdict) { return governanceContract.isPassingVerdict(verdict); }) || '';
+  }
+  var priority = VERDICTS.filter(function(verdict) { return !governanceContract.isPassingVerdict(verdict); });
   var found = issues.map(classifyIssue);
   for (var i = 0; i < priority.length; i++) {
     if (found.indexOf(priority[i]) !== -1) return priority[i];
@@ -55,14 +50,14 @@ function actionForTarget(target) {
 
 function gateForVerdict(verdict) {
   return {
-    FAIL_SPEC: 'research',
-    FAIL_DESIGN: 'design',
-    FAIL_ACCEPTANCE: 'acceptance',
-    FAIL_PLAN: 'plan',
-    FAIL_CODE: 'execute',
-    FAIL_LOG: 'completion',
-    FAIL_LEARNING: 'learning'
-  }[verdict] || 'challenge';
+    Research: 'research',
+    Design: 'design',
+    Acceptance: 'acceptance',
+    Plan: 'plan',
+    'Execute / Debug': 'execute',
+    'Execute Log': 'completion',
+    'Learning Check': 'learning'
+  }[governanceContract.backtrackTarget(verdict)] || 'challenge';
 }
 
 function blockerCode(issue, verdict) {
@@ -101,9 +96,9 @@ function challengeFacts(content) {
     summary: summary,
     target: target,
     evidence: evidence,
-    allowed: VERDICTS.indexOf(verdict) !== -1,
-    passed: verdict === 'PASS' || verdict === 'PASS_WITH_CONCERNS',
-    expectedTarget: VERDICT_TO_TARGET[verdict] || ''
+    allowed: governanceContract.isKnownVerdict(verdict),
+    passed: governanceContract.isPassingVerdict(verdict),
+    expectedTarget: governanceContract.backtrackTarget(verdict)
   };
 }
 
@@ -282,7 +277,7 @@ function acCoverageContractIssues(specContent, executeLogContent, projectDir) {
 }
 
 function readyAction(verdict, validationIssues) {
-  if ((verdict === 'PASS' || verdict === 'PASS_WITH_CONCERNS') && (!validationIssues || !validationIssues.length)) {
+  if (governanceContract.isPassingVerdict(verdict) && (!validationIssues || !validationIssues.length)) {
     return { target: 'Ready', action: 'request_archive_authorization' };
   }
   return null;
@@ -303,8 +298,7 @@ function firstRealLine(content) {
 }
 
 function isAuditableReviewer(value, mode) {
-  if (mode === 'micro' && /^inline$/i.test(value || '')) return true;
-  return /^(subagent|external-agent|human):[^:\s]+$/i.test(value || '');
+  return governanceContract.isAuditableReviewer(mode, value);
 }
 
 function gateFromIssue(issue) {
@@ -362,7 +356,7 @@ function acceptanceContractIssues(content, mode) {
     var manualEvidence = artifactSnapshot.labelValue(text, 'Manual Evidence');
     if (!verification) issues.push('Acceptance Criteria missing Verification for: ' + block.id + '.');
     if (/^yes$/i.test(automated) && !test) issues.push('Automated Acceptance Criteria require Test for: ' + block.id + '.');
-    if (/\be2e\b/i.test(verification) && !test && !manualEvidence) issues.push('E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
+    if (governanceContract.requiresProvider(verification) && !test && !manualEvidence) issues.push('E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
     if (/\bmanual\b/i.test(verification) && !manualEvidence) issues.push('Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
   });
   return issues;
@@ -439,7 +433,7 @@ function directGateBlockers(snapshot) {
   acceptanceContractIssues(content, mode).forEach(function(issue) {
     add('acceptance', issue, 'Acceptance', 'FAIL_ACCEPTANCE');
   });
-  var verificationReadiness = snapshot.projectDir
+  var verificationReadiness = snapshot.location !== 'archive' && snapshot.projectDir
     ? providerReadiness.inspect(content, snapshot.projectDir, snapshot.specPath)
     : { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
   verificationReadiness.issues.filter(function(issue) {
@@ -458,7 +452,7 @@ function directGateBlockers(snapshot) {
 
   if (mode === 'micro') {
     var microPlan = sectionText(content, 'Plan');
-    ['Impact Scope', 'Data Impact', 'Interface Impact', 'Acceptance', 'Verification'].forEach(function(label) {
+    governanceContract.modeFields(mode).required.forEach(function(label) {
       if (!artifactSnapshot.labelValue(microPlan, label)) add('plan', 'Micro Plan must include ' + label + '.', 'Plan', 'FAIL_PLAN');
     });
   }
@@ -496,7 +490,7 @@ function directGateBlockers(snapshot) {
       if (lastStep && new Date(executedAt) <= lastStep) add('challenge', 'Challenge Executed At must be after the last Execute Log step timestamp.' + challengeCommand, 'Challenge', 'FAIL_LOG');
     }
     var challenge = challengeFacts(content);
-    if (/^FAIL_/.test(challenge.verdict)) add('challenge', 'Adversarial Challenge failed: ' + challenge.verdict + '.', VERDICT_TO_TARGET[challenge.verdict], challenge.verdict);
+    if (challenge.allowed && !challenge.passed) add('challenge', 'Adversarial Challenge failed: ' + challenge.verdict + '.', governanceContract.backtrackTarget(challenge.verdict), challenge.verdict);
   }
 
   var challengeFactsValue = challengeFacts(content);
@@ -533,7 +527,7 @@ function evaluate(snapshot, options) {
     var gateBlockers = blockers.filter(function(blocker) { return blocker.gate === gate; });
     gates[gate] = { state: gateBlockers.length ? 'blocked' : 'pass', blockers: gateBlockers };
   });
-  if (/^FAIL_/.test(facts.verdict)) gates.challenge.state = 'failed';
+  if (facts.allowed && !facts.passed) gates.challenge.state = 'failed';
 
   var verdict = facts.allowed ? facts.verdict : verdictFromIssues(blockers.map(function(blocker) { return blocker.message; }));
   var target = 'Ready';
@@ -550,7 +544,7 @@ function evaluate(snapshot, options) {
     target = 'Challenge';
     action = 'run_challenge';
   } else if (gates.challenge.state === 'failed') {
-    target = VERDICT_TO_TARGET[facts.verdict] || 'Execute / Debug';
+    target = governanceContract.backtrackTarget(facts.verdict) || 'Execute / Debug';
     action = actionForTarget(target);
   } else if (gates.learning.state === 'blocked') {
     target = 'Learning Check';
@@ -571,7 +565,7 @@ function evaluate(snapshot, options) {
     facts: {
       challenge: facts,
       completion: { done: gates.completion.state === 'pass' },
-      providerReadiness: snapshot.projectDir ? providerReadiness.inspect(snapshot.content || '', snapshot.projectDir, snapshot.specPath) : { state: 'ready' },
+      providerReadiness: snapshot.location !== 'archive' && snapshot.projectDir ? providerReadiness.inspect(snapshot.content || '', snapshot.projectDir, snapshot.specPath) : { state: 'ready' },
       learningRequired: learning.learningTriggers(snapshot.content || '', snapshot.executeLog && snapshot.executeLog.content || '', facts.verdict).length > 0
     }
   };

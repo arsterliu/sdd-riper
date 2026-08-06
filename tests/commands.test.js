@@ -748,6 +748,7 @@ describe('CLI commands', function() {
 
     var out = run('challenge ' + demo + ' --name challenge-executor --record-result PASS --summary ok');
     assert.ok(out.indexOf('--executed-by') !== -1, out);
+    assert.ok(out.indexOf('[ERROR] --executed-by is required with --record-result (use subagent:<id>|external-agent:<id>|human:<name>|inline).') !== -1, out);
     assert.ok(out.indexOf('exit:') !== -1, out);
     var specText = fs.readFileSync(sf, 'utf-8');
     assert.match(specText, /^Challenge Executed By:\s*$/m);
@@ -1535,6 +1536,18 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
     var automatedBlocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(automatedBlocked.indexOf('Standard Automated Acceptance Criteria require Test for: AC-001') !== -1);
+  });
+
+  it('validate reports missing Provider for an active e2e AC even when Test is present', function() {
+    var demo = path.join(tmpBase, 'd4-provider-active');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name provider-active --spec-version v1.0 --requirement x --mode standard');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-provider-active.md');
+    var content = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: active e2e verification\nRequirement: provider-active\nType: functional\nVerification:  E2E  \nAutomated: yes\nTest: tests/e2e/provider-active.spec.js');
+    fs.writeFileSync(sf, content, 'utf-8');
+
+    var result = require('../src/commands/validate').validateSpec(sf, { projectDir: demo });
+    assert.ok(result.issues.indexOf('E2E Acceptance Criteria require Provider for: AC-001.') !== -1, result.issues.join('\n'));
   });
 
   it('generated artifacts keep English labels and request Chinese content', function() {

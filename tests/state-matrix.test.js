@@ -635,6 +635,40 @@ describe('authoritative workflow state matrix', function() {
     assert.deepStrictEqual(result.issues, ['E2E Acceptance Criteria require Provider for: AC-001.']);
   });
 
+  it('applies missing Provider blockers only to active e2e Specs, not real archive paths', function() {
+    const root = project('provider-archive-boundary');
+    const content = '---\nmode: standard\n---\n## Acceptance Criteria\n### AC-001: archived web\nVerification: e2e\nTest: tests/web.test.js\n\n## Plan\nStep: fixture';
+    const archivePath = path.join(root, 'mydocs', 'archive', 'v1.0-provider-archive.md');
+    const activePath = path.join(root, 'mydocs', 'specs', 'v1.0-provider-active.md');
+    fs.mkdirSync(path.dirname(archivePath), { recursive: true });
+    fs.mkdirSync(path.dirname(activePath), { recursive: true });
+    fs.writeFileSync(archivePath, content, 'utf-8');
+    fs.writeFileSync(activePath, content, 'utf-8');
+
+    const archived = specState.readSnapshot(root, archivePath);
+    const active = specState.readSnapshot(root, activePath);
+    assert.strictEqual(archived.location, 'archive');
+    assert.strictEqual(active.location, 'active');
+    assert.strictEqual(specState.evaluate(archived).blockers.some(function(blocker) {
+      return /E2E Acceptance Criteria require Provider|Verification Provider is not configured/.test(blocker.message);
+    }), false);
+    assert.strictEqual(specState.evaluate(active).blockers.some(function(blocker) {
+      return /E2E Acceptance Criteria require Provider/.test(blocker.message);
+    }), true);
+  });
+
+  it('keeps legacy snapshots without a location fail-closed for e2e Provider readiness', function() {
+    const root = project('provider-legacy-active-default');
+    fs.mkdirSync(root, { recursive: true });
+    const state = specState.evaluate({
+      exists: true, projectDir: root, status: 'draft', mode: 'standard',
+      content: '## Acceptance Criteria\n### AC-001: web\nVerification: e2e\nTest: tests/web.test.js\n\n## Plan\nStep: fixture'
+    });
+    assert.ok(state.blockers.some(function(blocker) {
+      return blocker.gate === 'acceptance' && /E2E Acceptance Criteria require Provider/.test(blocker.message);
+    }));
+  });
+
   it('reports configured providers without loading project code', function() {
     const root = project('provider-configured');
     fs.mkdirSync(root, { recursive: true });
@@ -651,7 +685,7 @@ describe('authoritative workflow state matrix', function() {
     const root = project('provider-plan-blocker');
     fs.mkdirSync(root, { recursive: true });
     const state = specState.evaluate({
-      exists: true, projectDir: root, status: 'draft', mode: 'standard',
+      exists: true, projectDir: root, location: 'active', status: 'draft', mode: 'standard',
       content: '## Acceptance Criteria\n### AC-001: web\nVerification: e2e\nProvider: web-e2e\nTest: tests/web.test.js\n## Plan\nStep: implement UI'
     });
     assert.ok(state.blockers.some(function(blocker) {

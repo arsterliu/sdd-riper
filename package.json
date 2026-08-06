@@ -1,7 +1,7 @@
 {
   "name": "sdd-riper",
   "version": "2.0.0",
-  "description": "SDD-RIPER: Structured Driven Development CLI — Research, Innovate, Plan, Execute, Review",
+  "description": "SDD-RIPER: Structured Driven Development CLI — Research, Innovate, Design/Acceptance, Plan, Execute, Challenge, Learning Check, Archive",
   "license": "MIT",
   "author": "liuying",
   "bin": {

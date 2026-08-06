@@ -18,7 +18,7 @@
 
 ## RIPER 工作流
 
-Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> Learning Check
+Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 
 ## 上下文层
 
@@ -37,3 +37,54 @@ docs root 目录默认为 `mydocs/`，可通过 `.sdd-config` 的 `DOCS_DIR=...`
 ## Mode
 
 新任务未显式传入 `discover --mode` 时默认 `micro`；需要 standard/lite 时必须由任务风险明确触发。
+
+<!-- sdd-riper:start -->
+## SDD-RIPER Agent Instructions
+
+This project uses SDD-RIPER. Do not reconstruct the workflow manually; use the `sdd-riper` skill when available, or the `sdd` CLI as the procedural source of truth.
+
+Hard rules:
+- Load the latest active Spec before implementation.
+- Do not write code without an active Spec.
+- Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
+- When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.
+- Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.
+- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; do not infer them silently.
+- Before creating a Spec, ask whether reference materials / context exist, and bind them with `context-source` when provided.
+- Do not move past Plan without approval and gate evidence.
+- Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.
+- Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.
+- For each new Spec, establish `ui-impact` from its exact Profile / `affected-units`, or ask once whether it affects a user interface when unknown. Backend-only Specs select `ui-impact: no` and skip visual guidance; frontend or mixed Specs select `ui-impact: yes` once with `sdd visual select ... --intent not-required|direction|fidelity`.
+- Users may put local images, documents, notes, and URL references together in `context-source`; run `sdd visual discover` to report inferred candidates, gaps, and only unresolved questions. A Figma URL is handled like any other URL: discovery records it but does not access the network to read its content. Figma MCP import is a separate future Spec.
+- Do not enable strict visual evidence until the user explicitly runs `sdd visual init ... --mode fidelity|direction`. For an approved fidelity contract only, configure the separate `playwright-visual` Provider plus exact project-local `sdd.visual.config.json` bindings, then run `sdd verify visual --spec <spec>`; it accepts no URL, command, selector, threshold, mask, or environment pass-through and never creates, approves, or replaces a baseline. Do not fabricate a visual baseline, approval, browser result, or screenshot diff PASS. Empty Context never blocks `not-required`.
+- When a Spec declares `project-profile-revision`, Research must read that exact revision; never substitute `profiles/current.json`.
+- Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.
+- Profile `commandRefs` are facts and must not be executed automatically.
+- Profile detection and inheritance must not install dependencies or initialize a Verification Provider.
+- Record execution deviations in the referenced Execute Log.
+- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.
+- Independent Review is separate from approval: Research/Challenge reviewers must be auditable (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`; micro Challenge may use `inline`).
+- If you use a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding.
+- When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user.
+- Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.
+- A `human:<name>` archive record is an audit declaration, not identity authentication.
+- Do not skip the gate or fabricate reviewer evidence.
+- Keep artifact headings and field labels in English; write artifact content in Chinese.
+- Debug before retrying failed steps.
+
+Entry points:
+- `sdd resume <dir>` reloads active task context.
+- `sdd next <dir>` inspects current state and next action.
+- `sdd validate <dir> --archive-ready` checks archive readiness.
+- `sdd challenge <dir>` generates or records adversarial challenge.
+- `sdd cruise <dir>` produces bounded repair-loop guidance and run ledger entries.
+
+Project configuration:
+- Docs root defaults to `mydocs/`, override via `.sdd-config` (`DOCS_DIR=...`).
+- `APPROVAL_POLICY=agent|human` controls only the Plan approval gate; `agent` approvals require `Gate Evidence`.
+- Cruise is enabled by default; set `CRUISE_ENABLED=false` to turn it off and keep `CRUISE_MAX_ITERATIONS` as the iteration budget.
+- Cruise Driver is selected with `sdd cruise --driver <driver>`.
+- Cruise orchestrator only routes and bounds iterations; the main agent re-enters `BACKTRACK_TARGET` under that phase's gates and write boundaries; the Challenge reviewer remains read-only.
+- Mode: standard
+
+<!-- sdd-riper:end -->

@@ -35,7 +35,9 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency.
 11. **Challenge Failures Backtrack**: adversarial challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
 12. **Explicit Archive Authorization**: Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
-13. **Exact Project Profile Context**: when a Spec declares `project-profile-revision`, Research must read that exact revision and must never substitute `profiles/current.json`. Before `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest. Profile `commandRefs` are facts and must not be executed automatically; detection and inheritance must not install dependencies or initialize a Verification Provider.
+13. **E2E Provider Metadata**: 当 AC 写 `Verification: e2e` 时，必须同时声明 `Provider: <provider-id>`；Provider 是项目级具名配置，不得以隐式默认值替代。
+14. **Historical Read Compatibility**: 已归档（archived）和历史（legacy）制品始终可读，无需迁移；读取历史制品不得静默改写它们。
+15. **Exact Project Profile Context**: when a Spec declares `project-profile-revision`, Research must read that exact revision and must never substitute `profiles/current.json`. Before `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest. Profile `commandRefs` are facts and must not be executed automatically; detection and inheritance must not install dependencies or initialize a Verification Provider.
 
 ## CLI Rule
 

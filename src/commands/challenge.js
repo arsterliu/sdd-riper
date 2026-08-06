@@ -1,29 +1,25 @@
 var workflow = require('../core/workflow');
 var common = require('../../lib/common');
 var reviewerGuidance = require('../core/reviewer-guidance');
+var governanceContract = require('../core/governance-contract');
 var fs = require('fs');
 var path = require('path');
 
-var VERDICTS = [
-  'PASS',
-  'PASS_WITH_CONCERNS',
-  'FAIL_SPEC',
-  'FAIL_DESIGN',
-  'FAIL_ACCEPTANCE',
-  'FAIL_PLAN',
-  'FAIL_CODE',
-  'FAIL_LOG',
-  'FAIL_LEARNING'
-];
-
 function isAuditableExecutedBy(value, mode) {
-  var who = String(value || '').trim();
-  if (!who) return false;
-  if (mode === 'micro' && /^inline$/i.test(who)) return true;
-  if (/^subagent:[^:\s]+$/i.test(who)) return true;
-  if (/^external-agent:[^:\s]+$/i.test(who)) return true;
-  if (/^human:[^:\s]+$/i.test(who)) return true;
-  return false;
+  return governanceContract.isAuditableReviewer(mode, String(value || '').trim());
+}
+
+function allowedVerdicts(separator) {
+  return governanceContract.verdicts.join(separator);
+}
+
+function reviewerTypes() {
+  return governanceContract.auditableReviewerTypes.join('|');
+}
+
+function reviewerRequirement(mode) {
+  var types = 'subagent:<id>, external-agent:<id>, or human:<name>';
+  return types + (governanceContract.isAuditableReviewer(mode, 'inline') ? ' (inline is also allowed for ' + mode + ').' : '.');
 }
 
 function resolveSpec(projectDir, opts) {
@@ -40,8 +36,8 @@ function run(projectDir, opts) {
   // --record-result mode: write challenge evidence into the spec
   if (opts.recordResult) {
     var verdict = String(opts.recordResult || '').toUpperCase();
-    if (VERDICTS.indexOf(verdict) === -1) {
-      console.error('[ERROR] Invalid verdict: ' + verdict + '. Allowed: ' + VERDICTS.join(', '));
+    if (!governanceContract.isKnownVerdict(verdict)) {
+      console.error('[ERROR] Invalid verdict: ' + verdict + '. Allowed: ' + allowedVerdicts(', '));
       process.exit(1);
     }
     var specPath = resolveSpec(projectDir, opts);
@@ -50,7 +46,7 @@ function run(projectDir, opts) {
       process.exit(1);
     }
     if (!opts.executedBy) {
-      console.error('[ERROR] --executed-by is required with --record-result (use subagent:<id>|external-agent:<id>|human:<name>|inline).');
+      console.error('[ERROR] --executed-by is required with --record-result (use ' + reviewerTypes() + ').');
       process.exit(3);
     }
     var content = fs.readFileSync(specPath, 'utf-8');
@@ -62,11 +58,11 @@ function run(projectDir, opts) {
     }
     var executedBy = opts.executedBy;
     if (!isAuditableExecutedBy(executedBy, mode)) {
-      console.error('[ERROR] --executed-by must be subagent:<id>, external-agent:<id>, or human:<name>' + (mode === 'micro' ? ' (inline is also allowed for micro).' : '.'));
+      console.error('[ERROR] --executed-by must be ' + reviewerRequirement(mode));
       process.exit(3);
     }
     var now = new Date().toISOString();
-    var backtrack = workflow.VERDICT_TO_TARGET[verdict] || 'Research';
+    var backtrack = governanceContract.backtrackTarget(verdict) || 'Research';
     // Replace the challenge fields in the spec
     content = content
       .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: ' + verdict)
@@ -122,7 +118,7 @@ function run(projectDir, opts) {
   console.log('CRUISE_ENABLED: ' + (state.cruiseEnabled ? 'true' : 'false'));
   console.log('CURRENT_VERDICT_HINT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET_HINT: ' + state.backtrackTarget);
-  console.log('ALLOWED_VERDICTS: ' + VERDICTS.join(' | '));
+  console.log('ALLOWED_VERDICTS: ' + allowedVerdicts(' | '));
   console.log('');
   console.log('### Reviewer Evidence');
   reviewerGuidance.guidanceLines().forEach(function(line) {
@@ -161,7 +157,7 @@ function run(projectDir, opts) {
   console.log('- Challenge whether archive would hide drift, failed verification, missing Learning, or a failed challenge verdict.');
   console.log('');
   console.log('### Required Output');
-  console.log('Challenge Verdict: <' + VERDICTS.join('|') + '>');
+  console.log('Challenge Verdict: <' + allowedVerdicts('|') + '>');
   console.log('Backtrack Target: <Research|Design|Acceptance|Plan|Execute / Debug|Execute Log|Learning Check|Ready>');
   console.log('Challenge Summary: <evidence-backed summary>');
   console.log('');

@@ -164,6 +164,8 @@ sdd install-skill --target codex --clean
 Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 ```
 
+当 AC 写 `Verification: e2e` 时，必须同时声明 `Provider: <provider-id>`。已归档（archived）和历史（legacy）制品始终可读，无需迁移；读取历史制品不得静默改写它们。
+
 ## 流程架构
 
 ```

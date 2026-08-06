@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 const { getDocsDir, isValidDocsDirName } = require('../../lib/common');
+const governanceContract = require('../core/governance-contract');
 const genAiConfigs = require('./_gen-ai-configs');
 
 function run(projectDir, opts) {
-  var mode = opts.mode || 'micro';
+  var mode = opts.mode || governanceContract.defaults.mode;
   if (['standard','lite','micro'].indexOf(mode) === -1) {
     console.error('[ERROR] Invalid mode: ' + mode + ' (expected standard|lite|micro)');
     process.exit(3);
@@ -38,8 +39,8 @@ function run(projectDir, opts) {
   var configFile = path.join(projectDir, '.sdd-config');
   var configContent = [
     'DOCS_DIR="' + docsDir + '"',
-    'APPROVAL_POLICY="agent"',
-    'CRUISE_MAX_ITERATIONS="5"',
+    'APPROVAL_POLICY="' + governanceContract.defaults.approvalPolicy + '"',
+    'CRUISE_MAX_ITERATIONS="' + governanceContract.defaults.cruiseMaxIterations + '"',
     ''
   ].join('\n');
 
