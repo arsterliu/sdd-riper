@@ -518,6 +518,47 @@ test('manual and unbound e2e facts never call or report Provider readiness', fun
     { acId: 'AC-002', verification: 'e2e', verificationCapability: 'e2e-evidence' }
   ]);
   assert.ok(projection.diagnostics.some(function(item) { return item.code === 'e2e-provider-unbound'; }));
+
+  var text = runCli([
+    'quality',
+    'plan',
+    root,
+    '--spec',
+    path.relative(root, specPath)
+  ], root);
+  assert.equal(text.status, 0, text.output);
+  assert.match(text.output, /\[attention\] e2e-provider-unbound:/);
+  assert.doesNotMatch(text.output, /E2E_READINESS:/);
+});
+
+test('Quality composition short-circuits unbound E2E before readiness inspection', function(t) {
+  var composition = require('../src/quality/composition');
+  var root = fixtures.createProject('quality-composition-unbound');
+  t.after(function() { fixtures.cleanup(root); });
+  var revision = fixtures.writeRevision(root, fixtures.profile([
+    fixtures.unit('web', ['frontend'])
+  ]), true);
+  var specPath = fixtures.writeSpec(root, 'quality-composition-unbound', {
+    revision: revision.relative,
+    digest: revision.digest,
+    affectedUnits: 'web',
+    acs: [fixtures.acceptanceBlock('AC-001', 'e2e')]
+  });
+  var inspectionCalls = 0;
+
+  var plan = composition.composeQualityPlan(root, specPath, {
+    loadQualityInput: require('../src/quality/input').loadQualityInput,
+    inspectReadiness: function() {
+      inspectionCalls += 1;
+      throw new Error('unbound E2E must not inspect readiness');
+    },
+    buildQualityPlan: require('../src/quality/planner').buildQualityPlan
+  });
+
+  assert.equal(inspectionCalls, 0);
+  assert.equal(plan.blocking, false);
+  assert.equal(plan.e2eReadiness, null);
+  assert.ok(plan.diagnostics.some(function(item) { return item.code === 'e2e-provider-unbound'; }));
 });
 
 test('quality plan maps every existing Verification form while keeping AC facts separate from policy focus', function(t) {

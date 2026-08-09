@@ -97,7 +97,7 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 
 当 AC 写 `Verification: e2e` 时，必须同时声明 `Provider: <provider-id>`。已归档（archived）和历史（legacy）制品始终可读，无需迁移；读取历史制品不得静默改写它们。
 
-Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage 汇总），替代了原独立的 Review 阶段。Challenge 是 Execute 之后的唯一质量门禁。`PASS_WITH_CONCERNS` 直接进入 Learning Check（不再回退到 Review）。
+Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 Step 中的正式 AC Coverage 记录），替代了原独立的 Review 阶段。Challenge 是 Execute 之后的唯一质量门禁。`PASS_WITH_CONCERNS` 直接进入 Learning Check（不再回退到 Review）。
 
 ### 全链路流转图
 
@@ -185,7 +185,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + AC Coverage �
 │  │                                                                         │
 │  └─ 最后一步: Completion Verification（替代原 Review 阶段）               │
 │     ┌─ Step: completion-verification                                       │
-│     ├─ AC Coverage Summary: AC-###: PASS|FAIL|SKIPPED (type, test_path)   │
+│     ├─ Earlier execution Steps contain formal AC Coverage records         │
 │     └─ Four-Axis Checklist:                                               │
 │        Axis 0 (Intake): aligned | misaligned                              │
 │        Axis 1 (Design/Acceptance/Plan): complete | incomplete              │
@@ -562,19 +562,30 @@ AC Coverage:
 
 E2E 环境不可用时，AC 标记为 `SKIPPED`，需人工批准三要素（Reason + `Approved By: human:<name>` + Approved At）。
 
-Execute 最后一个 Step 是 Completion Verification，包含四轴自查清单和 AC Coverage 全量汇总：
+AC Coverage 必须记录在前一个正式执行 Step 的 `AC Coverage:` 中；Completion Verification 只记录结果、四轴自查、验证命令和时间戳，不能将 Summary 作为 evidence：
 
 ```text
+Step: execution coverage
+Status: DONE
+AC Coverage:
+  - AC-001: PASS
+    Test: tests/auth/login.test.ts
+    Method: unit
+  - AC-002: SKIPPED
+    Reason: E2E environment unavailable
+    Approved By: human:reviewer
+    Approved At: 2026-01-01T00:00:00Z
+---
 Step: completion-verification
 Status: DONE
-AC Coverage Summary:
-  - AC-001: PASS (unit, tests/auth/login.test.ts)
-  - AC-002: SKIPPED (e2e, tests/e2e/login.spec.ts)
+Result: 所有执行项与 AC Coverage 已完成核验。
 Four-Axis Checklist:
   - Axis 0 (Intake): aligned
   - Axis 1 (Design/Acceptance/Plan): complete
   - Axis 2 (Code Diff): within boundary
   - Axis 3 (Execute Log): faithful
+Verification: node --test tests/auth/login.test.ts
+Timestamp: 2026-01-01T00:01:00Z
 ```
 
 `validate --archive-ready` 对有 AC Coverage 的 Execute Log 做交叉检查（L1-L4）：每个 AC 有 Coverage 记录、结果 PASS、Test 路径文件存在、Scenario 名称匹配（warning）。旧 Execute Log 无 Coverage 记录时不报错（渐进式门禁）。
@@ -743,7 +754,7 @@ SDD 用更少配置表达任务治理：
 | Acceptance | AC-###，推荐 BDD | 轻量 AC | Plan 中的 Acceptance |
 | Plan Approval | 必须 | 必须 | 必须 |
 | Execute Log | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage |
-| Completion Verification | 四轴自查 + AC Coverage 汇总 | 四轴自查 + AC Coverage 汇总 | 四轴自查 + AC Coverage 汇总 |
+| Completion Verification | 四轴自查；AC Coverage 记录位于前序执行 Step | 四轴自查；AC Coverage 记录位于前序执行 Step | 四轴自查；AC Coverage 记录位于前序执行 Step |
 | Learning | 条件必填 | 条件必填 | 条件必填 |
 | Subagent | 推荐 | 可选 | 默认不用 |
 

@@ -3,6 +3,7 @@
 var fs = require('fs');
 var path = require('path');
 var crypto = require('crypto');
+var inspectionDetails = new WeakMap();
 
 function frontmatterValue(content, key) {
   var match = String(content || '').match(new RegExp('^' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':\\s*"?([^"\\r\\n]*)"?\\s*$', 'm'));
@@ -40,8 +41,10 @@ function visualRunProviderAndWorkspaceAreCurrent(projectDir, run) {
   }
 }
 
-function withVisualRunProjection(base, specPath, projectDir, manifestPath) {
-  if (base.state !== 'ready') return base;
+function composeVisualRunStatus(base, specPath, projectDir) {
+  var details = inspectionDetails.get(base);
+  if (base.state !== 'ready' || !details || details.mode !== 'fidelity') return base;
+  var manifestPath = details.manifestPath;
   var run;
   try { run = require('../visual-verification/run-store').runsForSpec(projectDir, require('../../lib/common').getDocsDir(projectDir), specPath)[0]; }
   catch (error) { return result(base.state, base.planReadiness, base.baselineStatus, 'stale', [{ code: error.code || 'VISUAL_RUN_INVALID' }]); }
@@ -108,7 +111,7 @@ function invalidBaseline(contextPath, baseline, requireApproved) {
   return !isInside(contextPath, baselinePath) || !fs.existsSync(baselinePath) || !isRealpathInside(contextPath, baselinePath);
 }
 
-function inspect(specPath, projectDir) {
+function inspectContract(specPath, projectDir) {
   var specContent = fs.readFileSync(specPath, 'utf-8');
   if (frontmatterValue(specContent, 'visual-evidence') !== 'required') {
     return result('not-applicable', 'not-applicable', 'not-applicable', 'not-run');
@@ -171,13 +174,22 @@ function inspect(specPath, projectDir) {
     if (invalidScenario) {
       return result('blocked', 'blocked', 'unknown', 'not-run', [{ code: 'VISUAL_EVIDENCE_SCHEMA_INVALID' }]);
     }
-    return withVisualRunProjection(result('ready', 'ready', 'approved', 'not-run'), specPath, projectDir, manifestPath);
+    var fidelity = result('ready', 'ready', 'approved', 'not-run');
+    inspectionDetails.set(fidelity, { mode: 'fidelity', manifestPath: manifestPath });
+    return fidelity;
   }
 
   var invalidDirectionBaseline = manifest.scenarios.some(function(scenario) { return invalidBaseline(contextPath, scenario.baseline, false); });
   if (invalidDirectionBaseline) return result('blocked', 'blocked', 'unknown', 'not-run', [{ code: 'VISUAL_EVIDENCE_SCHEMA_INVALID' }]);
   var pending = manifest.scenarios.some(function(scenario) { return scenario.baseline.status === 'pending'; });
-  return result('ready', 'ready', pending ? 'pending' : 'approved', 'not-run');
+  var direction = result('ready', 'ready', pending ? 'pending' : 'approved', 'not-run');
+  inspectionDetails.set(direction, { mode: 'direction', manifestPath: manifestPath });
+  return direction;
 }
 
-module.exports = { inspect: inspect, _private: { isInside: isInside, isRealpathInside: isRealpathInside, isValidIsoTimestamp: isValidIsoTimestamp } };
+function inspect(specPath, projectDir) {
+  return composeVisualRunStatus(inspectContract(specPath, projectDir), specPath, projectDir);
+}
+
+module.exports = { inspect: inspect, inspectContract: inspectContract,
+  _private: { isInside: isInside, isRealpathInside: isRealpathInside, isValidIsoTimestamp: isValidIsoTimestamp } };

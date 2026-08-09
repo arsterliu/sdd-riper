@@ -138,60 +138,32 @@ function projectMatrix(matrix) {
 function buildConsoleProjection(specContent, projectDir, specPath, deps) {
   deps = deps || {};
   var readiness = require('./readiness');
-  var config = deps.loadConfig ? deps.loadConfig(projectDir) : require('./config').loadVerificationConfig(projectDir);
-  var targets = readiness.acceptanceBlocks(specContent).filter(function(ac) { return /^e2e$/i.test(ac.verification); });
-  var required = Array.from(new Set(targets.map(function(ac) { return ac.provider; }).filter(Boolean))).sort();
-  var missing = required.filter(function(id) { return !config.providers[id]; });
-  var issues = targets.filter(function(ac) { return !ac.provider; })
-    .map(function(ac) { return 'E2E Acceptance Criteria require Provider for: ' + ac.id + '.'; });
-  issues = issues.concat(missing.map(function(id) { return 'Verification Provider is not configured: ' + id + '.'; }));
-  var docsDir = deps.docsDir || require('../../lib/common').getDocsDir(projectDir);
-  var runStore = deps.runsForProvider || require('./run-store').runsForProvider;
-  var evaluateFreshness = deps.evaluateFreshness || function(run) {
-    return require('./fingerprint').evaluateRunFreshness(projectDir, docsDir, run, specPath);
-  };
-  var providers = required.filter(function(id) { return !!config.providers[id]; }).map(function(id) {
-    var provider = config.providers[id];
-    var providerIssues = [];
-    var runs = [];
-    try { runs = runStore(projectDir, docsDir, id, specPath); }
-    catch (error) { providerIssues.push((error.code || 'RUN_INVALID') + ': ' + error.message); }
-    var evaluated = evaluateProviderEvidence({
-      runs: runs,
-      expectedAcs: readiness.verificationContract(specContent, id).acs.map(function(ac) { return ac.id; }),
-      expectedProjects: provider.projects,
-      evaluateFreshness: evaluateFreshness
-    });
-    if (!evaluated.ready) {
-      if (runs.length && evaluated.missingPairs.length) {
-        providerIssues.push('Verification coverage incomplete for ' + id + ': ' + evaluated.missingPairs.join(', ') + '.');
-      }
-    if (evaluated.staleReasons.length) {
-        providerIssues.push('Verification Run is stale for ' + id + ': ' + evaluated.staleReasons.join(', ') + '.');
-      }
-    }
-    issues = issues.concat(providerIssues);
-    var providerState = providerIssues.length ? 'blocked' : !runs.length ? 'configured-no-runs' : evaluated.ready ? 'ready' : 'blocked';
+  var suppliedAssessment;
+  try { suppliedAssessment = deps.assessment; }
+  catch (error) { suppliedAssessment = null; }
+  var assessment = readiness.isAssessment(suppliedAssessment)
+    ? suppliedAssessment
+    : readiness.assess(specContent, projectDir, specPath, deps);
+  var providers = assessment.providers.map(function(current) {
+    var provider = current.provider;
+    var runs = current.runs;
+    var evaluated = current.evidence;
     var matrix = projectMatrix(evaluated.matrix);
     return {
-      id: safeText(id, 100),
+      id: safeText(current.id, 100),
       adapter: safeText(provider.adapter || '', 100),
       workspaceRoot: provider.workspaceRoot === '.' ? '.' : safeRelative(provider.workspaceRoot),
       packageRoot: provider.packageRoot === '.' ? '.' : safeRelative(provider.packageRoot),
       config: safeRelative(provider.config),
       projects: matrix.projects,
       toolVersion: runs[0] && runs[0].workspace ? safeText(runs[0].workspace.resolvedToolVersion || '', 100) : '',
-      readiness: providerState,
-      issues: providerIssues.map(function(issue) { return safeMessage(issue); }),
+      readiness: current.state,
+      issues: current.issues.map(function(issue) { return safeMessage(issue); }),
       runs: evaluated.runs.slice(0, 20),
       matrix: matrix
     };
   });
-  var state = issues.length ? (missing.length || !required.length && targets.length ? 'required' : 'blocked')
-    : !required.length ? 'ready'
-      : providers.every(function(provider) { return provider.readiness === 'ready'; }) ? 'ready'
-        : providers.some(function(provider) { return provider.readiness === 'blocked'; }) ? 'blocked' : 'configured';
-  return { schemaVersion: 1, state: state, providers: providers };
+  return { schemaVersion: 1, state: assessment.state, providers: providers };
 }
 
 module.exports = {

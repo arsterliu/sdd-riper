@@ -98,7 +98,7 @@ Gate Evidence:
 execute-log-file:
 
 ## Completion Verification
-<!-- After all Plan steps are done, the agent records the four-axis self-check and AC Coverage summary in the Execute Log's completion-verification step. This replaces the former Review Verdict section. -->
+<!-- AC Coverage records belong to a formal execution Step's `AC Coverage:` section. The `completion-verification` records only the four-axis self-check, result, and verification; Summary is not evidence. This replaces the former Review Verdict section. -->
 
 Challenge Verdict:
 Backtrack Target:

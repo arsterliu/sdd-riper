@@ -4,6 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const evidence = require('../src/verification/evidence');
+const readiness = require('../src/verification/readiness');
 
 function run(id, createdAt, decision, acIds, extra) {
   return Object.assign({
@@ -168,4 +169,211 @@ test('redaction collisions never merge raw project identities in gate evaluation
   assert.equal(result.providers[0].matrix.projects.length, 2);
   assert.notEqual(result.providers[0].matrix.projects[0], result.providers[0].matrix.projects[1]);
   assert.doesNotMatch(JSON.stringify(result.providers[0].matrix), /token=one|token=two/);
+});
+
+test('readiness assessment aggregates configured Provider Run evidence and inspect projects its summary', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const counts = { config: 0, runs: 0, freshness: 0 };
+  const provider = { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.',
+    config: 'playwright.config.js', projects: ['chromium'] };
+  const deps = {
+    loadConfig() {
+      counts.config += 1;
+      return { schemaVersion: 1, providers: { 'console-e2e': provider } };
+    },
+    runsForProvider() {
+      counts.runs += 1;
+      return [run('assessment-run', '2026-07-12T00:00:00Z', 'PASS', ['AC-003'])];
+    },
+    evaluateFreshness() {
+      counts.freshness += 1;
+      return { freshness: 'fresh', reasons: [] };
+    }
+  };
+
+  const assessment = readiness.assess(spec, '/project', '/project/spec.md', deps);
+
+  assert.deepEqual(counts, { config: 1, runs: 1, freshness: 1 });
+  assert.equal(Object.isFrozen(assessment), true);
+  assert.equal(Object.isFrozen(assessment.providers), true);
+  assert.equal(Object.isFrozen(assessment.providers[0]), true);
+  assert.equal(assessment.providers.length, 1);
+  assert.equal(assessment.providers[0].id, 'console-e2e');
+  assert.equal(assessment.providers[0].evidence.ready, true);
+  assert.equal(assessment.providers[0].evidence.runs[0].freshness, 'fresh');
+  assert.deepEqual(readiness.inspect(spec, '/project', '/project/spec.md', deps), assessment.summary);
+});
+
+test('assessment preserves inspect short-circuit summary while retaining later Provider evidence for Console', () => {
+  const spec = [
+    '## Acceptance Criteria',
+    '### AC-003: First provider',
+    'Verification: e2e',
+    'Provider: first-e2e',
+    '### AC-004: Later provider',
+    'Verification: e2e',
+    'Provider: later-e2e'
+  ].join('\n');
+  const provider = { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.',
+    config: 'playwright.config.js', projects: ['chromium'] };
+  const deps = {
+    loadConfig() { return { schemaVersion: 1, providers: { 'first-e2e': provider, 'later-e2e': provider } }; },
+    runsForProvider(projectDir, docsDir, providerId) {
+      return providerId === 'first-e2e' ? [] : [run('later-fail', '2026-07-12T00:00:00Z', 'FAIL', ['AC-004'])];
+    },
+    evaluateFreshness() { return { freshness: 'fresh', reasons: [] }; }
+  };
+
+  const assessment = readiness.assess(spec, '/project', '/project/spec.md', deps);
+  const projection = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', { assessment });
+
+  assert.deepEqual(assessment.summary, {
+    state: 'configured', requiredProviders: ['first-e2e', 'later-e2e'], missingProviders: [], issues: []
+  });
+  assert.equal(assessment.providers.find(item => item.id === 'later-e2e').state, 'blocked');
+  assert.deepEqual(readiness.inspect(spec, '/project', '/project/spec.md', deps), assessment.summary);
+  assert.equal(projection.state, 'blocked');
+});
+
+test('Console projection consumes an injected assessment without rereading dependencies and preserves redaction', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const counts = { config: 0, runs: 0, freshness: 0 };
+  const provider = { adapter: 'playwright-test', workspaceRoot: 'C:\\outside\\token=provider-secret', packageRoot: '.',
+    config: 'playwright.config.js', projects: ['token=matrix-secret'], command: 'token=command-secret' };
+  const deps = {
+    loadConfig() {
+      counts.config += 1;
+      return { schemaVersion: 1, providers: { 'console-e2e': provider } };
+    },
+    runsForProvider() {
+      counts.runs += 1;
+      return [run('token=run-secret', '2026-07-12T00:00:00Z', 'PASS', ['AC-003'], {
+        targets: { acIds: ['AC-003'], projects: ['token=matrix-secret'] }
+      })];
+    },
+    evaluateFreshness() {
+      counts.freshness += 1;
+      return { freshness: 'fresh', reasons: [] };
+    }
+  };
+  const assessment = readiness.assess(spec, '/project', '/project/spec.md', deps);
+  const beforeProjection = { ...counts };
+
+  const result = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', Object.assign({}, deps, { assessment }));
+
+  assert.deepEqual(counts, beforeProjection);
+  assert.equal(result.state, 'ready');
+  assert.doesNotMatch(JSON.stringify(result), /provider-secret|command-secret|run-secret|matrix-secret|C:\\outside/);
+});
+
+test('separate readiness assessments recompute config Run and freshness facts', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const counts = { config: 0, runs: 0, freshness: 0 };
+  const deps = {
+    loadConfig() {
+      counts.config += 1;
+      return { schemaVersion: 1, providers: { 'console-e2e': {
+        adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.', config: 'playwright.config.js', projects: ['chromium']
+      } } };
+    },
+    runsForProvider() {
+      counts.runs += 1;
+      return [run('freshness-' + counts.runs, '2026-07-12T00:00:00Z', 'PASS', ['AC-003'])];
+    },
+    evaluateFreshness() {
+      counts.freshness += 1;
+      return { freshness: 'fresh', reasons: [] };
+    }
+  };
+
+  const first = readiness.assess(spec, '/project', '/project/spec.md', deps);
+  const second = readiness.assess(spec, '/project', '/project/spec.md', deps);
+
+  assert.notStrictEqual(first, second);
+  assert.deepEqual(counts, { config: 2, runs: 2, freshness: 2 });
+});
+
+test('forged ready assessment is recomputed instead of deciding Console readiness', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const counts = { config: 0, runs: 0, freshness: 0 };
+  const deps = {
+    loadConfig() {
+      counts.config += 1;
+      return { schemaVersion: 1, providers: { 'console-e2e': {
+        adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.', config: 'playwright.config.js', projects: ['chromium']
+      } } };
+    },
+    runsForProvider() {
+      counts.runs += 1;
+      return [run('actual-fail', '2026-07-12T00:00:00Z', 'FAIL', ['AC-003'])];
+    },
+    evaluateFreshness() {
+      counts.freshness += 1;
+      return { freshness: 'fresh', reasons: [] };
+    }
+  };
+
+  const result = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', Object.assign({}, deps, {
+    assessment: { state: 'ready', providers: [], summary: { state: 'ready' } }
+  }));
+
+  assert.equal(result.state, 'blocked');
+  assert.equal(result.providers.length, 1);
+  assert.deepEqual(counts, { config: 1, runs: 1, freshness: 1 });
+});
+
+test('forged assessment raw Provider and Run fields never reach Console JSON', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const actualProvider = { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.',
+    config: 'playwright.config.js', projects: ['chromium'] };
+  const forged = {
+    state: 'ready',
+    providers: [{
+      id: 'console-e2e',
+      provider: { adapter: 'forged-adapter-secret', workspaceRoot: '.', packageRoot: '.', config: 'forged-config-secret', projects: ['chromium'] },
+      runs: [],
+      evidence: {
+        ready: true,
+        runs: [{ runId: 'forged-run-secret', process: { stdout: 'forged-process-secret' }, environmentDigests: { TOKEN: 'forged-token-secret' } }],
+        matrix: { acIds: [], projects: [], cells: [] }
+      },
+      issues: [],
+      state: 'ready'
+    }],
+    summary: { state: 'ready' }
+  };
+  const result = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', {
+    assessment: forged,
+    loadConfig() { return { schemaVersion: 1, providers: { 'console-e2e': actualProvider } }; },
+    runsForProvider() { return [run('actual-pass', '2026-07-12T00:00:00Z', 'PASS', ['AC-003'])]; },
+    evaluateFreshness() { return { freshness: 'fresh', reasons: [] }; }
+  });
+
+  assert.equal(result.state, 'ready');
+  assert.doesNotMatch(JSON.stringify(result), /forged-adapter-secret|forged-config-secret|forged-run-secret|forged-process-secret|forged-token-secret/);
+});
+
+test('incomplete or tampered assessment is recomputed without TypeError or a false ready state', () => {
+  const spec = ['## Acceptance Criteria', '### AC-003: Console works', 'Verification: e2e', 'Provider: console-e2e'].join('\n');
+  const deps = {
+    loadConfig() { return { schemaVersion: 1, providers: { 'console-e2e': {
+      adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.', config: 'playwright.config.js', projects: ['chromium']
+    } } }; },
+    runsForProvider() { return [run('actual-fail', '2026-07-12T00:00:00Z', 'FAIL', ['AC-003'])]; },
+    evaluateFreshness() { return { freshness: 'fresh', reasons: [] }; }
+  };
+  let incomplete;
+  assert.doesNotThrow(() => {
+    incomplete = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', Object.assign({}, deps, {
+      assessment: { state: 'ready', summary: { state: 'ready' } }
+    }));
+  });
+  assert.equal(incomplete.state, 'blocked');
+
+  const trusted = readiness.assess(spec, '/project', '/project/spec.md', deps);
+  const tampered = Object.assign({}, trusted, { state: 'ready', providers: [] });
+  const result = evidence.buildConsoleProjection(spec, '/project', '/project/spec.md', Object.assign({}, deps, { assessment: tampered }));
+
+  assert.equal(result.state, 'blocked');
+  assert.equal(result.providers.length, 1);
 });

@@ -1,5 +1,10 @@
 'use strict';
 
+var fs = require('fs');
+var common = require('../../lib/common');
+var qualityComposition = require('../quality/composition');
+var workflowGateFacts = require('../core/workflow-gate-facts');
+
 var safeMessage = require('../verification/evidence').safeMessage;
 
 function safeList(values) {
@@ -109,6 +114,86 @@ function unavailableQualityPlan() {
   };
 }
 
+function skipApprovalState(record) {
+  if (!record || record.result !== 'SKIPPED') return 'not_applicable';
+  return /^human:[^:\s]+$/i.test(record.approvedBy || '') && workflowGateFacts.isValidIsoTimestamp(record.approvedAt) && !!record.reason
+    ? 'approved' : 'incomplete';
+}
+
+function invalidCoverageEvidence(record, projectDir, fileSystem) {
+  if (!record || !record.test || !projectDir) return false;
+  var testPath = common.resolveProjectPath(projectDir, record.test);
+  return !!testPath && !fileSystem.existsSync(testPath);
+}
+
+function addCoverageDiagnostic(diagnostics, code) {
+  if (!diagnostics.some(function(item) { return item.code === code; })) diagnostics.push({ code: code });
+}
+
+function unavailableAcCoverage() {
+  return {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [],
+    diagnostics: [{ code: 'ac-coverage-unavailable' }]
+  };
+}
+
+function validCoverageFacts(coverage) {
+  if (!coverage || !Array.isArray(coverage.declarations) || !Array.isArray(coverage.records)) return false;
+  return coverage.declarations.every(function(declaration) {
+    return declaration && /^AC-\d+$/i.test(String(declaration.id || ''));
+  }) && coverage.records.every(function(record) {
+    return record && /^AC-\d+$/i.test(String(record.id || '')) &&
+      /^(PASS|FAIL|SKIPPED)$/.test(String(record.result || '')) &&
+      Array.isArray(record.scenarios);
+  });
+}
+
+function acCoverageView(snapshot, deps) {
+  snapshot = snapshot || {};
+  deps = deps || {};
+  try {
+    var coverage = (deps.coverageFacts || workflowGateFacts.coverageFacts)(snapshot);
+    if (!validCoverageFacts(coverage)) return unavailableAcCoverage();
+    var declarations = coverage.declarations;
+    var recordMap = workflowGateFacts.coverageRecordMap(coverage.records);
+    var completionState = declarations.some(function(declaration) {
+      return !!recordMap[declaration.id];
+    }) ? 'recorded' : 'missing';
+    var diagnostics = [];
+    if (completionState === 'missing') addCoverageDiagnostic(diagnostics, 'ac-coverage-records-missing');
+    var fileSystem = deps.fs || fs;
+    var items = declarations.map(function(declaration) {
+      var record = recordMap[declaration.id];
+      var state = 'missing';
+      if (record) {
+        if (record.result === 'FAIL') state = 'fail';
+        else if (record.result === 'SKIPPED') state = 'skipped';
+        else if (invalidCoverageEvidence(record, snapshot.projectDir, fileSystem)) {
+          state = 'invalid';
+          addCoverageDiagnostic(diagnostics, 'ac-coverage-invalid-evidence');
+        } else state = 'pass';
+      }
+      var approval = skipApprovalState(record);
+      if (approval === 'incomplete') addCoverageDiagnostic(diagnostics, 'ac-coverage-skip-approval-incomplete');
+      return {
+        acId: String(declaration.id).toUpperCase(),
+        state: state,
+        skipApprovalState: approval
+      };
+    });
+    return {
+      schemaVersion: 1,
+      completionState: completionState,
+      items: items,
+      diagnostics: diagnostics
+    };
+  } catch (_) {
+    return unavailableAcCoverage();
+  }
+}
+
 function workStateForSpec(spec) {
   var workflow = spec && spec.workflow || {};
   var challenge = workflow.facts && workflow.facts.challenge || {};
@@ -209,9 +294,13 @@ function qualityPlanView(spec, projectDir, specPath, deps) {
     };
   }
   try {
-    var input = deps.loadQualityInput(projectDir, specPath);
-    if (!input.blocking) input.e2eReadiness = deps.inspectReadiness(input.specContent, projectDir, specPath);
-    var plan = deps.buildQualityPlan(input);
+    var plan = qualityComposition.composeQualityPlan(projectDir, specPath, {
+      loadQualityInput: deps.loadQualityInput,
+      inspectReadiness: deps.inspectReadiness,
+      readinessSummary: deps.readinessSummary,
+      assessment: deps.assessment,
+      buildQualityPlan: deps.buildQualityPlan
+    });
     var source = plan.source || {};
     var profile = source.profile || {};
     return {
@@ -238,5 +327,6 @@ function qualityPlanView(spec, projectDir, specPath, deps) {
 module.exports = {
   workStateForSpec: workStateForSpec,
   projectProfileView: projectProfileView,
-  qualityPlanView: qualityPlanView
+  qualityPlanView: qualityPlanView,
+  acCoverageView: acCoverageView
 };

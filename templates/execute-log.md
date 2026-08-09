@@ -33,9 +33,7 @@ Timestamp: ISO-8601
 Completion Verification Step (last step):
 Step: completion-verification
 Status: DONE | BLOCKED
-Result: <Chinese summary of four-axis self-check and AC coverage>
-AC Coverage Summary:
-  - AC-###: PASS | FAIL | SKIPPED (<verification type>, <test path>)
+Result: <Chinese summary of four-axis self-check>
 Four-Axis Checklist:
   - Axis 0 (Intake): aligned | misaligned
   - Axis 1 (Design/Acceptance/Plan): complete | incomplete

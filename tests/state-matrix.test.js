@@ -243,7 +243,7 @@ describe('authoritative workflow state matrix', function() {
     const fixture = createArchiveReadyStandard(project('coverage-approved-skipped'), 'coverage-approved-skipped');
     let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
     log = log.replace(
-      '  - AC-001: PASS (unit, tests/state-matrix.test.js)',
+      '  - AC-001: PASS',
       [
         '  - AC-001: SKIPPED',
         '    Scenarios:',
@@ -291,7 +291,10 @@ describe('authoritative workflow state matrix', function() {
         ''
       ].join('\n');
       log = log.replace('---\nStep: completion-verification', earlier + '---\nStep: completion-verification');
-      log = log.replace('AC-001: PASS (unit, tests/state-matrix.test.js)', 'AC-001: ' + latestResult);
+      log = log.replace(
+        'Result: fixture verification complete.\nAC Coverage:\n  - AC-001: PASS\nFour-Axis Checklist:',
+        'Result: fixture verification complete.\nAC Coverage:\n  - AC-001: ' + latestResult + '\nFour-Axis Checklist:'
+      );
       fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
 
       const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
@@ -314,7 +317,7 @@ describe('authoritative workflow state matrix', function() {
     const fixture = createArchiveReadyStandard(project('coverage-missing-test-file'), 'coverage-missing-test-file');
     let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
     log = log.replace(
-      '  - AC-001: PASS (unit, tests/state-matrix.test.js)',
+      '  - AC-001: PASS',
       [
         '  - AC-001: PASS',
         '    Scenarios:',
@@ -510,12 +513,14 @@ describe('authoritative workflow state matrix', function() {
   it('rejects a completion-verification block with an invalid timestamp', function() {
     const fixture = createArchiveReadyStandard(project('completion-timestamp'), 'completion-timestamp');
     let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
-    log = log.replace(/^Timestamp: 2026-01-01T00:01:00Z$/m, 'Timestamp: sometime later');
+    log = log.replace(/^Timestamp: 2026-01-01T00:01:00Z$/m, 'Timestamp: 2026-02-30T00:00:00Z');
     fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
 
-    const result = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
-    assert.notStrictEqual(result.status, 0, result.output);
-    assert.match(result.output, /completion-verification Timestamp.*ISO-8601/i);
+    const state = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
+    assert.equal(state.gates.completion.state, 'blocked');
+    assert.equal(state.blockers.some(function(blocker) {
+      return /completion-verification Timestamp.*ISO-8601/i.test(blocker.message);
+    }), true);
   });
 
   it('resume does not bypass Research when a signed Plan exists', function() {

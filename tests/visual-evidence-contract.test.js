@@ -5,11 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const contract = require('../src/visual-evidence/contract');
-
-function write(filePath, content) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf-8');
-}
+const { writeText: write } = require('./helpers/test-fs');
 
 test('direction 模式在方向已批准且首版基线待补齐时允许进入 Plan', function() {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-visual-contract-'));

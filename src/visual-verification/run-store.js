@@ -4,6 +4,11 @@ var fs = require('fs');
 var path = require('path');
 var errors = require('../verification/errors');
 var attachmentStore = require('../verification/attachment-store');
+var immutableTransaction = require('../verification/immutable-run-transaction');
+
+var commitImmutableRun = immutableTransaction.createImmutableRunCommitter('visual', function(runId) {
+  errors.fail('VISUAL_RUN_ALREADY_EXISTS', 'visual run already exists', { runId: runId });
+});
 
 var FILE_LIMIT = attachmentStore.FILE_LIMIT;
 var RUN_LIMIT = attachmentStore.RUN_LIMIT;
@@ -99,23 +104,7 @@ function commitVisualRun(projectDir, docsDir, run, attachments) {
   if (!inside(projectRoot, workspaceCandidate) || !fs.existsSync(workspaceCandidate)) errors.fail('PATH_ESCAPE', 'Visual Run workspaceRoot escapes project or does not exist', { path: run.workspace.workspaceRoot });
   var attachmentRoot = fs.realpathSync(workspaceCandidate);
   if (!inside(projectRoot, attachmentRoot) || !fs.statSync(attachmentRoot).isDirectory()) errors.fail('PATH_ESCAPE', 'Visual Run workspaceRoot realpath escapes project', { path: run.workspace.workspaceRoot });
-  var runsRoot = path.join(projectRoot, docsDir, 'runs', 'visual');
-  fs.mkdirSync(runsRoot, { recursive: true });
-  var finalDir = path.join(runsRoot, run.runId);
-  if (fs.existsSync(finalDir)) errors.fail('VISUAL_RUN_ALREADY_EXISTS', 'visual run already exists', { runId: run.runId });
-  var staging = path.join(runsRoot, '.staging-' + run.runId + '-' + process.pid + '-' + Date.now());
-  fs.mkdirSync(path.join(staging, 'artifacts'), { recursive: true });
-  try {
-    var records = attachmentStore.copyAttachments(attachmentRoot, staging, attachments);
-    var value = Object.assign({}, run, { attachments: records });
-    fs.writeFileSync(path.join(staging, 'run.json'), JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
-    if (fs.existsSync(finalDir)) errors.fail('VISUAL_RUN_ALREADY_EXISTS', 'visual run already exists', { runId: run.runId });
-    fs.renameSync(staging, finalDir);
-    return { runDir: finalDir, run: value };
-  } catch (error) {
-    fs.rmSync(staging, { recursive: true, force: true });
-    throw error;
-  }
+  return commitImmutableRun(projectRoot, docsDir, run, attachmentRoot, attachments);
 }
 
 function runsForSpec(projectDir, docsDir, specPath) {

@@ -13,6 +13,8 @@ var profileStore = require('../profile/store');
 var qualityInput = require('../quality/input');
 var qualityPlanner = require('../quality/planner');
 var verificationReadiness = require('../verification/readiness');
+var verificationEvidence = require('../verification/evidence');
+var artifactSnapshot = require('../core/artifact-snapshot');
 
 var WEB_ROOT = path.resolve(__dirname, '..', 'web');
 
@@ -244,6 +246,38 @@ function readArtifact(projectDir, specId, artifactType) {
   };
 }
 
+function unavailableDetailProjections() {
+  return {
+    verification: {
+      schemaVersion: 1,
+      state: 'unavailable',
+      providers: []
+    },
+    qualityPlan: {
+      schemaVersion: 1,
+      state: 'unavailable',
+      policyVersion: '',
+      source: null,
+      acFacts: [],
+      policyFocus: [],
+      acMappings: [],
+      e2eReadiness: null,
+      diagnostics: [{
+        code: 'quality-plan-unavailable',
+        severity: 'attention',
+        message: 'Quality Plan cannot be projected safely.',
+        recovery: 'Review the existing Quality Plan input before retrying.'
+      }]
+    },
+    acCoverage: {
+      schemaVersion: 1,
+      completionState: 'missing',
+      items: [],
+      diagnostics: [{ code: 'ac-coverage-unavailable' }]
+    }
+  };
+}
+
 function openLocalPath(filePath, callback) {
   if (process.platform === 'win32') {
     execFile('rundll32.exe', ['url.dll,FileProtocolHandler', filePath], { windowsHide: true }, callback);
@@ -352,18 +386,34 @@ function createServer(projectDir, opts) {
         else {
           var specPath = path.join(detailProject.projectDir, spec.relativePath);
           var specContent = fs.readFileSync(specPath, 'utf-8');
-          var verification = require('../verification/evidence').buildConsoleProjection(
-            specContent, detailProject.projectDir, specPath
-          );
-          var qualityPlan = consoleProjection.qualityPlanView(spec, detailProject.projectDir, specPath, {
-            loadQualityInput: qualityInput.loadQualityInput,
-            inspectReadiness: verificationReadiness.inspect,
-            buildQualityPlan: qualityPlanner.buildQualityPlan
-          });
+          var projections;
+          try {
+            var assessment = (opts.assessReadiness || verificationReadiness.assess)(
+              specContent, detailProject.projectDir, specPath
+            );
+            projections = {
+              verification: (opts.buildConsoleProjection || verificationEvidence.buildConsoleProjection)(
+                specContent, detailProject.projectDir, specPath, { assessment: assessment }
+              ),
+              qualityPlan: consoleProjection.qualityPlanView(spec, detailProject.projectDir, specPath, {
+                loadQualityInput: qualityInput.loadQualityInput,
+                inspectReadiness: opts.inspectReadiness || verificationReadiness.inspect,
+                buildQualityPlan: qualityPlanner.buildQualityPlan,
+                assessment: assessment
+              }),
+              acCoverage: consoleProjection.acCoverageView(
+                artifactSnapshot.read(detailProject.projectDir, specPath),
+                { coverageFacts: opts.coverageFacts }
+              )
+            };
+          } catch (_) {
+            projections = unavailableDetailProjections();
+          }
           sendJson(res, 200, Object.assign({}, spec, {
             workState: consoleProjection.workStateForSpec(spec),
-            verification: verification,
-            qualityPlan: qualityPlan
+            verification: projections.verification,
+            qualityPlan: projections.qualityPlan,
+            acCoverage: projections.acCoverage
           }));
         }
         return;

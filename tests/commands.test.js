@@ -138,8 +138,8 @@ function completionVerificationLog(timestamp) {
     'Step: completion-verification',
     'Status: DONE',
     'Result: completion verification passed.',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -282,6 +282,8 @@ async function waitForProjectSummary(server, projectCount) {
 function makeStandardArchiveReady(demo, specFile) {
   var designFile = artifactPath(demo, specFile, 'design-file');
   var logFile = artifactPath(demo, specFile, 'execute-log-file');
+  fs.mkdirSync(path.join(demo, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(demo, 'tests', 'commands.test.js'), 'test fixture\n', 'utf-8');
   var content = fs.readFileSync(specFile, 'utf-8');
   content = content;
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 保留校验后的归档流程。Pros: 简单。Cons: 仅测试覆盖。\nOption B: 跳过归档。Pros: 无。Cons: 无法覆盖。\nSelected: 方案 A。');
@@ -301,8 +303,10 @@ function makeStandardArchiveReady(demo, specFile) {
     'Step: completion-verification',
     'Status: DONE',
     'Result: 验证通过。',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/commands.test.js',
+    '    Method: unit',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -317,6 +321,8 @@ function makeStandardArchiveReady(demo, specFile) {
 function makeStandardExecutedButUnchallenged(demo, specFile) {
   var designFile = artifactPath(demo, specFile, 'design-file');
   var logFile = artifactPath(demo, specFile, 'execute-log-file');
+  fs.mkdirSync(path.join(demo, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(demo, 'tests', 'commands.test.js'), 'test fixture\n', 'utf-8');
   var content = fs.readFileSync(specFile, 'utf-8');
   content = content;
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 在执行完成后强制路由到 Challenge。Pros: 不会漏掉门禁。Cons: 需要显式记录结果。\nOption B: 只依赖归档校验。Pros: 改动小。Cons: 容易误导 agent。\nSelected: Option A。');
@@ -328,8 +334,10 @@ function makeStandardExecutedButUnchallenged(demo, specFile) {
     'Step: completion-verification',
     'Status: DONE',
     'Result: 执行完成，等待 Challenge。',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/commands.test.js',
+    '    Method: unit',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -383,8 +391,10 @@ function makeStandardBlockedThenDoneCompletionVerification(demo, specFile) {
     'Step: completion-verification',
     'Status: DONE',
     'Result: 修复后完成验证通过，等待 Challenge。',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/commands.test.js',
+    '    Method: unit',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -411,8 +421,10 @@ function appendPostChallengeCompletion(logFile) {
     'Step: completion-verification',
     'Status: DONE',
     'Result: 淇鍚庨噸鏂板畬鎴愰獙璇侊紝Challenge evidence 宸茶繃鏈熴€?',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/commands.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/commands.test.js',
+    '    Method: unit',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -2267,15 +2279,16 @@ describe('CLI commands', function() {
     assert.ok(html.indexOf('AC Coverage') !== -1, 'AC Coverage section title exists');
   });
 
-  it('console renders AC Coverage with completion verification and coverage issues', function() {
+  it('console renders AC Coverage from the structured DTO', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
     var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
     assert.ok(js.indexOf('renderAcCoverage') !== -1, 'renderAcCoverage function exists');
     assert.ok(js.indexOf('ac-coverage-summary') !== -1, 'ac-coverage-summary class used');
     assert.ok(js.indexOf('ac-coverage-item') !== -1, 'ac-coverage-item class used');
-    assert.ok(js.indexOf('completionVerification') !== -1, 'reads completionVerification from completion');
-    assert.ok(js.indexOf('No AC Coverage data') !== -1, 'empty state text present');
-    assert.ok(js.indexOf('All ACs covered') !== -1, 'all-pass state text present');
+    assert.ok(js.indexOf('schemaVersion !== 1') !== -1, 'validates the DTO schema version');
+    assert.ok(js.indexOf('coverage.completionState') !== -1, 'reads structured completion state');
+    assert.ok(js.indexOf('Coverage records missing') !== -1, 'missing-record state text present');
+    assert.ok(js.indexOf('ac-coverage-unavailable') !== -1, 'safe unavailable diagnostic present');
     assert.ok(css.indexOf('.ac-coverage-summary') !== -1, 'ac-coverage-summary CSS exists');
     assert.ok(css.indexOf('.ac-coverage-item') !== -1, 'ac-coverage-item CSS exists');
   });

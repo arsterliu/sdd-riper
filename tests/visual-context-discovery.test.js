@@ -5,11 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const discovery = require('../src/visual-evidence/discovery');
-
-function write(filePath, content) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf-8');
-}
+const { writeText: write } = require('./helpers/test-fs');
 
 function createSpec(projectDir, taskName) {
   const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-' + taskName + '.md');

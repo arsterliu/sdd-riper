@@ -3,8 +3,8 @@ var artifactSnapshot = require('./artifact-snapshot');
 var common = require('../../lib/common');
 var learning = require('./learning');
 var reviewerGuidance = require('./reviewer-guidance');
-var providerReadiness = require('../verification/readiness');
 var governanceContract = require('./governance-contract');
+var workflowGateFacts = require('./workflow-gate-facts');
 
 var VERDICTS = Object.freeze(governanceContract.verdicts.slice());
 var VERDICT_TO_TARGET = Object.freeze(VERDICTS.reduce(function(targets, verdict) {
@@ -102,22 +102,6 @@ function challengeFacts(content) {
   };
 }
 
-function planApprovalFacts(content, approvalPolicy) {
-  var approvedBy = artifactSnapshot.labelValue(content, 'Plan Approved By');
-  var approvedAt = artifactSnapshot.labelValue(content, 'Approved At');
-  var evidence = artifactSnapshot.labelValue(content, 'Gate Evidence');
-  var agent = /^agent:[^:\s]+$/i.test(approvedBy);
-  var human = /^human:[^:\s]+$/i.test(approvedBy);
-  return {
-    approvedBy: approvedBy,
-    approvedAt: approvedAt,
-    evidence: evidence,
-    agent: agent,
-    human: human,
-    satisfied: !!approvedAt && (human || (agent && !!evidence)) && (approvalPolicy !== 'human' || human)
-  };
-}
-
 function challengeContractIssues(content) {
   var facts = challengeFacts(content);
   var issues = [];
@@ -147,111 +131,44 @@ function challengeContractIssues(content) {
 }
 
 function latestCompletionBlock(content) {
-  var clean = String(content || '').replace(/<!--[\s\S]*?-->/g, '');
-  var matches = [];
-  var re = /(?:^|\n)Step:\s*completion-verification\s*\r?\n([\s\S]*?)(?=\n---\s*(?:\n|$)|\nStep:\s*|$)/gi;
-  var match;
-  while ((match = re.exec(clean)) !== null) matches.push(match[1]);
-  return matches.length ? matches[matches.length - 1] : '';
+  var block = '';
+  common.scanExecuteLog(content).forEach(function(step) {
+    if (step.isCompletion) block = step.content;
+  });
+  return block;
 }
 
 function completionContractIssues(content) {
   var block = latestCompletionBlock(content);
   if (!block) return ['Execute Log completion-verification is missing.'];
   var issues = [];
-  var requiredLabels = ['Status', 'Result', 'AC Coverage Summary', 'Four-Axis Checklist', 'Verification', 'Timestamp'];
+  var requiredLabels = ['Status', 'Result', 'Four-Axis Checklist', 'Verification', 'Timestamp'];
   requiredLabels.forEach(function(label) {
     var re = new RegExp('^' + label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':[ \\t]*(.*)$', 'mi');
     var found = block.match(re);
-    if (!found || (label !== 'AC Coverage Summary' && label !== 'Four-Axis Checklist' && !found[1].trim())) {
+    if (!found || (label !== 'Four-Axis Checklist' && !found[1].trim())) {
       issues.push('completion-verification missing ' + label + '.');
     }
   });
   ['Axis 0 (Intake): aligned', 'Axis 1 (Design/Acceptance/Plan): complete', 'Axis 2 (Code Diff): within boundary', 'Axis 3 (Execute Log): faithful'].forEach(function(axis) {
     if (block.indexOf(axis) === -1) issues.push('completion-verification missing ' + axis + '.');
   });
-  if (!/^\s*-\s*AC-\d+:[ \\t]*(PASS|FAIL|SKIPPED)\b/mi.test(block)) {
-    issues.push('completion-verification AC Coverage Summary has no AC records.');
-  }
   var timestamp = artifactSnapshot.labelValue(block, 'Timestamp');
-  if (timestamp && Number.isNaN(Date.parse(timestamp))) {
+  if (timestamp && !workflowGateFacts.isValidIsoTimestamp(timestamp)) {
     issues.push('completion-verification Timestamp must be valid ISO-8601.');
   }
   return issues;
 }
 
-function declaredAcIds(specContent) {
-  var ids = [];
-  var seen = {};
-  var section = sectionText(specContent, 'Acceptance Criteria');
-  String(section || '').replace(/(?:^|\n)\s*(?:#{2,6}\s+|[-*]\s*)?(AC-\d+)\b/gi, function(_, id) {
-    id = id.toUpperCase();
-    if (!seen[id]) {
-      seen[id] = true;
-      ids.push(id);
-    }
-    return _;
-  });
-  return ids;
-}
-
 function acCoverageRecords(executeLogContent) {
-  var records = [];
-  var current = null;
-  var currentIndent = 0;
-  String(executeLogContent || '').split(/\r?\n/).forEach(function(line) {
-    var ac = line.match(/^\s*-\s*(AC-\d+)\s*:\s*(PASS|FAIL|SKIPPED)\b/i);
-    if (ac) {
-      currentIndent = (line.match(/^\s*/) || [''])[0].length;
-      current = {
-        id: ac[1].toUpperCase(),
-        result: ac[2].toUpperCase(),
-        scenarios: [],
-        test: '',
-        method: '',
-        reason: '',
-        approvedBy: '',
-        approvedAt: ''
-      };
-      records.push(current);
-      return;
-    }
-    if (!current) return;
-    if (!line.trim()) return;
-    var indent = (line.match(/^\s*/) || [''])[0].length;
-    if (indent <= currentIndent) {
-      current = null;
-      return;
-    }
-    var scenario = line.match(/^\s*-\s*"([^"]+)"\s*:\s*(PASS|FAIL)\b/i);
-    if (scenario) {
-      current.scenarios.push({ name: scenario[1], result: scenario[2].toUpperCase() });
-      return;
-    }
-    var field = line.match(/^\s*(Reason|Approved By|Approved At):\s*(.+)$/i);
-    if (field) {
-      var key = field[1].toLowerCase();
-      if (key === 'reason') current.reason = field[2].trim();
-      if (key === 'approved by') current.approvedBy = field[2].trim();
-      if (key === 'approved at') current.approvedAt = field[2].trim();
-      return;
-    }
-    var evidence = line.match(/^\s*(Test|Method):\s*(.+)$/i);
-    if (evidence) {
-      if (evidence[1].toLowerCase() === 'test') current.test = evidence[2].trim();
-      if (evidence[1].toLowerCase() === 'method') current.method = evidence[2].trim();
-    }
-  });
-  return records;
+  return workflowGateFacts.acCoverageRecords(executeLogContent);
 }
 
-function acCoverageContractIssues(specContent, executeLogContent, projectDir) {
-  var map = {};
-  acCoverageRecords(executeLogContent).forEach(function(record) {
-    map[record.id] = record;
-  });
+function acCoverageContractIssues(acCoverage, projectDir) {
+  var map = workflowGateFacts.coverageRecordMap(acCoverage.records);
   var issues = [];
-  declaredAcIds(specContent).forEach(function(id) {
+  acCoverage.declarations.forEach(function(declaration) {
+    var id = declaration.id;
     var record = map[id];
     if (!record) {
       issues.push('AC Coverage: ' + id + ' has no execution evidence in Execute Log.');
@@ -265,6 +182,7 @@ function acCoverageContractIssues(specContent, executeLogContent, projectDir) {
       if (!record.approvedBy) issues.push('AC Coverage: ' + id + ' is SKIPPED but missing Approved By.');
       else if (!/^human:[^:\s]+$/i.test(record.approvedBy)) issues.push('AC Coverage: ' + id + ' is SKIPPED; Approved By must be human:<name>.');
       if (!record.approvedAt) issues.push('AC Coverage: ' + id + ' is SKIPPED but missing Approved At.');
+      else if (!workflowGateFacts.isValidIsoTimestamp(record.approvedAt)) issues.push('AC Coverage: ' + id + ' is SKIPPED but Approved At must be valid ISO-8601.');
       if (!record.reason) issues.push('AC Coverage: ' + id + ' is SKIPPED but missing Reason.');
       return;
     }
@@ -330,41 +248,9 @@ function targetForGate(gate) {
   }[gate] || 'Research';
 }
 
-function acceptanceContractIssues(content, mode) {
-  var plan = sectionText(content, 'Plan');
-  if (mode === 'micro') return [];
-  var section = sectionText(content, 'Acceptance Criteria');
-  var lines = String(section || '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var blocks = [];
-  var current = null;
-  lines.forEach(function(line) {
-    var match = line.trim().match(/^(?:#{2,6}\s+|[-*]\s*)?(AC-\d+)\b/i);
-    if (match) {
-      current = { id: match[1].toUpperCase(), lines: [line] };
-      blocks.push(current);
-    } else if (current) {
-      current.lines.push(line);
-    }
-  });
-  if (!blocks.length) return ['Acceptance Criteria should include at least one AC-### item.'];
-  var issues = [];
-  blocks.forEach(function(block) {
-    var text = block.lines.join('\n');
-    var verification = artifactSnapshot.labelValue(text, 'Verification');
-    var automated = artifactSnapshot.labelValue(text, 'Automated');
-    var test = artifactSnapshot.labelValue(text, 'Test');
-    var manualEvidence = artifactSnapshot.labelValue(text, 'Manual Evidence');
-    if (!verification) issues.push('Acceptance Criteria missing Verification for: ' + block.id + '.');
-    if (/^yes$/i.test(automated) && !test) issues.push('Automated Acceptance Criteria require Test for: ' + block.id + '.');
-    if (governanceContract.requiresProvider(verification) && !test && !manualEvidence) issues.push('E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
-    if (/\bmanual\b/i.test(verification) && !manualEvidence) issues.push('Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
-  });
-  return issues;
-}
-
-function directGateBlockers(snapshot) {
+function directGateBlockers(snapshot, gateFacts) {
   var blockers = [];
-  var mode = snapshot.mode || 'standard';
+  var mode = gateFacts.mode;
   var content = snapshot.content || '';
   function add(gate, message, target, verdict) {
     verdict = verdict || classifyIssue(message);
@@ -393,49 +279,46 @@ function directGateBlockers(snapshot) {
   }
 
   if (mode === 'micro') {
-    if (!firstRealLine(sectionText(content, 'Intake'))) add('research', 'Intake is empty.', 'Research', 'FAIL_SPEC');
+    if (!gateFacts.research.intakePresent) add('research', 'Intake is empty.', 'Research', 'FAIL_SPEC');
   } else {
-    ['Scope Boundary', 'Irreversibility', 'Impact Radius', 'Dependencies & Constraints', 'Acceptance Intent'].forEach(function(label) {
-      if (!artifactSnapshot.labelValue(content, label)) add('research', 'Confirmed Requirement missing ' + label + '.', 'Research', 'FAIL_SPEC');
+    gateFacts.research.confirmedRequirement.gateMissingLabels.forEach(function(label) {
+      add('research', 'Confirmed Requirement missing ' + label + '.', 'Research', 'FAIL_SPEC');
     });
-    var researchBy = artifactSnapshot.labelValue(content, 'Research Reviewed By');
-    var researchAt = artifactSnapshot.labelValue(content, 'Research Reviewed At');
+    var reviewer = gateFacts.research.reviewer;
+    var researchBy = reviewer.reviewedBy;
+    var researchAt = reviewer.reviewedAt;
     if (!researchBy) add('research', 'Research Reviewed By is empty. ' + reviewerGuidance.inlineGuidance(), 'Research', 'FAIL_SPEC');
-    else if (!isAuditableReviewer(researchBy, mode)) add('research', 'Research Gate requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>). ' + reviewerGuidance.inlineGuidance(), 'Research', 'FAIL_SPEC');
+    else if (!reviewer.auditable) add('research', 'Research Gate requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>). ' + reviewerGuidance.inlineGuidance(), 'Research', 'FAIL_SPEC');
     if (!researchAt) add('research', 'Research Reviewed At is empty.', 'Research', 'FAIL_SPEC');
-    else if (Number.isNaN(Date.parse(researchAt))) add('research', 'Research Reviewed At must be valid ISO-8601.', 'Research', 'FAIL_SPEC');
+    else if (!reviewer.timestampValid) add('research', 'Research Reviewed At must be valid ISO-8601.', 'Research', 'FAIL_SPEC');
   }
 
   if (mode !== 'micro') {
-    var innovate = sectionText(content, 'Innovate Options');
-    if (!firstRealLine(innovate)) {
+    var innovate = gateFacts.innovate;
+    if (!innovate.present) {
       add('innovate', mode === 'lite' ? 'Innovate Options must contain options or an explicit skip reason.' : 'Innovate Options is empty.', 'Innovate', 'FAIL_SPEC');
-    } else if (mode === 'standard' && /Innovate:\s*Skipped/i.test(innovate)) {
+    } else if (mode === 'standard' && innovate.skipped) {
       add('innovate', 'Standard mode cannot skip Innovate Options.', 'Innovate', 'FAIL_SPEC');
-    } else if (mode === 'lite' && /Innovate:\s*Skipped/i.test(innovate) && !/Reason:\s*\S/i.test(innovate)) {
+    } else if (mode === 'lite' && innovate.skipped && !innovate.skipReasonPresent) {
       add('innovate', 'Skipped Innovate Options must include Reason.', 'Innovate', 'FAIL_SPEC');
     }
   }
 
   if (mode !== 'micro') {
-    var designLabels = mode === 'lite'
-      ? ['Approach', 'Impact Scope', 'Interface / Data Impact', 'Compatibility', 'Risks', 'Test Strategy']
-      : ['Selected Option / ADR', 'Requirement Traceability', 'Impact Scope', 'Architecture View', 'Data Model / Schema', 'Interface Contract', 'Compatibility / Rollback', 'Test Strategy'];
-    if (!snapshot.design || !snapshot.design.exists) {
+    var design = gateFacts.design;
+    if (!design.exists) {
       add('design', 'Design file not found.', 'Design', 'FAIL_DESIGN');
     } else {
-      designLabels.forEach(function(label) {
-        if (!artifactSnapshot.labelValue(snapshot.design.content, label)) add('design', (mode === 'lite' ? 'Design Note' : 'Technical Design') + ' missing ' + label + '.', 'Design', 'FAIL_DESIGN');
+      design.missingLabels.forEach(function(label) {
+        add('design', (mode === 'lite' ? 'Design Note' : 'Technical Design') + ' missing ' + label + '.', 'Design', 'FAIL_DESIGN');
       });
     }
   }
 
-  acceptanceContractIssues(content, mode).forEach(function(issue) {
+  gateFacts.acceptance.issues.forEach(function(issue) {
     add('acceptance', issue, 'Acceptance', 'FAIL_ACCEPTANCE');
   });
-  var verificationReadiness = snapshot.location !== 'archive' && snapshot.projectDir
-    ? providerReadiness.inspect(content, snapshot.projectDir, snapshot.specPath)
-    : { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
+  var verificationReadiness = gateFacts.providerReadiness;
   verificationReadiness.issues.filter(function(issue) {
     return /^E2E Acceptance Criteria require Provider/.test(issue);
   }).forEach(function(issue) { add('acceptance', issue, 'Acceptance', 'FAIL_ACCEPTANCE'); });
@@ -451,13 +334,12 @@ function directGateBlockers(snapshot) {
   }
 
   if (mode === 'micro') {
-    var microPlan = sectionText(content, 'Plan');
-    governanceContract.modeFields(mode).required.forEach(function(label) {
-      if (!artifactSnapshot.labelValue(microPlan, label)) add('plan', 'Micro Plan must include ' + label + '.', 'Plan', 'FAIL_PLAN');
+    gateFacts.microPlan.missingLabels.forEach(function(label) {
+      add('plan', 'Micro Plan must include ' + label + '.', 'Plan', 'FAIL_PLAN');
     });
   }
 
-  var approval = planApprovalFacts(content, snapshot.approvalPolicy || 'agent');
+  var approval = gateFacts.planApproval;
   if (!approval.approvedBy) add('plan', 'Plan Approved By is empty.', 'Plan', 'FAIL_PLAN');
   else if (!approval.agent && !approval.human) add('plan', 'Plan Approved By must be agent:<id> or human:<name>.', 'Plan', 'FAIL_PLAN');
   else if ((snapshot.approvalPolicy || 'agent') === 'human' && !approval.human) add('plan', 'Human approval policy requires Plan Approved By: human:<name>.', 'Plan', 'FAIL_PLAN');
@@ -465,14 +347,14 @@ function directGateBlockers(snapshot) {
   if (approval.agent && !approval.evidence) add('plan', 'Gate Evidence is required for agent approval.', 'Plan', 'FAIL_PLAN');
 
   var logContent = snapshot.executeLog && snapshot.executeLog.content || '';
-  if (!snapshot.executeLog || !snapshot.executeLog.exists || !firstRealLine(sectionText(logContent, 'Execute Log'))) {
+  if (!gateFacts.execution.exists || !gateFacts.execution.present) {
     add('execute', 'Execute Log is empty.', 'Execute / Debug', 'FAIL_LOG');
     return blockers;
   }
 
-  if (!common.completionVerificationDone(logContent)) add('completion', 'Execute Log completion-verification is not DONE.', 'Execute Log', 'FAIL_LOG');
+  if (!gateFacts.completion.done) add('completion', 'Execute Log completion-verification is not DONE.', 'Execute Log', 'FAIL_LOG');
   completionContractIssues(logContent).forEach(function(issue) { add('completion', issue, 'Execute Log', 'FAIL_LOG'); });
-  acCoverageContractIssues(content, logContent, snapshot.projectDir).forEach(function(issue) { add('completion', issue, 'Execute Log', 'FAIL_LOG'); });
+  acCoverageContractIssues(gateFacts.acCoverage, snapshot.projectDir).forEach(function(issue) { add('completion', issue, 'Execute Log', 'FAIL_LOG'); });
   var completionBlocked = blockers.some(function(blocker) { return blocker.gate === 'completion'; });
   if (!completionBlocked) {
     challengeContractIssues(content).forEach(function(issue) { add('challenge', issue, 'Challenge', 'FAIL_LOG'); });
@@ -494,7 +376,7 @@ function directGateBlockers(snapshot) {
   }
 
   var challengeFactsValue = challengeFacts(content);
-  var triggers = learning.learningTriggers(content, logContent, challengeFactsValue.verdict);
+  var triggers = gateFacts.learning.triggers;
   if (triggers.length) {
     if (!snapshot.learning || !snapshot.learning.exists) {
       add('learning', 'Learning Record is required because: ' + triggers.join(', ') + '.', 'Learning Check', 'FAIL_LEARNING');
@@ -508,7 +390,8 @@ function directGateBlockers(snapshot) {
 function evaluate(snapshot, options) {
   options = options || {};
   snapshot = snapshot || { exists: false, content: '', status: 'draft' };
-  var blockers = directGateBlockers(snapshot);
+  var gateFacts = options.gateFacts || workflowGateFacts.collectGateFacts(snapshot);
+  var blockers = directGateBlockers(snapshot, gateFacts);
   (options.validationIssues || []).forEach(function(issue) {
     if (blockers.some(function(blocker) { return blocker.message === issue; })) return;
     var issueVerdict = classifyIssue(issue);
@@ -565,8 +448,8 @@ function evaluate(snapshot, options) {
     facts: {
       challenge: facts,
       completion: { done: gates.completion.state === 'pass' },
-      providerReadiness: snapshot.location !== 'archive' && snapshot.projectDir ? providerReadiness.inspect(snapshot.content || '', snapshot.projectDir, snapshot.specPath) : { state: 'ready' },
-      learningRequired: learning.learningTriggers(snapshot.content || '', snapshot.executeLog && snapshot.executeLog.content || '', facts.verdict).length > 0
+      providerReadiness: gateFacts.providerReadiness,
+      learningRequired: gateFacts.learning.triggers.length > 0
     }
   };
 }
@@ -597,7 +480,7 @@ module.exports = {
   VERDICTS: VERDICTS,
   VERDICT_TO_TARGET: VERDICT_TO_TARGET,
   challengeFacts: challengeFacts,
-  planApprovalFacts: planApprovalFacts,
+  planApprovalFacts: workflowGateFacts.planApprovalFacts,
   challengeContractIssues: challengeContractIssues,
   completionContractIssues: completionContractIssues,
   acCoverageRecords: acCoverageRecords,

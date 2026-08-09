@@ -301,7 +301,7 @@ function runVisual(projectDir, options) {
     var specContent = fs.readFileSync(specFile, 'utf8');
     var approval = specState.planApprovalFacts(specContent, common.getApprovalPolicy(root));
     if (!approval.satisfied) errors.fail('PLAN_GATE_NOT_APPROVED', 'Plan Gate must be approved before visual verification execution');
-    var visual = visualContract.inspect(specFile, root);
+    var visual = visualContract.inspectContract(specFile, root);
     if (visual.state === 'not-applicable') {
       console.log('[SDD Verify Visual] state=not-applicable');
       return;

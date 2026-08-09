@@ -73,6 +73,38 @@ function close(server) {
   return new Promise(resolve => server.close(resolve));
 }
 
+function assertUnavailableDetail(response, secrets) {
+  assert.equal(response.statusCode, 200);
+  assert.deepEqual(response.body.verification, {
+    schemaVersion: 1,
+    state: 'unavailable',
+    providers: []
+  });
+  assert.deepEqual(response.body.qualityPlan, {
+    schemaVersion: 1,
+    state: 'unavailable',
+    policyVersion: '',
+    source: null,
+    acFacts: [],
+    policyFocus: [],
+    acMappings: [],
+    e2eReadiness: null,
+    diagnostics: [{
+      code: 'quality-plan-unavailable',
+      severity: 'attention',
+      message: 'Quality Plan cannot be projected safely.',
+      recovery: 'Review the existing Quality Plan input before retrying.'
+    }]
+  });
+  assert.deepEqual(response.body.acCoverage, {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [],
+    diagnostics: [{ code: 'ac-coverage-unavailable' }]
+  });
+  secrets.forEach(secret => assert.doesNotMatch(JSON.stringify(response.body), secret));
+}
+
 async function waitForSpecs(server) {
   for (let attempt = 0; attempt < 20; attempt += 1) {
     const response = await requestJson(server, '/api/specs');
@@ -203,4 +235,249 @@ test('Console API 将 confirmed Profile、exact Quality Plan 与 archived 边界
 
   const archivedDetail = await requestJson(server, '/api/specs/' + encodeURIComponent(archived.id));
   assert.equal(archivedDetail.body.qualityPlan.state, 'not_applicable');
+});
+
+test('Console detail 仅在请求内共享 assessment，并为新请求重新创建', async t => {
+  const fixture = consoleFixtures.createConsoleE2EProject();
+  const readiness = require('../src/verification/readiness');
+  let assessmentCalls = 0;
+  let inspectionCalls = 0;
+  const server = createServer(fixture.projectDir, {
+    assessReadiness(specContent, projectDir, specPath) {
+      assessmentCalls += 1;
+      return readiness.assess(specContent, projectDir, specPath);
+    },
+    inspectReadiness() {
+      inspectionCalls += 1;
+      throw new Error('Quality must consume the request assessment summary');
+    }
+  });
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    assert.equal(consoleFixtures.cleanupOwnedProject(fixture), true);
+  });
+
+  const list = await waitForSpecs(server);
+  const evidence = list.body.specs.find(spec => spec.taskName === 'evidence-view');
+  const first = await requestJson(server, '/api/specs/' + encodeURIComponent(evidence.id));
+  const second = await requestJson(server, '/api/specs/' + encodeURIComponent(evidence.id));
+
+  assert.equal(first.statusCode, 200);
+  assert.equal(second.statusCode, 200);
+  assert.equal(assessmentCalls, 2);
+  assert.equal(inspectionCalls, 0);
+  assert.equal(first.body.qualityPlan.e2eReadiness.state, second.body.qualityPlan.e2eReadiness.state);
+  assert.equal(Object.prototype.hasOwnProperty.call(first.body.qualityPlan, 'assessment'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(first.body.verification, 'assessment'), false);
+});
+
+test('GET /api/specs/:id projects a stable unavailable detail when assessment throws', async t => {
+  const root = createProject();
+  const calls = { assessment: 0, verification: 0, quality: 0, coverage: 0 };
+  const server = createServer(root, {
+    assessReadiness() {
+      calls.assessment += 1;
+      throw new Error('token=assessment-secret at C:\\private\\assessment.txt');
+    },
+    buildConsoleProjection() {
+      calls.verification += 1;
+      throw new Error('verification must not retry an unavailable assessment');
+    },
+    inspectReadiness() {
+      calls.quality += 1;
+      throw new Error('quality must not create a second assessment');
+    },
+    coverageFacts() {
+      calls.coverage += 1;
+      throw new Error('coverage must not run after an unavailable assessment');
+    }
+  });
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const list = await waitForSpecs(server);
+  const detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+
+  assertUnavailableDetail(detail, [/assessment-secret/, /C:\\private/]);
+  assert.deepEqual(calls, { assessment: 1, verification: 0, quality: 0, coverage: 0 });
+});
+
+test('GET /api/specs/:id projects a stable unavailable detail when freshness throws', async t => {
+  const fixture = consoleFixtures.createConsoleE2EProject();
+  const readiness = require('../src/verification/readiness');
+  const calls = { assessment: 0, freshness: 0, verification: 0, quality: 0, coverage: 0 };
+  const server = createServer(fixture.projectDir, {
+    assessReadiness(specContent, projectDir, specPath) {
+      calls.assessment += 1;
+      return readiness.assess(specContent, projectDir, specPath, {
+        evaluateFreshness() {
+          calls.freshness += 1;
+          throw new Error('token=freshness-secret at C:\\private\\freshness.txt');
+        }
+      });
+    },
+    buildConsoleProjection() {
+      calls.verification += 1;
+      throw new Error('verification must not retry a freshness failure');
+    },
+    inspectReadiness() {
+      calls.quality += 1;
+      throw new Error('quality must not create a second assessment');
+    },
+    coverageFacts() {
+      calls.coverage += 1;
+      throw new Error('coverage must not run after a freshness failure');
+    }
+  });
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    assert.equal(consoleFixtures.cleanupOwnedProject(fixture), true);
+  });
+
+  const list = await waitForSpecs(server);
+  const evidence = list.body.specs.find(spec => spec.taskName === 'evidence-view');
+  const detail = await requestJson(server, '/api/specs/' + encodeURIComponent(evidence.id));
+
+  assertUnavailableDetail(detail, [/freshness-secret/, /C:\\private/]);
+  assert.deepEqual(calls, { assessment: 1, freshness: 1, verification: 0, quality: 0, coverage: 0 });
+});
+
+test('GET /api/specs/:id appends a redacted v1 AC Coverage DTO', async t => {
+  const root = createProject();
+  const specPath = path.join(root, 'mydocs/specs/v1.0-api-task.md');
+  write(path.join(root, 'tests/passing.test.js'), 'test fixture\n');
+  write(specPath, fs.readFileSync(specPath, 'utf8').replace([
+    '### AC-001: fixture',
+    'Verification: unit',
+    'Automated: yes',
+    'Test: tests/console-api.test.js'
+  ].join('\n'), [
+    '### AC-001: missing',
+    'Verification: unit',
+    '### AC-002: pass',
+    'Verification: unit',
+    '### AC-003: fail',
+    'Verification: unit',
+    '### AC-004: skipped',
+    'Verification: unit',
+    '### AC-005: invalid',
+    'Verification: unit',
+    '### AC-006: skipped incomplete',
+    'Verification: unit'
+  ].join('\n')));
+  write(path.join(root, 'mydocs/logs/v1.0-api-task.execute.md'), [
+    '## Execute Log',
+    '---',
+    'Step: fixture',
+    'AC Coverage:',
+    '  - AC-002: PASS',
+    '    Test: tests/passing.test.js',
+    '    Method: tdd',
+    '  - AC-003: FAIL',
+    '    Test: tests/failing.test.js',
+    '  - AC-004: SKIPPED',
+    '    Reason: token=fixture-secret: environment unavailable',
+    '    Approved By: human:fixture-owner',
+    '    Approved At: 2026-08-08T00:00:00Z',
+    '  - AC-005: PASS',
+    '    Test: tests/missing-secret-path.test.js',
+    '  - AC-006: SKIPPED',
+    '    Approved By: agent:not-human',
+    '---'
+  ].join('\n') + '\n');
+  const server = createServer(root);
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const list = await waitForSpecs(server);
+  const detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+
+  assert.equal(detail.statusCode, 200);
+  assert.deepEqual(detail.body.acCoverage, {
+    schemaVersion: 1,
+    completionState: 'recorded',
+    items: [
+      { acId: 'AC-001', state: 'missing', skipApprovalState: 'not_applicable' },
+      { acId: 'AC-002', state: 'pass', skipApprovalState: 'not_applicable' },
+      { acId: 'AC-003', state: 'fail', skipApprovalState: 'not_applicable' },
+      { acId: 'AC-004', state: 'skipped', skipApprovalState: 'approved' },
+      { acId: 'AC-005', state: 'invalid', skipApprovalState: 'not_applicable' },
+      { acId: 'AC-006', state: 'skipped', skipApprovalState: 'incomplete' }
+    ],
+    diagnostics: [
+      { code: 'ac-coverage-invalid-evidence' },
+      { code: 'ac-coverage-skip-approval-incomplete' }
+    ]
+  });
+  ['verification', 'qualityPlan', 'workflow', 'validate'].forEach(function(field) {
+    assert.equal(Object.prototype.hasOwnProperty.call(detail.body, field), true, field + ' must remain available');
+  });
+  const coverageJson = JSON.stringify(detail.body.acCoverage);
+  [
+    'tests/passing.test.js',
+    'tests/missing-secret-path.test.js',
+    'fixture-secret',
+    'fixture-owner',
+    '2026-08-08T00:00:00Z',
+    'Provider:',
+    'runId',
+    'token='
+  ].forEach(function(secret) {
+    assert.doesNotMatch(coverageJson, new RegExp(secret.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  });
+});
+
+test('GET /api/specs/:id returns a stable safe DTO when coverage records are missing', async t => {
+  const root = createProject();
+  const server = createServer(root);
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const list = await waitForSpecs(server);
+  const detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+
+  assert.equal(detail.statusCode, 200);
+  assert.deepEqual(detail.body.acCoverage, {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [{ acId: 'AC-001', state: 'missing', skipApprovalState: 'not_applicable' }],
+    diagnostics: [{ code: 'ac-coverage-records-missing' }]
+  });
+});
+
+test('GET /api/specs/:id keeps a successful detail response when Coverage facts fail', async t => {
+  const root = createProject();
+  const server = createServer(root, {
+    coverageFacts() {
+      throw new Error('token=coverage-secret at C:\\private\\coverage.md');
+    }
+  });
+  await listen(server);
+  t.after(async () => {
+    await close(server);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  const list = await waitForSpecs(server);
+  const detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
+
+  assert.equal(detail.statusCode, 200);
+  assert.deepEqual(detail.body.acCoverage, {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [],
+    diagnostics: [{ code: 'ac-coverage-unavailable' }]
+  });
+  assert.doesNotMatch(JSON.stringify(detail.body), /coverage-secret|C:\\private/);
 });

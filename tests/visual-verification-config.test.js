@@ -6,11 +6,7 @@ const test = require('node:test');
 
 const config = require('../src/visual-verification/config');
 const registry = require('../src/verification/registry');
-
-function write(filePath, content) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf8');
-}
+const { writeText: write } = require('./helpers/test-fs');
 
 function createProject() {
   const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-visual-config-'));

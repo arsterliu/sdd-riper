@@ -353,7 +353,7 @@ test('spec-state derives verdict exports, passing state, and failed routing from
       content: '## Intake\nregistry fixture\n\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\n\nPlan Approved By: agent:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\nChallenge Verdict: REGISTRY_FAIL\nBacktrack Target: Registry Repair\nChallenge Summary: registry failure\nChallenge Evidence: REGISTRY_FAIL - registry failure\nChallenge Executed By: subagent:fixture\nChallenge Executed At: 2026-01-01T00:02:00Z',
       executeLog: {
         exists: true,
-        content: '## Execute Log\n---\nStep: completion-verification\nStatus: DONE\nResult: fixture complete\nAC Coverage Summary:\n  - AC-001: PASS\nFour-Axis Checklist:\n  - Axis 0 (Intake): aligned\n  - Axis 1 (Design/Acceptance/Plan): complete\n  - Axis 2 (Code Diff): within boundary\n  - Axis 3 (Execute Log): faithful\nVerification: node --test\nTimestamp: 2026-01-01T00:01:00Z\n---'
+        content: '## Execute Log\n---\nStep: completion-verification\nStatus: DONE\nResult: fixture complete\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/governance-contract.test.js\n    Method: unit\nFour-Axis Checklist:\n  - Axis 0 (Intake): aligned\n  - Axis 1 (Design/Acceptance/Plan): complete\n  - Axis 2 (Code Diff): within boundary\n  - Axis 3 (Execute Log): faithful\nVerification: node --test\nTimestamp: 2026-01-01T00:01:00Z\n---'
       }
     });
     assert.equal(state.gates.challenge.state, 'failed');
@@ -432,6 +432,40 @@ test('Skill and public docs state the current workflow, Provider requirement, an
     assert.match(text, e2eProvider, file + ' must state that e2e verification requires Provider metadata');
     assert.match(text, legacyReadable, file + ' must state that archived or legacy artifacts remain readable without migration');
   });
+});
+
+test('Completion documentation separates execution Coverage from the completion contract', function() {
+  const guide = readProjection('GUIDE.md');
+  const guideExample = guide.match(/```text\r?\nStep: execution coverage\r?\n([\s\S]*?)```/);
+
+  assert.doesNotMatch(guide, /AC Coverage summary/i, 'GUIDE must not describe Coverage with the retired Summary grammar');
+  assert.ok(guideExample, 'GUIDE must include the formal execution Coverage example');
+  assert.match(guideExample[0], /^AC Coverage:$/m, 'GUIDE must place Coverage in the execution Step');
+  assert.match(guideExample[0], /^Step: completion-verification\r?\nStatus: DONE\r?\nResult: .+\r?$/m, 'GUIDE completion example must record Result');
+  assert.match(guideExample[0], /^Verification: .+\r?$/m, 'GUIDE completion example must record Verification');
+  assert.match(guideExample[0], /^Timestamp: .+\r?$/m, 'GUIDE completion example must record Timestamp');
+  assert.doesNotMatch(guideExample[0].slice(guideExample[0].indexOf('Step: completion-verification')), /^AC Coverage:\r?$/m, 'GUIDE completion Step must not contain Coverage records');
+
+  ['templates/spec-standard.md', 'templates/spec-lite.md', 'templates/spec-micro.md'].forEach(function(file) {
+    const text = readProjection(file);
+    assert.doesNotMatch(text, /AC Coverage summary/i, file + ' must not describe Coverage as a completion summary');
+    assert.match(text, /AC Coverage records belong to a formal execution Step's `AC Coverage:` section/, file + ' must place Coverage in an execution Step');
+    assert.match(text, /`completion-verification` records only the four-axis self-check, result, and verification; Summary is not evidence/, file + ' must limit completion evidence to the completion contract');
+  });
+});
+
+test('archived v4.3 Execute Log template keeps Coverage out of completion-verification', function() {
+  const log = readProjection('mydocs/archive/v4.3-structured-readiness-projections.execute.md');
+  const template = log.slice(0, log.indexOf('Step 1:'));
+  const completion = template.slice(template.indexOf('Completion Verification Step'));
+
+  assert.match(template, /^AC Coverage:$/m, 'template must place Coverage in a formal execution Step');
+  assert.doesNotMatch(template, /AC Coverage Summary/i, 'template must not retain the retired Summary grammar');
+  assert.match(completion, /^Result: .+$/m);
+  assert.match(completion, /^Four-Axis Checklist:$/m);
+  assert.match(completion, /^Verification: .+$/m);
+  assert.match(completion, /^Timestamp: .+$/m);
+  assert.doesNotMatch(completion, /^AC Coverage:$/m, 'completion template must not contain Coverage records');
 });
 
 test('package description names the complete current RIPER lifecycle', function() {

@@ -5,11 +5,7 @@ const path = require('node:path');
 const test = require('node:test');
 
 const { runCli } = require('./helpers/sdd-fixtures');
-
-function write(filePath, content) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content, 'utf8');
-}
+const { writeText: write } = require('./helpers/test-fs');
 
 function spec(projectDir) {
   return [

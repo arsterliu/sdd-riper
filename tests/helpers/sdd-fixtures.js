@@ -1,24 +1,9 @@
 const fs = require('fs');
 const path = require('path');
-const { execFileSync } = require('child_process');
-
-const CLI = path.resolve(__dirname, '..', '..', 'bin', 'cli.js');
+const { runSddCli } = require('./test-cli');
 
 function runCli(args, cwd) {
-  try {
-    return {
-      status: 0,
-      output: execFileSync(process.execPath, [CLI].concat(args), {
-        cwd: cwd,
-        encoding: 'utf-8'
-      })
-    };
-  } catch (error) {
-    return {
-      status: typeof error.status === 'number' ? error.status : 1,
-      output: String(error.stdout || '') + String(error.stderr || '')
-    };
-  }
+  return runSddCli(args, { cwd: cwd, env: process.env });
 }
 
 function artifactPath(projectDir, specPath, field) {
@@ -91,8 +76,8 @@ function completionLog() {
     'Step: completion-verification',
     'Status: DONE',
     'Result: fixture verification complete.',
-    'AC Coverage Summary:',
-    '  - AC-001: PASS (unit, tests/state-matrix.test.js)',
+    'AC Coverage:',
+    '  - AC-001: PASS',
     'Four-Axis Checklist:',
     '  - Axis 0 (Intake): aligned',
     '  - Axis 1 (Design/Acceptance/Plan): complete',
@@ -117,6 +102,9 @@ function createArchiveReadyStandard(projectDir, taskName) {
     '--mode', 'standard'
   ], projectDir);
   if (discover.status !== 0) throw new Error(discover.output);
+
+  fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(projectDir, 'tests', 'state-matrix.test.js'), 'test fixture\n', 'utf-8');
 
   const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-' + taskName + '.md');
   const designPath = artifactPath(projectDir, specPath, 'design-file');

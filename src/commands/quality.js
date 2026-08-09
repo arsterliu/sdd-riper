@@ -6,6 +6,7 @@ var common = require('../../lib/common');
 var input = require('../quality/input');
 var planner = require('../quality/planner');
 var readiness = require('../verification/readiness');
+var composition = require('../quality/composition');
 
 function QualityError(code, message, exitCode) {
   Error.call(this, message);
@@ -212,21 +213,9 @@ function usage(message) {
 }
 
 function attachReadiness(loaded, projectDir, reader) {
-  if (loaded.blocking) return;
-  var e2e = loaded.acFacts.filter(function(ac) { return ac.verification === 'e2e'; });
-  if (!e2e.length) return;
-  var unbound = e2e.filter(function(ac) { return !ac.provider; });
-  if (unbound.length) {
-    loaded.diagnostics.push({
-      code: 'e2e-provider-unbound',
-      severity: 'attention',
-      message: 'E2E Acceptance Criteria require Provider for: ' + unbound.map(function(ac) {
-        return ac.acId;
-      }).join(', ') + '.'
-    });
-    return;
-  }
-  loaded.e2eReadiness = reader(loaded.specContent, projectDir, loaded.specPath);
+  return composition.attachReadiness(loaded, projectDir, loaded.specPath, {
+    inspectReadiness: reader
+  });
 }
 
 function recordReadinessUnavailable(loaded, error) {
@@ -259,13 +248,12 @@ function plan(projectDir, options, dependencies) {
     if (!fs.existsSync(selectedSpec)) {
       throw new QualityError('SPEC_NOT_FOUND', 'no selected Spec exists');
     }
-    var loaded = input.loadQualityInput(root, selectedSpec);
-    try {
-      attachReadiness(loaded, root, dependencies.readinessReader || readiness.inspect);
-    } catch (error) {
-      recordReadinessUnavailable(loaded, error);
-    }
-    var value = planner.buildQualityPlan(loaded);
+    var value = composition.composeQualityPlan(root, selectedSpec, {
+      loadQualityInput: input.loadQualityInput,
+      inspectReadiness: dependencies.readinessReader || readiness.inspect,
+      buildQualityPlan: planner.buildQualityPlan,
+      onReadinessUnavailable: recordReadinessUnavailable
+    });
     emit(value, format);
     if (value.blocking) process.exitCode = 2;
   } catch (error) {

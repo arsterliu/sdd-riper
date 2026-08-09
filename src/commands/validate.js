@@ -4,7 +4,7 @@ var common = require('../../lib/common');
 var reviewerGuidance = require('../core/reviewer-guidance');
 var specState = require('../core/spec-state');
 var governanceContract = require('../core/governance-contract');
-var providerReadiness = require('../verification/readiness');
+var workflowGateFacts = require('../core/workflow-gate-facts');
 var visualEvidence = require('../visual-evidence/contract');
 
 var SECTION = {
@@ -212,7 +212,33 @@ function acceptanceBlocks(section) {
   return blocks;
 }
 
-function validateAcceptanceCriteria(section, modeLabel, issues) {
+function validateAcceptanceCriteria(section, modeLabel, issues, facts) {
+  if (facts) {
+    if (!facts.present) {
+      issues.push('Acceptance Criteria is empty.');
+      return;
+    }
+    if (!facts.blocks.length) {
+      issues.push(modeLabel + ' Acceptance Criteria should include at least one AC-### item.');
+      return;
+    }
+    facts.blocks.forEach(function(block) {
+      if (!block.verification) {
+        issues.push(modeLabel + ' Acceptance Criteria missing Verification for: ' + block.id + '.');
+        return;
+      }
+      if (/^yes$/i.test(block.automated) && !block.test) {
+        issues.push(modeLabel + ' Automated Acceptance Criteria require Test for: ' + block.id + '.');
+      }
+      if (governanceContract.requiresProvider(block.verification) && !block.test && !block.manualEvidence) {
+        issues.push(modeLabel + ' E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
+      }
+      if (/\bmanual\b/i.test(block.verification) && !block.manualEvidence) {
+        issues.push(modeLabel + ' Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
+      }
+    });
+    return;
+  }
   if (!firstRealLine(section)) {
     issues.push('Acceptance Criteria is empty.');
     return;
@@ -242,10 +268,11 @@ function validateAcceptanceCriteria(section, modeLabel, issues) {
   });
 }
 
-function validatePlanGate(content, approvalPolicy, archiveReady, issues) {
-  var approvedBy = labelValue(content, 'Plan Approved By');
-  var approvedAt = labelValue(content, 'Approved At');
-  var gateEvidence = labelValue(content, 'Gate Evidence');
+function validatePlanGate(content, approvalPolicy, archiveReady, issues, gateFacts) {
+  var approval = gateFacts && gateFacts.planApproval;
+  var approvedBy = approval ? approval.approvedBy : labelValue(content, 'Plan Approved By');
+  var approvedAt = approval ? approval.approvedAt : labelValue(content, 'Approved At');
+  var gateEvidence = approval ? approval.evidence : labelValue(content, 'Gate Evidence');
   if (!approvedBy) {
     issues.push('Plan Approved By is empty.');
     return;
@@ -253,14 +280,14 @@ function validatePlanGate(content, approvalPolicy, archiveReady, issues) {
   if (!approvedAt) {
     issues.push('Approved At is empty.');
   }
-  if (!isPlanApproval(approvedBy)) {
+  if (approval ? !approval.agent && !approval.human : !isPlanApproval(approvedBy)) {
     issues.push('Plan Approved By must be agent:<id> or human:<name>.');
     return;
   }
-  if (approvalPolicy === 'human' && !isHumanApproval(approvedBy)) {
+  if (approvalPolicy === 'human' && !(approval ? approval.human : isHumanApproval(approvedBy))) {
     issues.push('Human approval policy requires Plan Approved By: human:<name>.');
   }
-  if (isAgentApproval(approvedBy) && !gateEvidence) {
+  if ((approval ? approval.agent : isAgentApproval(approvedBy)) && !gateEvidence) {
     issues.push('Gate Evidence is required for agent approval.');
   }
 }
@@ -287,21 +314,28 @@ function extractSubsectionContent(filePath, parentPattern, subPattern) {
   return result.join('\n');
 }
 
-function validateConfirmedRequirement(specPath, mode, archiveReady, issues) {
+function validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts) {
   if (mode === 'micro') return; // micro skips Research entirely
-  var crSection;
-  if (mode === 'standard') {
-    // In standard, Confirmed Requirement is a ### subsection under ## Research
-    crSection = extractSubsectionContent(specPath, 'Research', SECTION.confirmedRequirement);
-  } else {
-    // In lite, Confirmed Requirement is a ## section
-    crSection = common.extractSection(specPath, SECTION.confirmedRequirement, 400);
+  var confirmed = gateFacts && gateFacts.research && gateFacts.research.confirmedRequirement;
+  if (!confirmed) {
+    var crSection;
+    if (mode === 'standard') {
+      // In standard, Confirmed Requirement is a ### subsection under ## Research
+      crSection = extractSubsectionContent(specPath, 'Research', SECTION.confirmedRequirement);
+    } else {
+      // In lite, Confirmed Requirement is a ## section
+      crSection = common.extractSection(specPath, SECTION.confirmedRequirement, 400);
+    }
+    confirmed = {
+      present: !!firstRealLine(crSection),
+      missingLabels: missingLabels(crSection, CONFIRMED_REQ_REQUIRED)
+    };
   }
-  if (!firstRealLine(crSection)) {
+  if (!confirmed.present) {
     issues.push('Confirmed Requirement is empty.');
     return;
   }
-  var missing = missingLabels(crSection, CONFIRMED_REQ_REQUIRED);
+  var missing = confirmed.missingLabels;
   if (missing.length) {
     if (archiveReady) {
       issues.push('Confirmed Requirement missing required fields: ' + missing.join(', ') + '.');
@@ -311,10 +345,11 @@ function validateConfirmedRequirement(specPath, mode, archiveReady, issues) {
   }
 }
 
-function validateResearchGate(content, mode, archiveReady, issues) {
+function validateResearchGate(content, mode, archiveReady, issues, gateFacts) {
   if (mode === 'micro') return; // micro skips Research entirely
-  var reviewedBy = labelValue(content, 'Research Reviewed By');
-  var reviewedAt = labelValue(content, 'Research Reviewed At');
+  var reviewer = gateFacts && gateFacts.research && gateFacts.research.reviewer;
+  var reviewedBy = reviewer ? reviewer.reviewedBy : labelValue(content, 'Research Reviewed By');
+  var reviewedAt = reviewer ? reviewer.reviewedAt : labelValue(content, 'Research Reviewed At');
   if (!reviewedBy) {
     issues.push('Research Reviewed By is empty. ' + reviewerGuidance.inlineGuidance());
     return;
@@ -322,7 +357,7 @@ function validateResearchGate(content, mode, archiveReady, issues) {
   if (!reviewedAt) {
     issues.push('Research Reviewed At is empty.');
   }
-  if (!isAuditableReviewer(reviewedBy, mode)) {
+  if (reviewer ? !reviewer.auditable : !isAuditableReviewer(reviewedBy, mode)) {
     issues.push(independentReviewerMessage('Research Gate'));
   }
 }
@@ -339,58 +374,63 @@ function validateChallengeVerdict(content, issues) {
   }
 }
 
-function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues) {
+function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues, gateFacts) {
   if (mode === 'standard') {
-    validateConfirmedRequirement(specPath, mode, archiveReady, issues);
-    var innovate = sectionContent(specPath, SECTION.innovateOptions);
-    if (!firstRealLine(innovate)) {
+    validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts);
+    var innovateFacts = gateFacts && gateFacts.innovate;
+    var innovate = innovateFacts ? '' : sectionContent(specPath, SECTION.innovateOptions);
+    if (innovateFacts ? !innovateFacts.present : !firstRealLine(innovate)) {
       issues.push('Innovate Options is empty.');
-    } else if (/Innovate:\s*Skipped/i.test(innovate)) {
+    } else if (innovateFacts ? innovateFacts.skipped : /Innovate:\s*Skipped/i.test(innovate)) {
       issues.push('Standard mode cannot skip Innovate Options.');
     }
     var standardDesignArtifact = artifactSection(projectDir, specPath, 'design-file', SECTION.technicalDesign, issues, 'Design', true);
     var standardDesign = standardDesignArtifact.content;
-    if (!firstRealLine(standardDesign)) {
+    var standardDesignFacts = gateFacts && gateFacts.design;
+    if (standardDesignFacts ? !standardDesignFacts.present : !firstRealLine(standardDesign)) {
       issues.push('Technical Design is empty.');
     } else {
-      var missingStandardDesign = missingLabels(standardDesign, STANDARD_DESIGN_REQUIRED);
+      var missingStandardDesign = standardDesignFacts ? standardDesignFacts.missingLabels : missingLabels(standardDesign, STANDARD_DESIGN_REQUIRED);
       if (missingStandardDesign.length) {
         issues.push('Technical Design missing required fields: ' + missingStandardDesign.join(', ') + '.');
       }
     }
     var standardAc = sectionContent(specPath, SECTION.acceptanceCriteria);
-    validateAcceptanceCriteria(standardAc, 'Standard', issues);
+    validateAcceptanceCriteria(standardAc, 'Standard', issues, gateFacts && gateFacts.acceptance);
     return;
   }
 
   if (mode === 'lite') {
-    validateConfirmedRequirement(specPath, mode, archiveReady, issues);
-    var liteInnovate = sectionContent(specPath, SECTION.innovateOptions);
-    if (!firstRealLine(liteInnovate)) {
+    validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts);
+    var liteInnovateFacts = gateFacts && gateFacts.innovate;
+    var liteInnovate = liteInnovateFacts ? '' : sectionContent(specPath, SECTION.innovateOptions);
+    if (liteInnovateFacts ? !liteInnovateFacts.present : !firstRealLine(liteInnovate)) {
       issues.push('Innovate Options must contain options or an explicit skip reason.');
-    } else if (/Innovate:\s*Skipped/i.test(liteInnovate) && !/Reason:\s*\S/i.test(liteInnovate)) {
+    } else if (liteInnovateFacts ? liteInnovateFacts.skipped && !liteInnovateFacts.skipReasonPresent : /Innovate:\s*Skipped/i.test(liteInnovate) && !/Reason:\s*\S/i.test(liteInnovate)) {
       issues.push('Skipped Innovate Options must include Reason.');
     }
     var liteDesignArtifact = artifactSection(projectDir, specPath, 'design-file', SECTION.designNote, issues, 'Design', true);
     var liteDesign = liteDesignArtifact.content;
-    if (!firstRealLine(liteDesign)) {
+    var liteDesignFacts = gateFacts && gateFacts.design;
+    if (liteDesignFacts ? !liteDesignFacts.present : !firstRealLine(liteDesign)) {
       issues.push('Design Note is empty.');
     } else {
-      var missingLiteDesign = missingLabels(liteDesign, LITE_DESIGN_REQUIRED);
+      var missingLiteDesign = liteDesignFacts ? liteDesignFacts.missingLabels : missingLabels(liteDesign, LITE_DESIGN_REQUIRED);
       if (missingLiteDesign.length) {
         issues.push('Design Note missing required fields: ' + missingLiteDesign.join(', ') + '.');
       }
     }
-    validateAcceptanceCriteria(sectionContent(specPath, SECTION.acceptanceCriteria), 'Lite', issues);
+    validateAcceptanceCriteria(sectionContent(specPath, SECTION.acceptanceCriteria), 'Lite', issues, gateFacts && gateFacts.acceptance);
     return;
   }
 
   if (mode === 'micro') {
     var plan = sectionContent(specPath, SECTION.plan);
-    governanceContract.modeFields(mode).required.forEach(function(label) {
-      if (!labelHasContent(plan, label)) {
+    var missingMicroPlan = gateFacts && gateFacts.microPlan ? gateFacts.microPlan.missingLabels : governanceContract.modeFields(mode).required.filter(function(label) {
+      return !labelHasContent(plan, label);
+    });
+    missingMicroPlan.forEach(function(label) {
         issues.push('Micro Plan must include ' + label + '.');
-      }
     });
   }
 }
@@ -407,76 +447,25 @@ function resolveSpec(projectDir, opts) {
   return common.findLatestSpec(specsDir);
 }
 
-// Parse AC Coverage records from Execute Log content.
-// Returns an array of { id, result, scenarios, test, method, reason, approvedBy, approvedAt }
-function parseAcCoverage(executeLogContent) {
-  return specState.acCoverageRecords(executeLogContent);
-}
-
-// Parse AC IDs from Spec Acceptance Criteria section.
-// Returns an array of { id, verification, test, scenarios }
-function parseAcDeclarations(acceptanceSection) {
-  var declarations = [];
-  var blocks = acceptanceBlocks(acceptanceSection);
-  blocks.forEach(function(block) {
-    var text = block.lines.join('\n');
-    var verification = labelValue(text, 'Verification');
-    var test = labelValue(text, 'Test');
-    // Extract scenario names from Given/When/Then blocks (multiple scenarios per AC)
-    var scenarios = [];
-    var scenarioRegex = /^Scenario:\s*(.+)$/gim;
-    var sm;
-    while ((sm = scenarioRegex.exec(text)) !== null) {
-      scenarios.push(sm[1].trim());
-    }
-    declarations.push({
-      id: block.id,
-      verification: verification,
-      test: test,
-      scenarios: scenarios
-    });
-  });
-  return declarations;
-}
-
 // Validate AC Coverage against Spec declarations (L1-L2 and advisory L4).
 // L1: every AC in Spec has a Coverage record in Execute Log
 // L2: all Coverage results are PASS (SKIPPED with approval is OK)
 // L3: Test path existence is owned by the central spec-state evaluator
 // L4 (limited): Scenario names in Coverage appear in Spec (warning only)
-function validateAcCoverage(specPath, projectDir, executeLogContent, archiveReady, issues) {
+function validateAcCoverage(projectDir, archiveReady, issues, gateFacts) {
   if (!archiveReady) return;
-  var acceptanceSection = sectionContent(specPath, SECTION.acceptanceCriteria);
-  if (!firstRealLine(acceptanceSection)) return; // no AC, skip
-  var declarations = parseAcDeclarations(acceptanceSection);
+  var declarations = gateFacts.acCoverage.declarations;
   if (!declarations.length) return;
-  var coverageRecords = parseAcCoverage(executeLogContent);
+  var coverageRecords = gateFacts.acCoverage.records;
   if (!coverageRecords.length) {
     declarations.forEach(function(decl) {
       issues.push('AC Coverage: ' + decl.id + ' has no execution evidence in Execute Log.');
     });
     return;
   }
-  // Build a map of coverage by AC id. The latest record is authoritative;
-  // older records may only contribute non-decision evidence omitted by a summary.
-  var coverageMap = {};
-  coverageRecords.forEach(function(r) {
-    var existing = coverageMap[r.id];
-    if (!existing) {
-      coverageMap[r.id] = r;
-    } else {
-      var latest = Object.assign({}, r);
-      if (!latest.test) latest.test = existing.test;
-      if (!latest.method) latest.method = existing.method;
-      latest.scenarios = (existing.scenarios || []).slice();
-      r.scenarios.forEach(function(s) {
-        if (!latest.scenarios.some(function(es) { return es.name === s.name; })) {
-          latest.scenarios.push(s);
-        }
-      });
-      coverageMap[r.id] = latest;
-    }
-  });
+  // The latest decision is authoritative while earlier Test/Method/Scenario
+  // evidence remains part of the same AC contract.
+  var coverageMap = workflowGateFacts.coverageRecordMap(coverageRecords);
   // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
   declarations.forEach(function(decl) {
     var cov = coverageMap[decl.id];
@@ -497,6 +486,8 @@ function validateAcCoverage(specPath, projectDir, executeLogContent, archiveRead
       }
       if (!cov.approvedAt) {
         issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved At.');
+      } else if (!workflowGateFacts.isValidIsoTimestamp(cov.approvedAt)) {
+        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but Approved At must be valid ISO-8601.');
       }
       if (!cov.reason) {
         issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Reason.');
@@ -533,6 +524,7 @@ function validateSpec(specPath, opts) {
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
   var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
   var snapshot = specState.readSnapshot(projectDir, specPath);
+  var gateFacts = workflowGateFacts.collectGateFacts(snapshot);
 
   validateProfileReference(projectDir, specPath, issues);
 
@@ -557,20 +549,20 @@ function validateSpec(specPath, opts) {
     }
   }
   if (!opts.archiveReady) {
-    validatePlanGate(content, common.getApprovalPolicy(projectDir), false, issues);
-    validateResearchGate(content, mode, false, issues);
+    validatePlanGate(content, common.getApprovalPolicy(projectDir), false, issues, gateFacts);
+    validateResearchGate(content, mode, false, issues, gateFacts);
     validateChallengeVerdict(content, issues);
   }
 
   if (opts.archiveReady) {
-    validateModeArtifacts(projectDir, specPath, mode, !!opts.archiveReady, issues);
+    validateModeArtifacts(projectDir, specPath, mode, !!opts.archiveReady, issues, gateFacts);
   } else {
     // Non archive-ready: check CR structured fields as WARNING only
-    validateConfirmedRequirement(specPath, mode, false, issues);
+    validateConfirmedRequirement(specPath, mode, false, issues, gateFacts);
   }
 
   if (snapshot.location === 'active') {
-    providerReadiness.inspect(content, projectDir, specPath).issues.filter(function(issue) {
+    gateFacts.providerReadiness.issues.filter(function(issue) {
       return /^E2E Acceptance Criteria require Provider/.test(issue);
     }).forEach(function(issue) { issues.push(issue); });
   }
@@ -589,12 +581,13 @@ function validateSpec(specPath, opts) {
   // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
   if (opts.archiveReady && logArtifact.path && common.completionVerificationDone(fullExecuteLog)) {
     if (!fullExecuteLog) fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
-    validateAcCoverage(specPath, projectDir, fullExecuteLog, true, issues);
+    validateAcCoverage(projectDir, true, issues, gateFacts);
   }
 
   var blockingIssues = issues.filter(function(i) { return !/^WARNING:/i.test(i); });
   var workflowState = specState.evaluate(snapshot, {
-    validationIssues: blockingIssues
+    validationIssues: blockingIssues,
+    gateFacts: gateFacts
   });
   if (opts.archiveReady) {
     var warnings = issues.filter(function(i) { return /^WARNING:/i.test(i); });

@@ -232,14 +232,17 @@ test('归档 Spec 不生成当前 Quality Plan', () => {
   });
 });
 
-test('活动 Spec 的 Quality Plan 只消费其 exact revision 输入', () => {
+test('活动 Spec 的 Quality Plan 只消费其 exact revision 输入和注入的 readiness summary', () => {
   const calls = [];
+  const readinessSummary = { state: 'configured', requiredProviders: ['web-e2e'], missingProviders: [], issues: [] };
   const result = projection.qualityPlanView({ status: 'draft' }, '/project', '/project/mydocs/specs/task.md', {
+    readinessSummary,
     loadQualityInput(projectDir, specPath) {
       calls.push(['input', projectDir, specPath]);
       return {
         blocking: false,
         specContent: '## Acceptance Criteria',
+        acFacts: [{ acId: 'AC-001', verification: 'e2e', provider: 'web-e2e' }],
         source: {
           profile: {
             revision: 'profiles/revisions/sha256-exact.json',
@@ -251,7 +254,7 @@ test('活动 Spec 的 Quality Plan 只消费其 exact revision 输入', () => {
     },
     inspectReadiness(specContent, projectDir, specPath) {
       calls.push(['readiness', specContent, projectDir, specPath]);
-      return { state: 'configured', requiredProviders: ['web-e2e'], missingProviders: [], issues: [] };
+      throw new Error('injected readiness summary must avoid a second inspection');
     },
     buildQualityPlan(input) {
       calls.push(['planner', input.source.profile.revision, input.e2eReadiness.state]);
@@ -275,7 +278,6 @@ test('活动 Spec 的 Quality Plan 只消费其 exact revision 输入', () => {
 
   assert.deepEqual(calls, [
     ['input', '/project', '/project/mydocs/specs/task.md'],
-    ['readiness', '## Acceptance Criteria', '/project', '/project/mydocs/specs/task.md'],
     ['planner', 'profiles/revisions/sha256-exact.json', 'configured']
   ]);
   assert.deepEqual(result, {
@@ -291,7 +293,7 @@ test('活动 Spec 的 Quality Plan 只消费其 exact revision 输入', () => {
     acFacts: [{ acId: 'AC-001', verification: 'e2e', provider: 'web-e2e' }],
     policyFocus: [{ id: 'frontend-behavior', recommendedCapabilities: ['e2e-evidence'], reasons: [] }],
     acMappings: [{ acId: 'AC-001', verification: 'e2e', verificationCapability: 'e2e-evidence' }],
-    e2eReadiness: { state: 'configured', requiredProviders: ['web-e2e'], missingProviders: [], issues: [] },
+    e2eReadiness: readinessSummary,
     diagnostics: []
   });
 });
@@ -384,7 +386,11 @@ test('Quality source 不泄露父目录相对路径', () => {
 test('Quality 诊断和 readiness 只输出白名单且脱敏', () => {
   const result = projection.qualityPlanView({ status: 'draft' }, '/project', '/project/mydocs/specs/secret.md', {
     loadQualityInput() {
-      return { blocking: false, specContent: 'safe source' };
+      return {
+        blocking: false,
+        specContent: 'safe source',
+        acFacts: [{ acId: 'AC-001', verification: 'e2e', provider: 'web-e2e' }]
+      };
     },
     inspectReadiness() {
       return {
@@ -492,4 +498,85 @@ test('Quality Plan 对 AC、策略焦点与映射执行白名单投影', () => {
     acId: 'AC-001', verification: 'e2e', verificationCapability: 'e2e-evidence'
   }]);
   assert.doesNotMatch(JSON.stringify(result), /super-secret|C:\\Users\\alice|manualEvidence|internalNote|rawRule/);
+});
+
+test('AC Coverage projector fails closed when Coverage facts are unavailable', () => {
+  const result = projection.acCoverageView({ projectDir: '/project' }, {
+    coverageFacts() {
+      throw new Error('token=coverage-secret at C:\\private\\coverage.md');
+    }
+  });
+
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [],
+    diagnostics: [{ code: 'ac-coverage-unavailable' }]
+  });
+  assert.doesNotMatch(JSON.stringify(result), /coverage-secret|C:\\private/);
+});
+
+test('AC Coverage projector fails closed when Coverage facts have an invalid shape', () => {
+  const result = projection.acCoverageView({}, {
+    coverageFacts() { return { declarations: [], records: 'not-an-array' }; }
+  });
+
+  assert.deepEqual(result, {
+    schemaVersion: 1,
+    completionState: 'missing',
+    items: [],
+    diagnostics: [{ code: 'ac-coverage-unavailable' }]
+  });
+});
+
+test('AC Coverage projector folds duplicate decisions and preserves invalid prior Test evidence', () => {
+  const result = projection.acCoverageView({ projectDir: '/project' }, {
+    fs: { existsSync() { return false; } },
+    coverageFacts() {
+      return {
+        declarations: [{ id: 'AC-001' }],
+        records: [
+          { id: 'AC-001', result: 'PASS', test: 'tests/missing.test.js', method: '', scenarios: [] },
+          { id: 'AC-001', result: 'PASS', test: '', method: '', scenarios: [] }
+        ]
+      };
+    }
+  });
+
+  assert.deepEqual(result.items, [{ acId: 'AC-001', state: 'invalid', skipApprovalState: 'not_applicable' }]);
+  assert.deepEqual(result.diagnostics, [{ code: 'ac-coverage-invalid-evidence' }]);
+});
+
+test('AC Coverage projector treats an invalid SKIPPED approval timestamp as incomplete', () => {
+  const result = projection.acCoverageView({}, {
+    coverageFacts() {
+      return {
+        declarations: [{ id: 'AC-001' }],
+        records: [{
+          id: 'AC-001', result: 'SKIPPED', test: '', method: '', scenarios: [],
+          reason: 'environment unavailable', approvedBy: 'human:fixture', approvedAt: '2026-02-30T00:00:00Z'
+        }]
+      };
+    }
+  });
+
+  assert.deepEqual(result.items, [{ acId: 'AC-001', state: 'skipped', skipApprovalState: 'incomplete' }]);
+  assert.deepEqual(result.diagnostics, [{ code: 'ac-coverage-skip-approval-incomplete' }]);
+});
+
+test('AC Coverage projector keeps a real ISO calendar timestamp approved', () => {
+  const result = projection.acCoverageView({}, {
+    coverageFacts() {
+      return {
+        declarations: [{ id: 'AC-001' }],
+        records: [{
+          id: 'AC-001', result: 'SKIPPED', test: '', method: '', scenarios: [],
+          reason: 'environment unavailable', approvedBy: 'human:fixture', approvedAt: '2026-02-28T00:00:00+08:00'
+        }]
+      };
+    }
+  });
+
+  assert.deepEqual(result.items, [{ acId: 'AC-001', state: 'skipped', skipApprovalState: 'approved' }]);
+  assert.deepEqual(result.diagnostics, []);
 });

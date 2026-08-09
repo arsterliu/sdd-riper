@@ -4,6 +4,11 @@ var fs = require('fs');
 var path = require('path');
 var errors = require('./errors');
 var attachmentStore = require('./attachment-store');
+var immutableTransaction = require('./immutable-run-transaction');
+
+var commitImmutableRun = immutableTransaction.createImmutableRunCommitter('verification', function(runId) {
+  errors.fail('RUN_ALREADY_EXISTS', 'verification run already exists', { runId: runId });
+});
 
 var FILE_LIMIT = attachmentStore.FILE_LIMIT;
 var RUN_LIMIT = attachmentStore.RUN_LIMIT;
@@ -129,23 +134,7 @@ function commitRun(projectDir, docsDir, run, attachments) {
   if (!inside(projectRoot, attachmentRoot) || !fs.statSync(attachmentRoot).isDirectory()) {
     errors.fail('PATH_ESCAPE', 'Run workspaceRoot realpath escapes project', { path: run.workspace.workspaceRoot });
   }
-  var runsRoot = path.join(projectRoot, docsDir, 'runs', 'verification');
-  fs.mkdirSync(runsRoot, { recursive: true });
-  var finalDir = path.join(runsRoot, run.runId);
-  if (fs.existsSync(finalDir)) errors.fail('RUN_ALREADY_EXISTS', 'verification run already exists', { runId: run.runId });
-  var staging = path.join(runsRoot, '.staging-' + run.runId + '-' + process.pid + '-' + Date.now());
-  fs.mkdirSync(path.join(staging, 'artifacts'), { recursive: true });
-  try {
-    var records = attachmentStore.copyAttachments(attachmentRoot, staging, attachments);
-    var value = Object.assign({}, run, { attachments: records });
-    fs.writeFileSync(path.join(staging, 'run.json'), JSON.stringify(value, null, 2) + '\n', { flag: 'wx' });
-    if (fs.existsSync(finalDir)) errors.fail('RUN_ALREADY_EXISTS', 'verification run already exists', { runId: run.runId });
-    fs.renameSync(staging, finalDir);
-    return { runDir: finalDir, run: value };
-  } catch (error) {
-    fs.rmSync(staging, { recursive: true, force: true });
-    throw error;
-  }
+  return commitImmutableRun(projectRoot, docsDir, run, attachmentRoot, attachments);
 }
 
 function latestRunForProvider(projectDir, docsDir, providerId, specPath) {

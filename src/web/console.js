@@ -817,81 +817,57 @@ function renderCruiseRun(spec) {
 }
 
 var AC_COVERAGE_TONES = {
-  PASS: 'complete',
-  FAIL: 'bad',
-  SKIPPED: 'waiting'
+  missing: 'not-started',
+  pass: 'complete',
+  fail: 'bad',
+  skipped: 'waiting',
+  invalid: 'bad'
+};
+
+var AC_COVERAGE_DIAGNOSTICS = {
+  'ac-coverage-records-missing': true,
+  'ac-coverage-invalid-evidence': true,
+  'ac-coverage-skip-approval-incomplete': true,
+  'ac-coverage-unavailable': true
 };
 
 function renderAcCoverage(spec) {
   var root = qs('ac-coverage');
   root.innerHTML = '';
-  var validate = spec.validate || {};
-  var issues = Array.isArray(validate.issues) ? validate.issues : [];
-  // Extract AC Coverage issues and warnings
-  var coverageIssues = issues.filter(function(i) {
-    return /^AC Coverage:/i.test(i);
-  });
-  var coverageWarnings = issues.filter(function(i) {
-    return /^WARNING: AC Coverage:/i.test(i);
-  });
-  // Extract AC IDs from issues to show coverage status
-  var coveredAcs = [];
-  var missingAcs = [];
-  var skippedAcs = [];
-  var failedAcs = [];
-  issues.forEach(function(issue) {
-    var acMatch = issue.match(/AC-(\d+)/);
-    if (!acMatch) return;
-    var acId = 'AC-' + acMatch[1];
-    if (/has no execution evidence/i.test(issue)) {
-      if (missingAcs.indexOf(acId) === -1) missingAcs.push(acId);
-    } else if (/verification failed/i.test(issue)) {
-      if (failedAcs.indexOf(acId) === -1) failedAcs.push(acId);
-    } else if (/SKIPPED/i.test(issue)) {
-      if (skippedAcs.indexOf(acId) === -1) skippedAcs.push(acId);
-    } else if (/Test file not found/i.test(issue)) {
-      if (failedAcs.indexOf(acId) === -1) failedAcs.push(acId);
-    }
-  });
-  // Build coverage summary from gate data
-  var completion = spec.completion || {};
-  var hasCoverageData = coverageIssues.length > 0 || coverageWarnings.length > 0 ||
-    missingAcs.length > 0 || failedAcs.length > 0 || skippedAcs.length > 0;
-  if (!hasCoverageData && !completion.completionVerification) {
-    root.innerHTML = '<div class="ac-coverage-row"><span class="pill not-started">No AC Coverage data</span> <span>Execute Log has no AC Coverage records</span></div>';
+  var coverage = spec && spec.acCoverage;
+  if (!coverage || coverage.schemaVersion !== 1 || !Array.isArray(coverage.items) || !Array.isArray(coverage.diagnostics)) {
+    root.innerHTML = '<div class="ac-coverage-row"><span class="pill not-started">暂无结构化 Coverage 数据</span> <span>无法安全显示 AC Coverage 状态</span></div>';
     return;
   }
+  var labels = {
+    missing: 'Missing',
+    pass: 'Pass',
+    fail: 'Fail',
+    skipped: 'Skipped',
+    invalid: 'Invalid'
+  };
   var html = '<div class="ac-coverage-summary">';
-  // Show completion verification status
-  if (completion.completionVerification) {
-    html += '<div class="ac-coverage-item"><span class="pill complete">Completion Verification</span> <span>Four-axis self-check recorded</span></div>';
-  } else {
-    html += '<div class="ac-coverage-item"><span class="pill waiting">Completion Verification</span> <span>Four-axis self-check not yet recorded</span></div>';
+  if (coverage.completionState === 'missing') {
+    html += '<div class="ac-coverage-item"><span class="pill not-started">Coverage records missing</span></div>';
   }
-  // Show coverage issues
-  missingAcs.forEach(function(ac) {
-    html += '<div class="ac-coverage-item"><span class="pill bad">' + esc(ac) + '</span> <span>No execution evidence</span></div>';
+  var seenAcIds = {};
+  coverage.items.forEach(function(item) {
+    item = item || {};
+    var acId = String(item.acId || '').toUpperCase();
+    if (!/^AC-\d+$/.test(acId) || seenAcIds[acId] || !Object.prototype.hasOwnProperty.call(AC_COVERAGE_TONES, item.state)) return;
+    seenAcIds[acId] = true;
+    var itemState = item.state;
+    var approval = item.skipApprovalState === 'approved' ? 'Skip approved' :
+      item.skipApprovalState === 'incomplete' ? 'Skip approval incomplete' : '';
+    html += '<div class="ac-coverage-item"><span class="pill ' + AC_COVERAGE_TONES[itemState] + '">' +
+      esc(acId) + '</span> <span>' + labels[itemState] + (approval ? ' — ' + approval : '') + '</span></div>';
   });
-  failedAcs.forEach(function(ac) {
-    html += '<div class="ac-coverage-item"><span class="pill bad">' + esc(ac) + '</span> <span>Verification failed or test file missing</span></div>';
+  var seenDiagnosticCodes = {};
+  coverage.diagnostics.forEach(function(diagnostic) {
+    if (!diagnostic || !AC_COVERAGE_DIAGNOSTICS[diagnostic.code] || seenDiagnosticCodes[diagnostic.code]) return;
+    seenDiagnosticCodes[diagnostic.code] = true;
+    html += '<div class="ac-coverage-item ac-coverage-warning"><span class="pill progress">⚠</span> <span>' + esc(diagnostic.code) + '</span></div>';
   });
-  skippedAcs.forEach(function(ac) {
-    html += '<div class="ac-coverage-item"><span class="pill waiting">' + esc(ac) + '</span> <span>SKIPPED — needs human approval</span></div>';
-  });
-  // Show warnings
-  coverageWarnings.forEach(function(w) {
-    var clean = w.replace(/^WARNING:\s*/i, '');
-    html += '<div class="ac-coverage-item ac-coverage-warning"><span class="pill progress">⚠</span> <span>' + esc(clean) + '</span></div>';
-  });
-  // Show other coverage issues (non-blocking)
-  coverageIssues.filter(function(i) { return !/^WARNING:/.test(i); }).forEach(function(issue) {
-    // Skip issues already shown above
-    if (/has no execution evidence|verification failed|SKIPPED|Test file not found/i.test(issue)) return;
-    html += '<div class="ac-coverage-item"><span class="pill bad">Issue</span> <span>' + esc(issue) + '</span></div>';
-  });
-  if (!missingAcs.length && !failedAcs.length && !skippedAcs.length && !coverageIssues.length && !coverageWarnings.length) {
-    html += '<div class="ac-coverage-item"><span class="pill complete">All ACs covered</span> <span>No coverage issues found</span></div>';
-  }
   html += '</div>';
   root.innerHTML = html;
 }

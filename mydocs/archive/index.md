@@ -33,3 +33,8 @@
 | v3.9-visual-verification-provider.md | 2026-08-04 | visual-verification-provider | PASS_WITH_CONCERNS |
 | v4.0-architecture-redundancy-audit.md | 2026-08-05 | architecture-redundancy-audit | PASS |
 | v4.1-governance-contract-consistency.md | 2026-08-06 | governance-contract-consistency | PASS |
+| v4.2-workflow-gate-facts-unification.md | 2026-08-08 | workflow-gate-facts-unification | PASS |
+| v4.3-structured-readiness-projections.md | 2026-08-08 | structured-readiness-projections | PASS |
+| v4.4-visual-verification-boundary-cleanup.md | 2026-08-09 | visual-verification-boundary-cleanup | PASS |
+| v4.5-visual-verification-protocol-evidence-consolidation.md | 2026-08-09 | visual-verification-protocol-evidence-consolidation | PASS |
+| v4.6-test-fixture-consolidation.md | 2026-08-09 | test-fixture-consolidation | PASS |

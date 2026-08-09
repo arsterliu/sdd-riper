@@ -413,14 +413,24 @@ Completion Verification Gate (see `vendored/superpowers/verification-before-comp
 5. Record the four-axis self-check in the Execute Log's completion-verification step.
 6. Only then report completion.
 
-The completion-verification step is the last step in the Execute Log:
+Record Coverage only in a formal execution step, and keep completion-verification as the last step:
 
 ```text
+Step: execution
+Status: DONE | BUGFIX
+AC Coverage:
+  - AC-###: PASS | FAIL | SKIPPED
+    Scenarios:
+      - "scenario name": PASS | FAIL
+    Test: <test file path>
+    Method: tdd | bdd | manual
+    Reason: <required for SKIPPED>
+    Approved By: <required for SKIPPED: human:<name>>
+    Approved At: <required for SKIPPED: ISO-8601>
+---
 Step: completion-verification
 Status: DONE | BLOCKED
-Result: <Chinese summary of four-axis self-check and AC coverage>
-AC Coverage Summary:
-  - AC-###: PASS | FAIL | SKIPPED (<verification type>, <test path>)
+Result: <Chinese summary of four-axis self-check>
 Four-Axis Checklist:
   - Axis 0 (Intake): aligned | misaligned
   - Axis 1 (Design/Acceptance/Plan): complete | incomplete
