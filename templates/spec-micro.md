@@ -40,6 +40,7 @@ Conditional field:
 Provider: <required for e2e; named provider id>
 
 Recommended fields:
+Selected Option:
 Scope:
 Touched Files:
 Change:

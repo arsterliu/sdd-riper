@@ -29,7 +29,7 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 - **Design**：在 `design-file` 中写技术设计；标签如 Selected Option / ADR、Requirement Traceability、Impact Scope、Architecture View、Data Model / Schema、Interface Contract、Compatibility / Rollback、Test Strategy 保持英文，内容用中文填写。
 - **Acceptance**：在 Spec 中写 `AC-###` 验收标准；元数据标签如 `Requirement:`、`Verification:`、`Test:`、`Manual Evidence:` 保持英文，BDD / Gherkin 场景描述用中文。
 - **Plan**：从 Design 和 Acceptance Criteria 派生原子步骤；Execute 前需要 gate evidence。
-- **Execute**：严格遵循 Plan；每个步骤结果追加到 Execute Log。最后一步是 Completion Verification（四轴自检 + AC Coverage 汇总）。
+- **Execute**：严格遵循 Plan；每个步骤结果追加到 Execute Log。最后一步是 Completion Verification（四轴自检；AC Coverage 仅记录在前序正式 Execute Step）。
 - **Challenge**：独立对抗审核；FAIL_* 裁定回溯到映射的阶段并阻止归档。
 - **Learning Check**：执行产生可复用经验时创建 `learning-file`。
 - **Cruise Run**：cruise 记录运行时追加运行账本条目。

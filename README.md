@@ -196,11 +196,11 @@ Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (C
 - **Innovate**：至少比较两个方案；lite 可跳过，但必须写明 Reason。
 - **Design/Acceptance**：standard/lite 在独立 Design 文件写设计，验收标准仍留在 Spec；micro 把 `Acceptance` / `Verification` 写入 Plan。
 - **Plan**：从 Design 和 Acceptance Criteria 拆成原子步骤，必须满足配置门禁。
-- **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。最后一步是 Completion Verification（四轴自查 + AC Coverage 汇总）。
-- **Challenge**：Execute Completion Verification 完成后自动进入。独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。standard/lite 必须派子 agent 执行；micro 可内联但必须角色分离。
+- **Execute**：严格按 Plan 执行，偏差写入独立 Execute Log。最后一步是 Completion Verification（四轴自查；AC Coverage 仅记录在前序正式 Execute Step）。
+- **Challenge**：Execute Completion Verification 完成后，`sdd next` 路由至 Challenge。路由不等同于自动调度：standard/lite 如需派子 agent，须先取得当前用户明确授权；micro 可内联但必须角色分离。Challenge 独立对抗评审，主动寻找目标偏离、设计遗漏、验收不可验证和实现越界。
 
 每个阶段内的活动按三类分工：**KEEP**（orchestrator 必须做，如门禁决策）、**MUST_DELEGATE**（必须委托独立角色，如对抗评审）、**DELEGATABLE**（灵活可选，如代码实现）。详见 [GUIDE.md](./GUIDE.md) 第五节。
-- **Cruise**：Challenge 返回 `FAIL_*` 后进入。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET`，遵守目标阶段门禁和写入边界完成修复；Challenge reviewer 始终保持 read-only。每轮完成后再 validate 和 challenge，直到通过或达到迭代上限。
+- **Cruise**：Challenge 返回 `FAIL_*` 后，`sdd next` 将回溯目标路由为相应修复阶段。仅在 Cruise 已启用且满足当前任务授权与阶段门禁时，才运行有界修复循环。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET`，遵守目标阶段门禁和写入边界完成修复；Challenge reviewer 始终保持 read-only。每轮完成后再 validate 和 challenge，直到通过或达到迭代上限。
 - **Learning Check**：当执行偏差、BUGFIX、PASS_WITH_CONCERNS 或 reopen 暴露可复用经验时，创建 Learning Record。
 - **Archive Authorization**：`validate --archive-ready` 通过后进入 `request_archive_authorization`，必须暂停并取得当前用户明确授权；随后 archive 才会把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起归档。
 

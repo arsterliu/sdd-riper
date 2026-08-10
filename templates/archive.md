@@ -21,5 +21,5 @@ status: archived
 ## 坑点与风险
 <!-- 踩过的坑、遗留风险 -->
 
-## Review 结论
+## Challenge 结论
 <!-- 最终 Verdict，遗留问题 -->

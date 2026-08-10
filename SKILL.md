@@ -311,6 +311,7 @@ Dispatch categories:
 
 No standalone Design. Plan must include English labels for:
 
+- Selected Option
 - Scope
 - Touched Files
 - Change

@@ -45,6 +45,7 @@ Plan -> Execute* -> Challenge -> Learning Check -> Archive
 
 Micro 跳过 Research、Innovate 和独立 Design。Plan 须包含：
 
+- Selected Option
 - Scope
 - Touched Files
 - Change
@@ -59,7 +60,7 @@ Micro 仍需外部 Execute Log、条件性 Learning Record 和配置的 Plan 门
 
 ## Challenge 与 Completion Verification
 
-- Execute 最后一步是 Completion Verification（四轴自检 + AC Coverage 汇总）。
+- Execute 最后一步是 Completion Verification（四轴自检；AC Coverage 仅记录在前序正式 Execute Step）。
 - Lite 使用四轴自检：Intake、Design/Acceptance/Plan、Code Diff、Execute Log。
 - Micro 默认 Axis 2，但归档校验仍需 Plan 审批、Execute Log 和 PASS challenge 裁定。
 - Challenge 是 Execute 后的唯一质量门禁。FAIL_* 裁定回溯到映射的阶段并阻止归档。

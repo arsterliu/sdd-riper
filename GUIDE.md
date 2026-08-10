@@ -419,6 +419,7 @@ lite 写独立 `Design Note`，至少覆盖：
 
 micro 不写独立 Design，但 Plan 必须有：
 
+- Selected Option。
 - Scope。
 - Touched Files。
 - Change。
@@ -592,7 +593,7 @@ Timestamp: 2026-01-01T00:01:00Z
 
 ### Challenge（对抗评审）
 
-**何时触发**：Execute Completion Verification 完成后自动进入。Review 已合并进 Execute 的 Completion Verification Gate，Challenge 是唯一独立质量门禁。
+**何时触发**：Execute Completion Verification 完成后，`sdd next` 路由为 `run_challenge`。路由不等同于自动调度审查；standard/lite 如需使用子 agent，必须先取得当前用户明确授权。Review 已合并进 Execute 的 Completion Verification Gate，Challenge 是唯一独立质量门禁。
 
 **谁执行**：
 
@@ -642,7 +643,7 @@ Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团
 
 - `PASS`：对抗评审通过，进入 Learning Check → Archive。
 - `PASS_WITH_CONCERNS`：通过但有顾虑，进入 Learning Check（必须创建 Learning Record）→ Archive。
-- `FAIL_*`：阻止归档，进入 Cruise 修复循环。
+- `FAIL_*`：阻止归档，`sdd next` 路由到对应修复阶段；仅在 Cruise 已启用且满足当前任务授权与阶段门禁时，才运行 Cruise 修复循环。
 
 **派发规则**（standard/lite，遵循 `protocols/subagent-dispatch.md`）：
 
@@ -652,7 +653,7 @@ Code Challenge 是 Challenge 与 PR review 的区别所在：PR review 关注团
 
 ### Cruise（自主巡航）
 
-**何时触发**：Challenge 返回 `FAIL_*` verdict 后自动进入。如果 Challenge 返回 `PASS` 或 `PASS_WITH_CONCERNS`，不需要 Cruise。
+**何时触发**：Challenge 返回 `FAIL_*` verdict 后，`sdd next` 路由到其 `Backtrack Target` 对应的修复阶段；这不自动启动 Cruise。只有 Cruise 已启用且当前任务满足授权与阶段门禁时，才可运行 Cruise。如果 Challenge 返回 `PASS` 或 `PASS_WITH_CONCERNS`，不需要 Cruise。
 
 **角色合同**：Cruise orchestrator 只读取状态、路由 `BACKTRACK_TARGET` 并控制迭代预算；main agent 进入目标阶段完成允许的修复；Challenge reviewer 只返回 verdict 与证据，保持 read-only。Cruise 不获得跨阶段写入权限。
 
