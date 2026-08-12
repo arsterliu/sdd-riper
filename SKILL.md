@@ -29,7 +29,7 @@ The execution-quality methods referenced below (`writing-plans`, `test-driven-de
 4. **Execute Log is an independent artifact**: every mode writes execution facts to `execute-log-file`.
 5. **Learning is a reusable decision asset**: when execution produces deviations, bugfixes, concerns, or reopen lessons, write a Learning Record in `learning-file` before archive.
 6. **Chinese Filled Content**: keep artifact template headings and human-readable field labels in English. Write the filled requirement analysis, option rationale, design explanations, plan steps, execution notes, evidence, and learning rules in Chinese.
-7. **Configured Plan Gate**: do not enter Execute until Plan approval is satisfied. `APPROVAL_POLICY=agent` allows `agent:<id>` with `Approved At:` and `Gate Evidence:`. `APPROVAL_POLICY=human` requires `Plan Approved By: human:<name>`.
+7. **Autonomy-aware Plan Gate**: do not enter Execute until Plan approval is satisfied. `auto` allows `agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.
 8. **Debug Before Retry**: when a step fails, run `sdd debug` and establish root cause before retry.
 9. **No Claim Without Verification**: freshly run the relevant tests / lint / build before claiming completion.
 10. **Orchestrator Owns Decisions**: subagents may collect evidence or perform bounded work, but the main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency.
@@ -68,6 +68,8 @@ learning-file: ""
 project-profile-revision: "profiles/revisions/sha256-<digest>.json"
 project-profile-digest: "sha256:<digest>"
 affected-units: "web,api"
+autonomy-mode: "supervised"
+autonomy-mode-source: "project-default"
 ```
 
 Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.
@@ -89,11 +91,11 @@ When the user chooses setup:
 2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
 3. Do not manually create the scaffold with Write/Edit.
 4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.
-5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`.
+5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, briefly explain the trade-offs, and recommend `supervised`. The project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
 6. To create the first task, run:
 
 ```text
-sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro]
+sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro] --autonomy-mode auto|supervised|human
 ```
 
 If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.
@@ -130,23 +132,24 @@ Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is uncle
 
 When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
 
-## Approval / Cruise Policy
+## Autonomy Policy
 
-SDD keeps project configuration small. **Mode** is a Spec-level workflow shape. **APPROVAL_POLICY** only controls Plan approval. Independent Research/Challenge review is controlled by reviewer evidence in the Spec, not by approval policy.
+SDD keeps project configuration small. **Mode** is the Spec workflow shape; **Autonomy Mode** controls how far the host AI may proceed between human governance decisions. Independent Research/Challenge review still requires auditable reviewer evidence.
 
 ```text
-APPROVAL_POLICY="agent"         # agent | human
-CRUISE_ENABLED="true"           # true | false (optional; default true)
+AUTONOMY_MODE="supervised"      # auto | supervised | human
 CRUISE_MAX_ITERATIONS="5"
 ```
 
-Default is `agent` / enabled / `5` when fields are missing.
+New projects default to `supervised` with a repair budget of `5`. Missing, invalid, or legacy active governance configuration is migration-required and must not be guessed.
 
-- `agent`: allows `Plan Approved By: agent:<id>` only when `Gate Evidence:` and `Approved At:` are provided.
-- `human`: requires `Plan Approved By: human:<name>` and `Approved At:`.
-- `CRUISE_ENABLED=false` disables cruise prompt output and run recording.
+- `auto`: after current-user authorization bound to the current task scope/risk digest, the host AI may launch planned worker and read-only reviewer agents and continue to archive authorization.
+- `supervised`: requires a human-approved Plan plus a separate, explicit authorization fact for subsequent automation.
+- `human`: pauses at governance transitions; mechanical tests and in-plan debugging do not require per-action approval.
 
-**Selection guide**: default to `agent` with evidence. Use `human` for core / high-risk / irreversible Plan approval.
+Autonomy write commands target only the current active Spec and re-read all expected digests under `.sdd-autonomy.lock`. `supervised` authorization binds both the current Scope and exact Plan digest. In `auto`, task authorization covers pre-Plan work; after Plan approval, run `sdd autonomy activate-plan` with the current Scope, risk, and Plan digests plus auditable `agent:<id>` evidence. A Plan rebind is valid only while Scope and risk remain unchanged. Never continue a native loop when `STOP_REASON` is non-empty.
+
+All modes still stop for archive, exact Profile digest confirmation, E2E SKIPPED, irreversible actions, scope expansion, new risk, and platform permissions. A project default is not current-user authorization.
 
 Cruise driver options:
 
@@ -188,7 +191,7 @@ Required outputs in Spec:
 
 Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
 
-Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips. If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that includes its reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause for explicit current-user authorization; never skip the gate or fabricate reviewer evidence.
 
 Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
 
@@ -515,7 +518,7 @@ Briefs for challenge subagents must include source code (`source_code` in `artif
 3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent:<id>"`
 4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
 
-`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence. `Challenge Executed At` must be a valid ISO-8601 timestamp.
+`validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. An automated reviewer may start without another prompt only under a fresh Spec authorization that includes its reviewer actor; otherwise pause for explicit current-user authorization. Never skip the gate or fabricate reviewer evidence. `Challenge Executed At` must be a valid ISO-8601 timestamp.
 
 Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
 
@@ -527,7 +530,7 @@ Run:
 sdd cruise "<PROJECT_ROOT>" [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
 ```
 
-The command generates a bounded repair-loop prompt when `CRUISE_ENABLED` is true. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger unless cruise is disabled. The main agent should re-enter the phase indicated by `BACKTRACK_TARGET`, obey that phase's gates and write boundaries, run `sdd validate`, then request `sdd challenge` again. Stop when the max iteration budget is reached or when high-risk flags appear.
+The command generates a bounded repair-loop prompt for authorized `auto` or `supervised` work; `human` mode produces governance guidance instead of a native loop. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger. The main agent should re-enter the phase indicated by `BACKTRACK_TARGET`, obey that phase's gates and write boundaries, run `sdd validate`, then request `sdd challenge` again. Stop when the max iteration budget is reached or when a non-delegable stop appears.
 
 Cruise orchestrator 只负责读取 `BACKTRACK_TARGET`、控制迭代预算并协调阶段重入。主 Agent 必须进入目标阶段，遵守该阶段的写入边界与门禁完成修复，再回到 Cruise 执行 validate 和 Challenge。Challenge reviewer 始终是 read-only：只返回 verdict 与证据，不修改实现代码、Plan、Design 或 SDD 制品。`FAIL_DESIGN` 允许主 Agent 在 Design 阶段基于审查证据修订设计，但禁止为了迎合既有代码而静默倒推设计。
 

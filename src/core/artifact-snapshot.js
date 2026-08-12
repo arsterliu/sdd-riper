@@ -2,6 +2,7 @@ var fs = require('fs');
 var path = require('path');
 var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
+var autonomyState = require('./autonomy-state');
 
 var gitRepoCache = new Map();
 
@@ -77,16 +78,20 @@ function read(projectDir, specPath) {
       learning: { ref: '', path: '', exists: false, content: '' }
     };
   }
+  var content = fs.readFileSync(specPath, 'utf-8');
+  var autonomy = autonomyState.resolve(content);
   return {
     projectDir: projectDir,
     specPath: specPath,
     exists: true,
     isGitRepo: isInsideGitRepo(projectDir),
     location: specLocation(projectDir, specPath),
-    content: fs.readFileSync(specPath, 'utf-8'),
+    content: content,
     mode: common.getFrontmatterField(specPath, 'mode') || 'standard',
     status: common.getFrontmatterField(specPath, 'status') || 'draft',
-    approvalPolicy: common.getApprovalPolicy(projectDir),
+    autonomyMode: autonomy.mode,
+    autonomyModeSource: autonomy.modeSource,
+    autonomy: autonomy,
     design: referencedArtifact(projectDir, specPath, 'design-file'),
     executeLog: referencedArtifact(projectDir, specPath, 'execute-log-file'),
     learning: referencedArtifact(projectDir, specPath, 'learning-file')

@@ -268,7 +268,7 @@ function validateAcceptanceCriteria(section, modeLabel, issues, facts) {
   });
 }
 
-function validatePlanGate(content, approvalPolicy, archiveReady, issues, gateFacts) {
+function validatePlanGate(content, autonomyMode, archiveReady, issues, gateFacts) {
   var approval = gateFacts && gateFacts.planApproval;
   var approvedBy = approval ? approval.approvedBy : labelValue(content, 'Plan Approved By');
   var approvedAt = approval ? approval.approvedAt : labelValue(content, 'Approved At');
@@ -284,8 +284,8 @@ function validatePlanGate(content, approvalPolicy, archiveReady, issues, gateFac
     issues.push('Plan Approved By must be agent:<id> or human:<name>.');
     return;
   }
-  if (approvalPolicy === 'human' && !(approval ? approval.human : isHumanApproval(approvedBy))) {
-    issues.push('Human approval policy requires Plan Approved By: human:<name>.');
+  if (autonomyMode !== 'auto' && !(approval ? approval.human : isHumanApproval(approvedBy))) {
+    issues.push('Supervised and human autonomy modes require Plan Approved By: human:<name>.');
   }
   if ((approval ? approval.agent : isAgentApproval(approvedBy)) && !gateEvidence) {
     issues.push('Gate Evidence is required for agent approval.');
@@ -549,7 +549,7 @@ function validateSpec(specPath, opts) {
     }
   }
   if (!opts.archiveReady) {
-    validatePlanGate(content, common.getApprovalPolicy(projectDir), false, issues, gateFacts);
+    validatePlanGate(content, snapshot.autonomyMode || 'supervised', false, issues, gateFacts);
     validateResearchGate(content, mode, false, issues, gateFacts);
     validateChallengeVerdict(content, issues);
   }

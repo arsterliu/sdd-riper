@@ -1,6 +1,6 @@
 # SDD-RIPER 团队落地指南
 
-Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication. 团队自动化必须在该状态停止并请求当前用户明确授权。
+当 `NEXT_ACTION: request_archive_authorization` 出现时，团队自动化必须停止，并请求当前用户针对本次归档明确授权。Agent 不得自行构造授权参数，也不得从 Ready、PASS、Plan Approval、Challenge 结论或以前的授权推断许可；`human:<name>` 只是审计声明，不是身份认证。
 
 ## 1. TL 决策速览（30秒版本）
 
@@ -42,14 +42,17 @@ Archive authorization rule: request explicit archive authorization from the curr
 
 这是 SDD-RIPER 的核心灵魂。无论任务多紧急，必须在 Spec 中完成计划拆解，并获得批准后，方可进入 Execute 阶段。
 
-**谁批准——由 APPROVAL_POLICY 决定：**
+**谁在什么时候介入——由三档自治模式决定：**
 
-| 策略 | 谁批 Plan | TL 介入点 | 适合谁 |
+| 模式 | Plan 与后续推进 | TL 介入点 | 适合谁 |
 | :--- | :--- | :--- | :--- |
-| **human** | `human:<name>` | Plan 阶段 | 核心模块、高风险、新人 |
-| **agent** | Agent（附 Gate Evidence） | Challenge 阶段 | 有经验同学、有测试覆盖的常规任务 |
+| **auto** | Agent 可凭证据批准 Plan，并在任务授权范围内连续推进 | 新风险、范围扩大和最终归档 | 成熟团队、边界清楚且回归充分的任务 |
+| **supervised** | 人工批准 Plan；同次交互另行授权后续自动推进 | Plan、异常停机和最终归档 | 团队默认 |
+| **human** | 人工批准 Plan，并逐次确认关键治理节点 | Research、方案、Plan、完成、Challenge/修复、归档 | 核心模块、高风险、新人 |
 
-TL 可以按模块设置不同策略——核心模块 `.sdd-config` 写 `APPROVAL_POLICY="human"`，常规模块用默认 `agent`。
+TL 可以给项目设置默认模式，也可以按 Spec 切换。项目默认值不是当前用户授权；切换模式、范围扩大或出现新风险都会使持续授权失效。
+
+创建 Spec 前，AI 会先主动询问当前任务选择 `auto`、`supervised` 还是 `human`，并推荐团队默认的 `supervised`。项目默认值只是推荐，不能静默替成员选择；如果成员已经明确指定模式，AI 会复述并请其确认，不再重复询问。
 
 ---
 
@@ -89,7 +92,7 @@ SDD 定义了 orchestrator（主 agent）和子 agent 之间的三类活动分�
 - **DELEGATABLE 活动没有唯一正确答案**：小任务内联效率高，大任务委托省上下文。团队可以根据实际情况调整——SDD 保留了灵活度。
 - **KEEP 活动不可下放**：门禁决策、最终裁决、归档执行必须由 orchestrator 完成，这是产物一致性的底线。
 
-完整 Dispatch Map 和决策框架见 `GUIDE.md` 第五节和 `protocols/subagent-dispatch.md`。
+完整 Dispatch Map 和决策框架见 [REFERENCE.md](./REFERENCE.md#五编排模型phase-dispatch-map) 和 `protocols/subagent-dispatch.md`。
 
 ---
 
@@ -214,7 +217,7 @@ Code Challenge 不替代 PR review：PR review 关注团队协作和风格；Cod
 ### 自主巡航（cruise）
 `sdd cruise <dir>` 生成有预算的巡航控制 prompt：每轮“next → 只修回跳目标 → validate → review / challenge → 回跳”，遇 PASS / 高风险 / 超过 `CRUISE_MAX_ITERATIONS` 即停。
 - Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
-- Cruise 默认开启；需要关闭时写 `CRUISE_ENABLED=false`。是否复用宿主原生 loop 由 `sdd cruise --driver ...` 和宿主能力决定。
+- auto 与获得后续授权的 supervised 可进入有界巡航；human 只得到治理节点导航。是否复用宿主原生 loop 由 `sdd cruise --driver ...` 和宿主能力决定。
 - 遇安全 / 权限 / 计费 / 数据迁移 / 公共 API / 不可逆变更，巡航必须停下要求人工介入。
 
 ### 进度看板（console）

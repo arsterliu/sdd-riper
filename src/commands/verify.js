@@ -173,7 +173,7 @@ function run(projectDir, options) {
     var root = fs.realpathSync(path.resolve(projectDir));
     var specFile = resolveSpec(root, options.spec);
     var specContent = fs.readFileSync(specFile, 'utf8');
-    var approval = specState.planApprovalFacts(specContent, common.getApprovalPolicy(root));
+    var approval = specState.planApprovalFacts(specContent, common.getFrontmatterField(specFile, 'autonomy-mode') || 'supervised');
     if (!approval.satisfied) errors.fail('PLAN_GATE_NOT_APPROVED', 'Plan Gate must be approved before verification execution');
     var allAcs = readiness.acceptanceBlocks(specContent);
     var targets = allAcs.filter(function(ac) { return /^e2e$/i.test(ac.verification); });
@@ -299,7 +299,7 @@ function runVisual(projectDir, options) {
     var root = fs.realpathSync(path.resolve(projectDir));
     var specFile = resolveSpec(root, options.spec);
     var specContent = fs.readFileSync(specFile, 'utf8');
-    var approval = specState.planApprovalFacts(specContent, common.getApprovalPolicy(root));
+    var approval = specState.planApprovalFacts(specContent, common.getFrontmatterField(specFile, 'autonomy-mode') || 'supervised');
     if (!approval.satisfied) errors.fail('PLAN_GATE_NOT_APPROVED', 'Plan Gate must be approved before visual verification execution');
     var visual = visualContract.inspectContract(specFile, root);
     if (visual.state === 'not-applicable') {

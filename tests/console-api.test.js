@@ -16,7 +16,7 @@ function write(file, text) {
 
 function createProject() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-console-api-'));
-  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAPPROVAL_POLICY="agent"\n');
+  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAUTONOMY_MODE="auto"\n');
   write(path.join(root, '.sdd-verification.json'), JSON.stringify({ schemaVersion: 1, providers: {} }, null, 2));
   write(path.join(root, 'mydocs/specs/v1.0-api-task.md'), [
     '---',

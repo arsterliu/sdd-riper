@@ -36,8 +36,7 @@ function withInjectedGovernanceContract(overrides, consumerModules, callback) {
 test('exposes the governance default values', function() {
   assert.deepEqual(governanceContract.defaults, {
     mode: 'micro',
-    approvalPolicy: 'agent',
-    cruiseEnabled: true,
+    autonomyMode: 'supervised',
     cruiseMaxIterations: 5
   });
 });
@@ -47,8 +46,7 @@ test('keeps governance defaults from being rebound by consumers', function() {
 
   assert.deepEqual(governanceContract.defaults, {
     mode: 'micro',
-    approvalPolicy: 'agent',
-    cruiseEnabled: true,
+    autonomyMode: 'supervised',
     cruiseMaxIterations: 5
   });
 });
@@ -350,6 +348,7 @@ test('spec-state derives verdict exports, passing state, and failed routing from
       exists: true,
       status: 'draft',
       mode: 'micro',
+      autonomyMode: 'auto',
       content: '## Intake\nregistry fixture\n\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\n\nPlan Approved By: agent:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\nChallenge Verdict: REGISTRY_FAIL\nBacktrack Target: Registry Repair\nChallenge Summary: registry failure\nChallenge Evidence: REGISTRY_FAIL - registry failure\nChallenge Executed By: subagent:fixture\nChallenge Executed At: 2026-01-01T00:02:00Z',
       executeLog: {
         exists: true,
@@ -421,25 +420,47 @@ test('Spec templates make the Contract mode fields and conditional E2E Provider 
   });
 });
 
-test('Skill and public docs state the current workflow, Provider requirement, and legacy-read compatibility', function() {
+test('precise references state the current workflow Provider requirement and legacy-read compatibility', function() {
   const workflow = /Research -> Innovate -> Design\/Acceptance -> Plan -> Execute\* -> Challenge -> \(Cruise\) -> Learning Check -> Archive/;
   const e2eProvider = /Verification:\s*e2e[\s\S]{0,180}Provider:/i;
   const legacyReadable = /(?:归档|archived|legacy|历史)[^\n]{0,180}(?:可读|readable|兼容|compatible|迁移)/i;
 
-  ['SKILL.md', 'README.md', 'GUIDE.md'].forEach(function(file) {
+  ['SKILL.md', 'REFERENCE.md'].forEach(function(file) {
     const text = readProjection(file);
     assert.match(text, workflow, file + ' must describe the current RIPER workflow');
     assert.match(text, e2eProvider, file + ' must state that e2e verification requires Provider metadata');
     assert.match(text, legacyReadable, file + ' must state that archived or legacy artifacts remain readable without migration');
   });
+  ['README.md', 'GUIDE.md'].forEach(function(file) {
+    const text = readProjection(file);
+    assert.match(text, /REFERENCE\.md/, file + ' must route readers to the precise contract');
+    assert.match(text, /归档/, file + ' must explain the archive boundary in human language');
+  });
+});
+
+test('AI guidance proactively confirms autonomy mode before creating a Spec', function() {
+  ['SKILL.md', 'src/commands/_gen-ai-configs.js'].forEach(function(file) {
+    const text = readProjection(file);
+    assert.match(text, /Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`/i, file + ' must require a proactive autonomy choice');
+    assert.match(text, /recommend `supervised`/i, file + ' must provide the default recommendation');
+    assert.match(text, /already explicitly selected[\s\S]{0,320}restate[\s\S]{0,100}confirm/i, file + ' must confirm an explicit choice without asking again');
+    assert.match(text, /project default[\s\S]{0,160}(?:recommendation|must not be silently chosen)/i, file + ' must not silently substitute the project default');
+  });
+
+  ['README.md', 'GUIDE.md', 'REFERENCE.md', 'TEAM-GUIDE.md'].forEach(function(file) {
+    const text = readProjection(file);
+    assert.match(text, /创建 Spec 前[^。\n]{0,120}(?:主动|会先)询问[^。\n]{0,120}`auto`[^。\n]{0,80}`supervised`[^。\n]{0,80}`human`/, file + ' must tell humans when the choice appears');
+    assert.match(text, /已经明确[^。\n]{0,100}(?:复述|确认)[^。\n]{0,100}(?:不再重复询问|不会重复询问)/, file + ' must explain the no-repeat path');
+    assert.match(text, /项目默认值[^。\n]{0,120}(?:推荐|不能静默|不会静默)/, file + ' must explain that default is guidance only');
+  });
 });
 
 test('Completion documentation separates execution Coverage from the completion contract', function() {
-  const guide = readProjection('GUIDE.md');
+  const guide = readProjection('REFERENCE.md');
   const guideExample = guide.match(/```text\r?\nStep: execution coverage\r?\n([\s\S]*?)```/);
 
-  assert.doesNotMatch(guide, /AC Coverage summary/i, 'GUIDE must not describe Coverage with the retired Summary grammar');
-  assert.ok(guideExample, 'GUIDE must include the formal execution Coverage example');
+  assert.doesNotMatch(guide, /AC Coverage summary/i, 'REFERENCE must not describe Coverage with the retired Summary grammar');
+  assert.ok(guideExample, 'REFERENCE must include the formal execution Coverage example');
   assert.match(guideExample[0], /^AC Coverage:$/m, 'GUIDE must place Coverage in the execution Step');
   assert.match(guideExample[0], /^Step: completion-verification\r?\nStatus: DONE\r?\nResult: .+\r?$/m, 'GUIDE completion example must record Result');
   assert.match(guideExample[0], /^Verification: .+\r?$/m, 'GUIDE completion example must record Verification');

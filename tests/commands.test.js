@@ -5,6 +5,7 @@ const path = require('path');
 const os = require('os');
 const http = require('http');
 const { execSync, spawnSync } = require('child_process');
+const autonomyState = require('../src/core/autonomy-state');
 
 const CLI = 'node ' + path.resolve('bin/cli.js');
 const tmpBase = path.join(os.tmpdir(), 'sdd-cmd-test-' + Date.now());
@@ -35,26 +36,47 @@ function headingNames(heading) {
 
 function insertSectionContent(file, heading, body) {
   var content = fs.readFileSync(file, 'utf-8');
-  var marker = headingNames(heading).map(function(name) { return '## ' + name + '\n'; })
-    .find(function(candidate) { return content.indexOf(candidate) !== -1; });
+  var marker = headingNames(heading).map(function(name) { return new RegExp('(^## ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\r?\\n)', 'm'); })
+    .find(function(candidate) { return candidate.test(content); });
   assert.ok(marker, file + ' missing section ' + heading);
-  fs.writeFileSync(file, content.replace(marker, marker + body + '\n'), 'utf-8');
+  fs.writeFileSync(file, content.replace(marker, '$1' + body + '\n'), 'utf-8');
 }
 
 function replaceSectionStart(content, heading, body) {
-  var marker = headingNames(heading).map(function(name) { return '## ' + name + '\n'; })
-    .find(function(candidate) { return content.indexOf(candidate) !== -1; });
+  var marker = headingNames(heading).map(function(name) { return new RegExp('(^## ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\r?\\n)', 'm'); })
+    .find(function(candidate) { return candidate.test(content); });
   assert.ok(marker, 'missing section ' + heading);
-  return content.replace(marker, marker + body + '\n');
+  return content.replace(marker, '$1' + body + '\n');
 }
 
 function fillApproval(content) {
   return fillConfirmedReq(content)
     .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: subagent:research-fixture')
     .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z')
-    .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:codex')
+    .replace(/^Plan Approved By:$/m, 'Plan Approved By: human:fixture')
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z')
     .replace(/^Gate Evidence:$/m, 'Gate Evidence: fixture approval evidence');
+}
+
+function authorizeFixture(content) {
+  var mode = (content.match(/^autonomy-mode:\s*"?([^"\r\n]+)/m) || [])[1] || 'supervised';
+  if (mode === 'human') return content;
+  var riskSnapshot = autonomyState.riskFlagsSnapshot([]);
+  var authorized = autonomyState.appendEvent(content, {
+    eventId: 'fixture-authorization', eventType: mode === 'auto' ? 'task_authorization' : 'plan_authorization',
+    mode: mode, gate: mode === 'supervised' ? 'Plan' : '', decision: 'authorized',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot,
+    planDigest: mode === 'supervised' ? autonomyState.planSnapshot(content) : '',
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
+    authorizedAt: '2026-01-01T00:00:00Z', authorizationEvidence: 'fixture authorization'
+  });
+  if (mode !== 'auto') return authorized;
+  return autonomyState.appendEvent(authorized, {
+    eventId: 'fixture-plan-activation', eventType: 'plan_activation', mode: 'auto', gate: 'Plan', decision: 'activated',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot, planDigest: autonomyState.planSnapshot(content),
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
+    authorizedAt: '2026-01-01T00:00:01Z', authorizationEvidence: 'fixture plan activation'
+  });
 }
 
 function runArgs(args, cwd) {
@@ -297,7 +319,7 @@ function makeStandardArchiveReady(demo, specFile) {
     .replace(/^Challenge Executed By:$/m, 'Challenge Executed By: subagent:archive-fixture')
     .replace(/^Challenge Executed At:$/m, 'Challenge Executed At: 2026-01-01T00:01:00Z')
     .replace(/^Challenge Evidence:$/m, 'Challenge Evidence: PASS - all gates pass.');
-  fs.writeFileSync(specFile, content, 'utf-8');
+  fs.writeFileSync(specFile, authorizeFixture(content), 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', [
     'Step: completion-verification',
@@ -328,7 +350,7 @@ function makeStandardExecutedButUnchallenged(demo, specFile) {
   content = replaceSectionStart(content, 'Innovate Options', 'Option A: 在执行完成后强制路由到 Challenge。Pros: 不会漏掉门禁。Cons: 需要显式记录结果。\nOption B: 只依赖归档校验。Pros: 改动小。Cons: 容易误导 agent。\nSelected: Option A。');
   content = replaceSectionStart(content, 'Acceptance Criteria', '### AC-001: challenge required after execute\nRequirement: challenge-route\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Challenge required\n  Given standard spec 已完成执行\n  When next 或 resume 运行\n  Then 输出 Challenge 阶段');
   content = fillApproval(content);
-  fs.writeFileSync(specFile, content, 'utf-8');
+  fs.writeFileSync(specFile, authorizeFixture(content), 'utf-8');
   insertSectionContent(designFile, 'Technical Design', standardDesignContent());
   insertSectionContent(logFile, 'Execute Log', [
     'Step: completion-verification',
@@ -451,7 +473,7 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('[CREATE]') !== -1);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', '.sdd-config')));
     var configText = fs.readFileSync(path.join(tmpBase, 'demo', '.sdd-config'), 'utf-8');
-    assert.match(configText, /^APPROVAL_POLICY="agent"$/m);
+    assert.match(configText, /^AUTONOMY_MODE="supervised"$/m);
     assert.strictEqual(configText.indexOf('CRUISE_POLICY='), -1);
     assert.match(configText, /^CRUISE_MAX_ITERATIONS="5"$/m);
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'specs', '.gitkeep')));
@@ -464,7 +486,7 @@ describe('CLI commands', function() {
     assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);
     assert.ok(agentsText.indexOf('This project uses SDD-RIPER') !== -1);
     assert.ok(agentsText.indexOf('Do not manually fill Challenge Evidence fields') !== -1);
-    assert.ok(agentsText.indexOf('APPROVAL_POLICY') !== -1);
+    assert.ok(agentsText.indexOf('AUTONOMY_MODE') !== -1);
     assert.ok(agentsText.indexOf('Independent Review') !== -1);
     assert.ok(agentsText.indexOf('Cruise Driver') !== -1);
     assert.ok(claudeText.indexOf('Explicitly track RIPER phase transitions') !== -1);
@@ -476,7 +498,7 @@ describe('CLI commands', function() {
     var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
     var configText = fs.readFileSync(path.join(demo, '.sdd-config'), 'utf-8');
     assert.ok(agentsText.indexOf('- Mode: micro') !== -1);
-    assert.strictEqual(configText.indexOf('MODE='), -1);
+    assert.strictEqual(configText.indexOf('\nMODE='), -1);
   });
 
   it('init appends SDD-RIPER block to existing AI config files', function() {
@@ -619,8 +641,8 @@ describe('CLI commands', function() {
     assert.match(c, /^diff-base:/m);
     assert.ok(c.indexOf('## Intake') !== -1);
     assert.ok(c.indexOf('## ' + 'Invoc' + 'ation') === -1);
-    assert.ok(c.indexOf('### Requirement\nrequirement: login\ngoal: auth') !== -1);
-    assert.ok(c.indexOf('### Constraints\nconstraints: none') !== -1);
+    assert.match(c, /### Requirement\r?\nrequirement: login\r?\ngoal: auth/);
+    assert.match(c, /### Constraints\r?\nconstraints: none/);
   });
 
   it('discover auto-binds context/<task-name>/ as context-source', function() {
@@ -1094,9 +1116,33 @@ describe('CLI commands', function() {
     assert.match(next, /NEXT_ACTION: request_archive_authorization/);
     assert.doesNotMatch(next, /archive_ready/);
     assert.match(resume, /PHASE_HINT: await_archive_authorization/);
+    assert.match(resume, /AUTONOMY_MODE: supervised/);
+    assert.match(resume, /AUTHORIZATION_STATE: active/);
+    assert.match(resume, /AUTHORIZED_ACTORS: main,worker,research-reviewer,challenge-reviewer/);
+    assert.match(resume, /AUTHORIZED_SCOPE_DIGEST: sha256:/);
+    assert.match(resume, /AUTHORIZED_RISK_SNAPSHOT: sha256:/);
+    assert.match(resume, /ACTIVE_PLAN_DIGEST: sha256:/);
+    assert.match(resume, /STOP_REASON: archive_authorization/);
     assert.doesNotMatch(resume, /PHASE_HINT: archive(?:\r?\n|$)/);
     assert.match(cruise, /NEXT_ACTION: request_archive_authorization/);
-    assert.match(cruise, /\[RUN_LEDGER_STOP\] human_required/);
+    assert.match(cruise, /REUSE_NATIVE_LOOP: no/);
+    assert.match(cruise, /STOP_REASON: archive_authorization/);
+    assert.match(cruise, /\[RUN_LEDGER_STOP\] archive_authorization/);
+  });
+
+  it('cruise budget exhaustion disables the actual native loop', function() {
+    var demo = path.join(tmpBase, 'd4-budget-stop');
+    run('init ' + demo + ' --mode micro --autonomy-mode auto');
+    run('discover ' + demo + ' --task-name budget-stop --spec-version v1.0 --requirement x --mode micro');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-budget-stop.md');
+    var scope = autonomyState.scopeSnapshot(fs.readFileSync(specFile, 'utf-8'));
+    var auth = runArgs(['autonomy', 'authorize', demo, '--spec', specFile, '--expected-scope-digest', scope,
+      '--authorized-by', 'human:fixture', '--authorization-evidence', 'fixture task authorization'], demo);
+    assert.equal(auth.status, 0, auth.output);
+    var cruise = run('cruise ' + demo + ' --driver auto --iteration 5 --record-run');
+    assert.match(cruise, /STOP_REASON: budget_exhausted/);
+    assert.match(cruise, /REUSE_NATIVE_LOOP: no/);
+    assert.match(cruise, /\[RUN_LEDGER_STOP\] budget_exhausted/);
   });
 
   it('archive index records Challenge Verdict for new specs', function() {
@@ -1239,9 +1285,9 @@ describe('CLI commands', function() {
     makeStandardArchiveReady(demo, sf);
     // Remove challenge evidence to test that validate catches the missing fields
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c.replace(/Challenge Executed By:.*\n/, 'Challenge Executed By:\n');
-    c = c.replace(/Challenge Executed At:.*\n/, 'Challenge Executed At:\n');
-    c = c.replace(/Challenge Evidence:.*\n/, 'Challenge Evidence:\n');
+    c = c.replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By:');
+    c = c.replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At:');
+    c = c.replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence:');
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
@@ -1255,8 +1301,8 @@ describe('CLI commands', function() {
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-at.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8');
-    c = c.replace(/Challenge Executed At:.*\n/, 'Challenge Executed At:\n');
-    c = c.replace(/Challenge Evidence:.*\n/, 'Challenge Evidence:\n');
+    c = c.replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At:');
+    c = c.replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence:');
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
@@ -1309,10 +1355,10 @@ describe('CLI commands', function() {
     assert.ok(result.indexOf('Challenge Executed By') === -1, 'no challenge evidence issues');
   });
 
-  it('validate accepts agent plan approval with evidence by default', function() {
+  it('validate accepts agent plan approval with evidence in auto mode', function() {
     var demo = path.join(tmpBase, 'approval-agent-default');
-    run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name approval-agent --spec-version v1.0 --requirement x --mode standard');
+    run('init ' + demo + ' --mode standard --autonomy-mode auto');
+    run('discover ' + demo + ' --task-name approval-agent --spec-version v1.0 --requirement x --mode standard --autonomy-mode auto');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-agent.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8')
@@ -1324,11 +1370,10 @@ describe('CLI commands', function() {
     assert.ok(result.indexOf('Plan Approved By') === -1, 'agent approval should pass with evidence: ' + result);
   });
 
-  it('validate rejects agent plan approval when approval policy is human', function() {
+  it('validate rejects agent plan approval in human mode', function() {
     var demo = path.join(tmpBase, 'approval-human-policy');
-    run('init ' + demo + ' --mode standard');
-    fs.appendFileSync(path.join(demo, '.sdd-config'), 'APPROVAL_POLICY="human"\n', 'utf-8');
-    run('discover ' + demo + ' --task-name approval-human --spec-version v1.0 --requirement x --mode standard');
+    run('init ' + demo + ' --mode standard --autonomy-mode human');
+    run('discover ' + demo + ' --task-name approval-human --spec-version v1.0 --requirement x --mode standard --autonomy-mode human');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-human.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8')
@@ -1337,19 +1382,18 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Human approval policy requires Plan Approved By: human:<name>') !== -1, blocked);
+    assert.ok(blocked.indexOf('Supervised and human autonomy modes require Plan Approved By: human:<name>') !== -1, blocked);
   });
 
-  it('validate rejects bare plan approval when approval policy is human', function() {
+  it('validate rejects agent fixture approval in supervised mode', function() {
     var demo = path.join(tmpBase, 'approval-human-bare');
     run('init ' + demo + ' --mode standard');
-    fs.appendFileSync(path.join(demo, '.sdd-config'), 'APPROVAL_POLICY="human"\n', 'utf-8');
     run('discover ' + demo + ' --task-name approval-human-bare --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-approval-human-bare.md');
     makeStandardArchiveReady(demo, sf);
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Human approval policy requires Plan Approved By: human:<name>') !== -1, blocked);
+    assert.ok(blocked.indexOf('Supervised and human autonomy modes require Plan Approved By: human:<name>') === -1, blocked);
   });
 
   it('validate accepts auditable independent reviewers for standard challenge', function() {
@@ -1396,12 +1440,12 @@ describe('CLI commands', function() {
     var blocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(blocked.indexOf('Research Reviewed By is empty') !== -1, blocked);
     assert.ok(blocked.indexOf('Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>') !== -1, blocked);
-    assert.ok(blocked.indexOf('pause and request explicit user authorization before proceeding') !== -1, blocked);
+    assert.ok(blocked.indexOf('explicit current-user authorization') !== -1, blocked);
     assert.ok(blocked.indexOf('Do not skip the gate or fabricate reviewer evidence') !== -1, blocked);
 
     var next = run('next ' + demo);
     assert.ok(next.indexOf('REVIEWER_GUIDANCE:') !== -1, next);
-    assert.ok(next.indexOf('pause and request explicit user authorization before proceeding') !== -1, next);
+    assert.ok(next.indexOf('explicit current-user authorization') !== -1, next);
   });
 
   it('validate rejects legacy auto-gate challenge evidence (AC-003)', function() {
@@ -1704,8 +1748,8 @@ describe('CLI commands', function() {
     var next = run('next ' + demo);
     assert.ok(next.indexOf('NEXT_ACTION: repair_research') !== -1);
     assert.ok(next.indexOf('BACKTRACK_TARGET: Research') !== -1);
-    assert.ok(next.indexOf('APPROVAL_POLICY: agent') !== -1);
-    assert.ok(next.indexOf('CRUISE_ENABLED: true') !== -1);
+    assert.ok(next.indexOf('AUTONOMY_MODE: supervised') !== -1);
+    assert.ok(next.indexOf('AUTHORIZATION_STATE: required') !== -1);
 
     var challenge = run('challenge ' + demo);
     assert.ok(challenge.indexOf('ADVERSARIAL REVIEW PROMPT') !== -1);
@@ -1723,16 +1767,26 @@ describe('CLI commands', function() {
     assert.ok(challenge.indexOf('external-agent:<id>') !== -1, 'challenge should list external-agent reviewer type');
     assert.ok(challenge.indexOf('human:<name>') !== -1, 'challenge should list human reviewer type');
     assert.ok(challenge.indexOf('automated reviewer') !== -1, 'challenge should mention automated reviewer authorization');
-    assert.ok(challenge.indexOf('explicit user authorization') !== -1, 'challenge should require explicit user authorization');
-    assert.ok(challenge.indexOf('pause and request explicit user authorization before proceeding') !== -1, 'challenge should require pausing to request authorization');
-    assert.ok(challenge.indexOf('review bot') !== -1, 'challenge should include generic review bot language');
+    assert.ok(challenge.indexOf('explicit current-user authorization') !== -1, 'challenge should require explicit current-user authorization when no fresh scope exists');
+    assert.ok(challenge.indexOf('fresh task/plan authorization') !== -1, 'challenge should describe the reusable authorization boundary');
     assert.ok(challenge.indexOf('Codex subagent') === -1, 'challenge prompt should not be Codex-specific');
+    assert.match(challenge, /AUTONOMY_MODE_SOURCE:/);
+    assert.match(challenge, /AUTHORIZED_ACTORS:/);
+    assert.match(challenge, /AUTHORIZED_SCOPE_DIGEST: sha256:/);
+    assert.match(challenge, /AUTHORIZED_RISK_SNAPSHOT: sha256:/);
+    assert.match(challenge, /ACTIVE_PLAN_DIGEST: sha256:/);
+    assert.match(challenge, /NEXT_ACTION:/);
 
     var cruise = run('cruise ' + demo);
     assert.ok(cruise.indexOf('AUTONOMOUS CRUISE PROMPT') !== -1);
     assert.ok(cruise.indexOf('DRIVER: auto') !== -1);
-    assert.ok(cruise.indexOf('REUSE_NATIVE_LOOP: yes-when-available') !== -1);
+    assert.ok(cruise.indexOf('REUSE_NATIVE_LOOP: no') !== -1);
     assert.ok(cruise.indexOf('MAX_ITERATIONS: 5') !== -1);
+    assert.match(cruise, /AUTONOMY_MODE_SOURCE:/);
+    assert.match(cruise, /AUTHORIZED_ACTORS:/);
+    assert.match(cruise, /AUTHORIZED_SCOPE_DIGEST: sha256:/);
+    assert.match(cruise, /AUTHORIZED_RISK_SNAPSHOT: sha256:/);
+    assert.match(cruise, /ACTIVE_PLAN_DIGEST: sha256:/);
     assert.ok(cruise.indexOf('repair loop') !== -1);
     assert.ok(cruise.indexOf('sdd validate') !== -1);
     assert.ok(cruise.indexOf('sdd challenge') !== -1);
@@ -1750,9 +1804,8 @@ describe('CLI commands', function() {
     assert.ok(next.indexOf('external-agent:<id>') !== -1, next);
     assert.ok(next.indexOf('human:<name>') !== -1, next);
     assert.ok(next.indexOf('automated reviewer') !== -1, next);
-    assert.ok(next.indexOf('explicit user authorization') !== -1, next);
-    assert.ok(next.indexOf('pause and request explicit user authorization before proceeding') !== -1, next);
-    assert.ok(next.indexOf('review bot') !== -1, next);
+    assert.ok(next.indexOf('explicit current-user authorization') !== -1, next);
+    assert.ok(next.indexOf('fresh task/plan authorization') !== -1, next);
     assert.ok(next.indexOf('Codex subagent') === -1, next);
   });
 
@@ -1795,14 +1848,13 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
   });
 
-  it('cruise can be disabled explicitly and ignores legacy cruise policy values', function() {
+  it('human mode suppresses native cruise and legacy active config requires migration', function() {
     var disabledDemo = path.join(tmpBase, 'd6i-disabled');
-    run('init ' + disabledDemo + ' --mode standard');
-    run('discover ' + disabledDemo + ' --task-name cruise-disabled --spec-version v1.0 --requirement x --mode standard');
-    fs.appendFileSync(path.join(disabledDemo, '.sdd-config'), 'CRUISE_ENABLED="false"\n', 'utf-8');
+    run('init ' + disabledDemo + ' --mode standard --autonomy-mode human');
+    run('discover ' + disabledDemo + ' --task-name cruise-disabled --spec-version v1.0 --requirement x --mode standard --autonomy-mode human');
 
     var disabled = run('cruise ' + disabledDemo + ' --record-run');
-    assert.ok(disabled.indexOf('CRUISE_DISABLED: true') !== -1);
+    assert.ok(disabled.indexOf('## HUMAN-GUIDED WORKFLOW') !== -1);
     assert.equal(disabled.indexOf('### Autonomous repair loop'), -1);
 
     var offDemo = path.join(tmpBase, 'd6i');
@@ -1813,9 +1865,8 @@ describe('CLI commands', function() {
 
     var off = run('cruise ' + offDemo + ' --record-run');
     var offLedger = path.join(offDemo, 'mydocs', 'runs', 'v1.0-cruise-off.cruise.jsonl');
-    assert.ok(off.indexOf('## AUTONOMOUS CRUISE PROMPT') !== -1);
-    assert.ok(off.indexOf('CRUISE_ENABLED: true') !== -1);
-    assert.ok(off.indexOf('REUSE_NATIVE_LOOP: yes-when-available') !== -1);
+    assert.ok(off.indexOf('STOP_REASON: migration_required') !== -1);
+    assert.ok(off.indexOf('REUSE_NATIVE_LOOP: no') !== -1);
     assert.ok(fs.existsSync(offLedger));
   });
 
@@ -1886,7 +1937,7 @@ describe('CLI commands', function() {
     assert.equal(entry.nextAction, 'repair_research');
     assert.equal(entry.backtrackTarget, 'Research');
     assert.equal(entry.challengeVerdict, 'FAIL_SPEC');
-    assert.equal(entry.stopReason, 'continue');
+    assert.equal(entry.stopReason, 'task_authorization_required');
   });
 
   it('console spec detail exposes latest cruise run ledger entry', async function() {
@@ -2056,8 +2107,11 @@ describe('CLI commands', function() {
       var detail = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id));
       assert.equal(detail.statusCode, 200);
       assert.equal(detail.body.taskName, 'console-task');
-      assert.equal(detail.body.workflow.approvalPolicy, 'agent');
-      assert.equal(detail.body.workflow.cruiseEnabled, true);
+      assert.equal(detail.body.workflow.autonomyMode, 'supervised');
+      assert.equal(detail.body.workflow.authorizationState, 'required');
+      assert.match(detail.body.workflow.authorizedScopeDigest, /^sha256:/);
+      assert.match(detail.body.workflow.authorizedRiskSnapshot, /^sha256:/);
+      assert.match(detail.body.workflow.activePlanDigest, /^sha256:/);
       assert.equal(detail.body.workflow.gatePolicy, undefined);
       assert.equal(detail.body.workflow.cruisePolicy, undefined);
       assert.equal(detail.body.workflow.maxIterations, 5);
@@ -2314,7 +2368,7 @@ describe('CLI commands', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
     var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
     assert.ok(js.indexOf('renderCruiseRun') !== -1, 'renderCruiseRun function exists');
-    assert.ok(js.indexOf('cruiseEnabled') !== -1, 'reads cruiseEnabled');
+    assert.ok(js.indexOf('autonomyMode') !== -1, 'reads autonomyMode');
     assert.equal(js.indexOf('cruisePolicy'), -1);
     assert.ok(js.indexOf('maxIterations') !== -1, 'reads maxIterations');
     assert.ok(js.indexOf('cruise-latest') !== -1, 'latest run section class');
@@ -2393,9 +2447,6 @@ describe('CLI commands', function() {
     assert.match(help, /--authorization-evidence <text>/);
 
     [
-      'README.md',
-      'GUIDE.md',
-      'TEAM-GUIDE.md',
       'SKILL.md',
       'protocols/sdd-riper-one.md',
       'protocols/sdd-riper-one-light.md',
@@ -2416,25 +2467,115 @@ describe('CLI commands', function() {
       assert.ok(text.indexOf('subagent:<id>') !== -1, file);
       assert.ok(text.indexOf('external-agent:<id>') !== -1, file);
       assert.ok(text.indexOf('human:<name>') !== -1, file);
-      assert.ok(text.indexOf('automated reviewer') !== -1, file);
-      assert.ok(text.indexOf('explicit user authorization') !== -1, file);
-      assert.ok(text.indexOf('pause and request explicit user authorization before proceeding') !== -1, file);
-      assert.ok(text.indexOf('review bot') !== -1, file);
+      assert.match(text, /automated reviewer|自动 reviewer/, file);
+      assert.match(text, /explicit current-user authorization|当前用户明确授权/, file);
+      assert.ok(text.indexOf('fresh task/plan authorization') !== -1, file);
+      assert.ok(text.indexOf('Plan Approval alone is insufficient') !== -1, file);
       assert.ok(text.indexOf('Codex subagent') === -1, file);
     });
   });
 
-  it('project docs and skill describe platform-neutral reviewer authorization', function() {
-    ['AGENTS.md', 'SKILL.md', 'README.md', 'GUIDE.md', path.join('protocols', 'sdd-riper-one.md'), path.join('protocols', 'sdd-riper-one-light.md')].forEach(function(file) {
+  it('agent docs and skill describe platform-neutral reviewer authorization', function() {
+    ['AGENTS.md', 'SKILL.md', 'REFERENCE.md', path.join('protocols', 'sdd-riper-one.md'), path.join('protocols', 'sdd-riper-one-light.md')].forEach(function(file) {
       var text = fs.readFileSync(path.resolve(file), 'utf-8');
       assert.ok(text.indexOf('subagent:<id>') !== -1, file);
       assert.ok(text.indexOf('external-agent:<id>') !== -1, file);
       assert.ok(text.indexOf('human:<name>') !== -1, file);
-      assert.ok(text.indexOf('automated reviewer') !== -1, file);
-      assert.ok(text.indexOf('explicit user authorization') !== -1, file);
-      assert.ok(text.indexOf('pause and request explicit user authorization before proceeding') !== -1, file);
-      assert.ok(text.indexOf('review bot') !== -1, file);
+      assert.match(text, /automated reviewer|自动 reviewer/, file);
+      assert.match(text, /explicit current-user authorization|当前用户明确授权/, file);
+      assert.match(text, /fresh task\/plan authorization|当前 Spec 的新鲜授权/, file);
       assert.ok(text.indexOf('Codex subagent') === -1, file);
+    });
+  });
+
+  it('README provides a reader-first entry point and links to the detailed guide', function() {
+    var readme = fs.readFileSync(path.resolve('README.md'), 'utf-8');
+    assert.ok(readme.indexOf('## 三分钟开始') !== -1);
+    assert.ok(readme.indexOf('## 日常怎么用') !== -1);
+    assert.ok(readme.indexOf('[GUIDE.md](./GUIDE.md)') !== -1);
+    assert.ok(readme.indexOf('`SKILL.md`') !== -1);
+    assert.ok(readme.indexOf('`protocols/`') !== -1);
+    assert.equal(readme.indexOf('Archive authorization rule:'), -1);
+  });
+
+  it('README puts AI-guided quick start before direct CLI instructions', function() {
+    var readme = fs.readFileSync(path.resolve('README.md'), 'utf-8');
+    var aiStart = readme.indexOf('### 让 AI 带你开始（推荐）');
+    var cliStart = readme.indexOf('### 直接用命令行');
+    assert.ok(aiStart !== -1);
+    assert.ok(cliStart > aiStart);
+    ['版本：', '任务名：', '目标：', '参考资料：'].forEach(function(input) {
+      assert.ok(readme.indexOf(input) !== -1, input);
+    });
+    assert.ok(readme.indexOf('sdd install-skill --target codex') !== -1);
+  });
+
+  it('GUIDE is scenario-first while REFERENCE preserves the exact protocol', function() {
+    var guide = fs.readFileSync(path.resolve('GUIDE.md'), 'utf-8');
+    assert.ok(fs.existsSync(path.resolve('REFERENCE.md')), 'REFERENCE.md');
+    var reference = fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8');
+    var packageJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf-8'));
+    [
+      '## 先看你现在要做什么',
+      '## 场景一：开始一个新任务',
+      '## 场景二：确认方案和计划',
+      '## 场景三：执行和验证',
+      '## 场景四：任务卡住或检查失败',
+      '## 场景五：完成与归档',
+      '## 按需使用的高级能力'
+    ].forEach(function(heading) {
+      assert.ok(guide.indexOf(heading) !== -1, heading);
+    });
+    assert.ok(guide.indexOf('[REFERENCE.md](./REFERENCE.md)') !== -1);
+    assert.equal(guide.indexOf('Archive authorization rule:'), -1);
+    [
+      '不得自行构造归档授权参数',
+      'Challenge Executed By:',
+      'AC Coverage:',
+      'Cruise orchestrator',
+      'realpath',
+      'Provider:'
+    ].forEach(function(contract) {
+      assert.ok(reference.indexOf(contract) !== -1, contract);
+    });
+    assert.ok(packageJson.files.indexOf('REFERENCE.md') !== -1);
+  });
+
+  it('REFERENCE helps humans navigate without weakening the exact protocol', function() {
+    var reference = fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8');
+    var usage = reference.indexOf('## 怎么使用这份参考');
+    var archiveRule = reference.indexOf('当 `NEXT_ACTION: request_archive_authorization` 出现时');
+    assert.ok(usage !== -1);
+    assert.ok(archiveRule > usage);
+    assert.ok(reference.indexOf('## 快速索引') !== -1);
+    assert.ok(reference.indexOf('## 常见术语') !== -1);
+    ['`Spec`', '`Gate`', '`Challenge`', '`Cruise`', '`Provider`', '`realpath`'].forEach(function(term) {
+      assert.ok(reference.indexOf(term) !== -1, term);
+    });
+    assert.ok((reference.match(/^> 本章回答：/gm) || []).length >= 10);
+    assert.equal(reference.indexOf('Archive authorization rule:'), -1);
+    assert.ok(reference.indexOf('不得自行构造归档授权参数') !== -1);
+    assert.ok(reference.indexOf('审计声明，不是身份认证') !== -1);
+    assert.ok(reference.indexOf('--authorized-by "human:<name>" --authorization-evidence "<text>"') !== -1);
+    [
+      'Challenge Executed By:',
+      'AC Coverage:',
+      'Cruise orchestrator',
+      'realpath',
+      'Provider:'
+    ].forEach(function(contract) {
+      assert.ok(reference.indexOf(contract) !== -1, contract);
+    });
+  });
+
+  it('human reference docs explain archive authorization in Chinese', function() {
+    ['REFERENCE.md', 'TEAM-GUIDE.md'].forEach(function(file) {
+      var text = fs.readFileSync(path.resolve(file), 'utf-8');
+      assert.equal(text.indexOf('Archive authorization rule:'), -1, file);
+      assert.ok(text.indexOf('当前用户') !== -1, file);
+      assert.ok(text.indexOf('不得自行构造') !== -1, file);
+      assert.ok(text.indexOf('审计声明') !== -1, file);
+      assert.ok(text.indexOf('不是身份认证') !== -1, file);
     });
   });
 
@@ -2442,8 +2583,7 @@ describe('CLI commands', function() {
     [
       'AGENTS.md',
       'CLAUDE.md',
-      'README.md',
-      'GUIDE.md',
+      'REFERENCE.md',
       'TEAM-GUIDE.md',
       'SKILL.md',
       path.join('protocols', 'sdd-riper-one.md'),
@@ -2822,7 +2962,7 @@ describe('CLI commands', function() {
   });
 
   it('docs state the v3.0 adapter scope and deferred boundaries', function() {
-    var docs = ['README.md', 'GUIDE.md', 'TEAM-GUIDE.md'].map(function(file) {
+    var docs = ['README.md', 'GUIDE.md', 'REFERENCE.md', 'TEAM-GUIDE.md'].map(function(file) {
       return fs.readFileSync(path.resolve(file), 'utf-8');
     }).join('\n');
     assert.ok(docs.indexOf('playwright-test') !== -1);

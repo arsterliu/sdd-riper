@@ -13,6 +13,11 @@ function run(projectDir, opts) {
   var docsDir = opts.docsDir || 'mydocs';
   var docsDirExplicit = !!opts.docsDir;
   var force = !!opts.force;
+  var autonomyMode = opts.autonomyMode || governanceContract.defaults.autonomyMode;
+  if (governanceContract.autonomyModes.indexOf(autonomyMode) === -1) {
+    console.error('[SDD_AUTONOMY_MODE_INVALID] --autonomy-mode must be auto, supervised, or human');
+    process.exit(3);
+  }
 
   if (!docsDirExplicit && fs.existsSync(path.join(projectDir, '.sdd-config')) && !force) {
     docsDir = getDocsDir(projectDir);
@@ -39,7 +44,7 @@ function run(projectDir, opts) {
   var configFile = path.join(projectDir, '.sdd-config');
   var configContent = [
     'DOCS_DIR="' + docsDir + '"',
-    'APPROVAL_POLICY="' + governanceContract.defaults.approvalPolicy + '"',
+    'AUTONOMY_MODE="' + autonomyMode + '"',
     'CRUISE_MAX_ITERATIONS="' + governanceContract.defaults.cruiseMaxIterations + '"',
     ''
   ].join('\n');

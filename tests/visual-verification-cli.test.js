@@ -12,6 +12,8 @@ function spec(projectDir) {
     '---',
     'task-name: "checkout-ui"',
     'mode: micro',
+    'autonomy-mode: "auto"',
+    'autonomy-mode-source: "fixture"',
     'status: draft',
     'context-source: "mydocs/context/checkout-ui"',
     'visual-evidence: "required"',

@@ -74,7 +74,7 @@ function specContent(taskName, title, providerId, acIds, options) {
     return ['### ' + id + ': ' + title, 'Verification: e2e', 'Provider: ' + providerId, 'Test: tests/console.spec.js'].join('\n');
   }).join('\n\n');
   return [
-    '---', 'date: 2026-07-12', 'task-name: "' + taskName + '"', 'mode: standard', 'status: ' + (options.status || 'draft'),
+    '---', 'date: 2026-07-12', 'task-name: "' + taskName + '"', 'mode: standard', 'autonomy-mode: "auto"', 'autonomy-mode-source: "fixture"', 'status: ' + (options.status || 'draft'),
     'design-file: "mydocs/design/' + taskName + '.design.md"',
     'execute-log-file: "mydocs/logs/' + taskName + '.execute.md"',
     'project-profile-revision: "' + (options.profileRevision || '') + '"',
@@ -166,7 +166,7 @@ function createConsoleE2EProject() {
   fs.mkdirSync(root, { recursive: false });
   write(path.join(root, OWNER_FILE), JSON.stringify({ token: token, kind: 'sdd-console-e2e' }));
   write(path.join(root, '.gitignore'), OWNER_FILE + '\n');
-  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAPPROVAL_POLICY="agent"\nCRUISE_ENABLED="true"\nCRUISE_MAX_ITERATIONS="5"\n');
+  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAUTONOMY_MODE="auto"\nCRUISE_MAX_ITERATIONS="5"\n');
   var provider = { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.', config: 'playwright.config.js', projects: ['chromium'] };
   write(path.join(root, '.sdd-verification.json'), JSON.stringify({ schemaVersion: 1, providers: { 'console-e2e': provider } }, null, 2));
   write(path.join(root, 'package.json'), JSON.stringify({ name: 'console-e2e-project', private: true, devDependencies: { '@playwright/test': '1.52.0' } }, null, 2));

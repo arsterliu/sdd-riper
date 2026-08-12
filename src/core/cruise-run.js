@@ -15,9 +15,9 @@ function ledgerPath(projectDir, specPath) {
 }
 
 function stopReason(state, iteration) {
-  if (state.nextAction === 'request_archive_authorization') return 'human_required';
-  if (state.riskFlags && state.riskFlags.length) return 'human_required';
-  if (iteration >= state.maxIterations) return 'max_iterations';
+  if (state.stopReason) return state.stopReason;
+  if (state.nextAction === 'request_archive_authorization') return 'archive_authorization';
+  if (iteration >= state.maxIterations) return 'budget_exhausted';
   if (state.challengeVerdict === 'PASS') return 'pass';
   return 'continue';
 }
@@ -31,8 +31,9 @@ function runEntry(projectDir, state, opts) {
     spec: state.specPath ? common.relativeToProject(projectDir, state.specPath) : '',
     iteration: iteration,
     driver: opts.driver || 'auto',
-    approvalPolicy: state.approvalPolicy,
-    cruiseEnabled: state.cruiseEnabled,
+    autonomyMode: state.autonomyMode,
+    autonomyModeSource: state.autonomyModeSource,
+    authorizationState: state.authorizationState,
     maxIterations: state.maxIterations,
     challengeVerdict: state.challengeVerdict,
     backtrackTarget: state.backtrackTarget,
@@ -137,5 +138,6 @@ module.exports = {
   appendRun: appendRun,
   readLedger: readLedger,
   claudePrompt: claudePrompt,
-  printClaudePrompt: printClaudePrompt
+  printClaudePrompt: printClaudePrompt,
+  stopReason: stopReason
 };

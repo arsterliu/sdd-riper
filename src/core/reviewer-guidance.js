@@ -1,5 +1,5 @@
 var AUDITABLE_REVIEWER_TYPES = 'subagent:<id>, external-agent:<id>, human:<name>';
-var REVIEWER_AUTHORIZATION_HINT = 'If you use a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding.';
+var REVIEWER_AUTHORIZATION_HINT = 'An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization.';
 var REVIEWER_INTEGRITY_HINT = 'Do not skip the gate or fabricate reviewer evidence.';
 
 function reviewerTypeLine() {

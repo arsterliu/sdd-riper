@@ -11,9 +11,9 @@
 - **Learning Check**：当偏差、修复、关注点或重开经验产生可复用规则时，创建 `learning-file`。
 - **制品中文内容**：保持制品标题和字段标签为英文；填写分析、决策、计划、证据和学习规则时使用中文。
 - **Spec 创建输入人工确认**：创建 Spec 前必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
-- **Plan Approval**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate。默认 `agent`；agent 批准必须写 `Plan Approved By: agent:<id>`、`Approved At:` 和 `Gate Evidence:`；human 策略必须写 `Plan Approved By: human:<name>`。
-- **Independent Review**：Research / Challenge reviewer 必须是可审计身份：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可用 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
-- **Autonomous Cruise**：Cruise 默认开启；关闭时写 `CRUISE_ENABLED=false`。使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 进行动态路由、对抗审核和有界修复循环。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 记录运行账本。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
+- **自治模式**：`AUTONOMY_MODE=auto|supervised|human` 只提供新 Spec 默认值；每个 Spec 冻结 effective mode。auto 可凭完整证据由 agent 批准 Plan；supervised/human 必须写 `Plan Approved By: human:<name>`。Plan Approval 不等于后续自动推进授权。
+- **Independent Review**：Research / Challenge reviewer 必须是可审计身份：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可用 `inline`。只有当前 Spec 存在新鲜且包含 reviewer actor 的任务/Plan 授权时，才可自动启动 reviewer；否则暂停并请求当前用户明确授权。不得跳过门禁或伪造证据。
+- **有界推进**：auto 与已获后续授权的 supervised 可使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 连续推进；human 在治理节点暂停。`CRUISE_MAX_ITERATIONS` 始终限制修复循环。归档、Profile exact digest、E2E SKIPPED、不可逆动作、范围扩大、新风险和平台权限始终单独停机。
 - **先 Debug 再重试**：步骤失败时，先运行 debug 找根因再重试。
 
 ## RIPER 工作流
@@ -51,6 +51,7 @@ Hard rules:
 - Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.
 - Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; do not infer them silently.
 - Before creating a Spec, ask whether reference materials / context exist, and bind them with `context-source` when provided.
+- Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`. The project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
 - Do not move past Plan without approval and gate evidence.
 - Follow `design-file`, `execute-log-file`, and `learning-file` references from the Spec.
 - Follow `context-source` to find raw materials (PRD, UI mockups, prototypes) in `mydocs/context/<task-name>/`.
@@ -64,7 +65,7 @@ Hard rules:
 - Record execution deviations in the referenced Execute Log.
 - Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.
 - Independent Review is separate from approval: Research/Challenge reviewers must be auditable (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`; micro Challenge may use `inline`).
-- If you use a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding.
+- An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization.
 - When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user.
 - Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.
 - A `human:<name>` archive record is an audit declaration, not identity authentication.
@@ -81,8 +82,10 @@ Entry points:
 
 Project configuration:
 - Docs root defaults to `mydocs/`, override via `.sdd-config` (`DOCS_DIR=...`).
-- `APPROVAL_POLICY=agent|human` controls only the Plan approval gate; `agent` approvals require `Gate Evidence`.
-- Cruise is enabled by default; set `CRUISE_ENABLED=false` to turn it off and keep `CRUISE_MAX_ITERATIONS` as the iteration budget.
+- `AUTONOMY_MODE=auto|supervised|human` sets the project default; each active Spec freezes its effective mode and authorization evidence.
+- Keep `CRUISE_MAX_ITERATIONS` as the bounded repair budget. Auto and supervised may continue only within fresh authorized scope; human pauses at governance gates.
+- Autonomy writes target only the current active Spec and recheck expected digests under `.sdd-autonomy.lock`. Supervised binds the exact Plan digest; auto requires `plan_activation` after Plan approval.
+- Never reuse a native loop while `STOP_REASON` is non-empty. Scope, risk, or Plan changes invalidate the matching authorization or activation.
 - Cruise Driver is selected with `sdd cruise --driver <driver>`.
 - Cruise orchestrator only routes and bounds iterations; the main agent re-enters `BACKTRACK_TARGET` under that phase's gates and write boundaries; the Challenge reviewer remains read-only.
 - Mode: standard

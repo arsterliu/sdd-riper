@@ -19,7 +19,7 @@ function setupProject(mode) {
   
   var modeStr = mode || 'standard';
   fs.writeFileSync(path.join(projectDir, '.sdd-config'),
-    'DOCS_DIR="mydocs"\nMODE="' + modeStr + '"\nSDD_VERSION="1.0"\n', 'utf-8');
+    'DOCS_DIR="mydocs"\nMODE="' + modeStr + '"\nSDD_VERSION="1.0"\nAUTONOMY_MODE="supervised"\n', 'utf-8');
 }
 
 describe('common.js utilities', function() {
@@ -79,21 +79,23 @@ describe('common.js utilities', function() {
     assert.equal(common.getMode(emptyDir), 'micro');
   });
 
-  it('reads approval and cruise settings without legacy policy fallback', function() {
-    assert.equal(common.getApprovalPolicy(projectDir), 'agent');
-    assert.equal(common.getCruiseEnabled(projectDir), true);
+  it('reads strict autonomy mode and the independent cruise budget', function() {
+    assert.deepEqual(common.readProjectAutonomy(projectDir), {
+      ok: true,
+      mode: 'supervised',
+      issue: '',
+      legacyFields: []
+    });
     assert.equal(common.getCruiseMaxIterations(projectDir), 5);
 
     fs.writeFileSync(path.join(projectDir, '.sdd-config'),
-      'DOCS_DIR="mydocs"\nGATE_POLICY="manual"\nCRUISE_POLICY="off"\nCRUISE_MAX_ITERATIONS="9"\n', 'utf-8');
-    assert.equal(common.getApprovalPolicy(projectDir), 'agent');
-    assert.equal(common.getCruiseEnabled(projectDir), true);
+      'DOCS_DIR="mydocs"\nAUTONOMY_MODE="auto"\nCRUISE_MAX_ITERATIONS="9"\n', 'utf-8');
+    assert.equal(common.readProjectAutonomy(projectDir).mode, 'auto');
     assert.equal(common.getCruiseMaxIterations(projectDir), 9);
 
     fs.writeFileSync(path.join(projectDir, '.sdd-config'),
-      'DOCS_DIR="mydocs"\nAPPROVAL_POLICY="human"\nCRUISE_ENABLED="false"\nCRUISE_MAX_ITERATIONS="0"\n', 'utf-8');
-    assert.equal(common.getApprovalPolicy(projectDir), 'human');
-    assert.equal(common.getCruiseEnabled(projectDir), false);
+      'DOCS_DIR="mydocs"\nAUTONOMY_MODE="human"\nCRUISE_ENABLED="false"\nCRUISE_MAX_ITERATIONS="0"\n', 'utf-8');
+    assert.equal(common.readProjectAutonomy(projectDir).issue, 'legacy');
     assert.equal(common.getCruiseMaxIterations(projectDir), 5);
   });
 

@@ -5,6 +5,7 @@ var validate = require('../commands/validate');
 var specState = require('./spec-state');
 var risk = require('./risk');
 var visualEvidenceContract = require('../visual-evidence/contract');
+var autonomyState = require('./autonomy-state');
 
 var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
 
@@ -107,7 +108,7 @@ function riskFlags(content, crSection) {
   ].forEach(function(item) {
     if (flags.indexOf(item[0]) === -1 && item[1].test(text)) flags.push(item[0]);
   });
-  if (flags.indexOf('irreversible') === -1 && risk.classifyIrreversibility(text) === 'irreversible') {
+  if (!hasStructuredFields && flags.indexOf('irreversible') === -1 && risk.classifyIrreversibility(text) === 'irreversible') {
     flags.push('irreversible');
   }
   return flags;
@@ -162,20 +163,73 @@ function formatDesignMethodLines(dm) {
   return lines;
 }
 
+function confirmedRequirement(specPath, mode) {
+  if (mode === 'standard') {
+    var researchSection = sectionContent(specPath, 'Research');
+    var crLines = String(researchSection || '').split(/\r?\n/);
+    var crFound = false;
+    var crResult = [];
+    for (var ci = 0; ci < crLines.length; ci++) {
+      if (/^###\s+Confirmed Requirement/.test(crLines[ci])) { crFound = true; continue; }
+      if (crFound && /^###/.test(crLines[ci])) break;
+      if (crFound) crResult.push(crLines[ci]);
+    }
+    return crResult.join('\n');
+  }
+  return sectionContent(specPath, 'Confirmed Requirement');
+}
+
+function computeRiskFlags(projectDir, specPath, content) {
+  var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
+  var action = actionText(projectDir, specPath);
+  return riskFlags(action && action.trim() ? action : content, confirmedRequirement(specPath, mode));
+}
+
+function requiredHumanGate(evaluated) {
+  evaluated = evaluated || {};
+  var action = evaluated.nextAction || '';
+  if (evaluated.gates && evaluated.gates.challenge && evaluated.gates.challenge.state === 'failed' && /^repair_/.test(action)) return 'Repair';
+  if (action === 'repair_innovate') return 'Research';
+  if (action === 'repair_design' || action === 'repair_acceptance' || action === 'repair_plan') return 'Innovate';
+  if (action === 'run_challenge') return 'Completion';
+  if (action === 'request_archive_authorization') return 'Challenge';
+  return '';
+}
+
+function dedicatedStopReason(blockers, executeLogContent, options) {
+  options = options || {};
+  var joined = (blockers || []).filter(function(issue) { return !/^WARNING:/i.test(issue); }).join('\n');
+  if (options.platformPermissionRequired || /platform permission|平台权限/i.test(joined)) return 'platform_permission_required';
+  if (/Project Profile/i.test(joined)) return 'profile_digest_required';
+  if (/AC Coverage:.*SKIPPED.*(?:Approved By|Approved At|Reason)/i.test(joined)) return 'e2e_skip_authorization_required';
+  var log = String(executeLogContent || '');
+  var majorAt = '';
+  log.split(/^---\s*$/m).forEach(function(block) {
+    if (!/^Status:\s*DEVIATED_MAJOR\s*$/m.test(block)) return;
+    var match = block.match(/^Timestamp:\s*(\S+)\s*$/m);
+    if (match && (!majorAt || Date.parse(match[1]) > Date.parse(majorAt))) majorAt = match[1];
+  });
+  if (majorAt && (!options.authorizationAt || !Number.isFinite(Date.parse(options.authorizationAt)) || Date.parse(options.authorizationAt) <= Date.parse(majorAt))) {
+    return 'major_deviation_required';
+  }
+  return '';
+}
+
 function analyzeSpec(projectDir, specPath, opts) {
   opts = opts || {};
-  var approvalPolicy = common.getApprovalPolicy(projectDir);
-  var cruiseEnabled = common.getCruiseEnabled(projectDir);
+  var projectAutonomy = common.readProjectAutonomy(projectDir);
   var maxIterations = common.getCruiseMaxIterations(projectDir);
   if (!specPath || !fs.existsSync(specPath)) {
     return {
-      approvalPolicy: approvalPolicy,
-      cruiseEnabled: cruiseEnabled,
+      autonomyMode: projectAutonomy.mode,
+      autonomyModeSource: 'project',
+      authorizationState: 'not-applicable',
+      stopReason: projectAutonomy.ok ? '' : 'migration_required',
       maxIterations: maxIterations,
       challengeVerdict: 'FAIL_SPEC',
       backtrackTarget: 'Research',
-      nextAction: 'discover_spec',
-      blockers: ['Spec file not found.'],
+      nextAction: projectAutonomy.ok ? 'discover_spec' : 'migrate_autonomy_config',
+      blockers: projectAutonomy.ok ? ['Spec file not found.'] : [projectAutonomy.code + ': run sdd autonomy migrate <project-dir> --mode auto|supervised|human.'],
       riskFlags: [],
       designMethod: { applies: false, adr: false, methods: [], focusFields: [], notes: ['no active spec; run discover first.'] }
     };
@@ -189,23 +243,8 @@ function analyzeSpec(projectDir, specPath, opts) {
   var profileDigest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
   var affectedUnits = (common.getFrontmatterField(specPath, 'affected-units') || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean);
   var action = actionText(projectDir, specPath);
-  // Extract Confirmed Requirement section: standard uses ### under ## Research, lite uses ## section
-  var crSection;
-  if (mode === 'standard') {
-    var researchSection = sectionContent(specPath, 'Research');
-    var crLines = String(researchSection || '').split(/\r?\n/);
-    var crFound = false;
-    var crResult = [];
-    for (var ci = 0; ci < crLines.length; ci++) {
-      if (/^###\s+Confirmed Requirement/.test(crLines[ci])) { crFound = true; continue; }
-      if (crFound && /^###/.test(crLines[ci])) break;
-      if (crFound) crResult.push(crLines[ci]);
-    }
-    crSection = crResult.join('\n');
-  } else {
-    crSection = sectionContent(specPath, 'Confirmed Requirement');
-  }
-  var flags = riskFlags(action && action.trim() ? action : content, crSection);
+  var flags = computeRiskFlags(projectDir, specPath, content);
+  var autonomy = autonomyState.resolve(content, { riskSnapshot: autonomyState.riskFlagsSnapshot(flags) });
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var visualContextIssue = validate.visualContextSelectionIssue(visualContext);
   if (!opts.archiveReady && visualContextIssue && (validation.issues || []).indexOf(visualContextIssue) === -1) {
@@ -231,14 +270,61 @@ function analyzeSpec(projectDir, specPath, opts) {
   });
   // If Challenge passed but validation blockers remain, the task is not
   // truly archive-ready — blockers must be resolved first.
+  var nextAction = evaluated.nextAction;
+  var stopReason = autonomy.stopReason;
+  var blockers = (validation.issues || []).slice();
+  var executeLogContent = '';
+  var executeLogRef = common.getFrontmatterField(specPath, 'execute-log-file') || '';
+  if (executeLogRef) {
+    var executeLogPath = common.resolveProjectPath(projectDir, executeLogRef);
+    if (executeLogPath && fs.existsSync(executeLogPath)) executeLogContent = fs.readFileSync(executeLogPath, 'utf-8');
+  }
+  if (!projectAutonomy.ok || !autonomy.mode) {
+    nextAction = 'migrate_autonomy_config';
+    stopReason = 'migration_required';
+    blockers.unshift((projectAutonomy.code || 'SDD_AUTONOMY_MIGRATION_REQUIRED') + ': run sdd autonomy migrate <project-dir> --mode auto|supervised|human.');
+  } else if (autonomy.mode === 'auto' && autonomy.authorizationState !== 'active') {
+    nextAction = 'request_task_authorization';
+    stopReason = autonomy.stopReason;
+  } else if (autonomy.mode === 'supervised' && autonomy.authorizationState !== 'active' &&
+      ['execute_plan', 'run_challenge', 'repair_and_retry'].indexOf(evaluated.nextAction) !== -1) {
+    nextAction = 'request_plan_automation_authorization';
+    stopReason = autonomy.stopReason;
+  }
+  var requiredGate = autonomy.mode === 'human' ? requiredHumanGate(evaluated) : '';
+  if (requiredGate && autonomy.approvedGates.indexOf(requiredGate) === -1) {
+    nextAction = 'request_human_gate';
+    stopReason = 'human_gate_required';
+  }
+  if (flags.indexOf('irreversible') !== -1 && nextAction !== 'request_archive_authorization') {
+    nextAction = 'request_irreversible_authorization';
+    stopReason = 'irreversible_action_required';
+  }
+  var stopOptions = Object.assign({}, opts, {
+    authorizationAt: autonomy.authorizationAt
+  });
+  var dedicatedStop = dedicatedStopReason(blockers, executeLogContent, stopOptions);
+  if (dedicatedStop) stopReason = dedicatedStop;
+  if (nextAction === 'request_archive_authorization') stopReason = 'archive_authorization';
   return {
-    approvalPolicy: approvalPolicy,
-    cruiseEnabled: cruiseEnabled,
+    autonomyMode: autonomy.mode,
+    autonomyModeSource: autonomy.modeSource,
+    authorizationState: autonomy.authorizationState,
+    authorizedActors: autonomy.authorizedActors,
+    scopeDigest: autonomy.scopeDigest,
+    riskSnapshot: autonomy.riskSnapshot,
+    planDigest: autonomy.planDigest,
+    authorizedScopeDigest: autonomy.scopeDigest,
+    authorizedRiskSnapshot: autonomy.riskSnapshot,
+    activePlanDigest: autonomy.planDigest,
+    authorizationAt: autonomy.authorizationAt,
+    stopReason: stopReason,
+    requiredGate: requiredGate,
     maxIterations: maxIterations,
     challengeVerdict: evaluated.challengeVerdict,
     backtrackTarget: evaluated.backtrackTarget,
-    nextAction: evaluated.nextAction,
-    blockers: validation.issues || [],
+    nextAction: nextAction,
+    blockers: blockers,
     blockerDetails: evaluated.blockers,
     gates: evaluated.gates,
     phase: evaluated.phase,
@@ -279,5 +365,8 @@ module.exports = {
   designMethodHint: designMethodHint,
   formatDesignMethodLines: formatDesignMethodLines,
   riskFlags: riskFlags,
+  computeRiskFlags: computeRiskFlags,
+  dedicatedStopReason: dedicatedStopReason,
   actionText: actionText
+  ,requiredHumanGate: requiredHumanGate
 };

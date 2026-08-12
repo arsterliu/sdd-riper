@@ -398,8 +398,8 @@ function renderBlocker(spec) {
       ' ' + esc(latestRun.driver || '-') +
       ' ' + esc(latestRun.stopReason || '-')
     : ' / run: none';
-  var controlText = 'approval: ' + esc(workflow.approvalPolicy || '-') +
-    ' / cruise enabled: ' + esc(workflow.cruiseEnabled == null ? '-' : workflow.cruiseEnabled) +
+  var controlText = 'autonomy: ' + esc(workflow.autonomyMode || '-') +
+    ' / authorization: ' + esc(workflow.authorizationState || '-') +
     ' / next: ' + esc(workflow.nextAction || '-') +
     ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
     runText;
@@ -771,6 +771,8 @@ var STOP_REASON_TONES = {
   pass: 'complete',
   max_iterations: 'waiting',
   human_required: 'bad',
+  budget_exhausted: 'waiting',
+  archive_authorization: 'waiting',
   continue: 'progress'
 };
 
@@ -778,6 +780,8 @@ var STOP_REASON_LABELS = {
   pass: 'Pass',
   max_iterations: 'Max iterations',
   human_required: 'Human required',
+  budget_exhausted: 'Budget exhausted',
+  archive_authorization: 'Archive authorization required',
   continue: 'Continue'
 };
 
@@ -786,10 +790,10 @@ function renderCruiseRun(spec) {
   var run = spec.cruiseRun || {};
   var root = qs('cruise-run');
   root.innerHTML = '';
-  var enabled = workflow.cruiseEnabled !== false;
+  var enabled = workflow.autonomyMode !== 'human';
   var maxIter = workflow.maxIterations || 5;
   if (!enabled && !run.count) {
-    root.innerHTML = '<div class="cruise-run-row"><span class="pill not-started">Off</span> <span>Cruise is disabled</span></div>';
+    root.innerHTML = '<div class="cruise-run-row"><span class="pill not-started">Human</span> <span>Human-guided workflow</span></div>';
     return;
   }
   var html = '<div class="cruise-run-row">';

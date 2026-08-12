@@ -61,13 +61,14 @@ function projectInfo(projectDir) {
   }
   var resolved = path.resolve(projectDir);
   var docsRoot = common.getDocsRoot(resolved);
+  var autonomy = common.readProjectAutonomy(resolved);
   var info = {
     projectDir: resolved,
     docsDir: common.getDocsDir(resolved),
     docsRoot: docsRoot,
     configured: fs.existsSync(docsRoot),
-    approvalPolicy: common.getApprovalPolicy(resolved),
-    cruiseEnabled: common.getCruiseEnabled(resolved),
+    autonomyMode: autonomy.mode,
+    autonomyState: autonomy.ok ? 'ready' : 'migration_required',
     maxIterations: common.getCruiseMaxIterations(resolved),
     cwd: process.cwd()
   };
@@ -122,8 +123,8 @@ function summarizeProject(projectDir, opts) {
     projectDir: info.projectDir || path.resolve(projectDir || ''),
     name: path.basename(path.resolve(projectDir || '.')),
     docsDir: info.docsDir,
-    approvalPolicy: info.approvalPolicy,
-    cruiseEnabled: info.cruiseEnabled,
+    autonomyMode: info.autonomyMode,
+    autonomyState: info.autonomyState,
     maxIterations: info.maxIterations,
     configured: info.configured,
     total: 0,

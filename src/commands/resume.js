@@ -24,14 +24,14 @@ function run(projectDir) {
       try { var st = fs.statSync(fp); if (st.mtimeMs > bestMtime) { bestMtime = st.mtimeMs; latestSpec = fp; } } catch (e) {}
     });
   }
-  var specStatus = 'none', phaseHint = 'unknown';
+  var specStatus = 'none', phaseHint = 'unknown', workflowState = null;
   if (latestSpec && fs.existsSync(latestSpec)) {
     specStatus = common.getFrontmatterField(latestSpec, 'status') || 'none';
     if (specStatus === 'archived') {
       phaseHint = 'new_task';
     } else {
-      var state = workflow.analyzeSpec(projectDir, latestSpec);
-      var action = state.nextAction || '';
+      workflowState = workflow.analyzeSpec(projectDir, latestSpec);
+      var action = workflowState.nextAction || '';
       if (action === 'request_archive_authorization') {
         phaseHint = 'await_archive_authorization';
       } else if (action === 'run_challenge') {
@@ -81,6 +81,17 @@ function run(projectDir) {
   }
   console.log('PHASE_HINT: ' + phaseHint);
   console.log('SECTIONS_HINT: ' + sectionsHint);
+  if (workflowState) {
+    console.log('AUTONOMY_MODE: ' + workflowState.autonomyMode);
+    console.log('AUTONOMY_MODE_SOURCE: ' + workflowState.autonomyModeSource);
+    console.log('AUTHORIZATION_STATE: ' + workflowState.authorizationState);
+    console.log('AUTHORIZED_ACTORS: ' + (workflowState.authorizedActors.length ? workflowState.authorizedActors.join(',') : 'none'));
+    console.log('AUTHORIZED_SCOPE_DIGEST: ' + workflowState.scopeDigest);
+    console.log('AUTHORIZED_RISK_SNAPSHOT: ' + workflowState.riskSnapshot);
+    console.log('ACTIVE_PLAN_DIGEST: ' + workflowState.planDigest);
+    console.log('STOP_REASON: ' + (workflowState.stopReason || 'none'));
+    console.log('NEXT_ACTION: ' + workflowState.nextAction);
+  }
   if (latestSpec && fs.existsSync(latestSpec)) {
     var ctxSrc = common.getFrontmatterField(latestSpec, 'context-source');
     if (ctxSrc) console.log('CONTEXT_SOURCE: ' + ctxSrc);

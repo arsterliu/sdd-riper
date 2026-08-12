@@ -10,10 +10,11 @@
 - **Execute Log 独立**：每个 Plan 步骤和偏差记录在 `execute-log-file`。
 - **Learning 独立**：偏差、修复、关注点或重开经验的可复用规则记录在 `learning-file`。
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、设计细节、计划步骤、证据和学习规则时使用中文。
-- **Approval Policy**：`APPROVAL_POLICY=agent|human` 只控制 Plan Gate。默认 agent；agent 批准必须写 `Gate Evidence:`。
-- **Independent Review**：Research / Challenge 的 reviewer 必须可审计：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。If using a subagent, external-agent, review bot, or any other automated reviewer tool that requires authorization, pause and request explicit user authorization before proceeding; never skip the gate or fabricate reviewer evidence.
+- **Autonomy Mode**：`AUTONOMY_MODE=auto|supervised|human` 只提供项目默认值；每个 Spec 固定自己的模式与来源。`auto` 使用 Intake/Scope 授权，`supervised` 将人工 Plan Approval 与后续自动推进授权分别审计，`human` 在关键治理转换逐次确认。
+- **Autonomy Write Safety**：自治写命令只操作当前活动 Spec，并在 `.sdd-autonomy.lock` 内复检摘要。supervised 同时绑定 Scope/Plan digest；auto 的 Plan 批准后必须追加 `plan_activation`，Plan、Scope 或风险变化会使旧激活失效。存在任何 `STOP_REASON` 时不得继续原生循环。
+- **Independent Review**：Research / Challenge 的 reviewer 必须可审计：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可 `inline`。自动 reviewer 仅可在当前 Spec 存在新鲜且明确包含 reviewer actor 的任务/Plan 授权时免于再次询问；项目配置或 Plan Approval 本身不构成授权。否则必须暂停并请求当前用户明确授权；不得跳过门禁或伪造证据。
 - **Archive Authorization**：Archive authorization rule: request explicit archive authorization from the current user when `NEXT_ACTION: request_archive_authorization` appears. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
-- **Autonomous Cruise**：cruise 默认开启，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 路由、对抗审核和有界修复。`CRUISE_ENABLED=false` 禁用 cruise 输出和运行记录。使用 `--emit-claude-prompt` 获取 Claude Code ultracode/workflow 指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
+- **Autonomous Cruise**：获得当前 Spec 的新鲜授权后，使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 路由、对抗审核和有界修复；`human` 模式只输出当前治理节点导航。使用 `--emit-claude-prompt` 获取宿主指引，`--record-run` 写入 `<docs-root>/runs/*.cruise.jsonl`。Cruise orchestrator 只负责路由与迭代边界；main agent 重入 `BACKTRACK_TARGET` 并遵守目标阶段门禁和写入边界；Challenge reviewer 始终保持 read-only。
 - **先 Debug 再重试**：失败步骤先经过 `sdd debug` 再重试。
 - **无验证不声明**：声明完成前运行全新测试 / lint / build。
 

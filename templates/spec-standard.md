@@ -2,6 +2,8 @@
 date: YYYY-MM-DD
 task-name: "Task Name Placeholder"
 mode: standard
+autonomy-mode: ""
+autonomy-mode-source: ""
 status: draft   # draft | archived
 reopened-from: ""
 context-source: ""

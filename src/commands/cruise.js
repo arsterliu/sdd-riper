@@ -2,7 +2,9 @@ var workflow = require('../core/workflow');
 var cruiseRun = require('../core/cruise-run');
 
 function canReuseNativeLoop(driver, state) {
-  if (state && !state.cruiseEnabled) return false;
+  if (state && state.autonomyMode === 'human') return false;
+  if (state && state.authorizationState !== 'active') return false;
+  if (state && state.stopReason) return false;
   return ['auto', 'claude-code', 'codex', 'opencode'].indexOf(driver) !== -1;
 }
 
@@ -48,6 +50,10 @@ function printDriverAdapter(driver, projectDir, state) {
 function run(projectDir, opts) {
   opts = opts || {};
   var state = workflow.analyzeProject(projectDir, opts);
+  var iteration = parseInt(opts.iteration || 0, 10);
+  if (Number.isFinite(iteration) && iteration >= state.maxIterations && state.nextAction !== 'request_archive_authorization') {
+    state.stopReason = 'budget_exhausted';
+  }
   var requestedDriver = opts.driver || 'auto';
   var driver = workflow.normalizeCruiseDriver(requestedDriver);
   if (!driver) {
@@ -55,15 +61,19 @@ function run(projectDir, opts) {
     console.error('Allowed drivers: ' + workflow.CRUISE_DRIVERS.join(', '));
     process.exit(1);
   }
-  if (!state.cruiseEnabled) {
-    console.log('## CRUISE DISABLED');
+  if (state.autonomyMode === 'human') {
+    console.log('## HUMAN-GUIDED WORKFLOW');
     console.log('');
     console.log('SPEC: ' + (state.specPath || 'none'));
     console.log('DRIVER: ' + driver);
-    console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
-    console.log('CRUISE_ENABLED: false');
-    console.log('CRUISE_DISABLED: true');
-    console.log('REASON: CRUISE_ENABLED=false');
+    console.log('AUTONOMY_MODE: human');
+    console.log('AUTONOMY_MODE_SOURCE: ' + state.autonomyModeSource);
+    console.log('AUTHORIZATION_STATE: ' + (state.authorizationState || 'not-applicable'));
+    console.log('AUTHORIZED_ACTORS: ' + (state.authorizedActors.length ? state.authorizedActors.join(',') : 'none'));
+    console.log('AUTHORIZED_SCOPE_DIGEST: ' + state.authorizedScopeDigest);
+    console.log('AUTHORIZED_RISK_SNAPSHOT: ' + state.authorizedRiskSnapshot);
+    console.log('ACTIVE_PLAN_DIGEST: ' + state.activePlanDigest);
+    console.log('STOP_REASON: ' + (state.stopReason || 'human_gate_required'));
     console.log('CURRENT_CHALLENGE_VERDICT: ' + state.challengeVerdict);
     console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
     console.log('NEXT_ACTION: ' + state.nextAction);
@@ -81,8 +91,14 @@ function run(projectDir, opts) {
   console.log('SPEC: ' + (state.specPath || 'none'));
   console.log('DRIVER: ' + driver);
   console.log('REUSE_NATIVE_LOOP: ' + (canReuseNativeLoop(driver, state) ? 'yes-when-available' : 'no'));
-  console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
-  console.log('CRUISE_ENABLED: true');
+  console.log('AUTONOMY_MODE: ' + state.autonomyMode);
+  console.log('AUTONOMY_MODE_SOURCE: ' + state.autonomyModeSource);
+  console.log('AUTHORIZATION_STATE: ' + state.authorizationState);
+  console.log('AUTHORIZED_ACTORS: ' + (state.authorizedActors.length ? state.authorizedActors.join(',') : 'none'));
+  console.log('AUTHORIZED_SCOPE_DIGEST: ' + state.authorizedScopeDigest);
+  console.log('AUTHORIZED_RISK_SNAPSHOT: ' + state.authorizedRiskSnapshot);
+  console.log('ACTIVE_PLAN_DIGEST: ' + state.activePlanDigest);
+  console.log('STOP_REASON: ' + (state.stopReason || 'none'));
   console.log('MAX_ITERATIONS: ' + state.maxIterations);
   console.log('CURRENT_CHALLENGE_VERDICT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
@@ -105,7 +121,7 @@ function run(projectDir, opts) {
   console.log('5. Run sdd review-execute "' + projectDir + '" when execution evidence changes.');
   console.log('6. Run sdd challenge "' + projectDir + '" after validation or review.');
   console.log('7. If Challenge Verdict is FAIL_*, backtrack to the mapped target and continue the repair loop.');
-  console.log('8. Stop and ask for human input when risk flags include security, billing, migration, public-api, or irreversible.');
+  console.log('8. Stop on a new or unauthorized risk, scope expansion, an irreversible action, or any other explicit STOP_REASON.');
   console.log('');
   console.log('### Verdict routing');
   Object.keys(workflow.VERDICT_TO_TARGET).forEach(function(verdict) {
@@ -137,3 +153,4 @@ function run(projectDir, opts) {
 }
 
 module.exports = run;
+module.exports.canReuseNativeLoop = canReuseNativeLoop;

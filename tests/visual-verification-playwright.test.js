@@ -48,7 +48,7 @@ function solidPng(width, height, rgba) {
 
 function visualSpec() {
   return [
-    '---', 'task-name: "checkout-ui"', 'mode: micro', 'status: draft',
+    '---', 'task-name: "checkout-ui"', 'mode: micro', 'autonomy-mode: "auto"', 'autonomy-mode-source: "fixture"', 'status: draft',
     'context-source: "mydocs/context/checkout-ui"', 'visual-evidence: "required"',
     'visual-evidence-file: "mydocs/context/checkout-ui/visual-evidence.json"', '---',
     '## Acceptance Criteria',

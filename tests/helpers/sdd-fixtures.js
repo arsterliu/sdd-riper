@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { runSddCli } = require('./test-cli');
+const autonomyState = require('../../src/core/autonomy-state');
 
 function runCli(args, cwd) {
   return runSddCli(args, { cwd: cwd, env: process.env });
@@ -14,9 +15,9 @@ function artifactPath(projectDir, specPath, field) {
 }
 
 function insertAfterHeading(content, heading, body) {
-  const marker = '## ' + heading + '\n';
-  if (!content.includes(marker)) throw new Error('Missing heading ' + heading);
-  return content.replace(marker, marker + body + '\n');
+  const marker = new RegExp('(^## ' + heading.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\r?\\n)', 'm');
+  if (!marker.test(content)) throw new Error('Missing heading ' + heading);
+  return content.replace(marker, '$1' + body + '\n');
 }
 
 function fillConfirmedRequirement(content) {
@@ -35,6 +36,23 @@ function fillPlanGate(content) {
     .replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:fixture')
     .replace(/^Approved At:$/m, 'Approved At: 2026-01-01T00:00:00Z')
     .replace(/^Gate Evidence:$/m, 'Gate Evidence: fixture plan evidence');
+}
+
+function authorizeAutoFixture(content) {
+  const riskSnapshot = autonomyState.riskFlagsSnapshot([]);
+  let authorized = autonomyState.appendEvent(content, {
+    eventId: 'fixture-task-authorization', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot,
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer',
+    authorizedBy: 'human:fixture', authorizedAt: '2026-01-01T00:00:00Z',
+    authorizationEvidence: 'fixture task authorization'
+  });
+  return autonomyState.appendEvent(authorized, {
+    eventId: 'fixture-plan-activation', eventType: 'plan_activation', mode: 'auto', gate: 'Plan', decision: 'activated',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot, planDigest: autonomyState.planSnapshot(content),
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
+    authorizedAt: '2026-01-01T00:00:01Z', authorizationEvidence: 'fixture plan activation'
+  });
 }
 
 function fillChallenge(content, verdict, options) {
@@ -93,13 +111,14 @@ function completionLog() {
 function createArchiveReadyStandard(projectDir, taskName) {
   taskName = taskName || 'state-matrix';
   fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'standard'], projectDir);
+  runCli(['init', projectDir, '--mode', 'standard', '--autonomy-mode', 'auto'], projectDir);
   const discover = runCli([
     'discover', projectDir,
     '--task-name', taskName,
     '--spec-version', 'v1.0',
     '--requirement', 'state matrix fixture',
-    '--mode', 'standard'
+    '--mode', 'standard',
+    '--autonomy-mode', 'auto'
   ], projectDir);
   if (discover.status !== 0) throw new Error(discover.output);
 
@@ -130,6 +149,7 @@ function createArchiveReadyStandard(projectDir, taskName) {
     '  Then archive readiness is true'
   ].join('\n'));
   content = fillChallenge(content, 'PASS');
+  content = authorizeAutoFixture(content);
   fs.writeFileSync(specPath, content, 'utf-8');
 
   let design = fs.readFileSync(designPath, 'utf-8');
@@ -143,13 +163,14 @@ function createArchiveReadyStandard(projectDir, taskName) {
 function createArchiveReadyLite(projectDir, taskName) {
   taskName = taskName || 'state-matrix-lite';
   fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'lite'], projectDir);
+  runCli(['init', projectDir, '--mode', 'lite', '--autonomy-mode', 'auto'], projectDir);
   const discover = runCli([
     'discover', projectDir,
     '--task-name', taskName,
     '--spec-version', 'v1.0',
     '--requirement', 'state matrix lite fixture',
-    '--mode', 'lite'
+    '--mode', 'lite',
+    '--autonomy-mode', 'auto'
   ], projectDir);
   if (discover.status !== 0) throw new Error(discover.output);
 
@@ -168,6 +189,7 @@ function createArchiveReadyLite(projectDir, taskName) {
     'Test: tests/state-matrix.test.js'
   ].join('\n'));
   content = fillChallenge(content, 'PASS');
+  content = authorizeAutoFixture(content);
   fs.writeFileSync(specPath, content, 'utf-8');
 
   let design = fs.readFileSync(designPath, 'utf-8');
@@ -187,13 +209,14 @@ function createArchiveReadyLite(projectDir, taskName) {
 function createArchiveReadyMicro(projectDir, taskName) {
   taskName = taskName || 'state-matrix-micro';
   fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'micro'], projectDir);
+  runCli(['init', projectDir, '--mode', 'micro', '--autonomy-mode', 'auto'], projectDir);
   const discover = runCli([
     'discover', projectDir,
     '--task-name', taskName,
     '--spec-version', 'v1.0',
     '--requirement', 'state matrix micro fixture',
-    '--mode', 'micro'
+    '--mode', 'micro',
+    '--autonomy-mode', 'auto'
   ], projectDir);
   if (discover.status !== 0) throw new Error(discover.output);
 
@@ -211,6 +234,7 @@ function createArchiveReadyMicro(projectDir, taskName) {
     .replace(/^Verification:$/m, 'Verification: node --test tests/state-matrix.test.js')
     .replace(/^Blast Radius:$/m, 'Blast Radius: fixture only');
   content = fillChallenge(content, 'PASS');
+  content = authorizeAutoFixture(content);
   fs.writeFileSync(specPath, content, 'utf-8');
   fs.writeFileSync(executeLogPath, completionLog(), 'utf-8');
   return { projectDir, specPath, executeLogPath, taskName };

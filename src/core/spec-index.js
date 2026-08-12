@@ -190,8 +190,10 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
     : validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var workflowState = legacy
     ? {
-      approvalPolicy: common.getApprovalPolicy(projectDir),
-      cruiseEnabled: false,
+      autonomyMode: '',
+      autonomyModeSource: 'legacy_archive',
+      authorizationState: 'historical',
+      stopReason: '',
       maxIterations: 0,
       challengeVerdict: '',
       backtrackTarget: '',

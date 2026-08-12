@@ -22,6 +22,7 @@ program.command('init <project-dir>')
   .option('--mode <mode>', 'standard | lite | micro', 'micro')
   .option('--force', 'overwrite existing files')
   .option('--docs-dir <name>', 'docs directory name', 'mydocs')
+  .option('--autonomy-mode <mode>', 'auto | supervised | human')
   .action(function(p, o) { require('../src/commands/init')(p, o); });
 
 program.command('discover <project-dir>')
@@ -34,8 +35,46 @@ program.command('discover <project-dir>')
   .option('--context <text>', 'context')
   .option('--unit <ids...>', 'affected workspace unit ids (or project)')
   .option('--mode <mode>', 'spec mode')
+  .option('--autonomy-mode <mode>', 'auto | supervised | human')
   .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
   .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/discover')(p, o); });
+
+var autonomy = program.command('autonomy').description('Inspect and manage task autonomy policy');
+autonomy.command('inspect <project-dir>')
+  .option('--spec <path>', 'active spec file')
+  .action(function(p, o) { require('../src/commands/autonomy').inspect(p, o); });
+autonomy.command('migrate <project-dir>')
+  .requiredOption('--mode <mode>', 'auto | supervised | human')
+  .action(function(p, o) { require('../src/commands/autonomy').migrate(p, o); });
+autonomy.command('select <project-dir>')
+    .requiredOption('--spec <path>', 'active spec file')
+    .requiredOption('--mode <mode>', 'auto | supervised | human')
+    .option('--expected-scope-digest <digest>', 'confirmed scope digest')
+    .option('--authorized-by <identity>', 'human:<name>')
+    .option('--authorization-evidence <text>', 'single-line current-user evidence')
+  .action(function(p, o) { require('../src/commands/autonomy').select(p, o); });
+autonomy.command('authorize <project-dir>')
+  .requiredOption('--spec <path>', 'active spec file')
+  .option('--expected-scope-digest <digest>', 'confirmed scope digest')
+  .option('--expected-plan-digest <digest>', 'confirmed Plan digest (required for supervised)')
+  .option('--authorized-by <identity>', 'human:<name>')
+  .option('--authorization-evidence <text>', 'single-line current-user evidence')
+  .action(function(p, o) { require('../src/commands/autonomy').authorize(p, o); });
+autonomy.command('activate-plan <project-dir>')
+  .requiredOption('--spec <path>', 'active spec file')
+  .option('--expected-scope-digest <digest>', 'current scope digest')
+  .option('--expected-risk-snapshot <digest>', 'current risk snapshot')
+  .option('--expected-plan-digest <digest>', 'current Plan digest')
+  .option('--activated-by <identity>', 'agent:<id>')
+  .option('--evidence <text>', 'single-line activation evidence')
+  .action(function(p, o) { require('../src/commands/autonomy').activatePlan(p, o); });
+autonomy.command('approve-gate <project-dir>')
+  .requiredOption('--spec <path>', 'active spec file')
+  .requiredOption('--gate <gate>', 'Research | Innovate | Plan | Completion | Challenge | Repair')
+  .option('--expected-digest <digest>', 'confirmed gate digest')
+  .option('--authorized-by <identity>', 'human:<name>')
+  .option('--authorization-evidence <text>', 'single-line current-user evidence')
+  .action(function(p, o) { require('../src/commands/autonomy').approveGate(p, o); });
 
 program.command('resume <project-dir>')
   .description('Resume existing task')

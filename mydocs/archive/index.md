@@ -38,3 +38,5 @@
 | v4.4-visual-verification-boundary-cleanup.md | 2026-08-09 | visual-verification-boundary-cleanup | PASS |
 | v4.5-visual-verification-protocol-evidence-consolidation.md | 2026-08-09 | visual-verification-protocol-evidence-consolidation | PASS |
 | v4.6-test-fixture-consolidation.md | 2026-08-09 | test-fixture-consolidation | PASS |
+| v4.7-documentation-workflow-consistency.md | 2026-08-11 | documentation-workflow-consistency | PASS |
+| v4.8-workflow-autonomy-policy.md | 2026-08-12 | workflow-autonomy-policy | PASS |

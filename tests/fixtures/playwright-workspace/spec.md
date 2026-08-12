@@ -1,3 +1,8 @@
+---
+autonomy-mode: "auto"
+autonomy-mode-source: "fixture"
+---
+
 ## Acceptance Criteria
 ### AC-013: real Chromium contract
 Verification: e2e

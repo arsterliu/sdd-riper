@@ -14,7 +14,7 @@ function write(file, value) {
 
 function createProject(name) {
   var root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-quality-' + (name || 'fixture') + '-'));
-  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAPPROVAL_POLICY="agent"\n');
+  write(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAUTONOMY_MODE="auto"\n');
   ['specs', 'profiles/revisions', 'runs', 'design', 'logs'].forEach(function(directory) {
     fs.mkdirSync(path.join(root, 'mydocs', directory), { recursive: true });
   });

@@ -55,7 +55,7 @@ function firstRealLine(content) {
   }) || '';
 }
 
-function planApprovalFacts(content, approvalPolicy) {
+function planApprovalFacts(content, autonomyMode) {
   const approvedBy = artifactSnapshot.labelValue(content, 'Plan Approved By');
   const approvedAt = artifactSnapshot.labelValue(content, 'Approved At');
   const evidence = artifactSnapshot.labelValue(content, 'Gate Evidence');
@@ -67,7 +67,9 @@ function planApprovalFacts(content, approvalPolicy) {
     evidence: evidence,
     agent: agent,
     human: human,
-    satisfied: !!approvedAt && (human || (agent && !!evidence)) && (approvalPolicy !== 'human' || human)
+    satisfied: !!approvedAt && (autonomyMode === 'auto'
+      ? (human || (agent && !!evidence))
+      : human)
   };
 }
 
@@ -375,7 +377,7 @@ function collectGateFacts(snapshot, options) {
     innovate: innovateFacts(snapshot.content || '', snapshot.mode || 'standard'),
     design: designFacts(snapshot, snapshot.mode || 'standard'),
     acceptance: acceptance,
-    planApproval: planApprovalFacts(snapshot.content || '', snapshot.approvalPolicy || 'agent'),
+    planApproval: planApprovalFacts(snapshot.content || '', snapshot.autonomyMode || 'supervised'),
     microPlan: microPlanFacts(snapshot.content || ''),
     execution: executionFacts(snapshot),
     completion: completionFacts(snapshot),

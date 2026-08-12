@@ -1,9 +1,10 @@
 const defaults = Object.freeze({
   mode: 'micro',
-  approvalPolicy: 'agent',
-  cruiseEnabled: true,
+  autonomyMode: 'supervised',
   cruiseMaxIterations: 5
 });
+
+const autonomyModes = Object.freeze(['auto', 'supervised', 'human']);
 
 const microRequiredFields = Object.freeze([
   'Impact Scope',
@@ -90,6 +91,7 @@ function backtrackTarget(verdict) {
 
 module.exports = Object.freeze({
   defaults: defaults,
+  autonomyModes: autonomyModes,
   modeFields: modeFields,
   requiresProvider: requiresProvider,
   isAuditableReviewer: isAuditableReviewer,

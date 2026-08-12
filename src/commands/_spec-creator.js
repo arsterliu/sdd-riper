@@ -101,6 +101,16 @@ function profileContext(projectDir, units) {
 function run(projectDir, opts) {
   var docsDir = common.getDocsDir(projectDir);
   var docsRoot = path.join(projectDir, docsDir);
+  var projectAutonomy = common.readProjectAutonomy(projectDir);
+  if (!projectAutonomy.ok) {
+    console.error('[' + projectAutonomy.code + '] Project autonomy config requires explicit migration: ' + projectAutonomy.issue);
+    process.exit(3);
+  }
+  var autonomyMode = opts.autonomyMode || projectAutonomy.mode;
+  if (require('../core/governance-contract').autonomyModes.indexOf(autonomyMode) === -1) {
+    console.error('[SDD_AUTONOMY_MODE_INVALID] --autonomy-mode must be auto, supervised, or human');
+    process.exit(3);
+  }
 
   if (!fs.existsSync(docsRoot)) {
     console.error('[ERROR] Project not initialized. Run: sdd init <dir>');
@@ -180,6 +190,8 @@ function run(projectDir, opts) {
   specContent = specContent.replace(/task-name: "Task Name Placeholder"/g, 'task-name: "' + taskName + '"');
   specContent = specContent.replace(/date: YYYY-MM-DD/, 'date: ' + todayIso());
   specContent = specContent.replace(/^mode:.*/m, 'mode: ' + mode);
+  specContent = specContent.replace(/^autonomy-mode:.*/m, 'autonomy-mode: "' + autonomyMode + '"');
+  specContent = specContent.replace(/^autonomy-mode-source:.*/m, 'autonomy-mode-source: "' + (opts.autonomyMode ? 'discover-override' : 'project-default') + '"');
   specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(contextSource) + '"');
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
   specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');

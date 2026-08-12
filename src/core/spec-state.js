@@ -342,7 +342,7 @@ function directGateBlockers(snapshot, gateFacts) {
   var approval = gateFacts.planApproval;
   if (!approval.approvedBy) add('plan', 'Plan Approved By is empty.', 'Plan', 'FAIL_PLAN');
   else if (!approval.agent && !approval.human) add('plan', 'Plan Approved By must be agent:<id> or human:<name>.', 'Plan', 'FAIL_PLAN');
-  else if ((snapshot.approvalPolicy || 'agent') === 'human' && !approval.human) add('plan', 'Human approval policy requires Plan Approved By: human:<name>.', 'Plan', 'FAIL_PLAN');
+  else if ((snapshot.autonomyMode || 'supervised') !== 'auto' && !approval.human) add('plan', 'Supervised and human autonomy modes require Plan Approved By: human:<name>.', 'Plan', 'FAIL_PLAN');
   if (!approval.approvedAt) add('plan', 'Approved At is empty.', 'Plan', 'FAIL_PLAN');
   if (approval.agent && !approval.evidence) add('plan', 'Gate Evidence is required for agent approval.', 'Plan', 'FAIL_PLAN');
 

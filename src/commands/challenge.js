@@ -114,8 +114,15 @@ function run(projectDir, opts) {
     var diffBase = common.getFrontmatterField(state.specPath, 'diff-base');
     if (diffBase) console.log('DIFF_BASE: ' + diffBase);
   }
-  console.log('APPROVAL_POLICY: ' + state.approvalPolicy);
-  console.log('CRUISE_ENABLED: ' + (state.cruiseEnabled ? 'true' : 'false'));
+  console.log('AUTONOMY_MODE: ' + (state.autonomyMode || 'unresolved'));
+  console.log('AUTONOMY_MODE_SOURCE: ' + (state.autonomyModeSource || 'unresolved'));
+  console.log('AUTHORIZATION_STATE: ' + (state.authorizationState || 'unresolved'));
+  console.log('AUTHORIZED_ACTORS: ' + (state.authorizedActors && state.authorizedActors.length ? state.authorizedActors.join(',') : 'none'));
+  console.log('AUTHORIZED_SCOPE_DIGEST: ' + (state.authorizedScopeDigest || state.scopeDigest || 'none'));
+  console.log('AUTHORIZED_RISK_SNAPSHOT: ' + (state.authorizedRiskSnapshot || state.riskSnapshot || 'none'));
+  console.log('ACTIVE_PLAN_DIGEST: ' + (state.activePlanDigest || state.planDigest || 'none'));
+  console.log('STOP_REASON: ' + (state.stopReason || 'none'));
+  console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('CURRENT_VERDICT_HINT: ' + state.challengeVerdict);
   console.log('BACKTRACK_TARGET_HINT: ' + state.backtrackTarget);
   console.log('ALLOWED_VERDICTS: ' + allowedVerdicts(' | '));
