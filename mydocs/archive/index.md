@@ -40,3 +40,4 @@
 | v4.6-test-fixture-consolidation.md | 2026-08-09 | test-fixture-consolidation | PASS |
 | v4.7-documentation-workflow-consistency.md | 2026-08-11 | documentation-workflow-consistency | PASS |
 | v4.8-workflow-autonomy-policy.md | 2026-08-12 | workflow-autonomy-policy | PASS |
+| v4.9-ai-first-guide-routing.md | 2026-08-13 | ai-first-guide-routing | PASS |
