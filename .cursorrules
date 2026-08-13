@@ -40,7 +40,10 @@ Hard rules:
 - When a Spec declares `project-profile-revision`, Research must read that exact revision; never substitute `profiles/current.json`.
 - Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.
 - Profile `commandRefs` are facts and must not be executed automatically.
-- Profile detection and inheritance must not install dependencies or initialize a Verification Provider.
+- When engineering or project facts are insufficient or unknown, proactively run read-only `sdd profile detect`. Profile detection and inheritance must not install dependencies or browsers or initialize or approve a Verification Provider.
+- During Design / Acceptance / Plan, when AC `Verification:` values need mapping to available test capabilities, proactively run read-only `sdd quality plan`. Treat it as a temporary projection: do not install dependencies or browsers, initialize or approve a Provider, or execute verification.
+- E2E `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`. When the environment is unavailable, debug first; if it cannot be repaired, record `BLOCKED` and let a human decide whether to retry or skip. Never approve the skip or automatically install dependencies or browsers.
+- The agent routes visual intent but must not enable strict visual evidence. It becomes active only when the current user explicitly runs `sdd visual init ...`; afterward inspect and execute only according to that contract. Never create, approve, or replace a baseline, and never implicitly initialize or approve its Provider.
 - Record execution deviations in the referenced Execute Log.
 - Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.
 - Independent Review is separate from approval: Research/Challenge reviewers must be auditable (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`; micro Challenge may use `inline`).
@@ -48,6 +51,10 @@ Hard rules:
 - When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user.
 - Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.
 - A `human:<name>` archive record is an audit declaration, not identity authentication.
+- In every autonomy mode, an irreversible action must stop separately for explicit human authorization.
+- In every autonomy mode, scope expansion must stop separately for explicit human authorization.
+- In every autonomy mode, each new risk must stop separately for explicit human authorization.
+- In every autonomy mode, each platform permission must stop separately for explicit human authorization.
 - Do not skip the gate or fabricate reviewer evidence.
 - Keep artifact headings and field labels in English; write artifact content in Chinese.
 - Debug before retrying failed steps.

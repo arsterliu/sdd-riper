@@ -455,6 +455,35 @@ test('AI guidance proactively confirms autonomy mode before creating a Spec', fu
   });
 });
 
+test('AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops', function() {
+  ['SKILL.md', 'src/commands/_gen-ai-configs.js'].forEach(function(file) {
+    const text = readProjection(file);
+    const section = file === 'SKILL.md'
+      ? (text.match(/^## Capability Routing\r?\n([\s\S]*?)(?=^##\s|(?![\s\S]))/m) || [])[0]
+      : (text.match(/Hard rules:[\s\S]*?(?=Entry points:)/) || [])[0];
+    assert.ok(section, file + ' must expose a stable capability-routing instruction region');
+
+    const rules = [
+      ['Profile trigger', /(?:engineering|project) facts[^\n]{0,120}(?:insufficient|unknown)|工程事实[^\n]{0,120}(?:不足|未知)/i],
+      ['Profile read-only detect', /(?:read-only[^\n]{0,80}profile detect|profile detect[^\n]{0,80}read-only|只读[^\n]{0,80}profile detect)/i],
+      ['exact Profile revision', /project-profile-revision[^\n]{0,160}(?:exact revision|精确[^\n]{0,30}revision|read that exact)/i],
+      ['Quality phase inputs', /Design[^\n]{0,80}Acceptance[^\n]{0,80}Plan/i],
+      ['Quality AC input', /quality[^\n]{0,160}\bAC\b|\bAC\b[^\n]{0,160}quality/i],
+      ['Quality verification input', /quality[^\n]{0,160}Verification|Verification[^\n]{0,160}quality/i],
+      ['read-only Quality plan', /(?:read-only[^\n]{0,80}quality plan|quality plan[^\n]{0,80}read-only|只读[^\n]{0,80}quality plan)/i],
+      ['commandRefs boundary', /commandRefs[^\n]{0,160}(?:must not be executed|不得执行|不能执行)/i],
+      ['dependency-install boundary', /(?:must not|do not|不得|不能)[^\n]{0,100}(?:install dependencies|安装依赖)/i],
+      ['Provider-init boundary', /(?:must not|do not|never|不得|不能)[^\n]{0,120}(?:initialize|初始化)[^\n]{0,60}Provider|Provider[^\n]{0,120}(?:must not|不得|不能)[^\n]{0,80}(?:initialize|初始化)/i],
+      ['visual baseline boundary', /(?:baseline|基线)[^\n]{0,180}(?:never|must not|不得|不能)[^\n]{0,100}(?:approve|replace|批准|替换)|(?:never|must not|不得|不能)[^\n]{0,100}(?:approve|replace|批准|替换)[^\n]{0,80}(?:baseline|基线)/i],
+      ['E2E skip boundary', /E2E[^\n]{0,120}SKIPPED[^\n]{0,140}(?:human:<name>|human approval|人工批准|人签字)/i],
+      ['strict Visual boundary', /(?:strict visual|严格视觉|visual evidence)[^\n]{0,180}(?:explicit|human-approved|用户明确|人工批准)/i]
+    ];
+    rules.forEach(function(rule) {
+      assert.match(section, rule[1], file + ' must state ' + rule[0]);
+    });
+  });
+});
+
 test('Completion documentation separates execution Coverage from the completion contract', function() {
   const guide = readProjection('REFERENCE.md');
   const guideExample = guide.match(/```text\r?\nStep: execution coverage\r?\n([\s\S]*?)```/);

@@ -42,7 +42,7 @@ Design Note 须覆盖 Approach、Impact Scope、Interface / Data Impact、Compat
 Plan -> Execute* -> Challenge -> Learning Check -> Archive
 ```
 
-如用户明确要求 UI 视觉保真或设计质量确认，先询问后运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction`，并在 Plan 前以 `sdd visual inspect` 核对状态；不得因 frontend 标签自动启用，也不得伪造基线或宣称截图 diff 已通过。
+每个 Spec 先从绑定的精确 Profile 与 `affected-units` 确定 `ui-impact`，未知时只问一次。前端或混合任务由 Agent 根据任务事实路由 `not-required|direction|fidelity`，但 Agent 不得代为启用严格合同；只有当前用户显式运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction` 才激活，随后严格按合同 inspect 和执行。不得伪造、创建、替换或批准基线，也不得宣称截图 diff 已通过。
 
 Micro 跳过 Research、Innovate 和独立 Design。Plan 须包含：
 

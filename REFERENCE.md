@@ -18,7 +18,7 @@
 | Spec、Design、Execute Log、Learning 分别负责什么 | [产物边界](#一产物边界) |
 | CLI、Agent 和任务文件如何协作 | [流程架构](#二流程架构) |
 | 一条任务完整经过哪些阶段 | [RIPER 流程](#三riper-流程) |
-| standard、lite、micro 怎么选，Plan 谁批准 | [模式与审批策略](#四三种模式与审批策略) |
+| standard、lite、micro 怎么选，任务采用哪档自治 | [任务形状与自治模式](#四任务形状与自治模式) |
 | 主 Agent、审查者和可委托工作如何分工 | [编排模型](#五编排模型phase-dispatch-map) |
 | TDD、BDD、ADR、C4 等方法何时使用 | [方法论路由](#六两层方法论与方法论路由) |
 | 命令和参数 | [CLI 命令](#七cli-命令) |
@@ -414,6 +414,11 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 
 ### Visual Context Guidance（按需）
 
+- **触发事实：** Spec 的精确 Profile / `affected-units` 表明任务影响 UI，或这些事实不足以判断；Context 中存在设计图、截图、文档、文字说明或 URL。（Trigger Fact: UI impact or visual-context facts need routing.）
+- **Agent 动作：** 优先从精确工程事实推导 `ui-impact`，未知时只问一次；只读运行 visual discover/inspect，并按任务事实解释 `not-required`、`direction`、`fidelity` 与 diff 状态。（Agent Action: infer first, then discover and inspect read-only evidence.）
+- **人工门禁：** `ui-impact` 无法从 exact 工程事实推导时仅询问一次；启用严格合同、批准设计方向、创建/更新/批准 baseline 均须人工决定，Agent 不得代批。视觉意图由 Agent 根据任务事实主动路由，不新增 Archive Gate。（Human Gate: ask once only when exact facts cannot establish UI impact; strict-contract, direction, and baseline decisions remain human.）
+- **相关 CLI：** `sdd visual discover`、`sdd visual select`、`sdd visual init`、`sdd visual inspect`；fidelity 验证另见 `sdd verify visual`。（CLI: use the visual group and the controlled visual verifier.）
+
 每个新 Spec 在 Research 前先确定 `ui-impact`：优先读取 Spec 绑定的精确 Profile 与 `affected-units`；仍无法判断时，SDD 只问一次“是否影响用户界面”。纯后端任务记录 `ui-impact: no` 并跳过。前端或混合任务记录 `ui-impact: yes`，必须通过 `sdd visual select` 一次性选择 `visual-context-intent`：`not-required`、`direction` 或 `fidelity`。
 
 用户可以把本地设计图、截图、PDF/SVG、文字说明和 URL 放进同一 Context。`sdd visual discover` 只读扫描，输出候选、缺口和无法可靠推断时才需要的补问；候选不是自动确认的设计稿。Figma URL 与普通 URL 使用同一种 reference 候选，不联网读取内容、不自动批准、不启动浏览器，也不执行截图 diff。实际 Figma MCP 获取器会在后续独立 Spec 中实现。
@@ -776,6 +781,11 @@ sdd new-learning <project-dir> [spec-name]
 
 ### Archive / Reopen
 
+- **触发事实：** Challenge 已通过、Learning Check 已完成且 `validate --archive-ready` 满足完成条件；或归档任务后来发现缺陷。（Trigger Fact: an active task is ready to archive, or an archived task has a defect.）
+- **Agent 动作：** 先只读校验并在 `request_archive_authorization` 停机；归档后发现缺陷时创建有历史关联的新修复 Spec，而不改写历史产物。（Agent Action: validate, stop for authorization, and reopen defects through a new active Spec.）
+- **人工门禁：** 每次 Archive 都必须取得当前用户针对本次归档的明确授权；Ready、PASS、Plan Approval、Challenge 或旧授权均不能替代。（Human Gate: every archive requires fresh, explicit current-user authorization.）
+- **相关 CLI：** `sdd validate <project-dir> --archive-ready`、`sdd archive ... --authorized-by ... --authorization-evidence ...`、`sdd reopen ... --defect ...`。（CLI: validate, archive with evidence, or reopen a defect.）
+
 归档前运行：
 
 ```text
@@ -829,6 +839,11 @@ SDD 用更少配置表达任务治理：
 当任务涉及安全、权限、计费、数据迁移、公共接口、跨模块副作用或不可逆变更，即使只改一个文件，也应升级到 lite 或 standard。
 
 ### AUTONOMY_MODE
+
+- **触发事实：** 创建新 Spec、切换活动任务的自治档位，或 scope/risk/Plan digest 变化使既有授权失效。（Trigger Fact: task creation, mode changes, or authorization-invalidating digest changes.）
+- **Agent 动作：** 读取 effective mode/source、authorization state、actors、digests 与 `STOP_REASON`，只在新鲜授权覆盖的范围内继续；任何 stop reason 都停止复用原生循环。（Agent Action: inspect effective autonomy facts and advance only within fresh authorization.）
+- **人工门禁：** 用户确认每个 Spec 的自治档位；`supervised` / `human` 的 Plan Gate 由人批准，持续推进授权与 Plan Approval 分开审计；范围扩大、新风险及其他专用硬停机仍须人工决定。（Human Gate: mode choice, required Plan approval, and expanded-risk decisions remain human.）
+- **相关 CLI：** `sdd autonomy inspect|select|migrate|authorize|activate-plan|approve-gate`，并用 `sdd next` / `sdd resume` 查看当前停机原因。（CLI: use the autonomy group plus next/resume projections.）
 
 `.sdd-config` 只声明新 Spec 的默认协作方式：
 
@@ -986,23 +1001,29 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 
 | 命令 | 作用 |
 | :--- | :--- |
-| `init` | 初始化目录、配置和 AI 指令。 |
-| `discover` | 创建 Spec、Design、Execute Log。 |
-| `new-learning` | 创建并绑定 Learning Record。 |
-| `resume` | 输出当前任务和阶段提示。 |
-| `status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
-| `next` | 输出当前 workflow 状态、下一步和回跳目标。 |
-| `challenge` | 生成独立对抗评审 Prompt。 |
-| `cruise` | 生成巡航控制 Prompt；支持 `--driver`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
-| `console` | 启动本地只读 Web Console，查看全项目 Spec 态势、Profile / Quality 摘要、Verification 证据和归档门禁。 |
-| `quality plan <project-dir>` | 显式生成基于 AC、精确 Profile 与既有 e2e readiness 的临时只读质量策略投影。 |
-| `validate` | 机器校验归档门禁。 |
-| `review-execute` | 生成四轴 Review Prompt。 |
-| `archive` | 归档 Spec 及引用产物。 |
-| `reopen` | 基于归档任务创建修复 Spec 和新 Execute Log。 |
-| `debug` | 生成根因分析 Prompt。 |
-| `codemap` | 按需扫描源码并输出架构视图（不持久化，永不过时）。 |
-| `install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
+| `sdd init` | 初始化目录、配置和 AI 指令。 |
+| `sdd discover` | 创建 Spec 与 Execute Log；standard/lite 另建独立 Design，micro 不创建独立 Design。 |
+| `sdd autonomy` | 检查或受控变更任务自治模式、授权、Plan activation 与 Gate 记录；完整子命令见 [AUTONOMY_MODE](#autonomy_mode)。 |
+| `sdd resume` | 输出当前任务和阶段提示。 |
+| `sdd status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
+| `sdd doctor` | 检查 Skill、协议引用、集成触点与安装覆盖。 |
+| `sdd next` | 输出当前 workflow 状态、下一步和回跳目标。 |
+| `sdd visual` | 发现、选择、创建和检查视觉上下文合同；完整边界见 [Visual Context Guidance](#visual-context-guidance按需)。 |
+| `sdd challenge` | 生成独立对抗评审 Prompt，或受控记录 reviewer 结果。 |
+| `sdd cruise` | 生成巡航控制 Prompt；支持 `--driver`、`--emit-claude-prompt`、`--record-run` 和 `--iteration`，但不直接调用模型或执行循环。 |
+| `sdd console` | 启动本地只读 Web Console，查看全项目 Spec 态势、Profile / Quality 摘要、Verification 证据和归档门禁。 |
+| `sdd install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
+| `sdd validate` | 机器校验活动任务门禁与归档就绪条件。 |
+| `sdd archive` | 经本次明确人工授权后归档 Spec 及引用产物。 |
+| `sdd reopen` | 基于归档任务的缺陷创建新修复 Spec 和 Execute Log。 |
+| `sdd new-learning` | 创建并绑定 Learning Record。 |
+| `sdd review-execute` | 生成四轴 Execute 自查 Prompt。 |
+| `sdd learnings` | 查看项目 Learning，或按 Spec 召回相关规则。 |
+| `sdd codemap` | 按需扫描源码并输出架构视图（不持久化，永不过时）。 |
+| `sdd debug` | 生成根因分析 Prompt。 |
+| `sdd verify` | 初始化具名 Provider、运行 E2E 或受控视觉验证；完整边界见 [Verification Provider](#verification-provider)。 |
+| `sdd quality` | 生成基于 AC、精确 Profile 与既有 e2e readiness 的临时只读质量策略投影；当前子命令为 `sdd quality plan`。 |
+| `sdd profile` | 只读检测、复核、确认、展示或检查 Project Engineering Profile；完整边界见 [Project Engineering Profile](#project-engineering-profile)。 |
 
 安装后使用 `sdd` 命令执行所有操作。`next` / `cruise` / `challenge` 的输出已包含 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 方法论路由建议（见第三、六节）。
 
@@ -1022,7 +1043,7 @@ Web Console 是文件系统产物的 projection，不是新的 source of truth�
 - Quality Plan 只对选中的活动 Spec 计算，且只使用该 Spec 固定的 exact `project-profile-revision` / `project-profile-digest` / `affected-units`；不得回退到 current Profile。归档 Spec 的 Quality 状态为 `not_applicable`。它只展示白名单的 AC、policy focus、AC mapping、E2E readiness 与脱敏诊断，始终是说明性派生物，不拥有新的通过/失败、Plan、下一步或归档指令。
 - Profile、Quality 与 Verification 都由服务端只读投影；Console 不调用 `profile` / `quality` / `verify` CLI，不确认 Profile、不执行 Provider、不安装依赖或启动浏览器。
 - 窄屏时，态势板、Quality / Verification 表格只在各自区域横向滚动，页面本身不产生横向溢出。
-- 详情页展示 approval policy、cruise enabled、challenge verdict 和 backtrack target。
+- 详情页展示 effective autonomy mode/source、authorization state、scope/risk/Plan digests、authorized actors、stop reason、challenge verdict 和 backtrack target。
 - 详情页展示最新 cruise run 的 iteration、driver 和 stop reason。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
 - 当前版本只读展示和校验，不直接编辑 Spec、Design、Execute Log 或 Learning；Edit 按钮只调用本机默认程序打开文件。
@@ -1048,6 +1069,11 @@ Spec 是控制面真相源。完整任务真相由 Spec 引用的 Design、Execu
 
 CodeMap 是按需计算视图（`sdd codemap <dir>`），不持久化、永不过时。在 Research 阶段需要架构概览时运行一次即可。架构事实变更应记录到 Learning Record。
 ## Project Engineering Profile
+
+- **触发事实：** 接手已有工程时缺少可靠工程事实、Spec 已绑定精确 Profile revision，或需要检查已确认画像的漂移。（Trigger Fact: engineering facts are missing, bound to a Spec, or may have drifted.）
+- **Agent 动作：** 主动执行只读 detect/review/show/check，Research 始终读取 Spec 指向的 exact revision；不执行 `commandRefs`，不联网、不安装依赖。（Agent Action: collect and read exact profile evidence without executing project commands.）
+- **人工门禁：** `sdd profile confirm` 前必须针对 review 输出的精确 digest 取得当前用户明确授权，Agent 不得自行确认或替换 revision。（Human Gate: exact-digest confirmation requires explicit current-user authorization.）
+- **相关 CLI：** `sdd profile detect|review|confirm|show|check`；创建任务时以 `sdd discover --unit ...` 绑定影响单元。（CLI: use the profile group and bind affected units at discovery.）
 
 > 本章回答：怎样只读识别已有工程、如何确认精确画像，以及 Profile 为什么不能执行项目命令或自动安装能力。
 
@@ -1077,6 +1103,11 @@ confirm 使用 `.sdd-project-profile.lock` 覆盖读取、复核、写 revision�
 Profile 中的 `commandRefs` 只是名称引用。所有 profile 命令均不得执行工程脚本、联网、安装依赖、生成应用或自动创建 Provider；v3.4 的领域命令不提供 Profile 编辑或确认 UI。v3.6 仅在 Console 中增加 current Profile 的安全只读摘要，仍不提供 Frontend/Backend Quality Profile 或框架专属 runner。
 
 ## Quality Policy Routing
+
+- **触发事实：** Design / Acceptance / Plan 需要把既有 AC、精确 Profile 与已有 E2E readiness 映射为测试证据建议。（Trigger Fact: acceptance work needs an evidence-capability routing projection.）
+- **Agent 动作：** 主动生成临时只读 Quality Plan，解释 gaps 与 diagnostics；不创建第二套验收状态，不写回任何制品，也不运行 Provider。（Agent Action: project read-only quality guidance from current authoritative facts.）
+- **人工门禁：** Quality 输出本身没有新增门禁；若建议要求修改 AC、Acceptance 或 Plan，必须回到对应制品并重新满足既有 Plan/范围/风险人工门禁。（Human Gate: contract changes use the existing acceptance, Plan, scope, and risk gates.）
+- **相关 CLI：** `sdd quality plan <project-dir> [--spec ... | --name ...] [--format text|json]`。（CLI: generate the read-only quality projection.）
 
 > 本章回答：Quality Plan 读取什么、输出什么、怎样处理路径和 Profile 绑定，以及为什么它不形成第二套验收门禁。
 
@@ -1125,6 +1156,11 @@ manual AC 的 `Manual Evidence` 原样保留为事实；Policy Focus 只展示�
 - exit 3：用法错误，例如非法 `--format` 或同时提供 `--spec` 与 `--name`。
 
 ## Verification Provider
+
+- **触发事实：** 任一 AC 声明 `Verification: e2e` 与 `Provider: <provider-id>`，或获批 fidelity 合同需要独立视觉 Provider 与 Run。（Trigger Fact: an E2E or fidelity AC requires controlled executable evidence.）
+- **Agent 动作：** 在获批 Plan 的 Execute 阶段检查 readiness，按显式 Provider 运行验证并记录 Run；只读状态命令不得启动浏览器或自动降级。（Agent Action: check readiness and run only the explicitly configured provider during Execute.）
+- **人工门禁：** Provider 配置写入、依赖或浏览器安装及平台权限须由用户明确允许；E2E `SKIPPED` 必须有人类批准，视觉 baseline 的创建/更新/批准也始终由人完成。（Human Gate: configuration, installation/permission, skips, and baselines require human decisions.）
+- **相关 CLI：** `sdd verify init`、`sdd verify run --spec <spec>`、`sdd verify visual <dir> --spec <spec>`；readiness 由 `sdd next|status|validate` 与 Console 只读投影。（CLI: initialize or run the named provider explicitly.）
 
 > 本章回答：E2E 与视觉验证怎样引用受控 Provider、何时产生独立 Run，以及哪些动态输入和自动安装行为被禁止。
 

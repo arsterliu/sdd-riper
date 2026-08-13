@@ -132,6 +132,13 @@ Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is uncle
 
 When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
 
+## Capability Routing
+
+- **Project Profile**: when engineering facts are insufficient or unknown, proactively run read-only `sdd profile detect <dir>` and inspect the existing Profile facts. When the active Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Profile `commandRefs` are facts and must not be executed automatically. Profile routing must not install dependencies or browsers, and must not initialize or approve a Verification Provider.
+- **Quality Plan**: during Design / Acceptance / Plan, when AC `Verification:` values need mapping to available test capabilities, proactively run read-only `sdd quality plan <project-dir> --spec <spec>`. Treat the result as a temporary projection: do not write it back, install dependencies or browsers, initialize or approve a Provider, or execute verification.
+- **E2E**: `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`. Keep the existing Provider boundary. When the environment is unavailable, debug first; if it cannot be repaired, record `BLOCKED` and let a human decide whether to retry or skip. Do not approve the skip or automatically install dependencies or browsers.
+- **Visual**: establish `ui-impact` for every Spec before routing visual intent. The agent routes `not-required`, `direction`, or `fidelity` from task facts but must not enable strict visual evidence. Strict visual evidence becomes active only when the current user explicitly runs `sdd visual init ...`; afterward inspect and execute only according to that contract. The agent must never create, approve, or replace a baseline, and must not implicitly initialize or approve the visual Provider.
+
 ## Autonomy Policy
 
 SDD keeps project configuration small. **Mode** is the Spec workflow shape; **Autonomy Mode** controls how far the host AI may proceed between human governance decisions. Independent Research/Challenge review still requires auditable reviewer evidence.

@@ -22,6 +22,51 @@ function countOccurrences(text, needle) {
   return (text.match(new RegExp(needle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')) || []).length;
 }
 
+function stripFencedCode(text) {
+  var lines = text.split(/\r?\n/);
+  var fence = null;
+  return lines.map(function(line) {
+    var marker = line.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (!fence && marker) { fence = { char: marker[1][0], length: marker[1].length }; return ''; }
+    if (fence && new RegExp('^ {0,3}' + fence.char + '{' + fence.length + ',}\\s*$').test(line)) { fence = null; return ''; }
+    return fence ? '' : line;
+  }).join('\n');
+}
+
+function gfmSlug(title) {
+  return title.trim().toLowerCase()
+    .replace(/<[^>]*>/g, '')
+    .replace(/[`*~]/g, '')
+    .replace(/[^\p{L}\p{N}\s_-]/gu, '')
+    .replace(/\s/g, '-');
+}
+
+function markdownAnchors(text) {
+  var anchors = new Set();
+  var counts = new Map();
+  Array.from(stripFencedCode(text).matchAll(/^#{1,6}\s+(.+?)\s*#*$/gm), function(match) { return match[1]; }).forEach(function(title) {
+    var slug = gfmSlug(title);
+    var count = counts.get(slug) || 0;
+    counts.set(slug, count + 1);
+    anchors.add(count ? slug + '-' + count : slug);
+  });
+  return anchors;
+}
+
+function markdownSection(text, headingPattern, level) {
+  var source = stripFencedCode(text);
+  var heading = new RegExp('^' + '#'.repeat(level) + '\\s+.*(?:' + headingPattern + ').*$', 'mi').exec(source);
+  if (!heading) return '';
+  var tail = source.slice(heading.index + heading[0].length);
+  var nextBoundary = /^#{1,6}\s+/gm;
+  var boundary;
+  while ((boundary = nextBoundary.exec(tail))) {
+    var boundaryLevel = boundary[0].match(/^#+/)[0].length;
+    if (boundaryLevel <= level) break;
+  }
+  return boundary ? source.slice(heading.index, heading.index + heading[0].length + boundary.index) : source.slice(heading.index);
+}
+
 function artifactPath(projectDir, specFile, field) {
   var content = fs.readFileSync(specFile, 'utf-8');
   var match = content.match(new RegExp('^' + field + ':\\s*"?([^"\\r\\n]*)"?\\s*$', 'm'));
@@ -2500,10 +2545,15 @@ describe('CLI commands', function() {
 
   it('README puts AI-guided quick start before direct CLI instructions', function() {
     var readme = fs.readFileSync(path.resolve('README.md'), 'utf-8');
-    var aiStart = readme.indexOf('### 让 AI 带你开始（推荐）');
-    var cliStart = readme.indexOf('### 直接用命令行');
-    assert.ok(aiStart !== -1);
-    assert.ok(cliStart > aiStart);
+    var firstSectionMatch = /^##\s+(.+)$/m.exec(readme);
+    var firstSection = firstSectionMatch && markdownSection(readme, firstSectionMatch[1].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 2);
+    var aiStart = firstSection ? firstSection.search(/(?:告诉|描述).{0,24}(?:AI|目标)|AI.{0,24}(?:带你|开始)/i) : -1;
+    var cliStart = firstSection ? firstSection.search(/`sdd\s|^\s*sdd\s/m) : -1;
+    assert.ok(firstSectionMatch && /AI|开始|描述目标/.test(firstSectionMatch[1]), 'README first section must be the conversational AI entry');
+    assert.ok(aiStart !== -1, 'README must tell readers to start by describing the goal to AI');
+    assert.ok(cliStart === -1 || cliStart > aiStart, 'natural-language AI entry must precede the first CLI command');
+    assert.doesNotMatch(readme, /^#{2,3}\s+.*(?:直接用命令行|常用命令|CLI\s*命令表).*$/mi,
+      'README must not expose a standalone CLI-first section');
     ['版本：', '任务名：', '目标：', '参考资料：'].forEach(function(input) {
       assert.ok(readme.indexOf(input) !== -1, input);
     });
@@ -2521,11 +2571,20 @@ describe('CLI commands', function() {
       '## 场景二：确认方案和计划',
       '## 场景三：执行和验证',
       '## 场景四：任务卡住或检查失败',
-      '## 场景五：完成与归档',
-      '## 按需使用的高级能力'
+      '## 场景五：完成与归档'
     ].forEach(function(heading) {
       assert.ok(guide.indexOf(heading) !== -1, heading);
     });
+    assert.doesNotMatch(guide, /^##\s+.*(?:Project Profile|Quality Plan|Verification|Visual|高级能力|能力菜单).*$/gmi,
+      'GUIDE must not aggregate routed capabilities into a standalone feature menu');
+    assert.doesNotMatch(guide, /^#{2,3}\s+.*(?:直接用命令行|常用命令|CLI\s*命令表).*$/gmi,
+      'GUIDE must not expose a standalone CLI command section');
+    var scenarios = ['场景一', '场景二', '场景三', '场景四', '场景五'].map(function(name) { return markdownSection(guide, name, 2); }).join('\n');
+    ['Profile', 'Quality', 'Verification', 'Visual'].forEach(function(capability) {
+      assert.match(scenarios, new RegExp(capability, 'i'), 'GUIDE scenarios must explain ' + capability);
+    });
+    assert.match(scenarios, /(?:可选|如果你想|想自己)[^\n]{0,60}(?:自查|检查|确认|查看)[\s\S]{0,180}`sdd\s/i,
+      'GUIDE must retain an optional self-check command inside a scenario');
     assert.ok(guide.indexOf('[REFERENCE.md](./REFERENCE.md)') !== -1);
     assert.equal(guide.indexOf('Archive authorization rule:'), -1);
     [
@@ -2566,6 +2625,84 @@ describe('CLI commands', function() {
     ].forEach(function(contract) {
       assert.ok(reference.indexOf(contract) !== -1, contract);
     });
+  });
+
+  it('REFERENCE routes major capabilities from facts through agent action and human gates to CLI', function() {
+    var reference = fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8');
+    [
+      ['Project Engineering Profile', 2],
+      ['Quality Policy Routing', 2],
+      ['Verification Provider', 2],
+      ['Visual(?: Context Guidance)?', 3],
+      ['AUTONOMY_MODE', 3],
+      ['Archive \\/ Reopen', 3]
+    ].forEach(function(entry) {
+      var capability = entry[0];
+      var section = markdownSection(reference, capability, entry[1]);
+      assert.ok(section, capability + ' must have a searchable section');
+      assert.match(section, /(?:Trigger Facts?|触发事实)\s*[:：]/i, capability + ' must name its trigger facts');
+      assert.match(section, /(?:Agent Actions?|Agent 动作)\s*[:：]/i, capability + ' must state the agent action');
+      assert.match(section, /(?:Human Gates?|人工门禁)\s*[:：]/i, capability + ' must state the non-delegable human gate');
+      assert.match(section, /(?:(?:Related\s+)?CLI|相关\s*CLI)\s*[:：]/i, capability + ' must point to CLI details');
+    });
+  });
+
+  it('REFERENCE lists every public top-level CLI command group', function() {
+    var cli = fs.readFileSync(path.resolve('bin/cli.js'), 'utf-8');
+    var reference = fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8');
+    var cliSection = markdownSection(reference, 'CLI 命令', 2);
+    assert.ok(cliSection, 'REFERENCE must expose a stable ## CLI 命令 section');
+    var groups = Array.from(new Set(Array.from(cli.matchAll(/program\s*\.\s*command\s*\(\s*(['"])([a-z][a-z-]*)(?:\s[^'"]*)?\1/g), function(match) {
+      return match[2];
+    })));
+    assert.ok(groups.length >= 20, 'public command extraction must be non-empty and comprehensive');
+    ['init', 'discover', 'autonomy', 'visual', 'verify', 'quality', 'profile'].forEach(function(sentinel) {
+      assert.ok(groups.includes(sentinel), 'public command extraction missing sentinel: ' + sentinel);
+    });
+    groups.forEach(function(group) {
+      assert.match(cliSection, new RegExp('sdd\\s+' + group + '(?:\\s|`|$)', 'm'), 'REFERENCE CLI section missing public group: ' + group);
+    });
+  });
+
+  it('GFM anchor helper preserves underscores, punctuation spacing, duplicates, and ignores fences', function() {
+    assert.equal(gfmSlug('Archive / Reopen'), 'archive--reopen');
+    assert.equal(gfmSlug('Foo_Bar'), 'foo_bar');
+    assert.deepEqual(Array.from(markdownAnchors('## Archive / Reopen\n## Foo_Bar\n## Foo_Bar\n```md\n## Hidden\n```')),
+      ['archive--reopen', 'foo_bar', 'foo_bar-1']);
+    assert.deepEqual(Array.from(markdownAnchors('### Child\nlabel\n## Parent')), ['child', 'parent']);
+    assert.equal(markdownSection('### Child\nlabel\n#### Nested\nkeep\n## Parent\nleak', 'Child', 3), '### Child\nlabel\n#### Nested\nkeep\n');
+    ['````js\n## Hidden\n````', '~~~\n## Hidden\n~~~', '   ```\n## Hidden\n   ```'].forEach(function(sample) {
+      assert.equal(markdownAnchors(sample).size, 0, sample);
+    });
+  });
+
+  it('REFERENCE internal Markdown links resolve to real headings', function() {
+    var reference = fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8');
+    var anchors = markdownAnchors(reference);
+    Array.from(stripFencedCode(reference).matchAll(/\[[^\]]+\]\(#([^)]+)\)/g), function(match) { return decodeURIComponent(match[1]).toLowerCase(); }).forEach(function(anchor) {
+      assert.ok(anchors.has(anchor), 'REFERENCE has a broken internal anchor: #' + anchor);
+    });
+  });
+
+  it('TEAM-GUIDE contains only current governance facts', function() {
+    var teamGuide = fs.readFileSync(path.resolve('TEAM-GUIDE.md'), 'utf-8');
+    assert.doesNotMatch(teamGuide, /ProjectMap/i, 'TEAM-GUIDE must not require a removed ProjectMap');
+    assert.doesNotMatch(teamGuide, /(?:维护|更新|编写)[^\n]{0,40}(?:持久|长期)?[^\n]{0,20}CodeMap|CodeMap[^\n]{0,40}(?:维护|更新|持久)/i,
+      'TEAM-GUIDE must treat CodeMap as computed on demand, not maintained');
+    assert.doesNotMatch(teamGuide, /Completion Verification Pass/i, 'TEAM-GUIDE must not retain the retired pass ledger');
+    assert.doesNotMatch(teamGuide, /Mode Recommendation Gate/i, 'TEAM-GUIDE must not invent a mode recommendation gate');
+    assert.doesNotMatch(teamGuide, /(?:Senior|初级|低经验|资历|经验)[^\n]{0,80}(?:standard|lite|micro)|(?:standard|lite|micro)[^\n]{0,80}(?:Senior|初级|低经验|资历|经验)/i,
+      'TEAM-GUIDE must not bind mode to seniority');
+    assert.doesNotMatch(teamGuide, /(?:TL|Team Lead)[^\n]{0,80}(?:负责|必须|固定)[^\n]{0,40}Plan Approved|Plan Approved[^\n]{0,80}(?:TL|Team Lead)/i,
+      'TEAM-GUIDE must not assign every Plan approval to a fixed TL');
+    assert.doesNotMatch(teamGuide, /Execute[^\n]{0,40}(?:零自由度|自由度[^\n]{0,10}零)/i,
+      'TEAM-GUIDE must not describe Execute with the retired zero-freedom rule');
+    assert.doesNotMatch(teamGuide, /Cruise[^\n]{0,160}(?:review\s*\/\s*challenge|review[^\n]{0,40}challenge)/i,
+      'TEAM-GUIDE must not route Cruise through the retired review path');
+    assert.doesNotMatch(teamGuide, /(?:手动|开发者|成员)[^\n]{0,100}(?:追加|填写|编辑)[^\n]{0,60}(?:archive|归档)[^\n]{0,40}(?:summary|摘要)/i,
+      'TEAM-GUIDE must not require hand-written archive summaries');
+    assert.doesNotMatch(teamGuide, /(?:提升|提高|降低|减少|节省|收益|效率|加速)[^\n]{0,40}\d{1,3}(?:\.\d+)?\s*[%％]|\d{1,3}(?:\.\d+)?\s*[%％][^\n]{0,40}(?:提升|提高|降低|减少|节省|收益|效率|加速)/,
+      'TEAM-GUIDE must not promise unsupported percentage gains');
   });
 
   it('human reference docs explain archive authorization in Chinese', function() {
