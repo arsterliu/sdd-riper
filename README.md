@@ -53,9 +53,11 @@ sdd install-skill --target codex
 
 ### AI 会自动判断何时使用配套能力
 
-你不需要手选能力。工程事实不足时，AI 在 Research 使用只读 Project Profile；Design / Acceptance / Plan 需要映射测试重点时，使用只读 Quality Plan；AC 声明 `Verification: e2e` 时，路由到具名 Verification Provider；任务影响 UI 或 Context 含视觉材料时，进入 Visual 指引。缺少 Provider 时，AI 先把 `Provider:` 写入 e2e AC，并只在获批 Plan 的 Execute 阶段运行 `sdd verify init`；它不会自动安装依赖或浏览器。
+每个新 Spec 先用它绑定的精确 Project Profile 和 `affected-units` 判断是否影响 UI；证据不足时，AI 才问一次。AI 可主动使用的只读辅助仅限 Project Profile 的检测与读取、Quality Plan，以及 `visual discover` / `visual inspect`。它们只帮助理解工程、测试重点和已有视觉材料，不改变 AC，也不运行验证。
 
-Quality Plan 只是临时解释：AC 是唯一验收真相，它不会形成第二套门禁，也不会初始化 Provider、安装依赖或运行验证。AI 会在读取候选内容前检查路径与真实位置，只读取项目内目标；需要人工复核时，可选自查命令是 `sdd quality plan <project-dir>`。
+视觉语境里的 `baseline`，是当前 Spec 冻结且经当前用户认可的目标 UI PNG，不是跨 Spec 历史基线库。新 Spec 可以直接采用最新 UI PNG，旧页面截图只是可选 Context；候选图和项目默认图片都不代表人工认可。AI 会说明这张目标图能否与开发后的页面截图做严格像素比较：只有 baseline PNG 与 current screenshot 的像素宽度和高度分别完全一致，且其余精确条件成立时才推荐 `fidelity`，否则推荐 `direction`。完整条件见 [REFERENCE：Visual Context Guidance](./REFERENCE.md#visual-context-guidance按需)。
+
+Provider 的初始化或运行、E2E 与 `sdd verify visual` 都是可执行操作，不属于上述只读辅助；它们只能在 Plan 获批后的 Execute 阶段显式运行。严格视觉合同仍须当前用户显式执行 `sdd visual init ...` 启用，流程不会自动创建、生成、批准、替换、版本化或管理 baseline，也不会自动安装依赖或浏览器。
 
 无论采用哪种方式，以下情况始终单独停机：
 
@@ -69,7 +71,7 @@ Quality Plan 只是临时解释：AC 是唯一验收真相，它不会形成第�
 
 归档和旧版制品只读。它们可以查看，也可以作为新修复任务的来源，但不会被静默迁移或改写。
 
-每个新 Spec 都会先由精确 Profile 与 `affected-units` 推导 `ui-impact`；仍无法判断时，AI 只问一次。前端或混合任务会在 Plan 前确定一次 `visual-context-intent`，并可用只读 `sdd visual discover` 发现本地 Context。Figma URL 只作为普通 URL 引用记录：不联网读取、不自动批准、不启动浏览器，也不执行截图 diff。严格 Visual 合同不会新增 Archive Gate；视觉证据缺口仍由任务自己的 AC 与 Execute Log 判断和记录。
+Figma 链接只当普通链接记录，不联网读取、不自动批准、不启动浏览器，也不做截图对比。Provider、合同、baseline 或代码状态变化会让旧结果变为 `stale`；视觉证据仍按任务自己的 AC 与 Execute Log 判断，不额外增加 Archive Gate。
 
 按实际场景了解“你提供什么、AI 做什么、什么时候停、怎样算完成”，请看 [GUIDE.md](./GUIDE.md)。精确协议见 [REFERENCE.md](./REFERENCE.md)。
 

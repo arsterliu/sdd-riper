@@ -15,6 +15,7 @@ var COPY_ENTRIES = [
   'vendored',
   'SKILL.md',
   'GUIDE.md',
+  'REFERENCE.md',
   'TEAM-GUIDE.md',
   'INTEGRATIONS.md',
   'README.md',

@@ -638,16 +638,16 @@ test('quality plan is deterministic and Quality modules do not add execution pri
   assert.doesNotMatch(command, /child_process|execFile|spawn|verify init|verify run|npm install/i);
 });
 
-test('README and GUIDE describe quality plan as an explicit read-only AC-derived projection', function() {
-  ['README.md', 'GUIDE.md'].forEach(function(file) {
-    var content = fs.readFileSync(path.resolve(__dirname, '..', file), 'utf8');
-    assert.match(content, /sdd quality plan <project-dir>/);
-    assert.match(content, /AC 是唯一验收真相/);
-    assert.match(content, /不会初始化 Provider、安装依赖或运行验证/);
-    assert.match(content, /不.*第二套.*门禁/);
-    assert.match(content, /读取候选(?:内容| frontmatter)\s*前/);
-    assert.match(content, /项目内目标/);
-  });
+test('README and GUIDE describe quality plan according to their document roles', function() {
+  var readme = fs.readFileSync(path.resolve(__dirname, '..', 'README.md'), 'utf8');
+  assert.match(readme, /只读[^。\n]{0,30}Quality Plan|Quality Plan[^。\n]{0,30}只读/);
+  assert.match(readme, /不改变 AC/);
+
+  var guide = fs.readFileSync(path.resolve(__dirname, '..', 'GUIDE.md'), 'utf8');
+  assert.match(guide, /只读[^。\n]{0,30}Quality Plan|Quality Plan[^。\n]{0,30}只读/);
+  assert.match(guide, /AC 是唯一验收真相/);
+  assert.match(guide, /不会改变[^。\n]{0,20}验收|这个建议不会改变它/);
+  assert.match(guide, /sdd quality plan/);
 });
 
 test('quality plan rejects invalid format as a stable quality usage error', function(t) {

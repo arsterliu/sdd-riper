@@ -112,12 +112,11 @@ test('verify init prioritizes unlock failure while preserving the transaction er
   assert.doesNotMatch(result.output, /configured/);
 });
 
-test('verify init runtime and current guide expose only the single project lock contract', () => {
+test('verify init runtime exposes only the single project lock contract and guide stays user-level', () => {
   const source = fs.readFileSync(path.resolve(__dirname, '..', 'src', 'commands', 'verify.js'), 'utf8');
   const guide = fs.readFileSync(path.resolve(__dirname, '..', 'GUIDE.md'), 'utf8');
   assert.doesNotMatch(source, /acquireProviderLock|INIT_CONFLICT|\.sdd-verification\.['"]?\s*\+\s*providerId/);
-  assert.doesNotMatch(guide, /Provider 级锁|INIT_CONFLICT|\.sdd-verification\.<provider>\.lock/);
-  assert.match(guide, /INIT_LOCKED/);
+  assert.doesNotMatch(guide, /Provider 级锁|INIT_CONFLICT|\.sdd-verification\.<provider>\.lock|SDD_VERIFY_INIT_LOCKED/);
 });
 
 test('verify init preserves the original config byte-for-byte when preflight fails', () => {

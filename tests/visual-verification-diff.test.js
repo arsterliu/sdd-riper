@@ -53,13 +53,22 @@ test('excludes only explicitly configured static mask rectangles from pixel comp
   assert.deepEqual(result.diffPixels, Buffer.from([0, 0]));
 });
 
-test('rejects images with inconsistent RGBA data or dimensions instead of silently diffing them', () => {
+test('rejects images with different dimensions even when both contain complete RGBA data', () => {
   const baseline = image(1, 1, [0, 0, 0, 255]);
+  const current = image(2, 1, [0, 0, 0, 255, 0, 0, 0, 255]);
 
   assert.throws(
-    () => comparator.comparePixels(baseline, image(2, 1, [0, 0, 0, 255]), { threshold: 0 }),
-    error => error.code === 'VISUAL_IMAGE_INVALID'
+    () => comparator.comparePixels(baseline, current, { threshold: 0 }),
+    {
+      code: 'VISUAL_IMAGE_INVALID',
+      message: 'baseline and current image dimensions must match'
+    }
   );
+});
+
+test('rejects images with incomplete RGBA data', () => {
+  const baseline = image(1, 1, [0, 0, 0, 255]);
+
   assert.throws(
     () => comparator.comparePixels(baseline, image(1, 1, [0, 0]), { threshold: 0 }),
     error => error.code === 'VISUAL_IMAGE_INVALID'

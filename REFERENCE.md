@@ -415,13 +415,25 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 ### Visual Context Guidance（按需）
 
 - **触发事实：** Spec 的精确 Profile / `affected-units` 表明任务影响 UI，或这些事实不足以判断；Context 中存在设计图、截图、文档、文字说明或 URL。（Trigger Fact: UI impact or visual-context facts need routing.）
-- **Agent 动作：** 优先从精确工程事实推导 `ui-impact`，未知时只问一次；只读运行 visual discover/inspect，并按任务事实解释 `not-required`、`direction`、`fidelity` 与 diff 状态。（Agent Action: infer first, then discover and inspect read-only evidence.）
+- **Agent 动作：** 优先从精确工程事实推导 `ui-impact`，未知时只问一次；只读运行 visual discover/inspect，根据材料可比性解释推荐 `not-required`、`direction` 或 `fidelity` 的理由，并报告 diff 状态。（Agent Action: infer first, then recommend, discover, and inspect read-only evidence.）
 - **人工门禁：** `ui-impact` 无法从 exact 工程事实推导时仅询问一次；启用严格合同、批准设计方向、创建/更新/批准 baseline 均须人工决定，Agent 不得代批。视觉意图由 Agent 根据任务事实主动路由，不新增 Archive Gate。（Human Gate: ask once only when exact facts cannot establish UI impact; strict-contract, direction, and baseline decisions remain human.）
 - **相关 CLI：** `sdd visual discover`、`sdd visual select`、`sdd visual init`、`sdd visual inspect`；fidelity 验证另见 `sdd verify visual`。（CLI: use the visual group and the controlled visual verifier.）
 
 每个新 Spec 在 Research 前先确定 `ui-impact`：优先读取 Spec 绑定的精确 Profile 与 `affected-units`；仍无法判断时，SDD 只问一次“是否影响用户界面”。纯后端任务记录 `ui-impact: no` 并跳过。前端或混合任务记录 `ui-impact: yes`，必须通过 `sdd visual select` 一次性选择 `visual-context-intent`：`not-required`、`direction` 或 `fidelity`。
 
 用户可以把本地设计图、截图、PDF/SVG、文字说明和 URL 放进同一 Context。`sdd visual discover` 只读扫描，输出候选、缺口和无法可靠推断时才需要的补问；候选不是自动确认的设计稿。Figma URL 与普通 URL 使用同一种 reference 候选，不联网读取内容、不自动批准、不启动浏览器，也不执行截图 diff。实际 Figma MCP 获取器会在后续独立 Spec 中实现。
+
+`baseline` 是当前 Spec 冻结且经当前用户认可的目标 UI PNG，不是跨 Spec 历史基线库。新 Spec 可以直接使用最新 UI PNG；旧页面截图只是可选 Context，不是严格视觉验证的必需输入。候选图和项目默认图片均不等同于人工认可，工具也不提供 baseline 的自动创建、生成、批准、替换、版本化或管理。
+
+Agent 必须说明推荐理由，并按以下五项精确路由视觉意图：
+
+1. `fidelity` 的目标图必须是可解码 PNG。
+2. scenario id、route（路由）、state（状态）和 viewport（视口）必须明确。
+3. baseline / 目标 PNG 与 current screenshot 的像素宽度和高度必须分别完全一致；尺寸近似、缩放后相同或笼统的“可以比较”都不满足条件。
+4. 测试数据、字体和资源必须稳定，可在验证环境中复现。
+5. 任一条件不满足时推荐 `direction`，不得把候选图或项目默认图片视为人工批准。
+
+合同中的 `scenario.baseline.path` 是相对当前 Spec Context 的 baseline 路径，必须同时通过 lexical（词法）containment 与 realpath containment，两项检查都须证明目标是 project-local（项目内）文件；词法越界或符号链接逃逸一律 fail-closed。`scenario.baseline.status` 只允许 `pending` 或 `approved`：`fidelity` 必须是 `approved` 且 `path` 非空，`direction` 才允许 `pending`。写入 `approved` 和合同级人工批准都只能来自当前用户的明确决定，Agent 不得代批。
 
 `not-required` 与 `ui-impact: no` 绝不因缺少视觉材料阻塞 Plan。只有用户明确运行 `sdd visual init <dir> --spec <path> --mode fidelity|direction` 后，严格 `visual-evidence` 合同才会启用；它记录来源、路由/状态/视口、基线与人工批准。`sdd visual inspect`、普通 `validate` 和 `next` 会显示 `not-applicable`、`blocked`、`pending-approval` 或 `ready`；当已有匹配的 Visual Run 时，inspect 还会投影 `not-run`、`pass`、`fail` 或 `stale` diff 状态。`direction` 允许方向批准后先进入 Plan，并以 pending 表示首版截图待 Execute 补齐；该补齐由任务自己的 manual AC 和 Execute Log 记录。视觉合同不新增 Archive Gate。
 
@@ -1170,4 +1182,4 @@ manual AC 的 `Manual Evidence` 原样保留为事实；Policy Focus 只展示�
 
 `verify init` 只使用项目级 `.sdd-verification.json.lock`，并在持锁期间完成共享配置的读取、修改、校验、临时文件写入和原子替换。同一项目不支持并发 init：锁已存在时立即返回 `SDD_VERIFY_INIT_LOCKED` / exit 2，不等待、不合并、不自动重试；调用者应稍后重试。若持续锁定，先确认没有仍在运行的 `verify init`，再人工删除项目根目录中的空锁目录并重试；不得仅按锁目录时间自动清理。若返回 `SDD_VERIFY_INIT_UNLOCK_FAILED`，配置可能已经写入，应先检查 `.sdd-verification.json` 再决定是否重试。
 
-`playwright-test` 继续只服务 `Verification: e2e`；`playwright-visual` 是独立 Provider。对于审批完成的 fidelity 合同，先以 `sdd verify init` 配置 `playwright-visual`，再在项目根目录维护静态 `sdd.visual.config.json`：每个合同 scenario id 精确映射到一个项目内 `testFile`、`testTitle`、Playwright project、有限阈值与可选静态 masks。每个 mask 都是像素矩形 `{x,y,width,height}`，用于从 diff 分母和差异图中排除动态区域；不支持 CSS 选择器或运行时表达式。随后运行 `sdd verify visual <dir> --spec <spec>`。命令不接受 URL、命令、选择器、阈值、掩码或环境变量透传；Reporter 只接受绑定场景的一张 PNG current screenshot，读取人工批准的 Context baseline，生成 current/diff 附件并原子写入 `mydocs/runs/visual/`。Visual Run 会校验 Provider、adapter、package/lockfile、Playwright config、合同、基线与代码状态；任一变化都会将旧结果标为 stale。若执行改动了工作树，仍写入带稳定诊断的 BLOCKED Run，但不会保存 current/diff 附件。baseline 的创建、更新和批准始终由人完成。Figma MCP、Custom Adapter、统一 MCP Profile、accessibility 和 performance 接入仍延后。
+`playwright-test` 继续只服务 `Verification: e2e`；`playwright-visual` 是独立 Provider。对于审批完成的 fidelity 合同，只能在 Plan 获批后的 Execute 阶段显式运行：先以 `sdd verify init` 配置 `playwright-visual`，再在项目根目录维护静态 `sdd.visual.config.json`；Provider 的 scenario mapping 必须是静态且 project-local（项目内）的，每个合同 scenario id 精确映射到一个项目内 `testFile`、`testTitle`、Playwright project、有限阈值与可选静态 masks。每个 mask 都是像素矩形 `{x,y,width,height}`，用于从 diff 分母和差异图中排除动态区域；不支持 CSS 选择器或运行时表达式。随后显式运行 `sdd verify visual <dir> --spec <spec>`。命令不接受 URL、命令、选择器、阈值、掩码或环境变量透传；Reporter 只接受绑定场景的一张 PNG current screenshot，读取当前 Spec Context 中人工批准的 baseline，并要求两张 PNG 的像素宽度和高度分别完全一致，再生成 current/diff 附件并原子写入 `mydocs/runs/visual/`。Visual Run 会校验 Provider、adapter、package/lockfile、Playwright config、合同、基线与代码状态；任一变化都会将旧结果标为 stale。若执行改动了工作树，仍写入带稳定诊断的 BLOCKED Run，但不会保存 current/diff 附件。baseline 的创建、更新和批准始终由人完成。Figma MCP、Custom Adapter、统一 MCP Profile、accessibility 和 performance 接入仍延后。

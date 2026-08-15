@@ -167,10 +167,16 @@ test('playwright-visual creates auditable PASS and FAIL visual Runs from approve
   assert.equal(runs.length, 5);
   assert.deepEqual(runs.map(run => run.gateDecision).sort(), ['BLOCKED', 'BLOCKED', 'BLOCKED', 'FAIL', 'PASS']);
   assert.equal(runs.filter(run => run.gateDecision !== 'BLOCKED').every(run => run.attachments.length === 2), true);
-  assert.equal(runs.filter(run => run.gateDecision === 'BLOCKED').every(run => run.visual.scenarios.length === 0), true);
+  const blockedRuns = runs.filter(run => run.gateDecision === 'BLOCKED');
+  assert.equal(blockedRuns.every(run => run.visual.scenarios.length === 0), true);
+  assert.equal(blockedRuns.every(run => run.attachments.length === 0), true);
   assert.equal(runs.find(run => run.gateDecision === 'PASS').visual.scenarios[0].masks.length, 0);
   assert.deepEqual(runs.find(run => run.diagnostics.some(item => item.code === 'BROWSER_NOT_INSTALLED')).diagnostics.map(item => item.code), ['BROWSER_NOT_INSTALLED']);
   assert.equal(runs.some(run => run.diagnostics.some(item => item.code === 'VISUAL_IMAGE_INVALID')), true);
-  assert.equal(runs.find(run => run.diagnostics.some(item => item.code === 'WORKTREE_MUTATED')).freshness, 'stale');
+  const mutatedRun = runs.find(run => run.diagnostics.some(item => item.code === 'WORKTREE_MUTATED'));
+  assert.equal(mutatedRun.gateDecision, 'BLOCKED');
+  assert.equal(mutatedRun.freshness, 'stale');
+  assert.deepEqual(mutatedRun.visual.scenarios, []);
+  assert.deepEqual(mutatedRun.attachments, []);
   assert.equal(fs.readdirSync(path.join(projectDir, 'mydocs/runs/verification')).length > 0, true);
 });

@@ -420,21 +420,156 @@ test('Spec templates make the Contract mode fields and conditional E2E Provider 
   });
 });
 
-test('precise references state the current workflow Provider requirement and legacy-read compatibility', function() {
+function paragraphContainingTerms(text, terms) {
+  return text.split(/\r?\n\s*\r?\n/).find(function(paragraph) {
+    return terms.every(function(pattern) { return pattern.test(paragraph); });
+  }) || '';
+}
+
+function hasPositiveHistoricalReadCompatibility(text) {
+  const paragraph = paragraphContainingTerms(text, [
+    /(?:归档|archived)/i,
+    /(?:历史|legacy)/i,
+    /(?:remain|stays?|保持|始终)[^.;。\n]{0,40}(?:readable|可读)[^.;。\n]{0,40}(?:without migration|无需迁移|不需要迁移)/i,
+    /(?:不得|不会|不应|do not|never|must not)[^\n]{0,30}(?:静默|silently)[^\n]{0,30}(?:重写|改写|rewrite)/i
+  ]);
+  if (!paragraph) return false;
+  return !/(?:do not remain readable without migration|does not remain readable without migration|not readable|no longer readable|不可读|不再可读|不再保持可读|不能保持可读|requires? migration|needs? migration|必须迁移|要求迁移|may silently rewrite|can silently rewrite|允许静默(?:重写|改写)|可以静默(?:重写|改写))/i.test(paragraph);
+}
+
+test('historical compatibility helper accepts the positive contract and rejects its antonym', function() {
+  assert.equal(
+    hasPositiveHistoricalReadCompatibility('Archived and legacy artifacts remain readable without migration; agents must not silently rewrite them.'),
+    true
+  );
+  assert.equal(
+    hasPositiveHistoricalReadCompatibility('Archived and legacy artifacts are not readable without migration; agents may silently rewrite them.'),
+    false
+  );
+  assert.equal(
+    hasPositiveHistoricalReadCompatibility('Archived and legacy artifacts do not remain readable without migration; agents must not silently rewrite them.'),
+    false,
+    'the exact negation of remain-readable-without-migration must not satisfy the helper'
+  );
+});
+
+test('precise references state the current workflow Provider requirement and positive legacy-read compatibility', function() {
   const workflow = /Research -> Innovate -> Design\/Acceptance -> Plan -> Execute\* -> Challenge -> \(Cruise\) -> Learning Check -> Archive/;
   const e2eProvider = /Verification:\s*e2e[\s\S]{0,180}Provider:/i;
-  const legacyReadable = /(?:归档|archived|legacy|历史)[^\n]{0,180}(?:可读|readable|兼容|compatible|迁移)/i;
 
   ['SKILL.md', 'REFERENCE.md'].forEach(function(file) {
     const text = readProjection(file);
     assert.match(text, workflow, file + ' must describe the current RIPER workflow');
     assert.match(text, e2eProvider, file + ' must state that e2e verification requires Provider metadata');
-    assert.match(text, legacyReadable, file + ' must state that archived or legacy artifacts remain readable without migration');
+    assert.equal(
+      hasPositiveHistoricalReadCompatibility(text),
+      true,
+      file + ' must positively combine archived/legacy readability, no migration, and no silent rewrite'
+    );
   });
   ['README.md', 'GUIDE.md'].forEach(function(file) {
     const text = readProjection(file);
     assert.match(text, /REFERENCE\.md/, file + ' must route readers to the precise contract');
     assert.match(text, /归档/, file + ' must explain the archive boundary in human language');
+  });
+});
+
+function projectionSection(file, startPattern, endPattern) {
+  const text = readProjection(file);
+  const start = text.search(startPattern);
+  assert.ok(start >= 0, file + ' must retain the expected section start');
+  const remainder = text.slice(start);
+  const end = remainder.search(endPattern);
+  assert.ok(end > 0, file + ' must retain the expected section end');
+  return remainder.slice(0, end);
+}
+
+function projectionSectionToNextSameLevel(file, startPattern, sameLevelHeadingPattern) {
+  const sentinelHeading = '\n## __TEST_SECTION_END__\n';
+  const text = readProjection(file) + sentinelHeading;
+  const start = text.search(startPattern);
+  assert.ok(start >= 0, file + ' must retain the expected same-level section start');
+  const headingEnd = text.indexOf('\n', start) + 1;
+  assert.ok(headingEnd > start, file + ' section heading must end with a newline');
+  const body = text.slice(headingEnd);
+  const relativeEnd = body.search(sameLevelHeadingPattern);
+  assert.ok(relativeEnd >= 0, file + ' must have an explicit same-level section terminator');
+  return text.slice(start, headingEnd + relativeEnd);
+}
+
+test('SKILL visual section retains explicit activation and Agent baseline-mutation boundaries', function() {
+  const section = projectionSection('SKILL.md', /^### Visual Context Guidance\s*$/m, /^## Innovate Phase\s*$/m);
+
+  assert.match(section, /only after the (?:current )?user explicitly runs `sdd visual init/i, 'strict visual evidence must remain explicitly user-activated');
+  assert.match(section, /never creates?, approves?, or replaces? a baseline/i, 'Agent must remain unable to create, approve, or replace a baseline');
+});
+
+test('SKILL visual section retains approved fidelity Provider containment and freshness boundaries', function() {
+  const section = projectionSection('SKILL.md', /^### Visual Context Guidance\s*$/m, /^## Innovate Phase\s*$/m);
+
+  assert.notEqual(paragraphContainingTerms(section, [/approved/i, /fidelity/i, /playwright-visual/i, /Provider/i]), '', 'fidelity must retain its separate approved Provider boundary');
+  assert.match(section, /accepts no URL, command, selector, threshold, mask, or environment pass-through/i, 'visual verification must retain command containment');
+  assert.notEqual(paragraphContainingTerms(section, [/Provider/i, /workspace/i, /config/i, /contract/i, /baseline/i, /code-state/i, /stale/i]), '', 'visual evidence must retain its complete stale boundary');
+});
+
+test('REFERENCE visual section retains explicit human activation and baseline decisions', function() {
+  const section = projectionSection('REFERENCE.md', /^### Visual Context Guidance（按需）\s*$/m, /^### Innovate\s*$/m);
+
+  assert.match(section, /只有用户明确运行 `sdd visual init/, 'strict visual evidence must remain explicitly user-activated');
+  assert.match(section, /创建\/更新\/批准 baseline 均须人工决定[^\n]{0,80}Agent 不得代批/, 'baseline creation, update, and approval must remain human decisions');
+});
+
+test('REFERENCE Provider section retains fidelity containment and stale evidence boundaries', function() {
+  const section = projectionSectionToNextSameLevel('REFERENCE.md', /^## Verification Provider\s*$/m, /^##\s+/m);
+
+  assert.notEqual(paragraphContainingTerms(section, [/审批完成|approved/i, /fidelity/i, /playwright-visual/i]), '', 'fidelity must retain its approved separate Provider boundary');
+  assert.match(section, /命令不接受 URL、命令、选择器、阈值、掩码或环境变量透传/, 'visual verification must retain command containment');
+  assert.notEqual(paragraphContainingTerms(section, [/Provider/i, /adapter/i, /package\/lockfile/i, /Playwright config/i, /合同|contract/i, /基线|baseline/i, /代码状态|code state/i, /stale/i]), '', 'visual evidence must retain its complete stale boundary');
+});
+
+const visualContainmentSources = {
+  'SKILL.md': function() {
+    return projectionSection('SKILL.md', /^### Visual Context Guidance\s*$/m, /^## Innovate Phase\s*$/m);
+  },
+  'REFERENCE.md': function() {
+    const visual = projectionSection('REFERENCE.md', /^### Visual Context Guidance（按需）\s*$/m, /^### Innovate\s*$/m);
+    const provider = projectionSectionToNextSameLevel('REFERENCE.md', /^## Verification Provider\s*$/m, /^##\s+/m);
+    return visual + '\n\n' + provider;
+  }
+};
+
+const containmentRules = [
+  {
+    name: 'baseline Context paths pass lexical and realpath project-local containment',
+    terms: [/(?:baseline|基线)/i, /Context/i, /(?:path|路径)/i, /(?:lexical|词法)/i, /realpath/i, /(?:project-local|项目内|项目本地)/i, /containment/i]
+  },
+  {
+    name: 'Provider scenario bindings are static and project-local',
+    terms: [/Provider/i, /(?:scenario|场景)/i, /(?:binding|mapping|绑定|映射)/i, /(?:static|静态)/i, /(?:project-local|项目内|项目本地)/i]
+  }
+];
+
+test('paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback', function() {
+  const terms = containmentRules[0].terms;
+  assert.notEqual(
+    paragraphContainingTerms('Context 的 realpath 与词法 containment 都约束 baseline 路径位于项目内。', terms),
+    ''
+  );
+  assert.equal(
+    paragraphContainingTerms('Context 的 realpath 与词法 containment 约束 baseline。\n\n路径位于项目内。', terms),
+    ''
+  );
+});
+
+Object.keys(visualContainmentSources).forEach(function(file) {
+  containmentRules.forEach(function(rule) {
+    test(file + ' visual contract states that ' + rule.name, function() {
+      assert.notEqual(
+        paragraphContainingTerms(visualContainmentSources[file](), rule.terms),
+        '',
+        file + ' visual contract must state: ' + rule.name
+      );
+    });
   });
 });
 

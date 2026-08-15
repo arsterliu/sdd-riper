@@ -53,7 +53,7 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 1. **归档**：当出现 `NEXT_ACTION: request_archive_authorization` 时，必须请求当前用户对本次归档明确授权。Agent 不得自行构造授权参数，也不得从 Ready、PASS、Plan Approval、Challenge 结论或以前的授权推断许可。`human:<name>` 只是审计声明，不是身份认证。
 2. **Project Profile**：执行 `profile confirm` 前，必须向当前用户展示并确认 exact reviewed digest；Profile 的 `commandRefs` 只是事实，不自动执行，也不因此安装依赖。
 3. **E2E SKIPPED**：环境不可用时先排障；环境确实无法修复时先记录 `BLOCKED`，再由人决定 retry 或批准记录 `SKIPPED`。选择 `SKIPPED` 时必须写明 `Reason`、`Approved By: human:<name>` 和 `Approved At`。Flaky 结果不是 PASS，也不是跳过理由。
-4. **严格视觉证据**：启用 fidelity / direction 合同、批准设计方向或基线都需要明确人工决定。Agent 不得创建、替换或批准 baseline，也不得伪造截图差异结果。
+4. **严格视觉证据**：当前用户必须显式运行 `sdd visual init ...` 才能启用 fidelity / direction 合同，并明确批准设计方向或 baseline。Agent 不得创建、生成、替换、批准、版本化或管理 baseline，也不得伪造截图差异结果。
 5. **不可逆动作**：数据删除、迁移、发布等不可逆或难恢复操作必须人工介入。
 6. **范围扩大与新风险**：任何 scope expansion 或 new risk 都必须停下重新审视范围、Plan 和授权。
 7. **平台权限**：需要新的 platform permission、项目外写入或外部系统操作时，必须单独请求授权。
@@ -110,6 +110,9 @@ Cruise orchestrator 只读取 `BACKTRACK_TARGET`、控制迭代预算并协调�
 - [ ] 已选定任务 owner、worker 和独立 reviewer 的责任边界。
 - [ ] 已让用户确认 version、task-name、参考资料和 autonomy mode。
 - [ ] 已按任务风险选择 `standard`、`lite` 或 `micro`，没有按人员身份分级。
+- [ ] UI 任务由当前用户确认最新目标 UI PNG；旧页面截图只作为可选 Context，候选图和项目默认图片未被当作批准。
+- [ ] AI 已说明推荐 `direction` 或 `fidelity` 的理由；若采用 `fidelity`，baseline PNG 与计划生成的 current screenshot 像素宽度和高度分别完全一致。
+- [ ] 团队或 Provider 维护者已确认静态、项目内的场景映射，并保持测试数据、字体、资源和验证环境稳定。
 
 ### 执行中
 
@@ -119,6 +122,7 @@ Cruise orchestrator 只读取 `BACKTRACK_TARGET`、控制迭代预算并协调�
 - [ ] 偏差和失败先记录、debug，再决定继续、回退或升级。
 - [ ] 自动 reviewer 的当前授权明确包含其 actor，Challenge reviewer 保持只读。
 - [ ] `STOP_REASON` 非空时没有复用旧循环继续推进。
+- [ ] worker 发现或读取到 `stale` 时没有复用旧结果，已在 Execute Log 记录原因并重新获取证据。
 
 ### 完成前
 
@@ -128,5 +132,6 @@ Cruise orchestrator 只读取 `BACKTRACK_TARGET`、控制迭代预算并协调�
 - [ ] 偏差、修复、concern 或重开经验已完成 Learning Check。
 - [ ] 归档就绪只被视为 readiness，没有被当作当前用户授权。
 - [ ] 当前用户仅针对本次归档明确授权，归档摘要由现有制品生成。
+- [ ] Visual 结果未因 Provider、配置、合同、baseline 或代码状态变化而 `stale`；团队没有把视觉合同当作新增 Archive Gate，证据缺口仍由当前任务的 AC 与 Execute Log 承担。
 
 团队复盘应依据这些事实调整默认值、reviewer 配置、验证策略和采用范围。不要预设效率结论；先观察停机原因、AC 覆盖、失败回退和 Learning 是否让交付更可控，再决定下一阶段的推广范围。

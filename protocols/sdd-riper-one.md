@@ -25,7 +25,7 @@ Research -> Innovate -> Design -> Acceptance -> Plan -> Execute* -> Challenge ->
 ```
 
 - **Research**：需求审视、发现、待澄清问题、假设、已确认需求。
-- **Visual Evidence（按需）**：每个 Spec 先从绑定的精确 Profile 与 `affected-units` 确定 `ui-impact`，未知时只问一次。前端或混合任务由 Agent 根据任务事实路由 `not-required|direction|fidelity`，但 Agent 不得代为启用严格合同；只有当前用户显式运行 `sdd visual init ...` 才激活，随后严格按合同 inspect 和执行。不得伪造、创建、替换或批准基线，也不得把状态解释为 diff 通过。
+- **Visual Evidence（按需）**：每个 Spec 先从绑定的精确 Profile 与 `affected-units` 确定 `ui-impact`，未知时只问一次。baseline 是当前 Spec 冻结且人工认可的目标 UI PNG，不是跨 Spec 历史基线库；新 Spec 可直接使用最新 UI PNG，旧页面截图只是可选 Context。`fidelity` 仅在目标为可解码 PNG、scenario / route / state / viewport 均明确、目标与开发后的 current screenshot 尺寸可比且像素宽度和高度分别完全一致、测试数据 / 字体 / 资源稳定时推荐，否则推荐 `direction`；Agent 必须解释推荐 `direction` 或 `fidelity` 的理由，候选图和默认图片不等同人工认可。Agent 不得代为启用严格合同；只有当前用户显式运行 `sdd visual init ...` 才激活，随后严格按合同 inspect 和执行。Agent 不得创建、生成、替换、批准、版本化或管理 baseline，不得自动启动浏览器，也不得把状态解释为 diff 通过。
 - **Innovate**：比较至少两个方案，记录被否决的方案。
 - **Design**：在 `design-file` 中写技术设计；标签如 Selected Option / ADR、Requirement Traceability、Impact Scope、Architecture View、Data Model / Schema、Interface Contract、Compatibility / Rollback、Test Strategy 保持英文，内容用中文填写。
 - **Acceptance**：在 Spec 中写 `AC-###` 验收标准；元数据标签如 `Requirement:`、`Verification:`、`Test:`、`Manual Evidence:` 保持英文，BDD / Gherkin 场景描述用中文。

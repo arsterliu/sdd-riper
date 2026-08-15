@@ -53,6 +53,19 @@ function markdownAnchors(text) {
   return anchors;
 }
 
+function relativeReferenceLinks(markdown) {
+  return Array.from(stripFencedCode(markdown).matchAll(/\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+["'][^"']*["'])?\s*\)/g), function(match) {
+    return match[1];
+  }).filter(function(href) {
+    var pathPart = href.split('#', 1)[0];
+    if (!pathPart || path.isAbsolute(pathPart) || /^[a-z][a-z0-9+.-]*:/i.test(pathPart)) return false;
+    if (pathPart.indexOf('\\') !== -1 || pathPart.split('/').indexOf('..') !== -1) return false;
+    return path.posix.normalize(pathPart) === 'REFERENCE.md';
+  }).map(function(href) {
+    return { href: href, path: href.split('#', 1)[0] };
+  });
+}
+
 function markdownSection(text, headingPattern, level) {
   var source = stripFencedCode(text);
   var heading = new RegExp('^' + '#'.repeat(level) + '\\s+.*(?:' + headingPattern + ').*$', 'mi').exec(source);
@@ -1701,6 +1714,70 @@ describe('CLI commands', function() {
       return file.endsWith('.sh');
     });
     assert.deepStrictEqual(shellFiles, []);
+  });
+
+  it('install-skill includes published REFERENCE in the controlled copy entries', function() {
+    var installer = require('../src/commands/install-skill')._private;
+    var packageJson = JSON.parse(fs.readFileSync(path.resolve('package.json'), 'utf-8'));
+
+    assert.ok(packageJson.files.indexOf('REFERENCE.md') !== -1, 'package must publish REFERENCE.md');
+    assert.ok(installer.COPY_ENTRIES.indexOf('REFERENCE.md') !== -1, 'installer must copy published REFERENCE.md');
+  });
+
+  it('install-skill clean install copies REFERENCE and resolves installed guide links', function() {
+    var installer = require('../src/commands/install-skill')._private;
+    var targetRoot = path.join(tmpBase, 'skill-reference-target');
+    var target = installer.resolveTargets('codex', targetRoot)[0];
+
+    installer.installOne(target, { clean: true });
+    var installedReference = path.join(target.dir, 'REFERENCE.md');
+    assert.ok(fs.existsSync(installedReference), 'clean install must include REFERENCE.md');
+    assert.equal(
+      fs.readFileSync(installedReference, 'utf-8'),
+      fs.readFileSync(path.resolve('REFERENCE.md'), 'utf-8')
+    );
+
+    assert.deepStrictEqual(
+      relativeReferenceLinks('[精确参考](REFERENCE.md)\n[另一标签](./REFERENCE.md#visual-context)'),
+      [
+        { href: 'REFERENCE.md', path: 'REFERENCE.md' },
+        { href: './REFERENCE.md#visual-context', path: './REFERENCE.md' }
+      ],
+      'link parser must allow labels, optional ./, and anchors'
+    );
+    assert.deepStrictEqual(
+      relativeReferenceLinks('[外链](https://example.com/REFERENCE.md)\n[逃逸](../REFERENCE.md)\n[折返](docs/../REFERENCE.md)\n[绝对](/REFERENCE.md)'),
+      [],
+      'link parser must reject external, absolute, and path-escaping targets'
+    );
+
+    ['README.md', 'GUIDE.md'].forEach(function(file) {
+      var installedGuide = path.join(target.dir, file);
+      assert.ok(fs.existsSync(installedGuide), 'clean install must include ' + file);
+      var links = relativeReferenceLinks(fs.readFileSync(installedGuide, 'utf-8'));
+      assert.ok(links.length > 0, file + ' must contain a relative REFERENCE.md link');
+      links.forEach(function(link) {
+        var resolved = path.resolve(path.dirname(installedGuide), link.path);
+        assert.equal(resolved, installedReference, file + ' REFERENCE link must stay in the install directory');
+        assert.ok(fs.existsSync(resolved), file + ' REFERENCE link must resolve to an installed file');
+      });
+    });
+  });
+
+  it('install-skill check detects REFERENCE content drift through the fingerprint', function() {
+    var installer = require('../src/commands/install-skill')._private;
+    var targetRoot = path.join(tmpBase, 'skill-reference-integrity-target');
+    var target = installer.resolveTargets('codex', targetRoot)[0];
+
+    installer.installOne(target, { clean: true });
+    var installedReference = path.join(target.dir, 'REFERENCE.md');
+    assert.ok(fs.existsSync(installedReference), 'clean install must include REFERENCE.md before drift check');
+    fs.appendFileSync(installedReference, '\nlocal drift\n', 'utf-8');
+
+    var drift = installer.checkOne(target);
+    assert.equal(drift.ok, false);
+    assert.equal(drift.reason, 'content-drift');
+    assert.notEqual(drift.sourceFingerprint, drift.targetFingerprint);
   });
 
   it('install-skill copies bundled skill entries and can clean stale files', function() {

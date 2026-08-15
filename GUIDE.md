@@ -36,9 +36,11 @@
 
 AI 先确认这五项，创建 Spec，并按风险推荐 `micro`、`lite` 或 `standard`。`standard` / `lite` 进入 Research，读取参考资料和工程约定，明确做什么、不做什么、影响范围与验收意图；`micro` 跳过 Research、Innovate 和独立 Design，直接进入 Plan。
 
-接手已有工程时，Research 可以使用 Project Profile（工程画像）理解工程单元和技术栈。Profile 检测只读，不会安装依赖、初始化 Verification Provider，也不会自动执行画像中的命令引用。Spec 若固定了某个 Profile revision，AI 只能读取该精确版本，不能用 `current` 替代。
+接手已有工程时，AI 可以用只读的 Project Profile（工程画像）快速了解技术栈和工程单元，不会安装任何东西。
 
 每个新 Spec 还会先用绑定的精确 Profile 和 `affected-units` 推导 `ui-impact`；证据仍不足时只问一次是否影响界面。前端或混合任务必须在 Plan 前通过 Visual 指引确定一次 `visual-context-intent`：`not-required`、`direction` 或 `fidelity`。Context 中的图片、文档和 URL 会被只读发现，无需你先手选能力。
+
+界面任务可以直接把最新 UI PNG 交给 AI；经当前用户认可后，它会冻结为当前 Spec 的目标图。旧页面截图只是可选 Context，不必为了开始严格视觉验证而补做。AI 会先判断目标图能否与开发后的页面截图稳定地逐像素比较并说明理由：能满足严格比较条件时推荐 `fidelity`，否则推荐 `direction`。候选图和项目默认图片都不能替代当前用户认可。
 
 ### 何时停下
 
@@ -62,9 +64,7 @@ Spec 已绑定正确的上下文，当前任务制品能用人话说明任务边
 
 ### AI 动作
 
-AI 根据任务形状完成必要的方案比较、Design 和 Acceptance Criteria，再生成逐步可验证的 Plan。若任务跨多个工程单元，Quality Plan 可以在此解释“每条 AC 应由哪类测试能力覆盖”；它是只读说明。AC 是唯一验收真相，Quality Plan 不会创建第二套门禁、安装依赖、初始化 Provider 或执行测试。
-
-这份投影不会初始化 Provider、安装依赖或运行验证。AI 会在读取候选内容前检查路径与真实位置，只读取项目内目标；需要查看原始投影时，可选自查命令是 `sdd quality plan <project-dir>`。
+AI 根据任务形状完成必要的方案比较、Design 和验收标准，再生成逐步可验证的 Plan。跨多个工程单元时，AI 会用只读的 Quality Plan 告诉你每条验收标准该由哪类测试覆盖；AC 是唯一验收真相，这个建议不会改变它。想自己看原始建议，可运行 `sdd quality plan <项目目录>`。
 
 需要独立 Research reviewer 时，只有本次任务的新鲜授权明确包含该 reviewer actor，AI 才能启动；否则先请求当前用户授权。
 
@@ -106,11 +106,11 @@ sdd next <项目目录>
 
 AI 按 Plan 修改，并把每一步结果、AC Coverage、测试路径和偏差写入 Execute Log。失败时先找根因再重试。
 
-AC 声明 `Verification: e2e` 时还必须声明具体 `Provider:`。若缺少，先把具名 Provider 写入 AC；然后只在获批 Plan 的 Execute 阶段运行 `sdd verify init` 创建项目级 Provider，再显式运行验证。Verification 不会从任务内容接收任意命令，也不会把“配置存在”当成 PASS；缺少依赖、Playwright 或匹配浏览器时只报告并阻断，绝不自动安装或降级。
+端到端验证（`Verification: e2e`）需要项目里配置好的验证环境（Provider）。环境缺少依赖或浏览器时，AI 会报告并停下，不会自动安装或降级。界面任务按你提供的参考材料处理视觉部分；Figma 链接只当普通链接记录，不联网读取、不自动批准、不启动浏览器，也不做截图对比。
 
-Provider 初始化使用单一项目锁；若已有初始化正在进行，会返回 `SDD_VERIFY_INIT_LOCKED`，AI 不等待、不合并，也不自动清锁，而是在确认没有活动进程后再请人决定是否处理锁目录。
+当前用户认可目标图并显式运行 `sdd visual init ... --mode fidelity|direction` 后，严格视觉合同才会生效。开发完成后，获批的 `fidelity` 流程在 Plan 获批的 Execute 阶段显式运行独立视觉 Provider，生成同一页面状态的 current screenshot；它的像素宽度和高度必须分别与 baseline PNG 完全一致，才能执行截图差异验证。若选择 `direction`，首版页面截图仍通过任务自己的 manual AC 与 Execute Log 补齐。
 
-界面任务已在 Plan 前根据精确 Profile / `affected-units` 确定 `ui-impact` 和 `visual-context-intent`。需要视觉材料时，AI 使用只读 `sdd visual discover` 发现本地图片、文档和 URL；Figma URL 只作为普通 URL 引用记录，不联网读取、不自动批准、不启动浏览器，也不执行截图 diff。只有用户明确启用方向或高保真合同后，才进入严格视觉证据流程。
+Provider、工作区、配置、合同、baseline 或代码状态变化时，已有结果会标为 `stale`，不能沿用为本次证据。AI 不得创建、生成、批准、替换、版本化或管理 baseline；需要初始化 Provider、运行视觉验证、安装依赖或浏览器时，也必须遵守获批 Execute 与平台权限边界。
 
 ### 何时停下
 
