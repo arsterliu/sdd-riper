@@ -2495,7 +2495,7 @@ describe('CLI commands', function() {
       'SKILL.md',
       'protocols/sdd-riper-one.md',
       'protocols/sdd-riper-one-light.md',
-      'src/commands/_gen-ai-configs.js'
+      'src/core/ai-config-rules.js'
     ].forEach(function(file) {
       var text = fs.readFileSync(path.resolve(file), 'utf-8');
       assert.match(text, /request explicit archive authorization from the current user/i, file);
@@ -2725,7 +2725,7 @@ describe('CLI commands', function() {
       'SKILL.md',
       path.join('protocols', 'sdd-riper-one.md'),
       path.join('protocols', 'sdd-riper-one-light.md'),
-      path.join('src', 'commands', '_gen-ai-configs.js')
+      path.join('src', 'core', 'ai-config-rules.js')
     ].forEach(function(file) {
       var text = fs.readFileSync(path.resolve(file), 'utf-8');
       assert.equal(text.indexOf('Allowed Cruise writes'), -1, file);

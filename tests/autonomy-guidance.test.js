@@ -57,7 +57,7 @@ test('generated agent guidance permits only freshly authorized automatic reviewe
 });
 
 test('current governance sources do not restore removed approval or cruise switches', function() {
-  ['src/commands/_gen-ai-configs.js', 'protocols/sdd-riper-one.md', 'protocols/sdd-riper-one-light.md'].forEach(function(file) {
+  ['src/commands/_gen-ai-configs.js', 'src/core/ai-config-rules.js', 'protocols/sdd-riper-one.md', 'protocols/sdd-riper-one-light.md'].forEach(function(file) {
     const content = read(file);
     assert.doesNotMatch(content, /(?:APPROVAL_POLICY|CRUISE_ENABLED)\s*[:=]/, file + ' must not generate an active configuration key');
     assertNoActiveLegacySwitches(content, file);
@@ -99,7 +99,7 @@ const agentRules = [
   ['platform permission stop', /(?=[^\n]{0,420}platform permissions?)(?=[^\n]{0,420}(?:must stop|still stop|stop for|human authorization|non-delegable stop))[^\n]+/i],
   ['history readonly', /Archived and legacy artifacts remain readable without migration|Historical Read Compatibility/i]
 ];
-['SKILL.md', 'src/commands/_gen-ai-configs.js'].forEach(function(file) {
+['SKILL.md', 'src/core/ai-config-rules.js'].forEach(function(file) {
   agentRules.forEach(function(rule) {
     test(file + ' preserves hard stop: ' + rule[0], function() { assert.match(read(file), rule[1]); });
   });

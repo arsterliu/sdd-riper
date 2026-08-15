@@ -41,3 +41,4 @@
 | v4.7-documentation-workflow-consistency.md | 2026-08-11 | documentation-workflow-consistency | PASS |
 | v4.8-workflow-autonomy-policy.md | 2026-08-12 | workflow-autonomy-policy | PASS |
 | v4.9-ai-first-guide-routing.md | 2026-08-13 | ai-first-guide-routing | PASS |
+| v4.10-ai-config-block-slim.md | 2026-08-13 | ai-config-block-slim | PASS |

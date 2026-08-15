@@ -3,13 +3,11 @@ const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
 
-test('文档与生成配置引导前端 Spec 一次选择视觉意图，并统一处理本地视觉 Context', function() {
+test('视觉能力路由存在于权威来源，而非用户入口文档', function() {
   const root = path.resolve(__dirname, '..');
   const files = [
     'SKILL.md',
-    'src/commands/_gen-ai-configs.js',
-    'README.md',
-    'GUIDE.md',
+    'src/core/ai-config-rules.js',
     'INTEGRATIONS.md'
   ];
 

@@ -439,7 +439,7 @@ test('precise references state the current workflow Provider requirement and leg
 });
 
 test('AI guidance proactively confirms autonomy mode before creating a Spec', function() {
-  ['SKILL.md', 'src/commands/_gen-ai-configs.js'].forEach(function(file) {
+  ['SKILL.md', 'src/core/ai-config-rules.js'].forEach(function(file) {
     const text = readProjection(file);
     assert.match(text, /Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`/i, file + ' must require a proactive autonomy choice');
     assert.match(text, /recommend `supervised`/i, file + ' must provide the default recommendation');
@@ -456,11 +456,13 @@ test('AI guidance proactively confirms autonomy mode before creating a Spec', fu
 });
 
 test('AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops', function() {
-  ['SKILL.md', 'src/commands/_gen-ai-configs.js'].forEach(function(file) {
+  ['SKILL.md', 'src/core/ai-config-rules.js'].forEach(function(file) {
     const text = readProjection(file);
     const section = file === 'SKILL.md'
       ? (text.match(/^## Capability Routing\r?\n([\s\S]*?)(?=^##\s|(?![\s\S]))/m) || [])[0]
-      : (text.match(/Hard rules:[\s\S]*?(?=Entry points:)/) || [])[0];
+      : file === 'src/core/ai-config-rules.js'
+        ? (text.match(/var CORE_RULES = \[[\s\S]*?\];\s*\r?\nvar CAPABILITY_ROUTING = \[([\s\S]*?)\];/) || [])[0]
+        : (text.match(/Hard rules:[\s\S]*?(?=Entry points:)/) || [])[0];
     assert.ok(section, file + ' must expose a stable capability-routing instruction region');
 
     const rules = [
