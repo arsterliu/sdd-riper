@@ -63,14 +63,30 @@ function run(projectDir, opts) {
     }
     var now = new Date().toISOString();
     var backtrack = governanceContract.backtrackTarget(verdict) || 'Research';
-    // Replace the challenge fields in the spec
-    content = content
-      .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: ' + verdict)
-      .replace(/^Backtrack Target:.*$/m, 'Backtrack Target: ' + backtrack)
-      .replace(/^Challenge Summary:.*$/m, 'Challenge Summary: ' + summary)
-      .replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: ' + executedBy)
-      .replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: ' + now)
-      .replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: ' + verdict + ' - ' + summary);
+    // Function-form replacement only: a string replacement argument would
+    // interpret $'/$&/$` sequences inside summary/executedBy as replacement
+    // patterns and silently corrupt the spec.
+    var challengeLabels = [
+      ['Challenge Verdict', verdict],
+      ['Backtrack Target', backtrack],
+      ['Challenge Summary', summary],
+      ['Challenge Executed By', executedBy],
+      ['Challenge Executed At', now],
+      ['Challenge Evidence', verdict + ' - ' + summary]
+    ];
+    var missingLabels = challengeLabels.filter(function(pair) {
+      return !new RegExp('^' + pair[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ':', 'm').test(content);
+    }).map(function(pair) { return pair[0]; });
+    if (missingLabels.length) {
+      console.error('[ERROR] Spec template is missing Challenge label line(s): ' + missingLabels.join(', ') + '. Result not recorded.');
+      process.exit(1);
+    }
+    challengeLabels.forEach(function(pair) {
+      var escaped = pair[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      content = content.replace(new RegExp('^' + escaped + ':.*$', 'm'), function() {
+        return pair[0] + ': ' + pair[1];
+      });
+    });
     fs.writeFileSync(specPath, content, 'utf-8');
     console.log('[SDD Challenge] Result recorded in spec: ' + path.basename(specPath));
     console.log('  Verdict: ' + verdict);

@@ -61,16 +61,21 @@ function run(projectDir, opts) {
     console.error('Allowed drivers: ' + workflow.CRUISE_DRIVERS.join(', '));
     process.exit(1);
   }
-  if (state.nextAction === 'discover_spec') {
+  if (!state.specPath && (state.nextAction === 'discover_spec' || state.nextAction === 'migrate_autonomy_config')) {
     console.log('## CRUISE UNAVAILABLE');
     console.log('');
     console.log('SPEC: none');
     console.log('DRIVER: ' + driver);
-    console.log('STOP_REASON: no_active_spec');
-    console.log('NEXT_ACTION: discover_spec');
+    console.log('STOP_REASON: ' + (state.stopReason || (state.nextAction === 'discover_spec' ? 'no_active_spec' : 'migration_required')));
+    console.log('NEXT_ACTION: ' + state.nextAction);
     console.log('');
-    console.log('No active Spec found. Cruise requires an active Spec; start a new task first.');
-    console.log('Run: sdd discover "' + projectDir + '" --task-name <name> --spec-version <vN.M|vN.M.P>');
+    if (state.nextAction === 'discover_spec') {
+      console.log('No active Spec found. Cruise requires an active Spec; start a new task first.');
+      console.log('Run: sdd discover "' + projectDir + '" --task-name <name> --spec-version <vN.M|vN.M.P>');
+    } else {
+      console.log('Project autonomy config requires explicit migration before cruise.');
+      console.log('Run: sdd autonomy migrate "' + projectDir + '" --mode auto|supervised|human');
+    }
     return;
   }
   if (state.autonomyMode === 'human') {

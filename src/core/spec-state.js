@@ -167,6 +167,11 @@ function acCoverageRecords(executeLogContent) {
 function acCoverageContractIssues(acCoverage, projectDir) {
   var map = workflowGateFacts.coverageRecordMap(acCoverage.records);
   var issues = [];
+  (acCoverage.records || []).forEach(function(record) {
+    if (record.malformedId) {
+      issues.push('AC Coverage: ' + record.id + ' must be zero-padded three digits (AC-###); it will never match a declared AC id.');
+    }
+  });
   acCoverage.declarations.forEach(function(declaration) {
     var id = declaration.id;
     var record = map[id];

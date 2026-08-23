@@ -146,6 +146,11 @@ function acceptanceFacts(content, mode) {
     };
   }
   const issues = [];
+  blocks.forEach(function(block) {
+    if (!/^AC-\d{3}$/.test(block.id)) {
+      issues.push('AC id must be zero-padded three digits (AC-###): ' + block.id + '. Non-three-digit ids get no AC Coverage evidence and block archive.');
+    }
+  });
   const normalizedBlocks = blocks.map(function(block) {
     const text = block.lines.join('\n');
     const verification = artifactSnapshot.labelValue(text, 'Verification');
@@ -224,11 +229,12 @@ function acCoverageRecords(executeLogContent) {
         scenariosActive = false;
         return;
       }
-      const ac = line.match(/^  - (AC-\d{3}): (PASS|FAIL|SKIPPED)\s*$/);
+      const ac = line.match(/^  - (AC-\d{1,6}): (PASS|FAIL|SKIPPED)\s*$/);
       if (ac) {
         current = {
           id: ac[1],
           result: ac[2],
+          malformedId: !/^AC-\d{3}$/.test(ac[1]),
           scenarios: [],
           test: '',
           method: '',

@@ -466,6 +466,13 @@ function validateAcCoverage(projectDir, archiveReady, issues, gateFacts) {
   // The latest decision is authoritative while earlier Test/Method/Scenario
   // evidence remains part of the same AC contract.
   var coverageMap = workflowGateFacts.coverageRecordMap(coverageRecords);
+  // Non-three-digit record ids can never match a declaration; diagnose instead
+  // of silently leaving both sides without evidence.
+  coverageRecords.forEach(function(record) {
+    if (record.malformedId) {
+      issues.push('AC Coverage: ' + record.id + ' must be zero-padded three digits (AC-###); it will never match a declared AC id.');
+    }
+  });
   // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
   declarations.forEach(function(decl) {
     var cov = coverageMap[decl.id];

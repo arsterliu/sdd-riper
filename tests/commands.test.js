@@ -3185,3 +3185,86 @@ describe('CLI commands', function() {
     assert.ok(docs.indexOf('Yarn PnP') !== -1);
   });
 });
+
+describe('gate integrity fixes (v4.12)', function() {
+  beforeEach(function() {
+    if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true });
+    fs.mkdirSync(tmpBase, { recursive: true });
+  });
+
+  afterEach(function() {
+    if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true });
+  });
+
+  function makeMicroSpec(dir, name) {
+    run('init ' + dir + ' --mode micro');
+    run('discover ' + dir + ' --task-name ' + name + ' --spec-version v1.0 --requirement r --mode micro');
+    return path.join(dir, 'mydocs', 'specs', 'v1.0-' + name + '.md');
+  }
+
+  it('record-result with $-pattern summary does not corrupt the spec (AC-001)', function() {
+    var demo = path.join(tmpBase, 'v412-injection');
+    var sf = makeMicroSpec(demo, 'inj');
+    var sectionsBefore = countOccurrences(fs.readFileSync(sf, 'utf-8'), '^## ');
+    var out = run('challenge ' + demo + " --name inj --record-result PASS --summary \"budget: $' TAIL $& MORE\" --executed-by inline");
+    assert.ok(out.indexOf('exit:') === -1, out);
+    var specText = fs.readFileSync(sf, 'utf-8');
+    assert.match(specText, /^Challenge Summary: budget: \$' TAIL \$& MORE$/m);
+    assert.equal(countOccurrences(specText, '^## '), sectionsBefore, 'section structure must be unchanged');
+    assert.match(specText, /^## Completion Verification/m);
+  });
+
+  it('record-result fails loudly when a Challenge label line is missing (AC-002)', function() {
+    var demo = path.join(tmpBase, 'v412-missing-label');
+    var sf = makeMicroSpec(demo, 'mlabel');
+    fs.writeFileSync(sf, fs.readFileSync(sf, 'utf-8').replace(/^Challenge Evidence:.*$/m, ''), 'utf-8');
+    var before = fs.readFileSync(sf, 'utf-8');
+    var out = run('challenge ' + demo + ' --name mlabel --record-result PASS --summary x --executed-by inline');
+    assert.ok(out.indexOf('missing Challenge label') !== -1 && out.indexOf('Challenge Evidence') !== -1, out);
+    assert.ok(out.indexOf('exit:1') !== -1 || out.indexOf('exit:2') !== -1 || out.indexOf('exit:3') !== -1, out);
+    assert.equal(fs.readFileSync(sf, 'utf-8'), before, 'spec must not be written on missing labels');
+  });
+
+  it('non-three-digit AC declarations produce a diagnostic blocker (AC-003)', function() {
+    var workflowGateFacts = require('../src/core/workflow-gate-facts');
+    var specState = require('../src/core/spec-state');
+    var content = [
+      '---', 'date: 2026-08-23', 'task-name: "t"', 'mode: micro', 'status: draft',
+      'design-file: ""', 'execute-log-file: ""', '---', '',
+      '## Intake', 'requirement: r', '',
+      '## Acceptance Criteria', '- AC-42 does the thing.', '  Verification: unit', ''
+    ].join('\n');
+    var facts = workflowGateFacts.collectGateFacts({
+      content: content, mode: 'micro', location: 'active', projectDir: '', specPath: ''
+    });
+    assert.ok(facts.acceptance.issues.some(function(issue) {
+      return issue.indexOf('zero-padded three digits') !== -1 && issue.indexOf('AC-42') !== -1;
+    }), JSON.stringify(facts.acceptance.issues));
+    var logContent = '## Execute Log\n\nStep 1:\nStatus: DONE\nAC Coverage:\n  - AC-7: PASS\nTimestamp: 2026-08-23T00:00:00.000Z\n';
+    var records = workflowGateFacts.acCoverageRecords(logContent);
+    assert.equal(records.length, 1);
+    assert.ok(records[0].malformedId, 'AC-7 record must be flagged malformedId');
+    var snapshot = { exists: true, content: content, mode: 'micro', location: 'active',
+      executeLog: { ref: '', path: '', exists: true, content: logContent },
+      learning: null, design: null, isGitRepo: false, status: 'draft' };
+    var evaluated = specState.evaluate(snapshot);
+    var messages = evaluated.blockers.map(function(blocker) { return blocker.message; });
+    assert.ok(messages.some(function(message) {
+      return message.indexOf('must be zero-padded three digits') !== -1 && message.indexOf('AC-7') !== -1;
+    }), JSON.stringify(messages));
+  });
+
+  it('cruise --record-run on migration-required project prints guidance and exits 0 (AC-004)', function() {
+    var demo = path.join(tmpBase, 'v412-migration-record');
+    run('init ' + demo + ' --mode micro');
+    fs.writeFileSync(path.join(demo, '.sdd-config'), 'DOCS_DIR="mydocs"\n', 'utf-8');
+    var out = run('cruise ' + demo + ' --record-run');
+    assert.ok(out.indexOf('CRUISE UNAVAILABLE') !== -1, out);
+    assert.ok(out.indexOf('NEXT_ACTION: migrate_autonomy_config') !== -1, out);
+    assert.ok(out.indexOf('sdd autonomy migrate') !== -1, out);
+    assert.ok(out.indexOf('exit:') === -1, out);
+    var runsDir = path.join(demo, 'mydocs', 'runs');
+    var ledgerFiles = fs.existsSync(runsDir) ? fs.readdirSync(runsDir).filter(function(f) { return /\.cruise\.jsonl$/.test(f); }) : [];
+    assert.equal(ledgerFiles.length, 0, 'no run ledger may be created');
+  });
+});
