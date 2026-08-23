@@ -230,3 +230,44 @@ describe('common.js utilities', function() {
     assert.ok(result.indexOf('other') === -1, 'Should not include next section');
   });
 });
+
+describe('auxiliary spec name filtering (v4.13 AC-003)', function() {
+  var common;
+
+  beforeEach(function() {
+    delete require.cache[require.resolve('../lib/common')];
+    common = require('../lib/common');
+    setupProject('standard');
+  });
+
+  afterEach(function() {
+    if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true });
+  });
+
+  it('isAuxiliarySpecName detects design/execute/learning artifacts only', function() {
+    assert.equal(common.isAuxiliarySpecName('v1.0-task.design.md'), true);
+    assert.equal(common.isAuxiliarySpecName('v1.0-task.execute.md'), true);
+    assert.equal(common.isAuxiliarySpecName('v1.2.3-task.learning.md'), true);
+    assert.equal(common.isAuxiliarySpecName('v1.0-task.md'), false);
+    assert.equal(common.isAuxiliarySpecName('README.md'), false);
+    assert.equal(common.isAuxiliarySpecName(''), false);
+  });
+
+  it('findLatestSpec ignores auxiliary artifacts in specs dir', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    fs.writeFileSync(path.join(specsDir, 'v1.0-real-spec.md'),
+      '---\ndate: 2026-08-23\nstatus: draft\n---\n\n## Summary\nreal spec\n', 'utf-8');
+    fs.writeFileSync(path.join(specsDir, 'v1.0-real-spec.design.md'),
+      '---\ndate: 2026-08-24\nstatus: draft\n---\n\n# Design Note\n', 'utf-8');
+    fs.writeFileSync(path.join(specsDir, 'v1.0-real-spec.execute.md'),
+      '---\ndate: 2026-08-25\nstatus: active\n---\n\n# Execute Log\n', 'utf-8');
+    var latest = common.findLatestSpec(specsDir);
+    assert.ok(latest.endsWith('v1.0-real-spec.md'), 'latest must be the real spec, got: ' + latest);
+  });
+
+  it('findLatestSpec returns empty when only auxiliary artifacts exist', function() {
+    var specsDir = path.join(docsDir, 'specs');
+    fs.writeFileSync(path.join(specsDir, 'v9.9-ghost.design.md'), 'x\n', 'utf-8');
+    assert.equal(common.findLatestSpec(specsDir), '');
+  });
+});

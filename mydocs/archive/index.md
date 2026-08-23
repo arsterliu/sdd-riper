@@ -45,3 +45,4 @@
 | v4.10-visual-target-guidance.md | 2026-08-15 | visual-target-guidance | PASS |
 | v4.11-cruise-no-spec-crash.md | 2026-08-23 | cruise-no-spec-crash | PASS_WITH_CONCERNS |
 | v4.12-gate-integrity-fixes.md | 2026-08-23 | gate-integrity-fixes | PASS_WITH_CONCERNS |
+| v4.13-risk-signal-and-spec-listing.md | 2026-08-23 | risk-signal-and-spec-listing | PASS_WITH_CONCERNS |

@@ -283,7 +283,9 @@ function listMarkdown(dir) {
 function listSpecs(projectDir, opts) {
   opts = opts || {};
   var docsRoot = common.getDocsRoot(projectDir);
-  var active = listMarkdown(path.join(docsRoot, 'specs')).map(function(file) {
+  var active = listMarkdown(path.join(docsRoot, 'specs')).filter(function(file) {
+    return !/\.design\.md$|\.execute\.md$|\.learning\.md$/.test(file);
+  }).map(function(file) {
     return parseSpec(projectDir, file, 'active', opts);
   });
   var archived = listMarkdown(path.join(docsRoot, 'archive')).filter(function(file) {

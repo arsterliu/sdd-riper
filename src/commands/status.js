@@ -37,7 +37,7 @@ function run(projectDir) {
 
   if (fs.existsSync(specsDir)) {
     fs.readdirSync(specsDir).forEach(function(file) {
-      if (file === '.gitkeep' || !file.endsWith('.md')) return;
+      if (file === '.gitkeep' || !file.endsWith('.md') || common.isAuxiliarySpecName(file)) return;
       var specPath = path.join(specsDir, file);
       total++;
       if ((common.getFrontmatterField(specPath, 'status') || 'draft') !== 'archived') draft++;

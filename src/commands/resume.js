@@ -13,7 +13,7 @@ function run(projectDir) {
   }
   var specsDir = path.join(docsRoot, 'specs');
   var allFiles = fs.existsSync(specsDir)
-    ? fs.readdirSync(specsDir).filter(function(f) { return f.endsWith('.md') && f !== '.gitkeep'; })
+    ? fs.readdirSync(specsDir).filter(function(f) { return f.endsWith('.md') && f !== '.gitkeep' && !common.isAuxiliarySpecName(f); })
     : [];
   var specCount = allFiles.length;
   var latestSpec = common.findLatestSpec(specsDir);

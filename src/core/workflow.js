@@ -75,8 +75,9 @@ function riskFlags(content, crSection) {
     if (risk.classifyIrreversibility(irreversibility) === 'irreversible') {
       flags.push('irreversible');
     }
-    // Impact Radius → public-api flag
-    if (impactRadius && /\b(public|external|公开|外部|api)\b/i.test(impactRadius)) {
+    // Impact Radius → public-api flag (CJK alternatives live outside \b —
+    // word boundaries never match against CJK characters)
+    if (impactRadius && (/\b(public|external|api)\b/i.test(impactRadius) || /公开|外部/.test(impactRadius))) {
       flags.push('public-api');
     }
     // Dependencies & Constraints → security / billing / migration flags

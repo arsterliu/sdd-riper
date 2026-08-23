@@ -177,3 +177,22 @@ describe('analyzeSpec no-spec early return shape (v4.11)', function() {
     assert.ok(out.indexOf('NEXT_ACTION:') !== -1, out);
   });
 });
+
+describe('CJK risk keyword matching (v4.13)', function() {
+  it('Phase 2 full-text Chinese keywords produce flags without structured fields (AC-001)', function() {
+    var flags = workflow.riskFlags('我们要对用户表执行数据迁移，并需要支付通道对接。');
+    assert.ok(flags.indexOf('migration') !== -1, 'migration expected: ' + flags);
+    assert.ok(flags.indexOf('billing') !== -1, 'billing expected: ' + flags);
+  });
+
+  it('Phase 1 Impact Radius CJK alternatives match outside word boundaries (AC-001)', function() {
+    var crSection = 'Scope Boundary: internal\nIrreversibility: none\nImpact Radius: 对外部系统暴露接口\nDependencies & Constraints: none\nAcceptance Intent: x';
+    var flags = workflow.riskFlags('no risk here', crSection);
+    assert.ok(flags.indexOf('public-api') !== -1, 'public-api expected from 外部: ' + flags);
+  });
+
+  it('English keyword behavior unchanged (AC-002 regression)', function() {
+    assert.deepEqual(workflow.riskFlags('we will run data migration and touch billing'), ['billing', 'migration']);
+    assert.deepEqual(workflow.riskFlags('the author refactored the authentication-free helper'), []);
+  });
+});
