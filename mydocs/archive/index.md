@@ -43,3 +43,4 @@
 | v4.9-ai-first-guide-routing.md | 2026-08-13 | ai-first-guide-routing | PASS |
 | v4.10-ai-config-block-slim.md | 2026-08-13 | ai-config-block-slim | PASS |
 | v4.10-visual-target-guidance.md | 2026-08-15 | visual-target-guidance | PASS |
+| v4.11-cruise-no-spec-crash.md | 2026-08-23 | cruise-no-spec-crash | PASS_WITH_CONCERNS |

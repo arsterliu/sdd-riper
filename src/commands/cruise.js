@@ -61,6 +61,18 @@ function run(projectDir, opts) {
     console.error('Allowed drivers: ' + workflow.CRUISE_DRIVERS.join(', '));
     process.exit(1);
   }
+  if (state.nextAction === 'discover_spec') {
+    console.log('## CRUISE UNAVAILABLE');
+    console.log('');
+    console.log('SPEC: none');
+    console.log('DRIVER: ' + driver);
+    console.log('STOP_REASON: no_active_spec');
+    console.log('NEXT_ACTION: discover_spec');
+    console.log('');
+    console.log('No active Spec found. Cruise requires an active Spec; start a new task first.');
+    console.log('Run: sdd discover "' + projectDir + '" --task-name <name> --spec-version <vN.M|vN.M.P>');
+    return;
+  }
   if (state.autonomyMode === 'human') {
     console.log('## HUMAN-GUIDED WORKFLOW');
     console.log('');
