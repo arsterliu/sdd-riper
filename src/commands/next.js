@@ -66,6 +66,10 @@ function run(projectDir, opts) {
     console.log('GUIDANCE: 当前任务使用 human 模式。请先确认 ' + state.requiredGate + ' 治理节点；机械测试和计划内调试不需要逐项审批。');
     console.log('GUIDANCE_COMMAND: sdd autonomy approve-gate <project-dir> --spec <spec> --gate ' + state.requiredGate + ' --expected-digest ' + state.scopeDigest + ' --authorized-by human:<name> --authorization-evidence <text>');
   }
+  if (state.nextAction === 'activate_auto_plan') {
+    console.log('GUIDANCE: 当前 auto 任务的 scope 与 risk 授权仍有效，且 Plan 已由 Agent 批准。主 Agent 应自动记录 Plan 激活，不得向用户再次请求批准 Plan 或 reviewer 授权。');
+    console.log('GUIDANCE_COMMAND: sdd autonomy activate-plan <project-dir> --spec <spec> --expected-scope-digest ' + state.scopeDigest + ' --expected-risk-snapshot ' + state.riskSnapshot + ' --expected-plan-digest ' + state.planDigest + ' --activated-by agent:<id> --evidence <single-line evidence>');
+  }
   if (state.nextAction === 'run_challenge' || state.blockers.some(function(issue) { return /Challenge|Research Gate|Research Reviewed By|Research Reviewed At|independent reviewer/i.test(issue); })) {
     console.log('REVIEWER_GUIDANCE:');
     reviewerGuidance.guidanceLines().forEach(function(line) {

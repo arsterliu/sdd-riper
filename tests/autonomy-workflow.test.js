@@ -32,6 +32,34 @@ test('authorization resolver distinguishes active and stale scope', function() {
   assert.equal(autonomyState.resolve(content.replace('- project', '- project,api')).stopReason, 'scope_changed');
 });
 
+test('empty auto Plan approval fields do not trigger Plan activation', function() {
+  let content = spec('auto', 'Plan Approved By:\nApproved At:\nGate Evidence:');
+  const risk = autonomyState.riskFlagsSnapshot([]);
+  content = autonomyState.appendEvent(content, {
+    eventId: 'task', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: risk, planDigest: '',
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:liuy',
+    authorizedAt: '2026-08-26T00:00:00Z', authorizationEvidence: '确认'
+  });
+  const resolved = autonomyState.resolve(content, { riskSnapshot: risk });
+  assert.equal(resolved.authorizationState, 'active');
+  assert.equal(resolved.stopReason, '');
+});
+
+test('empty auto approval timestamp does not consume a following narrative line', function() {
+  let content = spec('auto', 'Plan Approved By: agent:root\nApproved At:\n审批说明：等待人工填写时间\nGate Evidence: complete');
+  const risk = autonomyState.riskFlagsSnapshot([]);
+  content = autonomyState.appendEvent(content, {
+    eventId: 'task', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
+    scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: risk, planDigest: '',
+    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:liuy',
+    authorizedAt: '2026-08-26T00:00:00Z', authorizationEvidence: '确认'
+  });
+  const resolved = autonomyState.resolve(content, { riskSnapshot: risk });
+  assert.equal(resolved.authorizationState, 'active');
+  assert.equal(resolved.stopReason, '');
+});
+
 test('human gate approval is fresh only for the current scope risk and plan', function() {
   let content = spec('human', 'do it');
   content = autonomyState.appendEvent(content, {

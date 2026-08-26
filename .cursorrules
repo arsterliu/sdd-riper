@@ -29,6 +29,7 @@ Hard rules:
 - Spec is the control plane: it owns goal, Research, Innovate, Acceptance Criteria, Plan, approvals, and references to `design-file`, `execute-log-file`, and `learning-file`. Do not recreate embedded Design / Execute Log / Learning sections inside Spec.
 - When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.
 - Do not move past Plan without approval and gate evidence. `auto` may use `Plan Approved By: agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.
+- In auto mode, after the current user confirms the current scope and risk, automatically record task authorization for main, worker, research-reviewer, and challenge-reviewer. When a fresh authorization covers the current scope/risk and an agent-approved Plan has no activation, automatically record a `plan_activation` event with `sdd autonomy activate-plan`, the current scope, risk, and Plan digests, and `agent:<id>` evidence; do not request a human to approve the Plan again or re-authorize those reviewers. This does not bypass any dedicated human stop.
 - When a Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.
 - Independent Review is separate from approval. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline.
 - An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.
@@ -62,7 +63,7 @@ Project configuration:
 - Docs root defaults to `mydocs/`, override via `.sdd-config` (`DOCS_DIR=...`).
 - `AUTONOMY_MODE=auto|supervised|human` sets the project default; each active Spec freezes its effective mode and authorization evidence.
 - Keep `CRUISE_MAX_ITERATIONS` as the bounded repair budget. Auto and supervised may continue only within fresh authorized scope; human pauses at governance gates.
-- Autonomy writes target only the current active Spec and recheck expected digests under `.sdd-autonomy.lock`. Supervised binds the exact Plan digest; auto requires `plan_activation` after Plan approval.
+- Autonomy writes target only the current active Spec and recheck expected digests under `.sdd-autonomy.lock`. Supervised binds the exact Plan digest; auto automatically records `plan_activation` after Agent Plan approval, but only when the current scope, risk, and Plan digests still match.
 - Never reuse a native loop while `STOP_REASON` is non-empty. Scope, risk, or Plan changes invalidate the matching authorization or activation.
 - Cruise Driver is selected with `sdd cruise --driver <driver>`.
 - Cruise orchestrator only routes and bounds iterations; the main agent re-enters `BACKTRACK_TARGET` under that phase's gates and write boundaries; the Challenge reviewer remains read-only.

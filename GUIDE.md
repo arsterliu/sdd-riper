@@ -82,6 +82,8 @@ Plan Approval 使用下面的完整矩阵：
 
 无论哪一档，Plan Approval 都只解决 Plan 门禁，不能推导 reviewer 授权、后续持续自动推进授权或最终归档授权。
 
+`auto` 的例外是：在你已确认当前任务范围和风险、并明确授权持续推进后，AI 会先记录主 Agent 与只读 reviewer 的任务授权；随后若 Agent 批准 Plan 且 scope、风险和 Plan 摘要仍一致，AI 自动记录 Plan 激活，不会再次向你索要 Plan 批准或 reviewer 授权。归档、范围扩大、新风险、不可逆操作、平台权限、Profile 摘要确认和 E2E 跳过仍单独停下。
+
 ### 完成标志
 
 Design（如需要）、AC 和 Plan 相互对应；Plan 指明文件边界、具体改动与验证方法，并留下有效的 Plan Approval。若要持续推进，授权范围和风险快照也已明确。

@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const labelFacts = require('./label-facts');
 
 const START = '<!-- sdd-autonomy:start -->';
 const END = '<!-- sdd-autonomy:end -->';
@@ -124,7 +125,11 @@ function resolve(content, options) {
       }
     }
   });
-  const planApproved = !!section(withoutControlBlock(content), 'Plan').match(/^Plan Approved By:\s*\S+/m);
+  const approvedBy = labelFacts.sameLineLabelValue(content, 'Plan Approved By');
+  const approvedAt = labelFacts.sameLineLabelValue(content, 'Approved At');
+  const evidence = labelFacts.sameLineLabelValue(content, 'Gate Evidence');
+  const planApproved = !!approvedAt && (/^human:[^:\s]+$/i.test(approvedBy) ||
+    (mode === 'auto' && /^agent:[^:\s]+$/i.test(approvedBy) && !!evidence));
   let fresh = !!active && active.mode === mode && active.scopeDigest === scope && active.riskSnapshot === risk &&
     (active.eventType !== 'plan_authorization' || active.planDigest === plan);
   if (mode === 'auto' && taskAuthorization && planApproved) {

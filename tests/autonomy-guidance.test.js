@@ -56,6 +56,14 @@ test('generated agent guidance permits only freshly authorized automatic reviewe
   });
 });
 
+test('auto guidance distinguishes automatic Plan activation from a human approval request', function() {
+  ['SKILL.md', 'src/core/ai-config-rules.js'].forEach(function(file) {
+    const content = read(file);
+    assert.match(content, /auto[\s\S]{0,500}(?:automatically|自动)[\s\S]{0,300}plan_activation/i, file);
+    assert.match(content, /(?:scope|范围)[\s\S]{0,300}(?:risk|风险)[\s\S]{0,300}(?:Plan|plan)[\s\S]{0,300}(?:digest|摘要)/i, file);
+  });
+});
+
 test('current governance sources do not restore removed approval or cruise switches', function() {
   ['src/commands/_gen-ai-configs.js', 'src/core/ai-config-rules.js', 'protocols/sdd-riper-one.md', 'protocols/sdd-riper-one-light.md'].forEach(function(file) {
     const content = read(file);

@@ -881,7 +881,7 @@ sdd autonomy activate-plan <dir> --spec <active-spec> --expected-scope-digest <d
 sdd autonomy approve-gate <dir> --spec <active-spec> --gate <gate> --expected-digest <digest> ...
 ```
 
-`supervised` 的 `authorize` 必须同时匹配用户实际审阅的 Plan digest。`auto` 的任务授权只覆盖 Plan 前阶段；Plan 批准后必须追加 `plan_activation`，Plan 修订时以同一命令 rebind。只有 Scope 与风险快照均未改变才能激活；新增风险返回 `risk_changed`，范围变化返回 `scope_changed`。Cruise 在任一 `STOP_REASON` 下都不得复用原生循环，账本分别记录 `budget_exhausted` 与 `archive_authorization`。
+`supervised` 的 `authorize` 必须同时匹配用户实际审阅的 Plan digest。`auto` 在当前用户确认 Scope / 风险后记录 main、worker、research-reviewer、challenge-reviewer 的任务授权；当 Agent 批准 Plan 且当前 Scope、风险快照和 Plan digest 均未改变时，主 Agent 自动追加 `plan_activation`，不得因此再次请求用户批准 Plan 或 reviewer。Plan 修订时以同一命令 rebind；新增风险返回 `risk_changed`，范围变化返回 `scope_changed`。Cruise 在任一 `STOP_REASON` 下都不得复用原生循环，账本分别记录 `budget_exhausted` 与 `archive_authorization`。
 
 三档都不允许旁路这些门禁：最终归档、Project Profile 精确 digest、E2E `SKIPPED`、不可逆动作、范围扩大、新风险和平台权限。自动 reviewer 仍须保持只读、独立和可审计。
 

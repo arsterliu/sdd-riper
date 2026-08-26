@@ -12,7 +12,7 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 
 | Autonomy | Plan Approval | 后续推进 | 适用判断 |
 | :--- | :--- | :--- | :--- |
-| `auto` | 必须记录 `Plan Approved By: agent:<id>`、`Approved At` 和明确可验证的 `Gate Evidence` | 仍需要新鲜的任务授权和与当前 Plan 匹配的 activation；只在授权范围内连续推进 | 边界清楚、可逆、验证充分且风险较低的任务 |
+| `auto` | 必须记录 `Plan Approved By: agent:<id>`、`Approved At` 和明确可验证的 `Gate Evidence` | 用户首次确认 Scope / 风险后记录主 Agent 与 reviewer 授权；Plan 摘要仍匹配时由 Agent 自动 activation，不重复询问 Plan 或 reviewer | 边界清楚、可逆、验证充分且风险较低的任务 |
 | `supervised` | 必须记录 `Plan Approved By: human:<name>` 和 `Approved At` | Plan Approval 与持续自动推进授权是两件独立事件；前者不能推出后者 | 团队常规任务和渐进采用 |
 | `human` | 必须记录 `Plan Approved By: human:<name>` 和 `Approved At` | 在治理节点暂停，由人逐次决定是否继续；Plan Approval 不能推出后续授权 | 高风险、不确定或需要紧密控制的任务 |
 

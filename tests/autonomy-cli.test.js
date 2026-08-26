@@ -173,6 +173,28 @@ test('auto task authorization requires auditable Plan activation after Plan appr
   } finally { fs.rmSync(project, { recursive: true, force: true }); }
 });
 
+test('auto next routes a fresh Agent-approved Plan to automatic activation', function() {
+  const project = root();
+  try {
+    run(['init', project, '--autonomy-mode', 'auto'], project);
+    run(['discover', project, '--task-name', 'auto-next', '--spec-version', 'v1.0', '--requirement', 'x'], project);
+    const spec = path.join(project, 'mydocs/specs/v1.0-auto-next.md');
+    let content = fs.readFileSync(spec, 'utf-8');
+    const scope = autonomyState.scopeSnapshot(content);
+    assert.equal(run(['autonomy', 'authorize', project, '--spec', spec, '--expected-scope-digest', scope, '--authorized-by', 'human:liuy', '--authorization-evidence', '确认范围'], project).status, 0);
+    content = fs.readFileSync(spec, 'utf-8').replace(/^Plan Approved By:$/m, 'Plan Approved By: agent:root')
+      .replace(/^Approved At:$/m, 'Approved At: 2026-08-26T00:00:00Z')
+      .replace(/^Gate Evidence:$/m, 'Gate Evidence: plan within authorized scope');
+    fs.writeFileSync(spec, content, 'utf-8');
+
+    const next = run(['next', project], project);
+    assert.equal(next.status, 0, next.output);
+    assert.match(next.output, /NEXT_ACTION: activate_auto_plan/);
+    assert.match(next.output, /GUIDANCE_COMMAND: sdd autonomy activate-plan/);
+    assert.doesNotMatch(next.output, /NEXT_ACTION: request_task_authorization/);
+  } finally { fs.rmSync(project, { recursive: true, force: true }); }
+});
+
 test('autonomy lock fails closed before any Spec mutation', function() {
   const project = root();
   try {

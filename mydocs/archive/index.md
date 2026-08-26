@@ -46,3 +46,4 @@
 | v4.11-cruise-no-spec-crash.md | 2026-08-23 | cruise-no-spec-crash | PASS_WITH_CONCERNS |
 | v4.12-gate-integrity-fixes.md | 2026-08-23 | gate-integrity-fixes | PASS_WITH_CONCERNS |
 | v4.13-risk-signal-and-spec-listing.md | 2026-08-23 | risk-signal-and-spec-listing | PASS_WITH_CONCERNS |
+| v0.5.2-auto-authorization-flow.md | 2026-08-26 | auto-authorization-flow | PASS_WITH_CONCERNS |

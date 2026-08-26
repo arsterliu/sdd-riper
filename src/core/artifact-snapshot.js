@@ -3,6 +3,7 @@ var path = require('path');
 var execFileSync = require('child_process').execFileSync;
 var common = require('../../lib/common');
 var autonomyState = require('./autonomy-state');
+var labelFacts = require('./label-facts');
 
 var gitRepoCache = new Map();
 
@@ -19,24 +20,7 @@ function isInsideGitRepo(projectDir) {
   return result;
 }
 
-function labelValue(content, label) {
-  var escaped = String(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  var lines = String(content || '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var re = new RegExp('^' + escaped + ':[ \\t]*(.*)$', 'i');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    var match = line.match(re);
-    if (!match) continue;
-    if (match[1] && match[1].trim()) return match[1].trim();
-    for (var j = i + 1; j < lines.length; j++) {
-      var next = lines[j].trim();
-      if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \\t]*/.test(next)) break;
-      return next;
-    }
-  }
-  return '';
-}
+var labelValue = labelFacts.labelValue;
 
 function referencedArtifact(projectDir, specPath, field) {
   var ref = common.getFrontmatterField(specPath, field);

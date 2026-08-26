@@ -292,7 +292,9 @@ function analyzeSpec(projectDir, specPath, opts) {
     stopReason = 'migration_required';
     blockers.unshift((projectAutonomy.code || 'SDD_AUTONOMY_MIGRATION_REQUIRED') + ': run sdd autonomy migrate <project-dir> --mode auto|supervised|human.');
   } else if (autonomy.mode === 'auto' && autonomy.authorizationState !== 'active') {
-    nextAction = 'request_task_authorization';
+    nextAction = autonomy.stopReason === 'plan_activation_required'
+      ? 'activate_auto_plan'
+      : 'request_task_authorization';
     stopReason = autonomy.stopReason;
   } else if (autonomy.mode === 'supervised' && autonomy.authorizationState !== 'active' &&
       ['execute_plan', 'run_challenge', 'repair_and_retry'].indexOf(evaluated.nextAction) !== -1) {

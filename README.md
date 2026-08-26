@@ -47,7 +47,7 @@ sdd install-skill --target codex
 
 协作方式决定 AI 在哪些治理节点停下：
 
-- `auto`：你确认任务范围和风险并授权后，AI 可在授权范围内持续推进到归档前。
+- `auto`：你确认任务范围和风险并授权后，AI 会记录主 Agent 与独立 reviewer 的持续授权；Plan 由 Agent 批准后自动绑定当前摘要，不会为此再次请你批准 Plan 或授权 reviewer，并可在授权范围内持续推进到归档前。
 - `supervised`：你先看 Plan。Plan Approval 只表示计划获准执行；后续持续自动推进还需要一份独立、明确的授权。
 - `human`：AI 在关键治理节点逐次请你确认，普通计划内修改和测试不逐行打扰。
 
