@@ -187,7 +187,8 @@ test('publishes immutable verdicts and derives known and passing semantics from 
 
 test('Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract', function() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-'));
-  const specPath = path.join(root, 'spec.md');
+  const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
+  fs.mkdirSync(path.dirname(specPath), { recursive: true });
   fs.writeFileSync(specPath, '---\nmode: standard\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
 
   withInjectedGovernanceContract({
@@ -223,6 +224,9 @@ test('Challenge command delegates verdict, reviewer, and backtrack rules to the 
 
 test('Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts', function() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-list-'));
+  const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
+  fs.mkdirSync(path.dirname(specPath), { recursive: true });
+  fs.writeFileSync(specPath, '---\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
   withInjectedGovernanceContract({
     verdicts: Object.freeze(['REGISTRY_PASS', 'REGISTRY_FAIL']),
     isKnownVerdict: function(verdict) { return verdict === 'REGISTRY_PASS' || verdict === 'REGISTRY_FAIL'; }
@@ -252,7 +256,8 @@ test('Challenge command takes prompt and invalid-verdict lists from injected Con
 
 test('Challenge derives every inline reviewer hint from the governance Contract', function() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-inline-'));
-  const specPath = path.join(root, 'spec.md');
+  const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
+  fs.mkdirSync(path.dirname(specPath), { recursive: true });
   fs.writeFileSync(specPath, '---\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
 
   withInjectedGovernanceContract({
@@ -403,20 +408,21 @@ test('Spec templates make the Contract mode fields and conditional E2E Provider 
 
   const requiredStart = micro.indexOf('Required fields:');
   const conditionalStart = micro.indexOf('Conditional field:', requiredStart);
-  const recommendedStart = micro.indexOf('Recommended fields:');
-  const approvalStart = micro.indexOf('Plan Approved By:', recommendedStart);
+  const summaryStart = micro.indexOf('Delivery summary:');
+  const approvalStart = micro.indexOf('Plan Approved By:', summaryStart);
   assert.ok(requiredStart >= 0 && conditionalStart > requiredStart, 'micro template must delimit Required fields');
-  assert.ok(recommendedStart >= 0 && approvalStart > recommendedStart, 'micro template must delimit Recommended fields');
+  assert.ok(summaryStart > conditionalStart && approvalStart > summaryStart, 'micro template must keep the delivery summary');
 
   const requiredSection = micro.slice(requiredStart, conditionalStart);
-  const recommendedSection = micro.slice(recommendedStart, approvalStart);
+  const summarySection = micro.slice(summaryStart, approvalStart);
+  assert.match(summarySection, /^Selected Option:/m, 'archive needs the actual selected option');
+  assert.match(summarySection, /archive summary/i);
   microFields.required.forEach(function(field) {
     assert.match(requiredSection, new RegExp('^' + field + ':', 'm'), 'Required fields must contain ' + field + ' before the next section');
-    assert.doesNotMatch(recommendedSection, new RegExp('^' + field + ':', 'm'), 'Recommended fields must not satisfy required field ' + field);
+    assert.doesNotMatch(summarySection, new RegExp('^' + field + ':', 'm'), 'delivery summary must not repeat ' + field);
   });
   microFields.recommended.forEach(function(field) {
-    assert.match(recommendedSection, new RegExp('^' + field + ':', 'm'), 'Recommended fields must contain ' + field + ' before the next section');
-    assert.doesNotMatch(requiredSection, new RegExp('^' + field + ':', 'm'), 'Required fields must not satisfy recommended field ' + field);
+    assert.doesNotMatch(micro, new RegExp('^' + field + ':', 'm'), 'optional field must not become default paperwork: ' + field);
   });
 });
 
@@ -573,21 +579,50 @@ Object.keys(visualContainmentSources).forEach(function(file) {
   });
 });
 
-test('AI guidance proactively confirms autonomy mode before creating a Spec', function() {
+test('AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs', function() {
   ['SKILL.md', 'src/core/ai-config-rules.js'].forEach(function(file) {
     const text = readProjection(file);
     assert.match(text, /Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`/i, file + ' must require a proactive autonomy choice');
     assert.match(text, /recommend `supervised`/i, file + ' must provide the default recommendation');
-    assert.match(text, /already explicitly selected[\s\S]{0,320}restate[\s\S]{0,100}confirm/i, file + ' must confirm an explicit choice without asking again');
+    assert.match(text, /reuse[^\n]{0,250}current task[^\n]{0,250}without asking[^\n]{0,80}confirm again/i, file + ' must reuse explicit inputs');
+    assert.match(text, /only[^\n]{0,80}missing[^\n]{0,80}ambiguous/i, file + ' must ask only unresolved intake');
+    assert.match(text, /never inherit[^\n]{0,100}authorization[^\n]{0,80}(?:another|previous) task/i, file + ' must not inherit authorization');
+    assert.doesNotMatch(text, /already explicitly selected[^\n]{0,320}restate[^\n]{0,100}confirm/i);
     assert.match(text, /project default[\s\S]{0,160}(?:recommendation|must not be silently chosen)/i, file + ' must not silently substitute the project default');
   });
 
   ['README.md', 'GUIDE.md', 'REFERENCE.md', 'TEAM-GUIDE.md'].forEach(function(file) {
     const text = readProjection(file);
-    assert.match(text, /创建 Spec 前[^。\n]{0,120}(?:主动|会先)询问[^。\n]{0,120}`auto`[^。\n]{0,80}`supervised`[^。\n]{0,80}`human`/, file + ' must tell humans when the choice appears');
-    assert.match(text, /已经明确[^。\n]{0,100}(?:复述|确认)[^。\n]{0,100}(?:不再重复询问|不会重复询问)/, file + ' must explain the no-repeat path');
+    assert.match(text, /创建 Spec 前[^。\n]{0,120}未[^。\n]{0,40}选择[^。\n]{0,80}询问[^。\n]{0,120}`auto`[^。\n]{0,80}`supervised`[^。\n]{0,80}`human`/, file + ' must tell humans when the choice appears');
+    assert.match(text, /当前任务[^。\n]{0,100}(?:明确|确认)[^。\n]{0,100}复用[^。\n]{0,100}不再[^。\n]{0,40}确认/, file + ' must explain the no-repeat path');
     assert.match(text, /项目默认值[^。\n]{0,120}(?:推荐|不能静默|不会静默)/, file + ' must explain that default is guidance only');
   });
+});
+
+test('ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized', function() {
+  const skill = readProjection('SKILL.md');
+  const protocol = readProjection('protocols/subagent-dispatch.md');
+  [skill, protocol].forEach(function(text) {
+    assert.doesNotMatch(text, /more than 3 files|more than 500 lines|1-2 files|3-5 files|6\+ files|<100 lines/i);
+    assert.match(text, /context (?:load|cost|burden)/i);
+  });
+  assert.match(protocol, /task boundar/i);
+  assert.match(protocol, /inline implementation[^\n]{0,100}independent[^\n]{0,80}Challenge/i);
+  assert.match(skill, /Research Gate[\s\S]{0,1400}independent/i);
+  assert.match(skill, /fresh[^\n]{0,200}authorization[^\n]{0,100}reviewer actor/i);
+  assert.match(protocol, /Challenge[\s\S]{0,500}read-only/i);
+});
+
+test('Learning guidance retains important triggers, acceptance gaps and repeated failures', function() {
+  for (const file of ['SKILL.md', 'protocols/learning-check.md', 'REFERENCE.md']) {
+    const text = readProjection(file);
+    for (const trigger of ['BUGFIX_ESCALATED', 'DEVIATED_MAJOR', 'PASS_WITH_CONCERNS', 'FAIL_LEARNING']) {
+      assert.ok(text.includes(trigger), file + ': ' + trigger);
+    }
+    assert.match(text, /(?:Ordinary|普通)[^\n]{0,180}(?:do not require|不强制)/i, file);
+    assert.match(text, /Acceptance criteria were found insufficient|验收标准本身不充分/i, file);
+    assert.match(text, /same failure pattern has appeared before|同类失败模式重复出现/i, file);
+  }
 });
 
 test('AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops', function() {

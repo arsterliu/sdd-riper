@@ -22,12 +22,106 @@ function reviewerRequirement(mode) {
   return types + (governanceContract.isAuditableReviewer(mode, 'inline') ? ' (inline is also allowed for ' + mode + ').' : '.');
 }
 
+function isWithin(parent, candidate) {
+  var relative = path.relative(parent, candidate);
+  return !!relative && relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
+}
+
+function failTarget(message) {
+  console.error('[ERROR] ' + message);
+  process.exit(3);
+}
+
+function activeSpecCandidates(specsDir) {
+  var candidates = [];
+  candidates.hasInvalidSpecEntry = false;
+  if (!fs.existsSync(specsDir)) return candidates;
+  fs.readdirSync(specsDir).forEach(function(file) {
+    var parsed = common.parseSpecFileName(file);
+    if (!parsed) return;
+    var filePath = path.join(specsDir, file);
+    try {
+      var stat = fs.statSync(filePath);
+      if (!stat.isFile()) {
+        candidates.hasInvalidSpecEntry = true;
+        return;
+      }
+      if (common.isAuxiliarySpecName(file)) return;
+      if (common.getFrontmatterField(filePath, 'status') === 'archived') return;
+      candidates.push({
+        path: filePath,
+        parsed: parsed,
+        date: common.getFrontmatterField(filePath, 'date') || '',
+        mtime: stat.mtimeMs
+      });
+    } catch (error) {
+      candidates.hasInvalidSpecEntry = true;
+    }
+  });
+  return candidates;
+}
+
+function compareSpecVersions(a, b) {
+  if (a.parsed.major !== b.parsed.major) return b.parsed.major - a.parsed.major;
+  if (a.parsed.minor !== b.parsed.minor) return b.parsed.minor - a.parsed.minor;
+  return b.parsed.patch - a.parsed.patch;
+}
+
+function findActiveSpecByName(specsDir, name) {
+  var ref = common.parseSpecRef(name);
+  var candidates = activeSpecCandidates(specsDir);
+  if (ref) {
+    return candidates.filter(function(candidate) {
+      return candidate.parsed.version === ref.version && candidate.parsed.slug === ref.slug;
+    }).map(function(candidate) { return candidate.path; })[0] || '';
+  }
+  var slug = common.normalizeSlug(name);
+  return candidates.filter(function(candidate) {
+    return candidate.parsed.slug === slug;
+  }).sort(compareSpecVersions).map(function(candidate) { return candidate.path; })[0] || '';
+}
+
+function findLatestActiveSpec(specsDir) {
+  var candidates = activeSpecCandidates(specsDir);
+  if (candidates.hasInvalidSpecEntry) return '';
+  return candidates.sort(function(a, b) {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    var versionOrder = compareSpecVersions(a, b);
+    return versionOrder || b.mtime - a.mtime;
+  }).map(function(candidate) { return candidate.path; })[0] || '';
+}
+
 function resolveSpec(projectDir, opts) {
-  var docsRoot = common.getDocsRoot(projectDir);
-  var specsDir = path.join(docsRoot, 'specs');
-  if (opts.spec) return path.resolve(projectDir, opts.spec);
-  if (opts.name) return common.findSourceSpecByRef(specsDir, opts.name);
-  return common.findLatestSpec(specsDir);
+  opts = opts || {};
+  if (opts.spec && opts.name) return failTarget('--spec and --name cannot be used together.');
+
+  var root = path.resolve(projectDir);
+  var specsDir = path.resolve(common.getDocsRoot(root), 'specs');
+  var specPath = opts.spec
+    ? path.resolve(root, opts.spec)
+    : opts.name
+      ? findActiveSpecByName(specsDir, opts.name)
+      : findLatestActiveSpec(specsDir);
+
+  if (!specPath || !fs.existsSync(specPath) || !common.parseSpecFileName(path.basename(specPath)) || common.isAuxiliarySpecName(path.basename(specPath))) return failTarget('Selected target is not an active project Spec.');
+  if (!isWithin(specsDir, specPath)) return failTarget('Selected target is not an active project Spec.');
+
+  var realRoot;
+  var realSpecsDir;
+  var realSpecPath;
+  var stat;
+  try {
+    stat = fs.statSync(specPath);
+    realRoot = fs.realpathSync(root);
+    realSpecsDir = fs.realpathSync(specsDir);
+    realSpecPath = fs.realpathSync(specPath);
+  } catch (error) {
+    return failTarget('Selected target is not an active project Spec.');
+  }
+  if (!stat.isFile() || !isWithin(realRoot, realSpecsDir) || !isWithin(realSpecsDir, realSpecPath) || common.getFrontmatterField(specPath, 'status') === 'archived') {
+    return failTarget('Selected target is not an active project Spec.');
+  }
+  return specPath;
 }
 
 function run(projectDir, opts) {
@@ -96,7 +190,8 @@ function run(projectDir, opts) {
     return;
   }
 
-  var state = workflow.analyzeProject(projectDir, opts);
+  var specPath = resolveSpec(projectDir, opts);
+  var state = workflow.analyzeSpec(projectDir, specPath, opts);
   console.log('## ADVERSARIAL REVIEW PROMPT');
   console.log('');
   console.log('Role: independent challenge agent. Do not modify code or artifacts.');
@@ -185,7 +280,7 @@ function run(projectDir, opts) {
   console.log('Challenge Summary: <evidence-backed summary>');
   console.log('');
   console.log('After the challenge agent returns, record the result with:');
-  console.log('  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"');
+  console.log('  sdd challenge <project-dir> --spec ' + common.relativeToProject(projectDir, specPath) + ' --record-result "VERDICT" --summary "summary text" --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"');
   console.log('');
   console.log('Reviewer authorization reminder: ' + reviewerGuidance.inlineGuidance());
 }

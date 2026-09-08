@@ -832,6 +832,130 @@ describe('CLI commands', function() {
     assert.match(betaText, /^Challenge Verdict:\s*$/m);
   });
 
+  it('challenge binds generated record commands to the explicit active spec', function() {
+    var demo = path.join(tmpBase, 'd2-challenge-prompt-target');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y --mode standard');
+
+    var out = run('challenge ' + demo + ' --name v1.0-alpha');
+    assert.ok(out.indexOf('SPEC: ' + path.join(demo, 'mydocs', 'specs', 'v1.0-alpha.md')) !== -1, out);
+    assert.ok(out.indexOf('--spec mydocs/specs/v1.0-alpha.md --record-result') !== -1, out);
+  });
+
+  it('challenge rejects conflicting selectors without changing either spec', function() {
+    var demo = path.join(tmpBase, 'd2-challenge-conflicting-selector');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y --mode standard');
+    var alphaSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-alpha.md');
+    var betaSpec = path.join(demo, 'mydocs', 'specs', 'v1.1-beta.md');
+    var alphaBefore = fs.readFileSync(alphaSpec, 'utf-8');
+    var betaBefore = fs.readFileSync(betaSpec, 'utf-8');
+
+    var out = run('challenge ' + demo + ' --spec ' + alphaSpec + ' --name v1.1-beta --record-result PASS --summary ok --executed-by subagent:conflict-fixture');
+    assert.ok(out.indexOf('cannot be used together') !== -1, out);
+    assert.strictEqual(fs.readFileSync(alphaSpec, 'utf-8'), alphaBefore);
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+  });
+
+  it('challenge rejects archived, external, and symlink-escaped spec paths without writes', function(t) {
+    var demo = path.join(tmpBase, 'd2-challenge-invalid-path');
+    var external = path.join(tmpBase, 'd2-challenge-external');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name alpha --spec-version v1.0 --requirement x --mode standard');
+    run('discover ' + demo + ' --task-name beta --spec-version v1.1 --requirement y --mode standard');
+    run('init ' + external + ' --mode standard');
+    run('discover ' + external + ' --task-name outside --spec-version v1.0 --requirement z --mode standard');
+    var alphaSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-alpha.md');
+    var betaSpec = path.join(demo, 'mydocs', 'specs', 'v1.1-beta.md');
+    var outsideSpec = path.join(external, 'mydocs', 'specs', 'v1.0-outside.md');
+    var betaBefore = fs.readFileSync(betaSpec, 'utf-8');
+    fs.writeFileSync(alphaSpec, fs.readFileSync(alphaSpec, 'utf-8').replace(/^status:.*$/m, 'status: archived'), 'utf-8');
+    var archivedBefore = fs.readFileSync(alphaSpec, 'utf-8');
+
+    [alphaSpec, outsideSpec].forEach(function(target) {
+      var out = run('challenge ' + demo + ' --spec ' + target + ' --record-result PASS --summary ok --executed-by subagent:invalid-path-fixture');
+      assert.ok(out.indexOf('not an active project Spec') !== -1, out);
+    });
+    assert.strictEqual(fs.readFileSync(alphaSpec, 'utf-8'), archivedBefore);
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+
+    var notesPath = path.join(demo, 'mydocs', 'specs', 'notes.md');
+    var directoryPath = path.join(demo, 'mydocs', 'specs', 'not-a-spec');
+    fs.writeFileSync(notesPath, fs.readFileSync(betaSpec, 'utf-8'), 'utf-8');
+    fs.mkdirSync(directoryPath);
+    var notesBefore = fs.readFileSync(notesPath, 'utf-8');
+    [notesPath, directoryPath].forEach(function(target) {
+      var out = run('challenge ' + demo + ' --spec ' + target + ' --record-result PASS --summary ok --executed-by subagent:invalid-path-fixture');
+      assert.ok(out.indexOf('not an active project Spec') !== -1, out);
+    });
+    assert.strictEqual(fs.readFileSync(notesPath, 'utf-8'), notesBefore);
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+
+    var auxiliaryPaths = ['design', 'execute', 'learning'].map(function(kind) {
+      var auxiliaryPath = path.join(demo, 'mydocs', 'specs', 'v9.9-poison.' + kind + '.md');
+      fs.writeFileSync(auxiliaryPath, fs.readFileSync(betaSpec, 'utf-8'), 'utf-8');
+      return auxiliaryPath;
+    });
+    var auxiliaryBefore = auxiliaryPaths.map(function(auxiliaryPath) {
+      return fs.readFileSync(auxiliaryPath, 'utf-8');
+    });
+    auxiliaryPaths.forEach(function(auxiliaryPath) {
+      var explicitAuxiliary = run('challenge ' + demo + ' --spec ' + auxiliaryPath + ' --record-result PASS --summary ok --executed-by subagent:invalid-path-fixture');
+      assert.ok(explicitAuxiliary.indexOf('not an active project Spec') !== -1, explicitAuxiliary);
+    });
+    var versionedAuxiliary = run('challenge ' + demo + ' --name v9.9-poison.design');
+    var defaultWithoutInvalidEntry = run('challenge ' + demo);
+    assert.ok(versionedAuxiliary.indexOf('not an active project Spec') !== -1, versionedAuxiliary);
+    assert.ok(defaultWithoutInvalidEntry.indexOf('SPEC: ' + betaSpec) !== -1, defaultWithoutInvalidEntry);
+    auxiliaryPaths.forEach(function(auxiliaryPath, index) {
+      assert.strictEqual(fs.readFileSync(auxiliaryPath, 'utf-8'), auxiliaryBefore[index]);
+    });
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+
+    var auxiliaryDirectoryPath = path.join(demo, 'mydocs', 'specs', 'v9.9-broken.design.md');
+    fs.mkdirSync(auxiliaryDirectoryPath);
+    var defaultWithInvalidAuxiliary = run('challenge ' + demo);
+    assert.ok(defaultWithInvalidAuxiliary.indexOf('not an active project Spec') !== -1, defaultWithInvalidAuxiliary);
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+
+    var versionedDirectoryPath = path.join(demo, 'mydocs', 'specs', 'v9.9-poison.md');
+    fs.mkdirSync(versionedDirectoryPath);
+    var bareName = run('challenge ' + demo + ' --name poison');
+    var defaultTarget = run('challenge ' + demo);
+    assert.ok(bareName.indexOf('not an active project Spec') !== -1, bareName);
+    assert.ok(defaultTarget.indexOf('not an active project Spec') !== -1, defaultTarget);
+    assert.strictEqual(fs.readFileSync(betaSpec, 'utf-8'), betaBefore);
+
+    var linkDir = path.join(demo, 'mydocs', 'specs', 'linked');
+    var linkedSpec = path.join(linkDir, path.basename(outsideSpec));
+    try {
+      fs.symlinkSync(path.dirname(outsideSpec), linkDir, 'junction');
+    } catch (error) {
+      t.skip('directory junction creation is unavailable in this environment');
+      return;
+    }
+    var linked = run('challenge ' + demo + ' --spec ' + linkedSpec + ' --record-result PASS --summary ok --executed-by subagent:invalid-path-fixture');
+    assert.ok(linked.indexOf('not an active project Spec') !== -1, linked);
+    assert.strictEqual(fs.readFileSync(outsideSpec, 'utf-8').match(/^Challenge Verdict:.*$/m)[0], 'Challenge Verdict:');
+
+    var localDocsRoot = path.join(demo, 'mydocs');
+    var movedDocsRoot = path.join(demo, 'local-mydocs');
+    fs.renameSync(localDocsRoot, movedDocsRoot);
+    try {
+      fs.symlinkSync(path.join(external, 'mydocs'), localDocsRoot, 'junction');
+    } catch (error) {
+      t.skip('docs root junction creation is unavailable in this environment');
+      return;
+    }
+    var escapedPrompt = run('challenge ' + demo + ' --spec mydocs/specs/v1.0-outside.md');
+    var escapedRecord = run('challenge ' + demo + ' --spec mydocs/specs/v1.0-outside.md --record-result PASS --summary ok --executed-by subagent:invalid-path-fixture');
+    assert.ok(escapedPrompt.indexOf('not an active project Spec') !== -1, escapedPrompt);
+    assert.ok(escapedRecord.indexOf('not an active project Spec') !== -1, escapedRecord);
+    assert.strictEqual(fs.readFileSync(outsideSpec, 'utf-8').match(/^Challenge Verdict:.*$/m)[0], 'Challenge Verdict:');
+  });
+
   it('challenge record-result requires explicit executed-by evidence', function() {
     var demo = path.join(tmpBase, 'd2-challenge-executor-required');
     run('init ' + demo + ' --mode standard');
@@ -1220,6 +1344,85 @@ describe('CLI commands', function() {
     assert.ok(index.indexOf('| PASS |') !== -1, index);
   });
 
+  it('compact generated micro completes without optional fields but still requires delivery facts and approval', function() {
+    const { createArchiveReadyMicro } = require('./helpers/sdd-fixtures');
+    const fixture = createArchiveReadyMicro(path.join(tmpBase, 'compact-micro'), 'compact-micro');
+    let content = fs.readFileSync(fixture.specPath, 'utf-8');
+    for (const field of ['Scope', 'Touched Files', 'Change', 'Blast Radius']) {
+      assert.doesNotMatch(content, new RegExp('^' + field + ':', 'm'));
+    }
+    content = content.replace(/^Selected Option:.*$/m, 'Selected Option: 保留单行真实方案');
+    content = authorizeFixture(content);
+    fs.writeFileSync(fixture.specPath, content, 'utf-8');
+    const check = () => runArgs(['validate', fixture.projectDir, '--archive-ready']);
+    assert.strictEqual(check().status, 0);
+    const archiveArgs = ['archive', fixture.projectDir, fixture.taskName, '--authorized-by', 'human:fixture', '--authorization-evidence', 'isolated fixture archive'];
+
+    for (const field of ['Impact Scope', 'Data Impact', 'Interface Impact', 'Acceptance', 'Verification', 'Plan Approved By', 'Approved At', 'Gate Evidence']) {
+      const missing = content.replace(new RegExp('^' + field + ':.*$', 'm'), field + ':');
+      fs.writeFileSync(fixture.specPath, authorizeFixture(missing), 'utf-8');
+      const denied = check();
+      assert.notStrictEqual(denied.status, 0, field + ': ' + denied.output);
+    }
+    fs.writeFileSync(fixture.specPath, authorizeFixture(content.replace(/^Selected Option:.*$/m, 'Selected Option:')), 'utf-8');
+    const noSummary = runArgs(archiveArgs);
+    assert.notStrictEqual(noSummary.status, 0, noSummary.output);
+    assert.match(noSummary.output, /Archive summary could not be generated/);
+
+    fs.writeFileSync(fixture.specPath, content, 'utf-8');
+    const denied = runArgs(['archive', fixture.projectDir, fixture.taskName]);
+    assert.match(denied.output, /SDD_ARCHIVE_AUTHORIZATION_REQUIRED/);
+    const archived = runArgs(archiveArgs);
+    assert.strictEqual(archived.status, 0, archived.output);
+    const result = fs.readFileSync(path.join(fixture.projectDir, 'mydocs/archive/v1.0-compact-micro.md'), 'utf-8');
+    assert.match(result, /## 最终方案\s+保留单行真实方案/);
+  });
+
+  it('archives an optional Learning Record after routine corrections without losing logged facts', function() {
+    const { createArchiveReadyStandard, addLearningRecord } = require('./helpers/sdd-fixtures');
+    const fixture = addLearningRecord(createArchiveReadyStandard(path.join(tmpBase, 'optional-learning'), 'optional-learning'));
+    let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
+    log = log.replace('Step: completion-verification', 'Step: correction\nStatus: BUGFIX\nResult: verified local correction.\nTimestamp: 2026-01-01T00:00:30Z\n\n---\nStep: completion-verification');
+    fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
+    const lesson = fs.readFileSync(fixture.learningPath, 'utf-8').replace('Trigger: PASS_WITH_CONCERNS challenge verdict', 'Trigger: 主动记录普通修复中的可复用规则');
+    fs.writeFileSync(fixture.learningPath, lesson, 'utf-8');
+    const result = runArgs(['archive', fixture.projectDir, fixture.taskName, '--authorized-by', 'human:fixture', '--authorization-evidence', 'isolated optional learning archive']);
+    assert.strictEqual(result.status, 0, result.output);
+    assert.ok(fs.existsSync(path.join(fixture.projectDir, 'mydocs/archive/v1.0-optional-learning.learning.md')));
+    assert.match(fs.readFileSync(path.join(fixture.projectDir, 'mydocs/archive/v1.0-optional-learning.execute.md'), 'utf-8'), /Status: BUGFIX/);
+  });
+
+  it('important Learning triggers still block when mixed with routine corrections', function() {
+    const { createArchiveReadyStandard, addLearningRecord } = require('./helpers/sdd-fixtures');
+    for (const trigger of ['BUGFIX_ESCALATED', 'DEVIATED_MAJOR', 'PASS_WITH_CONCERNS', 'reopened']) {
+      const fixture = createArchiveReadyStandard(path.join(tmpBase, 'important-' + trigger), 'important-' + trigger.toLowerCase());
+      let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
+      const statuses = ['BUGFIX', 'DEVIATED_MINOR'].concat(/^(BUGFIX_ESCALATED|DEVIATED_MAJOR)$/.test(trigger) ? [trigger] : []);
+      log = log.replace('Step: completion-verification', statuses.map((status, i) => 'Step: correction-' + i + '\nStatus: ' + status + '\nTimestamp: 2025-12-31T23:59:00Z\n\n---\n').join('\n') + '\nStep: completion-verification');
+      fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
+      let content = fs.readFileSync(fixture.specPath, 'utf-8');
+      if (trigger === 'PASS_WITH_CONCERNS') content = content
+        .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: PASS_WITH_CONCERNS')
+        .replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Learning Check')
+        .replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: PASS_WITH_CONCERNS - independent fixture review');
+      if (trigger === 'reopened') content = content.replace(/^reopened-from:.*$/m, 'reopened-from: "mydocs/archive/previous.md"');
+      fs.writeFileSync(fixture.specPath, content, 'utf-8');
+      const check = () => runArgs(['validate', fixture.projectDir, '--archive-ready']);
+      const missing = check();
+      assert.notStrictEqual(missing.status, 0, trigger);
+      assert.match(missing.output, /Learning Record is required/, trigger + ': ' + missing.output);
+      addLearningRecord(fixture);
+      const validLearning = fs.readFileSync(fixture.learningPath, 'utf-8');
+      fs.writeFileSync(fixture.learningPath, '# Learning Record\n\n## Learning Record\n', 'utf-8');
+      const empty = check();
+      assert.notStrictEqual(empty.status, 0, trigger);
+      assert.match(empty.output, /Learning Record is empty/, trigger + ': ' + empty.output);
+      fs.writeFileSync(fixture.learningPath, validLearning, 'utf-8');
+      const valid = check();
+      assert.strictEqual(valid.status, 0, trigger + ': ' + valid.output);
+    }
+  });
+
   it('archive requires and moves learning records when execution produced reusable lessons', function() {
     var demo = path.join(tmpBase, 'd4l');
     run('init ' + demo + ' --mode standard');
@@ -1229,7 +1432,7 @@ describe('CLI commands', function() {
     var logContent = fs.readFileSync(artifacts.logFile, 'utf-8')
       .replace('Step: completion-verification', [
         'Step: 1 - implementation deviation',
-        'Status: DEVIATED_MINOR',
+        'Status: DEVIATED_MAJOR',
         'Result: implementation deviated from the approved plan boundary.',
         'Deviation: implementation approach changed within the same archive fixture.',
         'Timestamp: 2025-12-31T23:59:00Z',
@@ -1259,7 +1462,7 @@ describe('CLI commands', function() {
     var stillBlocked = run('validate ' + demo + ' --archive-ready');
     assert.ok(stillBlocked.indexOf('Learning Record is empty') !== -1);
 
-    insertSectionContent(learningFile, 'Learning Record', 'Source Spec: mydocs/specs/v1.0-lessoned.md\nTrigger: DEVIATED_MINOR in Execute Log\nObserved Problem: implementation deviated from the approved plan boundary.\nRoot Cause: plan step did not capture the lower-level file boundary.\nDecision Rule: when a step changes implementation approach, record the reusable boundary rule before archive.\nApplies When: future work touches the same boundary.\nDoes Not Apply When: the deviation is only wording or comments.\nRecommended Action: tighten Plan steps with explicit file boundaries.\nEvidence: tests/commands.test.js covers the learning archive gate.\nRelated Artifacts: mydocs/logs/v1.0-lessoned.execute.md');
+    insertSectionContent(learningFile, 'Learning Record', 'Source Spec: mydocs/specs/v1.0-lessoned.md\nTrigger: DEVIATED_MAJOR in Execute Log\nObserved Problem: implementation deviated from the approved plan boundary.\nRoot Cause: plan step did not capture the lower-level file boundary.\nDecision Rule: when a step changes implementation approach, record the reusable boundary rule before archive.\nApplies When: future work touches the same boundary.\nDoes Not Apply When: the deviation is only wording or comments.\nRecommended Action: tighten Plan steps with explicit file boundaries.\nEvidence: tests/commands.test.js covers the learning archive gate.\nRelated Artifacts: mydocs/logs/v1.0-lessoned.execute.md');
     var ok = run('validate ' + demo + ' --archive-ready');
     assert.ok(ok.indexOf('RESULT: OK') !== -1);
 
@@ -2544,15 +2747,17 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('arc42') !== -1);
   });
 
-  it('skill and generated AI configs require human-confirmed spec creation inputs', function() {
+  it('skill and generated AI configs reuse explicit current-task inputs without inheriting authorization', function() {
     var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
-    assert.ok(skill.indexOf('must ask the user to provide or confirm `version` and `task-name`') !== -1);
+    assert.match(skill, /reuse the current user's explicit, still-valid `version`, `task-name`/);
     assert.ok(skill.indexOf('ask whether reference materials / context exist') !== -1);
 
     var demo = path.join(tmpBase, 'human-confirmed-ai-config');
     run('init ' + demo + ' --mode standard');
     var agentsText = fs.readFileSync(path.join(demo, 'AGENTS.md'), 'utf-8');
-    assert.ok(agentsText.indexOf('Before creating a Spec, ask the user to provide or confirm `version` and `task-name`') !== -1);
+    assert.match(agentsText, /reuse the current user's explicit, still-valid `version`, `task-name`/);
+    assert.match(agentsText, /Ask only for missing, conflicting, or ambiguous inputs/);
+    assert.match(agentsText, /Never inherit authorization from another task/);
     assert.ok(agentsText.indexOf('ask whether reference materials / context exist') !== -1);
   });
 

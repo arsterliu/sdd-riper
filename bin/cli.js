@@ -116,9 +116,9 @@ visual.command('select <project-dir>')
   .action(function(p, o) { require('../src/commands/visual').runSelect(p, o); });
 
 program.command('challenge <project-dir>')
-  .description('Generate adversarial review prompt, or record challenge result with --record-result')
-  .option('--spec <path>', 'spec file')
-  .option('--name <slug>', 'spec task slug')
+  .description('Generate an adversarial review prompt, or record a result for one active project Spec')
+  .option('--spec <path>', 'active project spec file (mutually exclusive with --name)')
+  .option('--name <slug>', 'active spec task slug or versioned reference (mutually exclusive with --spec)')
   .option('--record-result <verdict>', 'record challenge verdict (PASS|PASS_WITH_CONCERNS|FAIL_*) into spec')
   .option('--summary <text>', 'challenge summary (used with --record-result)')
   .option('--executed-by <who>', 'who executed the challenge (subagent:<id>|external-agent:<id>|human:<name>|inline, used with --record-result)')

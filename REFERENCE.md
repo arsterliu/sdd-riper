@@ -254,7 +254,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Challenge（唯一独立质量门禁）                                             │
 │                                                                             │
-│  sdd challenge <dir>  →  生成对抗审查 prompt                               │
+│  sdd challenge <dir> [--spec <project-relative-path> | --name <slug|versioned-slug>] │
 │                                                                             │
 │  ┌─ standard/lite: 必须派子 agent 执行（核心: 不是自己审自己）             │
 │  └─ micro: 可内联但必须角色分离                                            │
@@ -268,7 +268,8 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 │  └─ Challenge Summary: <evidence, ≤200 words>                             │
 │                                                                             │
 │  结果必须通过命令写入（禁止手动填写）:                                     │
-│  sdd challenge <dir> --record-result "VERDICT" --summary "..."            │
+│  sdd challenge <dir> --spec <project-relative-path>                        │
+│                    --record-result "VERDICT" --summary "..."              │
 │                    --executed-by "subagent:<id>"                           │
 │  → 自动写入: Challenge Verdict / Backtrack Target / Challenge Summary     │
 │             Challenge Executed By / Challenge Executed At（当前时间戳）    │
@@ -281,6 +282,10 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 └──────────────────────────────┬──────────────────────────────────────────────┘
                                │ FAIL_*
                                ▼
+`sdd challenge` 可以用 `--spec <path>` 或 `--name <slug|versioned-slug>` 显式选择目标；两者互斥。显式目标和默认目标都必须是当前项目 docs root 的 `specs/` 下、文件名符合 Spec 版本命名且未归档的活动 Spec；docs root / `specs/` 目录本身与目标文件均须通过词法路径和 `realpath` 项目内包含检查，缺失、目录、非 Spec 文件、项目外或经符号链接逃逸的路径一律失败且零写入。版本化 `--name` 精确定位；裸 `--name` 保持兼容，选择同 slug 的最新活动版本；无 selector 时仍选择最新活动 Spec，没有活动 Spec 时失败。
+
+生成的 reviewer prompt 必须输出携带规范化项目相对 `--spec` 的 `--record-result` 命令。审查结果必须用该命令写回，避免生成和记录阶段在多个活动 Spec 中重新选择不同目标。
+
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │  Cruise（自主巡航）                                                        │
 │                                                                             │
@@ -305,7 +310,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 │  Learning Check                                                            │
 │                                                                             │
 │  必须创建 Learning Record 的触发条件:                                      │
-│  ┌─ Execute Log 含 BUGFIX / BUGFIX_ESCALATED / DEVIATED_MINOR|MAJOR       │
+│  ┌─ Execute Log 含 BUGFIX_ESCALATED / DEVIATED_MAJOR                    │
 │  ├─ Challenge verdict = PASS_WITH_CONCERNS                                │
 │  ├─ 任务从归档 reopen                                                     │
 │  ├─ AC 本身不充分                                                          │
@@ -363,7 +368,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-`discover` 前置门禁：agent 必须让用户输入或确认 `version` 与 `task-name`，并询问是否存在参考资料 / context。`version` 是迭代 / 交付批次聚合键，支持 `vN.M` 和 `vN.M.P`；同一个 `version` 下允许多个并行 Spec，但 `task-name` 必须唯一。
+`discover` 前置门禁：agent 复用当前任务已明确提供或确认且仍有效的 `version`、`task-name` 与参考资料 / context；只询问缺失、冲突或有歧义的项，不得静默推导。`version` 是迭代 / 交付批次聚合键，支持 `vN.M` 和 `vN.M.P`；同一个 `version` 下允许多个并行 Spec，但 `task-name` 必须唯一。
 
 ### 状态引擎
 
@@ -491,18 +496,7 @@ lite 写独立 `Design Note`，至少覆盖：
 - Risks。
 - Test Strategy。
 
-micro 不写独立 Design，但 Plan 必须有：
-
-- Selected Option。
-- Scope。
-- Touched Files。
-- Change。
-- Impact Scope。
-- Data Impact。
-- Interface Impact。
-- Acceptance。
-- Verification。
-- Blast Radius。
+micro 不写独立 Design，Plan 的五个必填验证字段是 Impact Scope、Data Impact、Interface Impact、Acceptance、Verification。另用 `Selected Option` 单行记录真实最终方案，供既有归档摘要使用。Scope、Touched Files、Change、Blast Radius 按需添加，无须重复已有信息；批准、执行证据和条件 Provider 要求保持不变。
 
 Acceptance Criteria 留在 Spec。推荐使用 AC 编号和 BDD 场景：
 
@@ -677,8 +671,10 @@ Timestamp: 2026-01-01T00:01:00Z
 **怎么运行**：
 
 ```text
-sdd challenge <project-dir>
+sdd challenge <project-dir> [--spec <path> | --name <slug|versioned-slug>]
 ```
+
+`--spec` 与 `--name` 互斥。两者都指向当前项目 docs root 的 `specs/` 中、文件名符合 Spec 版本命名且未归档的活动 Spec；命令同时校验 docs root / `specs/` 目录本身和目标文件的词法路径与 `realpath` 项目内包含关系，拒绝缺失、目录、非 Spec 文件、项目外及符号链接逃逸的路径。版本化 `--name` 精确定位；裸 `--name` 选择同 slug 的最新活动版本；未提供 selector 时保持选择最新活动 Spec 的默认行为。生成 prompt 的结果回写命令会固定携带对应的项目相对 `--spec`，必须使用它把 verdict 写回同一目标。
 
 Challenge agent 只读不写任何文件（包括代码），只返回：
 
@@ -777,7 +773,7 @@ Learning Check 在 Challenge 通过后、Archive 之前执行。它不是复盘�
 
 以下情况必须创建 Learning Record：
 
-- Execute Log 出现 `BUGFIX`、`BUGFIX_ESCALATED`、`DEVIATED_MINOR` 或 `DEVIATED_MAJOR`。
+- Execute Log 出现 `BUGFIX_ESCALATED` 或 `DEVIATED_MAJOR`。普通 `BUGFIX` / `DEVIATED_MINOR` 单独出现不强制 Learning，仍需保留日志事实，可按实际复用价值创建 Learning；不会抵消其他触发条件或 `FAIL_LEARNING`。
 - Challenge verdict 是 `PASS_WITH_CONCERNS`。
 - 任务来自 archived spec 的 reopen。
 - Execute 或 Challenge 发现验收标准本身不充分。
@@ -826,7 +822,7 @@ SDD 用更少配置表达任务治理：
 
 新项目默认 `AUTONOMY_MODE="supervised"`。项目配置不能单独充当当前用户授权。
 
-创建 Spec 前，AI 会先主动询问当前任务选择 `auto`、`supervised` 还是 `human`，并推荐 `supervised`。项目默认值只是推荐，不能静默替用户选择；如果用户已经明确指定模式，AI 应复述并请用户确认，不再重复询问。确认后的值通过 `discover --autonomy-mode` 冻结到该 Spec。
+创建 Spec 前，若用户尚未明确选择协作方式，AI 会询问 `auto`、`supervised`、`human` 的选择，解释差别并推荐 `supervised`。当前任务中用户已经明确提供或确认且仍有效的版本、任务名、参考资料和协作方式直接复用，不再要求重复确认；只询问缺失、冲突或有歧义的信息。项目默认值只能作为推荐，不能静默代选；其他任务的授权不能沿用。明确选择的值通过 `discover --autonomy-mode` 冻结到该 Spec。
 
 ### Mode
 
