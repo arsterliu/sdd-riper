@@ -41,12 +41,11 @@ Verification:
 Conditional field:
 Provider: <required for e2e; named provider id>
 
-Recommended fields:
+Delivery summary:
+<!-- Record the actual selected option for the archive summary. -->
 Selected Option:
-Scope:
-Touched Files:
-Change:
-Blast Radius:
+
+<!-- Add Scope, Touched Files, Change, or Blast Radius only when useful; do not repeat existing information. -->
 
 Plan Approved By:
 Approved At:

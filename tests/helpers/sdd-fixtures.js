@@ -224,15 +224,12 @@ function createArchiveReadyMicro(projectDir, taskName) {
   const executeLogPath = artifactPath(projectDir, specPath, 'execute-log-file');
   let content = fs.readFileSync(specPath, 'utf-8');
   content = fillPlanGate(content)
-    .replace(/^Scope:$/m, 'Scope: fixture scope')
-    .replace(/^Touched Files:$/m, 'Touched Files: tests/state-matrix.test.js')
-    .replace(/^Change:$/m, 'Change: fixture change')
+    .replace(/^Selected Option:$/m, 'Selected Option: fixture option')
     .replace(/^Impact Scope:$/m, 'Impact Scope: fixture only')
     .replace(/^Data Impact:$/m, 'Data Impact: none')
     .replace(/^Interface Impact:$/m, 'Interface Impact: none')
     .replace(/^Acceptance:$/m, 'Acceptance: fixture passes')
-    .replace(/^Verification:$/m, 'Verification: node --test tests/state-matrix.test.js')
-    .replace(/^Blast Radius:$/m, 'Blast Radius: fixture only');
+    .replace(/^Verification:$/m, 'Verification: node --test tests/state-matrix.test.js');
   content = fillChallenge(content, 'PASS');
   content = authorizeAutoFixture(content);
   fs.writeFileSync(specPath, content, 'utf-8');

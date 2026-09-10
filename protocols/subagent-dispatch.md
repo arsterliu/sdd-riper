@@ -13,8 +13,8 @@ Each SDD phase has activities with a dispatch category:
 | Category | Meaning |
 |---|---|
 | **KEEP** | The orchestrator must do this. It involves gate decisions, user interaction, or cross-artifact judgment that only the orchestrator can make. |
-| **MUST_DELEGATE** | An independent subagent must do this. Role separation is a hard constraint — the implementer cannot review their own work. |
-| **DELEGATABLE** | The orchestrator may do this directly or delegate to a subagent. The decision depends on task scale and orchestrator context load (see Decision Framework below). |
+| **MUST_DELEGATE** | standard/lite require an auditable independent reviewer: subagent, external agent, or human. The implementer cannot review their own work; micro Challenge may use inline. |
+| **DELEGATABLE** | The orchestrator may work directly or delegate, judging task boundaries, context cost, and the value of independent evidence. |
 
 ### Research
 
@@ -23,7 +23,7 @@ Each SDD phase has activities with a dispatch category:
 | Requirement Review | KEEP | Requires user interaction (Open Questions, Assumptions). The orchestrator holds the conversation. |
 | Findings evidence collection | DELEGATABLE | Code/doc reading can be delegated when volume is high. The subagent returns compressed evidence; the orchestrator writes Findings. |
 | Confirmed Requirement | KEEP | Gate decision — the orchestrator finalizes the confirmed requirement from evidence. |
-| Research Gate review | MUST_DELEGATE | Role separation — the entity that produced Research cannot review it. An independent subagent reviews the five CR elements and returns a verdict. |
+| Research Gate review | MUST_DELEGATE | standard/lite require an independent reviewer for the five CR elements. Research is skipped in micro. |
 
 ### Innovate
 
@@ -36,7 +36,7 @@ Each SDD phase has activities with a dispatch category:
 
 | Activity | Category | Rationale |
 |---|---|---|
-| Design writing | DELEGATABLE | Brief cost is high (must pass Research + Innovate conclusions). Fields have cross-dependencies. Small tasks: inline. Large tasks: delegate per module. |
+| Design writing | DELEGATABLE | Weigh shared Research / Innovate context against the benefit of independently bounded module work. |
 | Acceptance Criteria writing | DELEGATABLE | Same trade-off as Design. |
 | Design review | MUST_DELEGATE | Implemented through the Challenge phase — not a separate dispatch. |
 
@@ -51,14 +51,14 @@ Each SDD phase has activities with a dispatch category:
 
 | Activity | Category | Rationale |
 |---|---|---|
-| Code implementation | DELEGATABLE | Plan has already defined the boundary. Delegation benefits are high: saves orchestrator context and protects Challenge independence. For small steps, inline may be acceptable. |
+| Code implementation | DELEGATABLE | The approved Plan defines the boundary. Delegate when a bounded brief saves context or enables useful independent work; inline implementation is also valid with a separate independent Challenge reviewer. |
 | Result verification | KEEP | The orchestrator re-reads changed files and runs tests. This is the orchestrator's verification responsibility. |
 
 ### Challenge
 
 | Activity | Category | Rationale |
 |---|---|---|
-| Adversarial review | MUST_DELEGATE | Role separation — the implementer cannot review their own work. |
+| Adversarial review | MUST_DELEGATE | standard/lite require independent review. Challenge reviewer stays read-only; micro may use inline with deliberate role separation. |
 | Verdict aggregation | KEEP | The orchestrator applies verdict precedence and records the final verdict via `sdd challenge --record-result`. |
 
 ### Learning Check / Archive
@@ -79,41 +79,28 @@ How full is the orchestrator's context? If Research + Innovate + Design have alr
 - **High** (multiple phases completed, large spec) → lean toward delegation
 - **Low** (early phase, small spec) → lean toward inline
 
-### Signal 2: Task Scale
+### Signal 2: Task Boundaries
 
-How large is the work package?
+Can the work be bounded without reconstructing the orchestrator's full context?
 
-- **Small** (1-2 files, <100 lines change) → inline is acceptable
-- **Medium** (3-5 files) → delegate if context load is high
-- **Large** (6+ files or multi-module) → delegate, possibly as multiple subagents
+- A coherent local change with shared assumptions often benefits from inline work.
+- An independently describable module or evidence question may benefit from delegation.
+- File count and line count alone do not require dispatch.
 
 ### Signal 3: Role Separation Benefit
 
-Does delegating this activity protect the independence of a downstream review?
+Would an independent perspective improve this evidence or work package?
 
-- **High** (Execute → Challenge) → delegation gives double benefit: saves context AND preserves review independence
-- **Low** (Findings → no review depends on it) → delegation only saves context
+- Separate perspectives can help investigate competing hypotheses or module contracts.
+- Ordinary implementation delegation is optional; required Research and Challenge independence is enforced by using a separate reviewer, regardless of who implements.
 
-### Decision Matrix
-
-| Context Load | Task Scale | Role Separation | Recommendation |
-|---|---|---|---|
-| High | Large | High | Delegate |
-| High | Large | Low | Delegate |
-| Low | Small | High | Delegate |
-| Low | Small | Low | Inline |
-
-The most important row is **low + small + high role separation**. Even when the orchestrator has plenty of context and the task is small, if delegating protects review independence, it is the recommended choice. A single inline Execute step may seem harmless, but it creates the condition where the orchestrator is both implementer and reviewer — exactly the pattern that led to self-signed Challenge PASS.
+Weigh these signals against the cost of briefing and verifying the result. Inline implementation does not remove the independent standard/lite Challenge requirement.
 
 ## When To Dispatch
 
-Dispatch a subagent when any condition is true:
+For ordinary evidence and implementation, consider delegation for a bounded evidence report, an isolated investigation, or an independently scoped Plan step when the benefit exceeds context and coordination cost. These are judgment calls, not automatic dispatch thresholds.
 
-1. **Read volume**: the task requires reading more than 3 files or more than 500 lines of raw content.
-2. **Iterative probing**: debug work requires probes, reference implementation checks, or variable isolation.
-3. **Independent evidence**: the output is a bounded evidence report, such as one Review axis or one Research source.
-4. **Large Execute work package**: a Plan step spans multiple modules or would pollute the orchestrator context.
-5. **Adversarial challenge**: standard/lite work needs an independent reviewer to attack requirement, design, acceptance, plan, code quality, or archive readiness.
+standard/lite Research and Challenge still require an independent reviewer. An automated reviewer may start only when fresh current-Spec task/Plan authorization explicitly includes the reviewer actor, or the current user explicitly authorizes that reviewer. Project configuration and Plan approval alone do not authorize dispatch. Never fabricate reviewer evidence or use this optional-delegation guidance to skip independent review.
 
 ## When Not To Dispatch
 
@@ -285,7 +272,7 @@ This verification is a KEEP activity — it cannot be delegated.
 
 ## Mode Policy
 
-- **standard**: MUST_DELEGATE activities are mandatory. DELEGATABLE activities default to delegation given standard's higher artifact requirements and context load.
+- **standard**: Independent Research / Challenge review is mandatory. Ordinary evidence and implementation delegation follows the decision framework; mode alone does not require it.
 - **lite**: MUST_DELEGATE activities are mandatory. DELEGATABLE activities are optional — delegate when context volume or role separation justifies it.
 - **micro**: MUST_DELEGATE does not apply (micro skips Research Gate and uses inline Challenge). DELEGATABLE activities default to inline.
 

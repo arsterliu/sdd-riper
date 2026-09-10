@@ -6,6 +6,7 @@ var specState = require('./spec-state');
 var risk = require('./risk');
 var visualEvidenceContract = require('../visual-evidence/contract');
 var autonomyState = require('./autonomy-state');
+var workflowGateFacts = require('./workflow-gate-facts');
 
 var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
 
@@ -164,26 +165,16 @@ function formatDesignMethodLines(dm) {
   return lines;
 }
 
-function confirmedRequirement(specPath, mode) {
-  if (mode === 'standard') {
-    var researchSection = sectionContent(specPath, 'Research');
-    var crLines = String(researchSection || '').split(/\r?\n/);
-    var crFound = false;
-    var crResult = [];
-    for (var ci = 0; ci < crLines.length; ci++) {
-      if (/^###\s+Confirmed Requirement/.test(crLines[ci])) { crFound = true; continue; }
-      if (crFound && /^###/.test(crLines[ci])) break;
-      if (crFound) crResult.push(crLines[ci]);
-    }
-    return crResult.join('\n');
-  }
-  return sectionContent(specPath, 'Confirmed Requirement');
+function confirmedRequirement(content, mode) {
+  return workflowGateFacts.confirmedRequirementText(content, mode);
 }
 
 function computeRiskFlags(projectDir, specPath, content) {
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
   var action = actionText(projectDir, specPath);
-  return riskFlags(action && action.trim() ? action : content, confirmedRequirement(specPath, mode));
+  var requirement = confirmedRequirement(content, mode);
+  var fallback = workflowGateFacts.hasSubstantiveContent(requirement) ? requirement : content;
+  return riskFlags(action && action.trim() ? action : fallback, requirement);
 }
 
 function requiredHumanGate(evaluated) {

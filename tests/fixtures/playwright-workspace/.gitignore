@@ -1,0 +1,8 @@
+node_modules/
+.npm-cache/
+.playwright-browsers/
+test-results/
+playwright-report/
+mydocs/
+.sdd-verification.json
+.console-e2e-state.json

@@ -1171,6 +1171,21 @@ describe('CLI commands', function() {
     assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
   });
 
+  it('validate and next reject a formal step appended after completion-verification', function() {
+    var demo = path.join(tmpBase, 'd2-completion-order');
+    var specFile = path.join(demo, 'mydocs', 'specs', 'v1.0-completion-order.md');
+    run('init ' + demo + ' --mode standard');
+    run('discover ' + demo + ' --task-name completion-order --spec-version v1.0 --requirement x --mode standard');
+    makeStandardArchiveReady(demo, specFile);
+    var logFile = artifactPath(demo, specFile, 'execute-log-file');
+    fs.appendFileSync(logFile, '\n---\nStep: repair\nStatus: BUGFIX\nResult: formal work followed completion.\nTimestamp: 2026-01-01T00:02:30Z\n', 'utf-8');
+
+    var validation = run('validate ' + demo + ' --archive-ready');
+    assert.ok(validation.indexOf('completion-verification must be the last formal Execute Step') !== -1, validation);
+    var next = run('next ' + demo);
+    assert.ok(next.indexOf('NEXT_ACTION: repair_execute_log') !== -1, next);
+  });
+
   it('next shows context-source when present', function() {
     var demo = path.join(tmpBase, 'd2f');
     run('init ' + demo + ' --mode standard');

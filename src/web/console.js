@@ -34,7 +34,7 @@ var gateDefinitions = [
   ['acceptance', 'Acceptance', 'Observable acceptance criteria'],
   ['plan', 'Plan Gate', 'Configured approval gate, with Gate Evidence for agent approval'],
   ['executeLog', 'Execute Log', 'Execution facts recorded with AC Coverage'],
-  ['completionVerification', 'Completion Verification', 'Four-axis self-check and AC Coverage summary in Execute Log'],
+  ['completionVerification', 'Completion Verification', 'Four-axis self-check in Execute Log; formal AC Coverage belongs to execution steps'],
   ['learning', 'Learning', 'Reusable lesson recorded when required'],
   ['challengePass', 'Challenge PASS', 'Independent adversarial review passed']
 ];

@@ -11,11 +11,13 @@ Keep artifact headings and human-readable field labels in English. Write the fil
 
 Create a Learning Record when any of these are true:
 
-- Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
+- Execute Log contains `BUGFIX_ESCALATED` or `DEVIATED_MAJOR`.
 - Challenge verdict is `PASS_WITH_CONCERNS`.
 - The task was reopened from archived work.
 - Acceptance criteria were found insufficient during Execute or Challenge.
 - The same failure pattern has appeared before.
+
+Ordinary `BUGFIX` and `DEVIATED_MINOR` alone do not require a Learning Record. Keep their facts in Execute Log; create Learning when there is a reusable rule. A routine status never cancels another required trigger or a `FAIL_LEARNING` verdict.
 
 ## Output
 

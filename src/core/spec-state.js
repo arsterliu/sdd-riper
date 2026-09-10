@@ -130,17 +130,11 @@ function challengeContractIssues(content) {
   return issues;
 }
 
-function latestCompletionBlock(content) {
-  var block = '';
-  common.scanExecuteLog(content).forEach(function(step) {
-    if (step.isCompletion) block = step.content;
-  });
-  return block;
-}
-
 function completionContractIssues(content) {
-  var block = latestCompletionBlock(content);
-  if (!block) return ['Execute Log completion-verification is missing.'];
+  var lastStep = common.lastFormalExecuteStep(content);
+  if (!lastStep) return ['Execute Log completion-verification is missing.'];
+  if (!lastStep.isCompletion) return ['Execute Log completion-verification must be the last formal Execute Step.'];
+  var block = lastStep.content;
   var issues = [];
   var requiredLabels = ['Status', 'Result', 'Four-Axis Checklist', 'Verification', 'Timestamp'];
   requiredLabels.forEach(function(label) {

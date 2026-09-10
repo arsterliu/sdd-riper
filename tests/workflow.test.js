@@ -9,11 +9,11 @@ const tmpBase = path.join(os.tmpdir(), 'sdd-wf-test-' + Date.now());
 const projectDir = path.join(tmpBase, 'proj');
 const specsDir = path.join(projectDir, 'mydocs', 'specs');
 
-function writeSpec(name, body) {
+function writeSpec(name, body, mode) {
   if (!fs.existsSync(specsDir)) fs.mkdirSync(specsDir, { recursive: true });
   fs.writeFileSync(path.join(projectDir, '.sdd-config'), 'DOCS_DIR="mydocs"\nMODE="lite"\n', 'utf-8');
   var p = path.join(specsDir, name);
-  fs.writeFileSync(p, '---\ndate: 2026-06-01\nmode: lite\nstatus: draft\ndesign-file: ""\n---\n\n' + body, 'utf-8');
+  fs.writeFileSync(p, '---\ndate: 2026-06-01\nmode: ' + (mode || 'lite') + '\nstatus: draft\ndesign-file: ""\n---\n\n' + body, 'utf-8');
   return p;
 }
 
@@ -75,6 +75,83 @@ describe('riskFlags action-region scanning', function() {
     assert.ok(workflow.riskFlags('增加权限校验').indexOf('security') !== -1);
     assert.ok(workflow.riskFlags('接入支付网关').indexOf('billing') !== -1);
     assert.ok(workflow.riskFlags('公开接口变更').indexOf('public-api') !== -1);
+  });
+
+  it('reads risk fields from a historical nested Lite Confirmed Requirement', function() {
+    var spec = writeSpec('v1.0-legacy-lite.md', [
+      '## Research',
+      '### Confirmed Requirement',
+      'Scope Boundary: fixture',
+      'Irreversibility: none',
+      'Impact Radius: public',
+      'Dependencies & Constraints: none',
+      'Acceptance Intent: compatibility',
+      '## Plan',
+      'Change: fixture'
+    ].join('\n'));
+
+    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('public-api'));
+  });
+
+  it('retains micro top-level Confirmed Requirement risks for authorization', function() {
+    var spec = writeSpec('v1.0-micro-risk.md', [
+      '## Confirmed Requirement',
+      'Scope Boundary: fixture',
+      'Irreversibility: irreversible and cannot be rolled back',
+      'Impact Radius: internal',
+      'Dependencies & Constraints: none',
+      'Acceptance Intent: authorization must remain required',
+      '## Plan',
+      'Change: fixture'
+    ].join('\n'), 'micro');
+
+    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('irreversible'));
+  });
+
+  it('does not inherit Confirmed Requirement risks from an unselected layout without actions', function() {
+    var labelsWithoutRisk = [
+      'Scope Boundary: fixture',
+      'Irreversibility: none',
+      'Impact Radius: internal',
+      'Dependencies & Constraints: none',
+      'Acceptance Intent: compatibility'
+    ];
+    var labelsWithSecurity = [
+      'Scope Boundary: fixture',
+      'Irreversibility: none',
+      'Impact Radius: internal',
+      'Dependencies & Constraints: security authentication',
+      'Acceptance Intent: compatibility'
+    ];
+    var lite = writeSpec('v1.0-lite-layout-risk.md', [
+      '## Confirmed Requirement',
+      ...labelsWithoutRisk,
+      '## Research',
+      '### Confirmed Requirement',
+      ...labelsWithSecurity
+    ].join('\n'), 'lite');
+    var standard = writeSpec('v1.0-standard-layout-risk.md', [
+      '## Research',
+      '### Confirmed Requirement',
+      ...labelsWithoutRisk,
+      '## Confirmed Requirement',
+      ...labelsWithSecurity
+    ].join('\n'), 'standard');
+
+    assert.deepEqual(workflow.computeRiskFlags(projectDir, lite, fs.readFileSync(lite, 'utf-8')), []);
+    assert.deepEqual(workflow.computeRiskFlags(projectDir, standard, fs.readFileSync(standard, 'utf-8')), []);
+  });
+
+  it('falls back to full Spec risk scanning when the selected Requirement is comment-only', function() {
+    var spec = writeSpec('v1.0-standard-comment-only.md', [
+      '## Intake',
+      'permanently delete user data',
+      '## Research',
+      '### Confirmed Requirement',
+      '<!-- placeholder only -->'
+    ].join('\n'), 'standard');
+
+    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('irreversible'));
   });
 
   it('extracts irreversible flag from Irreversibility label (AC-011)', function() {

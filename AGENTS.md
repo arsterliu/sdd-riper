@@ -8,9 +8,9 @@
 - **Spec 是控制面**：Spec 拥有任务门禁，并引用 Design / Execute Log / Learning 制品。
 - **Design 独立**：standard/lite 模式在 `design-file` 中写技术设计；Plan 不能替代 Design。
 - **Execute Log 独立**：在 `execute-log-file` 中记录步骤结果、验证证据和偏差。
-- **Learning Check**：当偏差、修复、关注点或重开经验产生可复用规则时，创建 `learning-file`。
+- **Learning Check**：BUGFIX_ESCALATED、DEVIATED_MAJOR、PASS_WITH_CONCERNS、重开任务仍要求 Learning；普通 BUGFIX / DEVIATED_MINOR 本身不强制创建，保留日志并按复用价值提炼规则；验收不足、重复失败模式及 FAIL_LEARNING 处理保持不变。
 - **制品中文内容**：保持制品标题和字段标签为英文；填写分析、决策、计划、证据和学习规则时使用中文。
-- **Spec 创建输入人工确认**：创建 Spec 前必须让用户输入或确认 `version` 与 `task-name`，并询问是否有参考资料 / context；不得静默推导后直接 discover。
+- **Spec 创建输入**：创建 Spec 前，复用当前任务中用户已明确提供或确认且仍有效的 version、task-name、context 和 autonomy-mode；只询问缺失、冲突或有歧义的信息，不静默推导，不继承其他任务授权。
 - **自治模式**：`AUTONOMY_MODE=auto|supervised|human` 只提供新 Spec 默认值；每个 Spec 冻结 effective mode。auto 可凭完整证据由 agent 批准 Plan；supervised/human 必须写 `Plan Approved By: human:<name>`。Plan Approval 不等于后续自动推进授权。
 - **Independent Review**：Research / Challenge reviewer 必须是可审计身份：`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；micro Challenge 可用 `inline`。只有当前 Spec 存在新鲜且包含 reviewer actor 的任务/Plan 授权时，才可自动启动 reviewer；否则暂停并请求当前用户明确授权。不得跳过门禁或伪造证据。
 - **有界推进**：auto 与已获后续授权的 supervised 可使用 `sdd next`、`sdd challenge`、`sdd cruise --driver auto` 连续推进；human 在治理节点暂停。`CRUISE_MAX_ITERATIONS` 始终限制修复循环。归档、Profile exact digest、E2E SKIPPED、不可逆动作、范围扩大、新风险和平台权限始终单独停机。
@@ -46,7 +46,7 @@ This project uses SDD-RIPER. Do not reconstruct the workflow manually; use the `
 Hard rules:
 - Load the latest active Spec before implementation; never write code without an active Spec.
 - Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
-- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; ask whether reference materials / context exist and bind them via `context-source`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`; the project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
+- Before creating a Spec, reuse the current user's explicit, still-valid `version`, `task-name`, context, and autonomy-mode for the current task without asking them to confirm again. Ask only for missing, conflicting, or ambiguous inputs; ask whether reference materials / context exist when unknown and bind them via `context-source`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`; the project default is a recommendation and must not be silently chosen for the user. Never inherit authorization from another task.
 - Spec is the control plane: it owns goal, Research, Innovate, Acceptance Criteria, Plan, approvals, and references to `design-file`, `execute-log-file`, and `learning-file`. Do not recreate embedded Design / Execute Log / Learning sections inside Spec.
 - When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.
 - Do not move past Plan without approval and gate evidence. `auto` may use `Plan Approved By: agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.

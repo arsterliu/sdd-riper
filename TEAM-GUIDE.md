@@ -8,7 +8,7 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 
 团队应先选定项目的 autonomy 默认值。建议默认使用 `supervised`：它让人批准 Plan，同时允许团队在需要时另行授予后续自动推进权限。默认值只是新 Spec 的建议起点，不是对任何任务的授权。
 
-创建 Spec 前，AI 必须主动询问当前用户选择 `auto`、`supervised` 或 `human`；项目默认值只能作为推荐，不能静默代选。若成员已经明确指定 autonomy mode，AI 只复述并请其确认，不再重复询问或呈现选择。Spec 创建后会冻结 effective autonomy mode 及其来源；项目默认值后来变化，不会静默改变已经活动的 Spec。需要切换时，必须针对当前 Spec、当前范围和当前风险显式办理，旧授权随相关摘要变化而失效。
+创建 Spec 前，若用户尚未明确选择协作方式，AI 会询问 `auto`、`supervised`、`human` 的选择，解释差别并推荐 `supervised`。当前任务中用户已经明确提供或确认且仍有效的版本、任务名、参考资料和协作方式直接复用，不再要求重复确认；只询问缺失、冲突或有歧义的信息。项目默认值只能作为推荐，不能静默代选；其他任务的授权不能沿用。Spec 创建后会冻结 effective autonomy mode 及其来源；项目默认值后来变化，不会静默改变已经活动的 Spec。需要切换时，必须针对当前 Spec、当前范围和当前风险显式办理，旧授权随相关摘要变化而失效。
 
 | Autonomy | Plan Approval | 后续推进 | 适用判断 |
 | :--- | :--- | :--- | :--- |

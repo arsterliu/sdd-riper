@@ -69,7 +69,7 @@ function executionStatuses(executeLog) {
 function learningTriggers(specContent, executeLog, challengeVerdict) {
   var triggers = [];
   executionStatuses(executeLog).forEach(function(status) {
-    if (/^(BUGFIX|BUGFIX_ESCALATED|DEVIATED_MINOR|DEVIATED_MAJOR)$/.test(status)) {
+    if (/^(BUGFIX_ESCALATED|DEVIATED_MAJOR)$/.test(status)) {
       triggers.push(status + ' in Execute Log');
     }
   });

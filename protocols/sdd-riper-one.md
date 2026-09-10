@@ -8,7 +8,7 @@
 - **Spec 是控制面**：Spec 拥有目标、门禁、计划、裁定，并引用 Design / Execute Log / Learning。
 - **Design 独立**：standard 模式在 `design-file` 中写技术设计；Plan 不能替代。
 - **Execute Log 独立**：每个 Plan 步骤和偏差记录在 `execute-log-file`。
-- **Learning 独立**：偏差、修复、关注点或重开经验的可复用规则记录在 `learning-file`。
+- **Learning 独立**：可复用规则记录在 `learning-file`。`BUGFIX_ESCALATED`、`DEVIATED_MAJOR`、`PASS_WITH_CONCERNS` 和重开任务仍要求 Learning；普通 `BUGFIX` / `DEVIATED_MINOR` 本身不强制创建，保留日志事实并按复用价值提炼规则。验收不足、重复失败模式仍应记录学习，`FAIL_LEARNING` 仍阻塞。
 - **制品中文内容**：制品标题和可读标签保持英文；填写分析、决策、设计细节、计划步骤、证据和学习规则时使用中文。
 - **Autonomy Mode**：`AUTONOMY_MODE=auto|supervised|human` 只提供项目默认值；每个 Spec 固定自己的模式与来源。`auto` 使用 Intake/Scope 授权，`supervised` 将人工 Plan Approval 与后续自动推进授权分别审计，`human` 在关键治理转换逐次确认。
 - **Autonomy Write Safety**：自治写命令只操作当前活动 Spec，并在 `.sdd-autonomy.lock` 内复检摘要。auto 在用户首次确认当前 Scope / 风险后自动记录 main、worker、research-reviewer、challenge-reviewer；Agent 批准 Plan 且 Scope、风险、Plan digest 仍匹配时，主 Agent 自动追加 `plan_activation`，不得为此再次询问用户批准 Plan 或 reviewer。supervised 同时绑定 Scope/Plan digest；Plan、Scope 或风险变化会使旧激活失效。存在任何 `STOP_REASON` 时不得继续原生循环。

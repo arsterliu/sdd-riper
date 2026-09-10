@@ -8,6 +8,33 @@ const tmpBase = path.join(os.tmpdir(), 'sdd-learn-test-' + Date.now());
 const projectDir = path.join(tmpBase, 'proj');
 const docsRoot = path.join(projectDir, 'mydocs');
 
+describe('learning trigger policy', function() {
+  const { learningTriggers } = require('../src/core/learning');
+  const routine = 'Status: BUGFIX\nStatus: DEVIATED_MINOR\nStatus: DONE\n';
+
+  for (const statuses of ['BUGFIX', 'DEVIATED_MINOR', 'BUGFIX\nStatus: DEVIATED_MINOR']) {
+    it('keeps routine correction facts without requiring Learning: ' + statuses, function() {
+      assert.deepStrictEqual(learningTriggers('', 'Status: ' + statuses, 'PASS'), []);
+    });
+  }
+
+  for (const status of ['BUGFIX_ESCALATED', 'DEVIATED_MAJOR']) {
+    it('requires Learning for ' + status + ' alone and mixed with routine corrections', function() {
+      for (const prefix of ['', routine]) {
+        assert.deepStrictEqual(learningTriggers('', prefix + 'Status: ' + status, 'PASS'), [status + ' in Execute Log']);
+      }
+    });
+  }
+
+  it('preserves concerns and reopened work even with routine corrections', function() {
+    for (const log of ['', routine]) {
+      assert.deepStrictEqual(learningTriggers('', log, 'PASS_WITH_CONCERNS'), ['PASS_WITH_CONCERNS challenge verdict']);
+      assert.deepStrictEqual(learningTriggers('reopened-from: "mydocs/archive/previous.md"', log, 'PASS'), ['reopened archived work']);
+      assert.deepStrictEqual(learningTriggers('Reopened from archived context', log, 'PASS'), ['reopened archived work']);
+    }
+  });
+});
+
 function writeLearning(dir, name, appliesWhen, decisionRule) {
   var p = path.join(docsRoot, dir, name);
   var content = '---\ndate: 2026-06-01\ntask-name: "' + name.replace('.learning.md', '') + '"\nstatus: draft\n---\n\n' +

@@ -671,3 +671,119 @@ test('SKIPPED Coverage rejects normalized impossible ISO calendar dates in gate 
     fs.rmSync(projectDir, { recursive: true, force: true });
   }
 });
+
+test('legacy completion Summary remains readable without becoming AC Coverage evidence', function() {
+  const executeLog = [
+    '## Execute Log',
+    'Step: completion-verification',
+    'Status: DONE',
+    'Result: historical completion',
+    'AC Coverage Summary:',
+    '  - AC-998: PASS',
+    'Four-Axis Checklist:',
+    '  - Axis 0 (Intake): aligned',
+    '  - Axis 1 (Design/Acceptance/Plan): complete',
+    '  - Axis 2 (Code Diff): within boundary',
+    '  - Axis 3 (Execute Log): faithful',
+    'Verification: node --test',
+    'Timestamp: 2026-09-09T00:00:00Z'
+  ].join('\n');
+  const snapshot = {
+    exists: true,
+    location: 'active',
+    projectDir: '',
+    specPath: '',
+    status: 'draft',
+    mode: 'micro',
+    content: '## Intake\nfixture\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\nPlan Approved By: agent:fixture\nApproved At: 2026-09-09T00:00:00Z\nGate Evidence: fixture',
+    executeLog: { exists: true, content: executeLog },
+    design: { exists: true, content: '' }
+  };
+
+  assert.deepEqual(gateFacts.acCoverageRecords(executeLog), []);
+  assert.equal(specState.evaluate(snapshot).gates.completion.state, 'pass');
+});
+
+test('Lite Research supports the historical nested Confirmed Requirement layout', function() {
+  const facts = gateFacts.collectGateFacts({
+    exists: true,
+    location: 'active',
+    projectDir: '',
+    specPath: '',
+    status: 'draft',
+    mode: 'lite',
+    content: [
+      '## Research',
+      '### Confirmed Requirement',
+      'Scope Boundary: fixture',
+      'Irreversibility: none',
+      'Impact Radius: internal',
+      'Dependencies & Constraints: none',
+      'Acceptance Intent: compatibility',
+      'Research Reviewed By: human:reviewer',
+      'Research Reviewed At: 2026-09-09T00:00:00Z'
+    ].join('\n'),
+    design: { exists: true, content: '## Design Note\nfixture' }
+  }, {
+    inspectProviderReadiness: function() {
+      return { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
+    }
+  });
+
+  assert.equal(facts.research.confirmedRequirement.present, true);
+  assert.deepEqual(facts.research.confirmedRequirement.missingLabels, []);
+});
+
+test('Confirmed Requirement label gates stay within the layout selected by mode', function() {
+  const required = [
+    'Scope Boundary: fixture',
+    'Irreversibility: none',
+    'Impact Radius: internal',
+    'Dependencies & Constraints: none',
+    'Acceptance Intent: compatibility'
+  ];
+  const incomplete = ['Scope Boundary: fixture'];
+  const options = {
+    inspectProviderReadiness: function() {
+      return { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
+    }
+  };
+  const snapshot = function(mode, content) {
+    return {
+      exists: true,
+      location: 'active',
+      projectDir: '',
+      specPath: '',
+      status: 'draft',
+      mode: mode,
+      content: content,
+      design: { exists: true, content: '' }
+    };
+  };
+
+  const lite = gateFacts.collectGateFacts(snapshot('lite', [
+    '## Confirmed Requirement',
+    ...incomplete,
+    '## Research',
+    '### Confirmed Requirement',
+    ...required
+  ].join('\n')), options);
+  const standard = gateFacts.collectGateFacts(snapshot('standard', [
+    '## Research',
+    '### Confirmed Requirement',
+    ...incomplete,
+    '## Confirmed Requirement',
+    ...required
+  ].join('\n')), options);
+  const expected = [
+    'Irreversibility',
+    'Impact Radius',
+    'Dependencies & Constraints',
+    'Acceptance Intent'
+  ];
+
+  assert.deepEqual(lite.research.confirmedRequirement.missingLabels, expected);
+  assert.deepEqual(lite.research.confirmedRequirement.gateMissingLabels, expected);
+  assert.deepEqual(standard.research.confirmedRequirement.missingLabels, expected);
+  assert.deepEqual(standard.research.confirmedRequirement.gateMissingLabels, expected);
+});

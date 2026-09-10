@@ -47,3 +47,5 @@
 | v4.12-gate-integrity-fixes.md | 2026-08-23 | gate-integrity-fixes | PASS_WITH_CONCERNS |
 | v4.13-risk-signal-and-spec-listing.md | 2026-08-23 | risk-signal-and-spec-listing | PASS_WITH_CONCERNS |
 | v0.5.2-auto-authorization-flow.md | 2026-08-26 | auto-authorization-flow | PASS_WITH_CONCERNS |
+| v4.14-workflow-ceremony-reduction.md | 2026-09-05 | workflow-ceremony-reduction | PASS |
+| v0.7.5-challenge-target-spec.md | 2026-09-08 | challenge-target-spec | PASS |

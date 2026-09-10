@@ -271,3 +271,63 @@ describe('auxiliary spec name filtering (v4.13 AC-003)', function() {
     assert.equal(common.findLatestSpec(specsDir), '');
   });
 });
+
+describe('Execute Log completion structure', function() {
+  var common;
+
+  beforeEach(function() {
+    delete require.cache[require.resolve('../lib/common')];
+    common = require('../lib/common');
+  });
+
+  function completionLines() {
+    return [
+      'Step: completion-verification',
+      'Status: DONE',
+      'Result: legacy completion is complete',
+      'AC Coverage Summary:',
+      '  - AC-998: PASS',
+      'Four-Axis Checklist:',
+      '  - Axis 0 (Intake): aligned',
+      '  - Axis 1 (Design/Acceptance/Plan): complete',
+      '  - Axis 2 (Code Diff): within boundary',
+      '  - Axis 3 (Execute Log): faithful',
+      'Verification: node --test',
+      'Timestamp: 2026-09-09T00:00:00Z'
+    ];
+  }
+
+  it('retains a legacy Summary only inside completion-verification', function() {
+    var steps = common.scanExecuteLog(completionLines().join('\n'));
+
+    assert.equal(steps.length, 1);
+    assert.equal(steps[0].content.includes('Four-Axis Checklist:'), true);
+    assert.equal(steps[0].content.includes('Timestamp: 2026-09-09T00:00:00Z'), true);
+  });
+
+  it('keeps a legacy Summary as a boundary in ordinary Execute Steps', function() {
+    var steps = common.scanExecuteLog([
+      'Step: implementation',
+      'Status: DONE',
+      'AC Coverage Summary:',
+      '  - AC-001: PASS',
+      'Verification: should not be included'
+    ].join('\n'));
+
+    assert.equal(steps.length, 1);
+    assert.equal(steps[0].content, 'Status: DONE');
+  });
+
+  it('requires completion-verification to be the final formal Execute Step', function() {
+    var log = completionLines().concat([
+      '---',
+      'Step: repair',
+      'Status: BUGFIX',
+      'Result: a later formal step invalidates completion',
+      'Timestamp: 2026-09-09T00:01:00Z'
+    ]).join('\n');
+
+    assert.equal(common.lastFormalExecuteStep(log).header, 'Step: repair');
+    assert.equal(common.completionVerificationDone(log), false);
+  });
+});

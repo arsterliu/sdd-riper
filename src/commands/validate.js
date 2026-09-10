@@ -292,40 +292,11 @@ function validatePlanGate(content, autonomyMode, archiveReady, issues, gateFacts
   }
 }
 
-function extractSubsectionContent(filePath, parentPattern, subPattern) {
-  // Extract content of a ### subsection within a ## section
-  var parentSection = common.extractSection(filePath, parentPattern, 800);
-  if (!parentSection) return '';
-  var lines = parentSection.split(/\r?\n/);
-  var found = false;
-  var result = [];
-  var subRegex = new RegExp('^###\\s+' + subPattern);
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i];
-    if (/^###/.test(line)) {
-      if (found) break;
-      if (subRegex.test(line)) { found = true; }
-      continue;
-    }
-    if (found) {
-      result.push(line);
-    }
-  }
-  return result.join('\n');
-}
-
 function validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts) {
   if (mode === 'micro') return; // micro skips Research entirely
   var confirmed = gateFacts && gateFacts.research && gateFacts.research.confirmedRequirement;
   if (!confirmed) {
-    var crSection;
-    if (mode === 'standard') {
-      // In standard, Confirmed Requirement is a ### subsection under ## Research
-      crSection = extractSubsectionContent(specPath, 'Research', SECTION.confirmedRequirement);
-    } else {
-      // In lite, Confirmed Requirement is a ## section
-      crSection = common.extractSection(specPath, SECTION.confirmedRequirement, 400);
-    }
+    var crSection = workflowGateFacts.confirmedRequirementText(fs.readFileSync(specPath, 'utf-8'), mode);
     confirmed = {
       present: !!firstRealLine(crSection),
       missingLabels: missingLabels(crSection, CONFIRMED_REQ_REQUIRED)

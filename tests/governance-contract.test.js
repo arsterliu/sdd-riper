@@ -690,6 +690,12 @@ test('archived v4.3 Execute Log template keeps Coverage out of completion-verifi
   assert.doesNotMatch(completion, /^AC Coverage:$/m, 'completion template must not contain Coverage records');
 });
 
+test('console describes formal AC Coverage without restoring the retired Summary grammar', function() {
+  const consoleSource = readProjection('src/web/console.js');
+  assert.doesNotMatch(consoleSource, /AC Coverage summary/i);
+  assert.match(consoleSource, /formal AC Coverage belongs to execution steps/);
+});
+
 test('package description names the complete current RIPER lifecycle', function() {
   const pkg = JSON.parse(readProjection('package.json'));
   const description = pkg.description;

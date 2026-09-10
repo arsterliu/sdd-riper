@@ -16,6 +16,7 @@ const specIndex = require('../src/core/spec-index');
 const specState = require('../src/core/spec-state');
 const projectIndexer = require('../src/core/project-indexer');
 const providerReadiness = require('../src/verification/readiness');
+const autonomyState = require('../src/core/autonomy-state');
 
 const roots = [];
 
@@ -25,6 +26,15 @@ function project(name) {
   return dir;
 }
 
+function routineLog(fixture, statuses) {
+  const original = fs.readFileSync(fixture.executeLogPath, 'utf-8');
+  const log = original.replace('Step: completion-verification', statuses.map(function(status, i) {
+    return 'Step: correction-' + i + '\nStatus: ' + status + '\nResult: bounded correction verified.\nTimestamp: 2026-01-01T00:00:30Z\n\n---\n';
+  }).join('\n') + '\nStep: completion-verification');
+  fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
+  return log;
+}
+
 afterEach(function() {
   roots.splice(0).forEach(function(root) {
     fs.rmSync(root, { recursive: true, force: true });
@@ -32,6 +42,91 @@ afterEach(function() {
 });
 
 describe('authoritative workflow state matrix', function() {
+  for (const statuses of [['BUGFIX'], ['DEVIATED_MINOR'], ['BUGFIX', 'DEVIATED_MINOR']]) {
+    it('projects routine corrections consistently without a Learning gate: ' + statuses.join('+'), function() {
+      const fixture = createArchiveReadyStandard(project('routine-' + statuses.join('-')));
+      const log = routineLog(fixture, statuses);
+
+      const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
+      assert.strictEqual(state.completionReady, true, JSON.stringify(state.blockers));
+      assert.strictEqual(state.nextAction, 'request_archive_authorization');
+      const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
+      assert.strictEqual(validation.status, 0, validation.output);
+      const next = runCli(['next', fixture.projectDir], fixture.projectDir);
+      assert.match(next.output, /NEXT_ACTION: request_archive_authorization/);
+      assert.doesNotMatch(next.output, /Learning Record is required/);
+      specIndex.clearCache();
+      const indexed = specIndex.listSpecs(fixture.projectDir).specs[0];
+      assert.strictEqual(indexed.phase, 'archive_authorization');
+      assert.strictEqual(indexed.completion.learningRequired, false);
+      assert.strictEqual(fs.readFileSync(fixture.executeLogPath, 'utf-8'), log);
+
+      const denied = runCli(['archive', fixture.projectDir, fixture.taskName], fixture.projectDir);
+      assert.notStrictEqual(denied.status, 0, denied.output);
+      assert.ok(fs.existsSync(fixture.specPath));
+    });
+  }
+
+  it('routine corrections never waive acceptance, completion, Challenge or supervised approval', function() {
+    const fixture = createArchiveReadyStandard(project('routine-gates'));
+    const originalSpec = fs.readFileSync(fixture.specPath, 'utf-8');
+    const originalLog = routineLog(fixture, ['BUGFIX', 'DEVIATED_MINOR']);
+    const cases = [
+      { name: 'missing coverage', log: s => s.replace('  - AC-001: PASS', ''), evidence: /AC Coverage/i },
+      { name: 'failed coverage', log: s => s.replace('AC-001: PASS', 'AC-001: FAIL'), evidence: /AC Coverage/i },
+      { name: 'incomplete completion', log: s => s.replace('Axis 1 (Design/Acceptance/Plan): complete', 'Axis 1 (Design/Acceptance/Plan): incomplete'), evidence: /Axis 1|four-axis/i },
+      { name: 'failed Challenge', spec: s => s.replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: FAIL_CODE').replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Execute / Debug').replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: FAIL_CODE - independent fixture review'), evidence: /FAIL_CODE|Challenge/i },
+      { name: 'stale Challenge', spec: s => s.replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2025-12-31T23:59:00Z'), evidence: /stale|Challenge/i },
+      { name: 'unapproved supervised Plan', spec: s => s.replace('autonomy-mode: "auto"', 'autonomy-mode: "supervised"'), evidence: /human|Plan Approved By/i },
+      { name: 'failed Learning review', spec: s => s.replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: FAIL_LEARNING').replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Learning Check').replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: FAIL_LEARNING - independent fixture review'), evidence: /FAIL_LEARNING|Challenge/i }
+    ];
+    for (const scenario of cases) {
+      fs.writeFileSync(fixture.specPath, scenario.spec ? scenario.spec(originalSpec) : originalSpec, 'utf-8');
+      fs.writeFileSync(fixture.executeLogPath, scenario.log ? scenario.log(originalLog) : originalLog, 'utf-8');
+      const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
+      assert.strictEqual(state.facts.learningRequired, false, scenario.name);
+      assert.strictEqual(state.completionReady, false, scenario.name);
+      assert.match(state.blockers.map(b => b.message).join('\n'), scenario.evidence, scenario.name);
+      const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
+      assert.notStrictEqual(validation.status, 0, scenario.name);
+      specIndex.clearCache();
+      assert.notStrictEqual(specIndex.listSpecs(fixture.projectDir).specs[0].phase, 'archive_authorization', scenario.name);
+    }
+  });
+
+  it('routine corrections never authorize supervised continuation after scope, risk or Plan changes', function() {
+    const fixture = createArchiveReadyStandard(project('routine-authorization'));
+    routineLog(fixture, ['BUGFIX', 'DEVIATED_MINOR']);
+    let content = fs.readFileSync(fixture.specPath, 'utf-8')
+      .replace('autonomy-mode: "auto"', 'autonomy-mode: "supervised"')
+      .replace('ui-impact: ""', 'ui-impact: "no"')
+      .replace('visual-context-intent: ""', 'visual-context-intent: "not-applicable"')
+      .replace('Plan Approved By: agent:fixture', 'Plan Approved By: human:fixture')
+      .replace(/^Challenge (?:Verdict|Summary|Executed By|Executed At|Evidence):.*$/gm, line => line.slice(0, line.indexOf(':') + 1))
+      .replace(/^Backtrack Target:.*$/m, 'Backtrack Target:');
+    content = autonomyState.appendEvent(content, {
+      eventId: 'supervised-fixture', eventType: 'plan_authorization', mode: 'supervised', gate: 'Plan', decision: 'authorized',
+      scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: autonomyState.riskFlagsSnapshot([]), planDigest: autonomyState.planSnapshot(content),
+      authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
+      authorizedAt: '2026-01-01T00:00:00Z', authorizationEvidence: 'isolated supervised fixture'
+    });
+    fs.writeFileSync(fixture.specPath, content, 'utf-8');
+    const baseline = runCli(['autonomy', 'inspect', fixture.projectDir, '--spec', fixture.specPath], fixture.projectDir);
+    assert.match(baseline.output, /AUTHORIZATION_STATE: active/);
+    assert.match(runCli(['next', fixture.projectDir], fixture.projectDir).output, /NEXT_ACTION: run_challenge/);
+    for (const scenario of [
+      { mutate: s => s.replace('## Intake', '## Intake\n新增范围'), stop: 'scope_changed' },
+      { mutate: s => s.replace('## Plan', '## Plan\n新增 security 审查'), stop: 'risk_changed' },
+      { mutate: s => s.replace('Gate Evidence: fixture plan evidence', 'Gate Evidence: changed plan evidence'), stop: 'authorization_stale' }
+    ]) {
+      fs.writeFileSync(fixture.specPath, scenario.mutate(content), 'utf-8');
+      const next = runCli(['next', fixture.projectDir], fixture.projectDir);
+      assert.match(next.output, new RegExp('STOP_REASON: ' + scenario.stop), next.output);
+      assert.match(next.output, /AUTHORIZATION_STATE: required/, next.output);
+      assert.match(next.output, /NEXT_ACTION: request_plan_automation_authorization/, next.output);
+    }
+  });
+
   it('exposes a pure evaluator with structured blockers and safe routing defaults', function() {
     const state = specState.evaluate({
       exists: true,
@@ -697,5 +792,43 @@ describe('authoritative workflow state matrix', function() {
       return blocker.gate === 'plan' && /no explicit init step: web-e2e/.test(blocker.message);
     }));
     assert.strictEqual(state.facts.providerReadiness.state, 'required');
+  });
+
+  it('blocks archive and next when a formal step follows completion-verification', function() {
+    const fixture = createArchiveReadyStandard(project('completion-order'), 'completion-order');
+    const log = fs.readFileSync(fixture.executeLogPath, 'utf-8') + [
+      '',
+      '---',
+      'Step: repair',
+      'Status: BUGFIX',
+      'Result: later formal work invalidates completion.',
+      'Timestamp: 2026-01-01T00:00:30Z'
+    ].join('\n');
+    fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
+
+    const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
+    assert.strictEqual(state.completionReady, false);
+    assert.strictEqual(state.gates.completion.state, 'blocked');
+    assert.match(state.blockers.map(function(blocker) { return blocker.message; }).join('\n'), /completion-verification must be the last formal Execute Step/);
+
+    const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
+    assert.notStrictEqual(validation.status, 0, validation.output);
+    assert.match(validation.output, /completion-verification must be the last formal Execute Step/);
+    const next = runCli(['next', fixture.projectDir], fixture.projectDir);
+    assert.match(next.output, /NEXT_ACTION: repair_execute_log/);
+  });
+
+  it('accepts the historical nested Lite Confirmed Requirement in archive validation', function() {
+    const fixture = createArchiveReadyLite(project('legacy-lite'), 'legacy-lite');
+    const legacy = fs.readFileSync(fixture.specPath, 'utf-8').replace(
+      /^## Confirmed Requirement$/m,
+      '## Research\n\n### Confirmed Requirement'
+    );
+    fs.writeFileSync(fixture.specPath, legacy, 'utf-8');
+
+    const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
+    assert.strictEqual(state.completionReady, true, JSON.stringify(state.blockers));
+    const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
+    assert.strictEqual(validation.status, 0, validation.output);
   });
 });
