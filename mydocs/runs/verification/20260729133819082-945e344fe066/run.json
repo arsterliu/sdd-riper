@@ -1,0 +1,220 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260729133819082-945e344fe066",
+  "createdAt": "2026-07-29T13:38:19.083Z",
+  "providerId": "console-e2e",
+  "adapterId": "playwright-test",
+  "adapterManifestDigest": "5868e6e841d0ea676909ac75163843ad1311abf4640d127d8cc16e75721a6a3b",
+  "providerDigest": "67c751de4ec5c544aaae5ba6c93ca98e1b9ce35443597c94481b7b89160755fe",
+  "spec": {
+    "path": "mydocs/specs/v3.6-console-quality-plan-dogfood.md",
+    "specDigest": "0412ccb569a98583ca8bf8f7fb8a8113403368cbcefd14b75c236e18301d90c2",
+    "verificationContractDigest": "c6769ed93d97609db836236e86ff509818776f5db69180cf3d951679eb784fc7",
+    "planDigest": "58b7892000f6b60ca36d567f9c68b32b4522f909d2ac6bcd561f97210095c383",
+    "designPath": "mydocs/design/v3.6-console-quality-plan-dogfood.design.md",
+    "designDigest": "c9c1fc43352d0cdb74e7b2a801c5d67c622df9dfbff2fbff8719ef8b82e44a0d",
+    "diffBase": "a353306f48e5f9f6a083af4080f16a3c83a3a36f"
+  },
+  "codeStateBefore": {
+    "head": "a353306f48e5f9f6a083af4080f16a3c83a3a36f",
+    "stagedDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unstagedDigest": "34e1bd5ca9d0b16b072f778b75b60ba568b90b99d0f06bdf436c6146358f540a",
+    "untrackedDigest": "c8fde6e6e0a330f0d8546a01cb53ffcaa7152cd5ca1dcee312e6cb023b793e53",
+    "untrackedFiles": [
+      ".claude/settings.local.json",
+      "src/commands/quality.js",
+      "src/console/projection.js",
+      "src/quality/catalog.js",
+      "src/quality/input.js",
+      "src/quality/planner.js",
+      "tests/console-api.test.js",
+      "tests/console-projection.test.js",
+      "tests/console-ui.test.js",
+      "tests/fixtures/playwright-workspace/.gitignore",
+      "tests/helpers/quality-fixtures.js",
+      "tests/quality-cli.test.js",
+      "tests/quality-planner.test.js"
+    ],
+    "aggregateDigest": "e7f57d995c4be2a2885288e6c6e7ac632d4469b81d1552d29d6c33f6666ef099"
+  },
+  "codeStateAfter": {
+    "head": "a353306f48e5f9f6a083af4080f16a3c83a3a36f",
+    "stagedDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unstagedDigest": "34e1bd5ca9d0b16b072f778b75b60ba568b90b99d0f06bdf436c6146358f540a",
+    "untrackedDigest": "c8fde6e6e0a330f0d8546a01cb53ffcaa7152cd5ca1dcee312e6cb023b793e53",
+    "untrackedFiles": [
+      ".claude/settings.local.json",
+      "src/commands/quality.js",
+      "src/console/projection.js",
+      "src/quality/catalog.js",
+      "src/quality/input.js",
+      "src/quality/planner.js",
+      "tests/console-api.test.js",
+      "tests/console-projection.test.js",
+      "tests/console-ui.test.js",
+      "tests/fixtures/playwright-workspace/.gitignore",
+      "tests/helpers/quality-fixtures.js",
+      "tests/quality-cli.test.js",
+      "tests/quality-planner.test.js"
+    ],
+    "aggregateDigest": "e7f57d995c4be2a2885288e6c6e7ac632d4469b81d1552d29d6c33f6666ef099"
+  },
+  "workspace": {
+    "workspaceRoot": "tests/fixtures/playwright-workspace",
+    "packageRoot": "tests/fixtures/playwright-workspace",
+    "manifest": "tests/fixtures/playwright-workspace/package.json",
+    "lockfile": "tests/fixtures/playwright-workspace/package-lock.json",
+    "resolvedToolVersion": "1.52.0",
+    "manifestDigest": "e44515db5a825aeab50266e0d8386c5120918a141e2c26a9c63f4678d5a97a24",
+    "lockfileDigest": "3229f899737c7204d7666afe20979f10f821a7017a8ce9184201d908257a5065",
+    "configDigest": "4aca9a826025a9e307d6d1662f0464502a1dc3e34a980ad5e8319db3aaf6c22d"
+  },
+  "invocationDigest": "a3f869c293fa07b7be33a7d6512401a5ac46ebf5ebadf21adbd9b77a2c028120",
+  "environmentDigests": {
+    "PATH": "0e007050aa09e76e675ad9fdbd3c58fb8a9d35c241004cf2b7dc31dd9eb42d9c",
+    "SystemRoot": "4c754b6dc9cd24a7e1a0801560911fbf9a832bf0f5b3bcba0f3844a71356489c",
+    "TEMP": "546fd64d6ef2c0d952cefd77c958587bdd29f6d40fa8811b478e36c9ea8b62ed",
+    "TMP": "546fd64d6ef2c0d952cefd77c958587bdd29f6d40fa8811b478e36c9ea8b62ed",
+    "USERPROFILE": "380e88be8ca74694c8f231f444b71a65b1b5cdee95ed99ace41a1ea56d806a4c",
+    "WINDIR": "4c754b6dc9cd24a7e1a0801560911fbf9a832bf0f5b3bcba0f3844a71356489c"
+  },
+  "allowedEnvironmentKeys": [],
+  "targets": {
+    "acIds": [
+      "AC-007"
+    ],
+    "projects": [
+      "chromium"
+    ]
+  },
+  "status": "failed",
+  "freshness": "fresh",
+  "gateDecision": "FAIL",
+  "acExecutions": [
+    {
+      "acId": "AC-007",
+      "project": "chromium",
+      "testIds": [
+        "test-594e4f81da06300487716873",
+        "test-93cd5caea1280f4e64859998"
+      ],
+      "status": "failed"
+    }
+  ],
+  "testExecutions": [
+    {
+      "id": "test-410dd4f8c88ff27109a0b2b3",
+      "title": "Console 展示 Provider、Run、freshness、矩阵和安全诊断",
+      "project": "chromium",
+      "acIds": [
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 3118,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    },
+    {
+      "id": "test-ee83fa297bc3f2d13cef2e19",
+      "title": "Console 区分 required、configured-no-runs、blocked 并在窄屏局部滚动",
+      "project": "chromium",
+      "acIds": [
+        "AC-006"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 1430,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    },
+    {
+      "id": "test-594e4f81da06300487716873",
+      "title": "Console E2E 通过正式 Provider 映射运行",
+      "project": "chromium",
+      "acIds": [
+        "AC-007"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 215,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    },
+    {
+      "id": "test-93cd5caea1280f4e64859998",
+      "title": "Console 把 Spec 态势、Profile 与 Quality Plan 作为只读决策视图展示",
+      "project": "chromium",
+      "acIds": [
+        "AC-001",
+        "AC-004",
+        "AC-007"
+      ],
+      "expectedStatus": "passed",
+      "status": "failed",
+      "retry": 0,
+      "duration": 269,
+      "stablePass": false,
+      "errors": [
+        {
+          "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBeGreaterThanOrEqual\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m)\u001b[22m\n\nExpected: >= \u001b[32m800\u001b[39m\nReceived:    \u001b[31m544\u001b[39m"
+        }
+      ],
+      "attachments": [
+        {
+          "name": "screenshot",
+          "contentType": "image/png",
+          "path": ""
+        },
+        {
+          "name": "_error-context-0",
+          "contentType": "text/markdown",
+          "path": ""
+        },
+        {
+          "name": "trace",
+          "contentType": "application/zip",
+          "path": ""
+        }
+      ]
+    }
+  ],
+  "attachments": [
+    {
+      "path": "artifacts/9357191288f30c2cc01d5a615b0cf4a4c2466a2439108d53857efea7a9633838-0-screenshot",
+      "name": "screenshot",
+      "mediaType": "image/png",
+      "size": 88895,
+      "sha256": "9357191288f30c2cc01d5a615b0cf4a4c2466a2439108d53857efea7a9633838"
+    },
+    {
+      "path": "artifacts/5ead13b2b1567725573232d8e3f331747d6594665be42c913e11afa055e5fc99-1-_error-context-0",
+      "name": "_error-context-0",
+      "mediaType": "text/markdown",
+      "size": 18896,
+      "sha256": "5ead13b2b1567725573232d8e3f331747d6594665be42c913e11afa055e5fc99"
+    },
+    {
+      "path": "artifacts/b7e9a4ea3d0484f8ea6648879726f32c34bcad7e9c71dcfa80b06d5878b9c53f-2-trace",
+      "name": "trace",
+      "mediaType": "application/zip",
+      "size": 379224,
+      "sha256": "b7e9a4ea3d0484f8ea6648879726f32c34bcad7e9c71dcfa80b06d5878b9c53f"
+    }
+  ],
+  "diagnostics": [],
+  "process": {
+    "status": 1,
+    "signal": "",
+    "stdout": "",
+    "stderr": ""
+  }
+}

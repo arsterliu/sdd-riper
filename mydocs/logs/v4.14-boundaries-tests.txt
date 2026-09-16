@@ -1,0 +1,303 @@
+TAP version 13
+# Subtest: authoritative workflow state matrix
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX
+    ok 1 - projects routine corrections consistently without a Learning gate: BUGFIX
+      ---
+      duration_ms: 1257.8591
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+    ok 2 - projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+      ---
+      duration_ms: 1092.339
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+    ok 3 - projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+      ---
+      duration_ms: 1101.0612
+      type: 'test'
+      ...
+    # Subtest: routine corrections never waive acceptance, completion, Challenge or supervised approval
+    ok 4 - routine corrections never waive acceptance, completion, Challenge or supervised approval
+      ---
+      duration_ms: 2253.3983
+      type: 'test'
+      ...
+    # Subtest: routine corrections never authorize supervised continuation after scope, risk or Plan changes
+    not ok 5 - routine corrections never authorize supervised continuation after scope, risk or Plan changes
+      ---
+      duration_ms: 599.8792
+      type: 'test'
+      location: 'D:\\workspace\\personal\\sdd-riper\\tests\\state-matrix.test.js:97:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        ## SDD NEXT
+        SPEC: C:\Users\liuyl\AppData\Local\Temp\sdd-state-matrix-45264-1788597186963-routine-authorization\mydocs\specs\v1.0-state-matrix.md
+        AUTONOMY_MODE: supervised
+        AUTONOMY_MODE_SOURCE: discover-override
+        AUTHORIZATION_STATE: required
+        AUTHORIZED_ACTORS: none
+        AUTHORIZED_SCOPE_DIGEST: sha256:5de538e930cda96a08bc0f225c295096e1afbb5a95a96a5de09cad0107e82176
+        AUTHORIZED_RISK_SNAPSHOT: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        ACTIVE_PLAN_DIGEST: sha256:94c8dc059a78500713a5224a0f9ec469cd6c736d1861ce875eba978495a172d8
+        STOP_REASON: archive_authorization
+        MAX_ITERATIONS: 5
+        CHALLENGE_VERDICT: PASS
+        BACKTRACK_TARGET: Ready
+        NEXT_ACTION: request_archive_authorization
+        RISK_FLAGS: none
+        UI_IMPACT: pending
+        VISUAL_CONTEXT_INTENT: pending
+        VISUAL_CONTEXT_DIAGNOSTIC: VISUAL_CONTEXT_UI_IMPACT_CONFIRMATION_REQUIRED
+        VISUAL_CONTEXT_GUIDANCE: Confirm whether this task affects UI with sdd visual select <project-dir> --spec <spec> --ui-impact no, or --ui-impact yes --intent not-required|direction|fidelity.
+        DESIGN_METHOD: ADR; arc42 field structure; C4 context/container for Architecture View
+        DESIGN_FOCUS_FIELDS: required Technical Design fields (no extra emphasis)
+        - standard: anchor the Technical Design on its required fields; use C4 context/container views for Architecture View and an ADR for the selected option.
+        - if the domain has multiple bounded contexts or a rich model, consider DDD (advisory; orchestrator decides).
+        BLOCKERS:
+        - none
+        ARCHIVE_AUTHORIZATION: required
+        GUIDANCE: Stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        ## SDD NEXT
+        SPEC: C:\Users\liuyl\AppData\Local\Temp\sdd-state-matrix-45264-1788597186963-routine-authorization\mydocs\specs\v1.0-state-matrix.md
+        AUTONOMY_MODE: supervised
+        AUTONOMY_MODE_SOURCE: discover-override
+        AUTHORIZATION_STATE: required
+        AUTHORIZED_ACTORS: none
+        AUTHORIZED_SCOPE_DIGEST: sha256:5de538e930cda96a08bc0f225c295096e1afbb5a95a96a5de09cad0107e82176
+        AUTHORIZED_RISK_SNAPSHOT: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        ACTIVE_PLAN_DIGEST: sha256:94c8dc059a78500713a5224a0f9ec469cd6c736d1861ce875eba978495a172d8
+        STOP_REASON: archive_authorization
+        MAX_ITERATIONS: 5
+        CHALLENGE_VERDICT: PASS
+        BACKTRACK_TARGET: Ready
+        NEXT_ACTION: request_archive_authorization
+        RISK_FLAGS: none
+        UI_IMPACT: pending
+        VISUAL_CONTEXT_INTENT: pending
+        VISUAL_CONTEXT_DIAGNOSTIC: VISUAL_CONTEXT_UI_IMPACT_CONFIRMATION_REQUIRED
+        VISUAL_CONTEXT_GUIDANCE: Confirm whether this task affects UI with sdd visual select <project-dir> --spec <spec> --ui-impact no, or --ui-impact yes --intent not-required|direction|fidelity.
+        DESIGN_METHOD: ADR; arc42 field structure; C4 context/container for Architecture View
+        DESIGN_FOCUS_FIELDS: required Technical Design fields (no extra emphasis)
+        - standard: anchor the Technical Design on its required fields; use C4 context/container views for Architecture View and an ADR for the selected option.
+        - if the domain has multiple bounded contexts or a rich model, consider DDD (advisory; orchestrator decides).
+        BLOCKERS:
+        - none
+        ARCHIVE_AUTHORIZATION: required
+        GUIDANCE: Stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization.
+        
+      operator: 'match'
+      stack: |-
+        TestContext.<anonymous> (D:\workspace\personal\sdd-riper\tests\state-matrix.test.js:119:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Suite.processPendingSubtests (node:internal/test_runner/test:744:18)
+        Test.postRun (node:internal/test_runner/test:1173:19)
+        Test.run (node:internal/test_runner/test:1101:12)
+        async Suite.processPendingSubtests (node:internal/test_runner/test:744:7)
+      ...
+    # Subtest: exposes a pure evaluator with structured blockers and safe routing defaults
+    ok 6 - exposes a pure evaluator with structured blockers and safe routing defaults
+      ---
+      duration_ms: 1.8309
+      type: 'test'
+      ...
+    # Subtest: evaluateProjectSpec routes completed work to archive authorization without an archive action
+    ok 7 - evaluateProjectSpec routes completed work to archive authorization without an archive action
+      ---
+      duration_ms: 401.2818
+      type: 'test'
+      ...
+    # Subtest: rejects an unknown Challenge Verdict instead of deriving PASS
+    ok 8 - rejects an unknown Challenge Verdict instead of deriving PASS
+      ---
+      duration_ms: 387.2332
+      type: 'test'
+      ...
+    # Subtest: rejects Challenge Evidence that disagrees with the verdict summary pair
+    ok 9 - rejects Challenge Evidence that disagrees with the verdict summary pair
+      ---
+      duration_ms: 377.2794
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+    ok 10 - pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+      ---
+      duration_ms: 285.0097
+      type: 'test'
+      ...
+    # Subtest: status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+    ok 11 - status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+      ---
+      duration_ms: 1520.0606
+      type: 'test'
+      ...
+    # Subtest: lightweight project indexing cannot report malformed Acceptance as ready
+    ok 12 - lightweight project indexing cannot report malformed Acceptance as ready
+      ---
+      duration_ms: 326.3559
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on AC Coverage blockers
+    ok 13 - full, lightweight and project indexing agree on AC Coverage blockers
+      ---
+      duration_ms: 1240.5849
+      type: 'test'
+      ...
+    # Subtest: accepts a standard-order SKIPPED record with human approval after Scenarios
+    ok 14 - accepts a standard-order SKIPPED record with human approval after Scenarios
+      ---
+      duration_ms: 637.0032
+      type: 'test'
+      ...
+    # Subtest: latest AC Coverage result overrides an earlier PASS
+    ok 15 - latest AC Coverage result overrides an earlier PASS
+      ---
+      duration_ms: 1215.77
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree when the latest PASS Test file is missing
+    ok 16 - full, lightweight and project indexing agree when the latest PASS Test file is missing
+      ---
+      duration_ms: 358.3024
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on remaining archive-only blockers
+    ok 17 - full, lightweight and project indexing agree on remaining archive-only blockers
+      ---
+      duration_ms: 1701.4044
+      type: 'test'
+      ...
+    # Subtest: central evaluator enforces every required micro Plan field
+    ok 18 - central evaluator enforces every required micro Plan field
+      ---
+      duration_ms: 373.6543
+      type: 'test'
+      ...
+    # Subtest: an active Spec cannot hide itself with status archived
+    ok 19 - an active Spec cannot hide itself with status archived
+      ---
+      duration_ms: 413.5338
+      type: 'test'
+      ...
+    # Subtest: status prints authoritative blocker code and message
+    ok 20 - status prints authoritative blocker code and message
+      ---
+      duration_ms: 434.5134
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks an incomplete completion contract without validation pre-processing
+    ok 21 - pure evaluator blocks an incomplete completion contract without validation pre-processing
+      ---
+      duration_ms: 362.6047
+      type: 'test'
+      ...
+    # Subtest: rejects a DONE completion block that has no four-axis or AC evidence
+    ok 22 - rejects a DONE completion block that has no four-axis or AC evidence
+      ---
+      duration_ms: 458.0548
+      type: 'test'
+      ...
+    # Subtest: rejects a completion-verification block with an invalid timestamp
+    ok 23 - rejects a completion-verification block with an invalid timestamp
+      ---
+      duration_ms: 336.2577
+      type: 'test'
+      ...
+    # Subtest: resume does not bypass Research when a signed Plan exists
+    ok 24 - resume does not bypass Research when a signed Plan exists
+      ---
+      duration_ms: 444.9254
+      type: 'test'
+      ...
+    # Subtest: PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+    ok 25 - PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+      ---
+      duration_ms: 697.6055
+      type: 'test'
+      ...
+    # Subtest: status does not report Challenge OK for an unknown verdict
+    ok 26 - status does not report Challenge OK for an unknown verdict
+      ---
+      duration_ms: 451.3701
+      type: 'test'
+      ...
+    # Subtest: spec-index does not report ready when completion-verification is blocked
+    ok 27 - spec-index does not report ready when completion-verification is blocked
+      ---
+      duration_ms: 394.7911
+      type: 'test'
+      ...
+    # Subtest: spec-index exposes the authoritative challenge phase after completion
+    ok 28 - spec-index exposes the authoritative challenge phase after completion
+      ---
+      duration_ms: 385.831
+      type: 'test'
+      ...
+    # Subtest: archive generates a complete summary without unresolved placeholders
+    ok 29 - archive generates a complete summary without unresolved placeholders
+      ---
+      duration_ms: 533.2842
+      type: 'test'
+      ...
+    # Subtest: marks historical archives as read-only legacy without re-declaring current archive readiness
+    ok 30 - marks historical archives as read-only legacy without re-declaring current archive readiness
+      ---
+      duration_ms: 645.1747
+      type: 'test'
+      ...
+    # Subtest: requires an explicit Provider for every e2e AC
+    ok 31 - requires an explicit Provider for every e2e AC
+      ---
+      duration_ms: 0.9457
+      type: 'test'
+      ...
+    # Subtest: applies missing Provider blockers only to active e2e Specs, not real archive paths
+    ok 32 - applies missing Provider blockers only to active e2e Specs, not real archive paths
+      ---
+      duration_ms: 101.206
+      type: 'test'
+      ...
+    # Subtest: keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+    ok 33 - keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+      ---
+      duration_ms: 1.7928
+      type: 'test'
+      ...
+    # Subtest: reports configured providers without loading project code
+    ok 34 - reports configured providers without loading project code
+      ---
+      duration_ms: 11.9604
+      type: 'test'
+      ...
+    # Subtest: routes an unplanned missing Provider to the Plan gate
+    ok 35 - routes an unplanned missing Provider to the Plan gate
+      ---
+      duration_ms: 2.423
+      type: 'test'
+      ...
+    1..35
+not ok 1 - authoritative workflow state matrix
+  ---
+  duration_ms: 20809.7945
+  type: 'suite'
+  location: 'D:\\workspace\\personal\\sdd-riper\\tests\\state-matrix.test.js:44:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 35
+# suites 1
+# pass 34
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 20947.2619

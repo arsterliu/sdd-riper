@@ -1,0 +1,245 @@
+{
+  "schemaVersion": 1,
+  "runId": "20260712113803942-5216fc050b7e",
+  "createdAt": "2026-07-12T11:38:03.943Z",
+  "providerId": "console-e2e",
+  "adapterId": "playwright-test",
+  "adapterManifestDigest": "5868e6e841d0ea676909ac75163843ad1311abf4640d127d8cc16e75721a6a3b",
+  "providerDigest": "67c751de4ec5c544aaae5ba6c93ca98e1b9ce35443597c94481b7b89160755fe",
+  "spec": {
+    "path": "mydocs/specs/v3.1-console-verification-dogfood.md",
+    "specDigest": "2fe953f50b2753fa7af130d9ee7abb4428448b31a1d33ae4922abf902a2dd117",
+    "verificationContractDigest": "511568ad6af503501645fe47e1a50f68defbf8a146c3857e506ef31ad96b911e",
+    "planDigest": "10a71461fe448cdb871831689a6340c4dfa29b047ab1d05620ab7aeed20f2746",
+    "designPath": "mydocs/design/v3.1-console-verification-dogfood.design.md",
+    "designDigest": "d854b90caf6c4b4c70bedc0b9bffe847e317ab07979fb23ebe6da02456516ca4",
+    "diffBase": "2ea4adc9bece6ce9f7919484d4f3aa2701818505"
+  },
+  "codeStateBefore": {
+    "head": "2ea4adc9bece6ce9f7919484d4f3aa2701818505",
+    "stagedDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unstagedDigest": "e03204284f9bfa32499c4039df1521727aeff004b3be62487c6c2b959f8eca44",
+    "untrackedDigest": "711982765e909e4c77322e1a37254283e7419dea2e502e42c62c305039442f5f",
+    "untrackedFiles": [
+      ".claude/settings.local.json",
+      ".sdd-verification.json",
+      "src/commands/verify.js",
+      "src/verification/adapters/playwright-test/index.js",
+      "src/verification/adapters/playwright-test/manifest.js",
+      "src/verification/adapters/playwright-test/normalize.js",
+      "src/verification/adapters/playwright-test/reporter.js",
+      "src/verification/adapters/playwright-test/result-contract.js",
+      "src/verification/config.js",
+      "src/verification/contract.js",
+      "src/verification/errors.js",
+      "src/verification/evidence.js",
+      "src/verification/fingerprint.js",
+      "src/verification/process-gateway.js",
+      "src/verification/readiness.js",
+      "src/verification/registry.js",
+      "src/verification/run-store.js",
+      "src/verification/workspace.js",
+      "tests/fixtures/playwright-workspace/.gitignore",
+      "tests/fixtures/playwright-workspace/console.global-setup.js",
+      "tests/fixtures/playwright-workspace/console.global-teardown.js",
+      "tests/fixtures/playwright-workspace/package-lock.json",
+      "tests/fixtures/playwright-workspace/package.json",
+      "tests/fixtures/playwright-workspace/playwright.config.js",
+      "tests/fixtures/playwright-workspace/playwright.console.config.js",
+      "tests/fixtures/playwright-workspace/spec.md",
+      "tests/fixtures/playwright-workspace/tests/console.spec.js",
+      "tests/fixtures/playwright-workspace/tests/smoke.spec.js",
+      "tests/helpers/verification-fixtures.js",
+      "tests/verification-cli.test.js",
+      "tests/verification-console-projection.test.js",
+      "tests/verification-contract.test.js",
+      "tests/verification-freshness.test.js",
+      "tests/verification-playwright-contract.test.js",
+      "tests/verification-playwright.test.js",
+      "tests/verification-run-store.test.js",
+      "tests/verification-workspace.test.js"
+    ],
+    "aggregateDigest": "ef160f0a35c2d2c735c8dd782479513920c27236c54e75e9b1be0d940cadb2ea"
+  },
+  "codeStateAfter": {
+    "head": "2ea4adc9bece6ce9f7919484d4f3aa2701818505",
+    "stagedDigest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "unstagedDigest": "e03204284f9bfa32499c4039df1521727aeff004b3be62487c6c2b959f8eca44",
+    "untrackedDigest": "711982765e909e4c77322e1a37254283e7419dea2e502e42c62c305039442f5f",
+    "untrackedFiles": [
+      ".claude/settings.local.json",
+      ".sdd-verification.json",
+      "src/commands/verify.js",
+      "src/verification/adapters/playwright-test/index.js",
+      "src/verification/adapters/playwright-test/manifest.js",
+      "src/verification/adapters/playwright-test/normalize.js",
+      "src/verification/adapters/playwright-test/reporter.js",
+      "src/verification/adapters/playwright-test/result-contract.js",
+      "src/verification/config.js",
+      "src/verification/contract.js",
+      "src/verification/errors.js",
+      "src/verification/evidence.js",
+      "src/verification/fingerprint.js",
+      "src/verification/process-gateway.js",
+      "src/verification/readiness.js",
+      "src/verification/registry.js",
+      "src/verification/run-store.js",
+      "src/verification/workspace.js",
+      "tests/fixtures/playwright-workspace/.gitignore",
+      "tests/fixtures/playwright-workspace/console.global-setup.js",
+      "tests/fixtures/playwright-workspace/console.global-teardown.js",
+      "tests/fixtures/playwright-workspace/package-lock.json",
+      "tests/fixtures/playwright-workspace/package.json",
+      "tests/fixtures/playwright-workspace/playwright.config.js",
+      "tests/fixtures/playwright-workspace/playwright.console.config.js",
+      "tests/fixtures/playwright-workspace/spec.md",
+      "tests/fixtures/playwright-workspace/tests/console.spec.js",
+      "tests/fixtures/playwright-workspace/tests/smoke.spec.js",
+      "tests/helpers/verification-fixtures.js",
+      "tests/verification-cli.test.js",
+      "tests/verification-console-projection.test.js",
+      "tests/verification-contract.test.js",
+      "tests/verification-freshness.test.js",
+      "tests/verification-playwright-contract.test.js",
+      "tests/verification-playwright.test.js",
+      "tests/verification-run-store.test.js",
+      "tests/verification-workspace.test.js"
+    ],
+    "aggregateDigest": "ef160f0a35c2d2c735c8dd782479513920c27236c54e75e9b1be0d940cadb2ea"
+  },
+  "workspace": {
+    "workspaceRoot": "tests/fixtures/playwright-workspace",
+    "packageRoot": "tests/fixtures/playwright-workspace",
+    "manifest": "tests/fixtures/playwright-workspace/package.json",
+    "lockfile": "tests/fixtures/playwright-workspace/package-lock.json",
+    "resolvedToolVersion": "1.52.0",
+    "manifestDigest": "e44515db5a825aeab50266e0d8386c5120918a141e2c26a9c63f4678d5a97a24",
+    "lockfileDigest": "3229f899737c7204d7666afe20979f10f821a7017a8ce9184201d908257a5065",
+    "configDigest": "4aca9a826025a9e307d6d1662f0464502a1dc3e34a980ad5e8319db3aaf6c22d"
+  },
+  "invocationDigest": "6cb8de5361d0a44c32930ea60e436738e14696eceeaaaeb1351ac0a7ba4a8255",
+  "environmentDigests": {
+    "PATH": "3e1d506c55b6f4f5c23bd15f48a9a322e78d394ea667ca2b309c763379967e1b",
+    "PLAYWRIGHT_BROWSERS_PATH": "372a679b5a3e6165c5aa940035956b0398572755e52f78f208484c21c147f9ba",
+    "SystemRoot": "4c754b6dc9cd24a7e1a0801560911fbf9a832bf0f5b3bcba0f3844a71356489c",
+    "TEMP": "546fd64d6ef2c0d952cefd77c958587bdd29f6d40fa8811b478e36c9ea8b62ed",
+    "TMP": "546fd64d6ef2c0d952cefd77c958587bdd29f6d40fa8811b478e36c9ea8b62ed",
+    "USERPROFILE": "380e88be8ca74694c8f231f444b71a65b1b5cdee95ed99ace41a1ea56d806a4c",
+    "WINDIR": "4c754b6dc9cd24a7e1a0801560911fbf9a832bf0f5b3bcba0f3844a71356489c"
+  },
+  "allowedEnvironmentKeys": [],
+  "targets": {
+    "acIds": [
+      "AC-003",
+      "AC-004",
+      "AC-005",
+      "AC-006",
+      "AC-007"
+    ],
+    "projects": [
+      "chromium"
+    ]
+  },
+  "status": "passed",
+  "freshness": "fresh",
+  "gateDecision": "PASS",
+  "acExecutions": [
+    {
+      "acId": "AC-003",
+      "project": "chromium",
+      "testIds": [
+        "test-410dd4f8c88ff27109a0b2b3"
+      ],
+      "status": "passed"
+    },
+    {
+      "acId": "AC-004",
+      "project": "chromium",
+      "testIds": [
+        "test-410dd4f8c88ff27109a0b2b3"
+      ],
+      "status": "passed"
+    },
+    {
+      "acId": "AC-005",
+      "project": "chromium",
+      "testIds": [
+        "test-410dd4f8c88ff27109a0b2b3"
+      ],
+      "status": "passed"
+    },
+    {
+      "acId": "AC-006",
+      "project": "chromium",
+      "testIds": [
+        "test-ee83fa297bc3f2d13cef2e19"
+      ],
+      "status": "passed"
+    },
+    {
+      "acId": "AC-007",
+      "project": "chromium",
+      "testIds": [
+        "test-594e4f81da06300487716873"
+      ],
+      "status": "passed"
+    }
+  ],
+  "testExecutions": [
+    {
+      "id": "test-410dd4f8c88ff27109a0b2b3",
+      "title": "Console 展示 Provider、Run、freshness、矩阵和安全诊断",
+      "project": "chromium",
+      "acIds": [
+        "AC-003",
+        "AC-004",
+        "AC-005"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 3555,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    },
+    {
+      "id": "test-ee83fa297bc3f2d13cef2e19",
+      "title": "Console 区分 required、configured-no-runs、blocked 并在窄屏局部滚动",
+      "project": "chromium",
+      "acIds": [
+        "AC-006"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 1421,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    },
+    {
+      "id": "test-594e4f81da06300487716873",
+      "title": "Console E2E 通过正式 Provider 映射运行",
+      "project": "chromium",
+      "acIds": [
+        "AC-007"
+      ],
+      "expectedStatus": "passed",
+      "status": "passed",
+      "retry": 0,
+      "duration": 259,
+      "stablePass": true,
+      "errors": [],
+      "attachments": []
+    }
+  ],
+  "attachments": [],
+  "diagnostics": [],
+  "process": {
+    "status": 0,
+    "signal": "",
+    "stdout": "",
+    "stderr": ""
+  }
+}

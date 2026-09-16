@@ -1,0 +1,1865 @@
+TAP version 13
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-MWLPyK\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-MWLPyK\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-MWLPyK\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-MWLPyK\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.sdd-config already exists
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\AGENTS.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\CLAUDE.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.cursorrules refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.github\\copilot-instructions.md refreshed SDD-RIPER block
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS. Created: 12 files, Skipped: 1 files.
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.sdd-config already exists
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-l2HClS. Created: 0 files, Skipped: 5 files.
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-oTxObA\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-5E4Po0\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-7K7IjJ\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-Q6V4Se\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-EMDQgN\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Subtest: exposes the governance default values
+ok 1 - exposes the governance default values
+  ---
+  duration_ms: 1.0595
+  type: 'test'
+  ...
+# Subtest: keeps governance defaults from being rebound by consumers
+ok 2 - keeps governance defaults from being rebound by consumers
+  ---
+  duration_ms: 0.0892
+  type: 'test'
+  ...
+# Subtest: defines the micro Plan required and recommended fields
+ok 3 - defines the micro Plan required and recommended fields
+  ---
+  duration_ms: 0.1382
+  type: 'test'
+  ...
+# Subtest: returns isolated micro Plan field arrays
+ok 4 - returns isolated micro Plan field arrays
+  ---
+  duration_ms: 0.1455
+  type: 'test'
+  ...
+# Subtest: requires a Provider only for e2e verification
+ok 5 - requires a Provider only for e2e verification
+  ---
+  duration_ms: 0.1022
+  type: 'test'
+  ...
+# Subtest: accepts auditable reviewers and limits inline to micro mode
+ok 6 - accepts auditable reviewers and limits inline to micro mode
+  ---
+  duration_ms: 0.5187
+  type: 'test'
+  ...
+# Subtest: exposes an immutable complete auditable reviewer identity list for CLI guidance
+ok 7 - exposes an immutable complete auditable reviewer identity list for CLI guidance
+  ---
+  duration_ms: 0.0952
+  type: 'test'
+  ...
+# Subtest: recognizes known Challenge verdicts and their routing targets
+ok 8 - recognizes known Challenge verdicts and their routing targets
+  ---
+  duration_ms: 0.3089
+  type: 'test'
+  ...
+# Subtest: publishes immutable verdicts and derives known and passing semantics from them
+ok 9 - publishes immutable verdicts and derives known and passing semantics from them
+  ---
+  duration_ms: 1.8772
+  type: 'test'
+  ...
+# Subtest: Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+ok 10 - Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+  ---
+  duration_ms: 19.5663
+  type: 'test'
+  ...
+# Subtest: Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+ok 11 - Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+  ---
+  duration_ms: 3.0392
+  type: 'test'
+  ...
+# Subtest: Challenge derives every inline reviewer hint from the governance Contract
+ok 12 - Challenge derives every inline reviewer hint from the governance Contract
+  ---
+  duration_ms: 2.5923
+  type: 'test'
+  ...
+# Subtest: validate delegates micro Plan fields to the governance Contract
+ok 13 - validate delegates micro Plan fields to the governance Contract
+  ---
+  duration_ms: 57.6195
+  type: 'test'
+  ...
+# Subtest: validate treats every legal nonpassing Contract verdict as an adversarial failure
+ok 14 - validate treats every legal nonpassing Contract verdict as an adversarial failure
+  ---
+  duration_ms: 54.2441
+  type: 'test'
+  ...
+# Subtest: spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+ok 15 - spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+  ---
+  duration_ms: 2.4633
+  type: 'test'
+  ...
+# Subtest: verification readiness delegates e2e Provider requirements to the governance Contract
+ok 16 - verification readiness delegates e2e Provider requirements to the governance Contract
+  ---
+  duration_ms: 1.2938
+  type: 'test'
+  ...
+# Subtest: Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+not ok 17 - Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+  ---
+  duration_ms: 0.8573
+  type: 'test'
+  location: 'D:\\workspace\\personal\\sdd-riper\\tests\\governance-contract.test.js:387:1'
+  failureType: 'testCodeFailure'
+  error: 'micro template must keep the delivery summary'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (D:\workspace\personal\sdd-riper\tests\governance-contract.test.js:409:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: historical compatibility helper accepts the positive contract and rejects its antonym
+ok 18 - historical compatibility helper accepts the positive contract and rejects its antonym
+  ---
+  duration_ms: 0.6099
+  type: 'test'
+  ...
+# Subtest: precise references state the current workflow Provider requirement and positive legacy-read compatibility
+ok 19 - precise references state the current workflow Provider requirement and positive legacy-read compatibility
+  ---
+  duration_ms: 2.223
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+ok 20 - SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+  ---
+  duration_ms: 1.1118
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+ok 21 - SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+  ---
+  duration_ms: 0.7361
+  type: 'test'
+  ...
+# Subtest: REFERENCE visual section retains explicit human activation and baseline decisions
+ok 22 - REFERENCE visual section retains explicit human activation and baseline decisions
+  ---
+  duration_ms: 1.0801
+  type: 'test'
+  ...
+# Subtest: REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+ok 23 - REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+  ---
+  duration_ms: 0.8152
+  type: 'test'
+  ...
+# Subtest: paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+ok 24 - paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+  ---
+  duration_ms: 0.2253
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 25 - SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 0.3324
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that Provider scenario bindings are static and project-local
+ok 26 - SKILL.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 0.2923
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 27 - REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 0.9777
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+ok 28 - REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 1.1894
+  type: 'test'
+  ...
+# Subtest: AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+not ok 29 - AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+  ---
+  duration_ms: 0.585
+  type: 'test'
+  location: 'D:\\workspace\\personal\\sdd-riper\\tests\\governance-contract.test.js:577:1'
+  failureType: 'testCodeFailure'
+  error: 'SKILL.md must reuse explicit inputs'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    ---
+    name: sdd-riper
+    version: 2.0.0
+    description: |
+      SDD-RIPER: Structured development workflow for AI-assisted delivery.
+      Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
+      Uses Spec as control plane, external Design as technical design, external Execute Log as audit trail, and Learning Record as reusable decision memory.
+      Trigger with: /sdd-riper, /sdd, "setup SDD", "start sdd task".
+    allowed-tools:
+      - Read
+      - Write
+      - Edit
+      - Grep
+      - Glob
+      - AskUserQuestion
+    ---
+    
+    # SDD-RIPER Skill
+    
+    Do not recite this file to the user. Use it to drive the workflow.
+    
+    The execution-quality methods referenced below (`writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `subagent-driven-development`, `finishing-a-development-branch`) are vendored under `vendored/superpowers/`. See `INTEGRATIONS.md` for the full touchpoint map. Resolution order at each touchpoint: global skill if your editor has it loaded → the vendored copy → the inlined summary kept here as fallback.
+    
+    ## Non-Negotiable Rules
+    
+    This is the canonical rule text shared with the AI configs generated by `sdd init` (single source: `src/core/ai-config-rules.js`). Do not reword these lines independently — keep SKILL.md and the generated block consistent.
+    
+    - Load the latest active Spec before implementation; never write code without an active Spec.
+    - Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
+    - Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; ask whether reference materials / context exist and bind them via `context-source`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`; the project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
+    - Spec is the control plane: it owns goal, Research, Innovate, Acceptance Criteria, Plan, approvals, and references to `design-file`, `execute-log-file`, and `learning-file`. Do not recreate embedded Design / Execute Log / Learning sections inside Spec.
+    - When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.
+    - Do not move past Plan without approval and gate evidence. `auto` may use `Plan Approved By: agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.
+    - In auto mode, after the current user confirms the current scope and risk, automatically record task authorization for main, worker, research-reviewer, and challenge-reviewer. When a fresh authorization covers the current scope/risk and an agent-approved Plan has no activation, automatically record a `plan_activation` event with `sdd autonomy activate-plan`, the current scope, risk, and Plan digests, and `agent:<id>` evidence; do not request a human to approve the Plan again or re-authorize those reviewers. This does not bypass any dedicated human stop.
+    - When a Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.
+    - Independent Review is separate from approval. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline.
+    - An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.
+    - Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.
+    - Challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
+    - When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
+    - In every autonomy mode, irreversible actions, scope expansion, new risks, and platform permissions must each stop separately for explicit human authorization.
+    - E2E `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`; debug the environment first and record `BLOCKED` when it cannot be repaired. Never auto-install dependencies or browsers and never approve the skip yourself.
+    - Record execution deviations and facts in the referenced Execute Log; debug before retrying failed steps.
+    - The main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency; subagents collect evidence or perform bounded work.
+    - Keep artifact headings and field labels in English; write artifact content in Chinese.
+    - No Claim Without Verification: freshly run the relevant tests / lint / build before claiming completion.
+    - Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.
+    
+    ## CLI Rule
+    
+    Use the `sdd` command for workflow operations. If `sdd` is not found in PATH, locate it first:
+    
+    1. Try `which sdd` / `Get-Command sdd` — if found, use it directly.
+    2. Try `npm root -g` to find the global node_modules, then use `node <npm-global>/sdd-riper/bin/cli.js` as the `sdd` command.
+    3. If the project itself is the sdd-riper repo, use `node <project-root>/bin/cli.js`.
+    
+    Once located, store the resolved path (e.g. `SDD_BIN=node /path/to/bin/cli.js`) and use it for all subsequent `sdd` calls.
+    
+    ## Artifact Model
+    
+    After `discover`, a task has:
+    
+    - Spec: `<docs-root>/specs/<vN.M-or-vN.M.P>-task.md`
+    - Design: `<docs-root>/design/<vN.M-or-vN.M.P>-task.design.md` for standard/lite only
+    - Execute Log: `<docs-root>/logs/<vN.M-or-vN.M.P>-task.execute.md`
+    - Learning Record: `<docs-root>/learnings/<vN.M-or-vN.M.P>-task.learning.md` when required
+    - Cruise Run Ledger: `<docs-root>/runs/<vN.M-or-vN.M.P>-task.cruise.jsonl` when autonomous cruise is recorded
+    
+    Spec frontmatter contains:
+    
+    ```yaml
+    design-file: "mydocs/design/<vN.M-or-vN.M.P>-task.design.md"
+    execute-log-file: "mydocs/logs/<vN.M-or-vN.M.P>-task.execute.md"
+    learning-file: ""
+    project-profile-revision: "profiles/revisions/sha256-<digest>.json"
+    project-profile-digest: "sha256:<digest>"
+    affected-units: "web,api"
+    autonomy-mode: "supervised"
+    autonomy-mode-source: "project-default"
+    ```
+    
+    Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.
+    
+    ## Activation
+    
+    1. Detect project root.
+    2. Check for `.sdd-config` and docs root.
+    3. If not initialized, ask whether to initialize.
+    4. If initialized, run `sdd resume "<PROJECT_ROOT>"` (or `$SDD_BIN resume "<PROJECT_ROOT>"` if using resolved path) and follow `PHASE_HINT`.
+    
+    Use plain user-facing text for the activation choice, then stop and wait if the user must choose.
+    
+    ## Setup Mode
+    
+    When the user chooses setup:
+    
+    1. Ask target directory if unclear.
+    2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
+    3. Do not manually create the scaffold with Write/Edit.
+    4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.
+    5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, briefly explain the trade-offs, and recommend `supervised`. The project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
+    6. To create the first task, run:
+    
+    ```text
+    sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro] --autonomy-mode auto|supervised|human
+    ```
+    
+    If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.
+    
+    ## Workflow Routing
+    
+    Run:
+    
+    ```text
+    sdd resume "<PROJECT_ROOT>"
+    ```
+    
+    Use `PHASE_HINT`:
+    
+    - `new_task`: ask whether to run `discover`.
+    - `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.
+    - `execute`: enter Execute only if Plan approval is present.
+    - `learning`: complete the Learning Check.
+    - `await_archive_authorization`: stop and request explicit archive authorization from the current user; do not run archive yet.
+    
+    For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
+    
+    ### Resolving Open Questions
+    
+    When the spec contains unresolved `Open Questions` or Plan approval is blocked by unclear requirements:
+    
+    1. **Ask the user interactively with suggested answers** — use `AskUserQuestion` to present each question with 2-4 concrete options. Each option should be an **AI-suggested answer** derived from the spec context, codebase findings, and domain knowledge — not a placeholder like "fill in yourself." The user confirms, adjusts, or provides a different answer via the "Other" free-text option. Do not try to cover every possibility in the options — the "Other" option is the escape hatch. This is faster and more reliable than telling the user to "edit the spec yourself."
+    2. **Write answers into the spec** — once the user answers, update the spec's `Open Questions` → `Assumptions` or `Confirmed Requirement` sections accordingly. Do not leave resolved questions as open.
+    3. **Then proceed to Plan approval** — with clarified requirements, the Plan gate can be satisfied.
+    
+    Do NOT just list questions and wait. Do NOT offer empty or placeholder options. Actively drive resolution with reasoned suggestions.
+    
+    Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is unclear. Use `sdd cruise "<PROJECT_ROOT>"` to generate an autonomous repair-loop prompt. Use `sdd challenge "<PROJECT_ROOT>"` for independent adversarial review.
+    
+    When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
+    
+    ## Capability Routing
+    
+    - **Project Profile**: when engineering facts are insufficient or unknown, proactively run read-only `sdd profile detect <dir>` and inspect the existing Profile facts. When the active Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Profile `commandRefs` are facts and must not be executed automatically. Profile routing must not install dependencies or browsers, and must not initialize or approve a Verification Provider.
+    - **Quality Plan**: during Design / Acceptance / Plan, when AC `Verification:` values need mapping to available test capabilities, proactively run read-only `sdd quality plan <project-dir> --spec <spec>`. Treat the result as a temporary projection: do not write it back, install dependencies or browsers, initialize or approve a Provider, or execute verification.
+    - **E2E**: `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`. Keep the existing Provider boundary. When the environment is unavailable, debug first; if it cannot be repaired, record `BLOCKED` and let a human decide whether to retry or skip. Do not approve the skip or automatically install dependencies or browsers.
+    - **Visual**: establish `ui-impact` for every Spec before routing visual intent. A baseline is the human-approved target UI PNG frozen by the current Spec, not a cross-Spec historical baseline library: a new Spec may directly use the latest UI PNG, while an old-page screenshot is optional Context. Recommend `fidelity` only for a decodable PNG with explicit scenario, route, state, and viewport, comparable target/current screenshot dimensions whose pixel width and height respectively match exactly, and stable test data, fonts, and assets; otherwise recommend `direction`. The Agent explains why it recommends `direction` or `fidelity`, and candidate images and default images do not constitute human approval. Strict visual evidence becomes active only when the current user explicitly runs `sdd visual init ...`; the Agent must never create, generate, approve, replace, version, or manage a baseline, must not automatically start a browser, and must not implicitly initialize or approve the visual Provider.
+    
+    ## Autonomy Policy
+    
+    SDD keeps project configuration small. **Mode** is the Spec workflow shape; **Autonomy Mode** controls how far the host AI may proceed between human governance decisions. Independent Research/Challenge review still requires auditable reviewer evidence.
+    
+    ```text
+    AUTONOMY_MODE="supervised"      # auto | supervised | human
+    CRUISE_MAX_ITERATIONS="5"
+    ```
+    
+    New projects default to `supervised` with a repair budget of `5`. Missing, invalid, or legacy active governance configuration is migration-required and must not be guessed.
+    
+    - `auto`: after current-user authorization bound to the current task scope/risk digest, the host AI may launch planned worker and read-only reviewer agents and continue to archive authorization.
+    - `supervised`: requires a human-approved Plan plus a separate, explicit authorization fact for subsequent automation.
+    - `human`: pauses at governance transitions; mechanical tests and in-plan debugging do not require per-action approval.
+    
+    Autonomy write commands target only the current active Spec and re-read all expected digests under `.sdd-autonomy.lock`. `supervised` authorization binds both the current Scope and exact Plan digest. In `auto`, task authorization records main, worker, research-reviewer, and challenge-reviewer after the current user confirms scope and risk. When an Agent-approved Plan has no activation but those scope, risk, and Plan digests still match, the main Agent automatically runs `sdd autonomy activate-plan` with auditable `agent:<id>` evidence; it does not ask the user to approve the Plan again or re-authorize reviewers. A Plan rebind is valid only while Scope and risk remain unchanged. Never continue a native loop when `STOP_REASON` is non-empty.
+    
+    All modes still stop for archive, exact Profile digest confirmation, E2E SKIPPED, irreversible actions, scope expansion, new risk, and platform permissions. A project default is not current-user authorization.
+    
+    Cruise driver options:
+    
+    - `auto`: default. Prefer host-native loop, then fallback to prompt loop.
+    - `claude-code`: generate instructions for Claude Code Dynamic Workflows when available.
+    - `codex`: generate instructions for the Codex native loop when the current Codex surface supports it.
+    - `opencode`: generate instructions for opencode native loop support when available.
+    - `prompt`: generic prompt loop.
+    - `local-loop`: prompt-loop compensation for hosts without native loop support; SDD records snapshots but does not run a model executor.
+    
+    Never move Spec, Design, Plan, Execute Log, Learning, or Challenge evidence into a host-specific workflow file as the source of truth.
+    
+    Use `sdd cruise "<PROJECT_ROOT>" --driver claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
+    
+    ## Mode Policy
+    
+    | Mode | Use When | Design | Execute Log | Subagent |
+    | :--- | :--- | :--- | :--- | :--- |
+    | standard | New features, refactors, cross-module work, security, permissions, billing, migrations, public APIs | external Technical Design | external required | recommended for evidence/work packages/review axes |
+    | lite | Medium/small scoped changes with known codebase | external Design Note | external required | optional |
+    | micro | Single-file, low-risk, reversible changes | no standalone Design; Plan contains impact analysis, Acceptance, and Verification | external required | default no |
+    
+    Upgrade from micro to lite/standard for security, permission, billing, data migration, public API, cross-module side effects, irreversible change, or high uncertainty.
+    
+    Default to `micro` and escalate only on a named signal — `standard` must be earned (an interface contract, irreversibility, risk class, or three or more stacked signals), not chosen "to be safe". Full rubric: `protocols/mode-selection.md`. The rubric is advisory; it guides the mode chosen at `init` / `discover` and does not change `--mode` behavior.
+    
+    ## Research Phase
+    
+    Goal: turn raw request into Confirmed Requirement.
+    
+    Required outputs in Spec:
+    
+    - Requirement Review
+    - Findings (from code, docs, historical Specs, **and project conventions**: eslint/prettier/tsconfig rules, test framework, CI gates, etc. — Design and Execute must comply)
+    - Open Questions
+    - Assumptions
+    - Confirmed Requirement (five structured fields: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent)
+    - Research Reviewed By / Research Reviewed At (gate confirmation)
+    
+    Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
+    
+    Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that includes its reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause for explicit current-user authorization; never skip the gate or fabricate reviewer evidence.
+    
+    Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
+    
+    ### Visual Context Guidance
+    
+    For every new Spec, first establish `ui-impact`. Use the bound exact Project Profile and `affected-units` when they identify a frontend unit; when they do not establish the answer, ask the user once whether the task affects a user interface. A pure backend Spec records `ui-impact: no` and skips visual guidance. Any frontend or mixed Spec records `ui-impact: yes` and must make one `visual-context-intent` selection with `sdd visual select`: `not-required`, `direction`, or `fidelity`.
+    
+    Users may place PNG/PDF/SVG, screenshots, Markdown/TXT notes, and URL references together in `context-source`. Run `sdd visual discover <dir> --spec <spec>` to report local material candidates, gaps, and only the questions that cannot be inferred reliably. Do not treat candidates as confirmed design evidence. A Figma URL is handled exactly like every other URL reference: discovery only records it and does not access the network to read its content. A future Figma MCP importer is a separate Spec, not a branch of this workflow.
+    
+    A baseline is the human-approved target UI PNG frozen by the current Spec, not a cross-Spec historical baseline library. A new Spec may directly use the latest UI PNG; an old-page screenshot is optional Context rather than a required historical baseline. Candidate images and default images do not constitute human approval, and the Agent must never create, generate, approve, replace, version, or manage a baseline.
+    
+    The Agent recommends `fidelity` only when all prerequisites hold: the target is a decodable PNG; scenario, route, state, and viewport are explicit; target and post-development current screenshot dimensions are comparable, with pixel width and height respectively matching exactly; and test data, fonts, and assets are stable. Otherwise the Agent recommends `direction`, and it must explain why it recommends `direction` or `fidelity`.
+    
+    `not-required` never blocks Plan because Context is empty. `direction` and `fidelity` become strict only after the current user explicitly runs `sdd visual init <dir> --spec <spec> --mode fidelity|direction`; then use `sdd visual inspect` before Plan approval. For an approved `fidelity` contract only, a project may configure the separate `playwright-visual` Provider with a static, project-local `sdd.visual.config.json` scenario mapping, then run `sdd verify visual <dir> --spec <spec>`. Each `scenario.baseline.path` must point into the current Spec Context and pass both lexical and realpath project-local containment. A configured mask is only a static pixel rectangle `{x,y,width,height}`; selectors and runtime expressions are not allowed. The command accepts no URL, command, selector, threshold, mask, or environment pass-through; it reads human-approved baselines, persists current/diff evidence in `mydocs/runs/visual/`, and never creates, approves, or replaces a baseline. It never starts a browser automatically. Provider, workspace, config, contract, baseline and code-state changes make prior evidence stale; a worktree mutation yields an auditable BLOCKED Run without current/diff attachments. Never fabricate a source, screenshot baseline, approval, browser result, or screenshot diff PASS. This contract does not create an Archive Gate.
+    
+    Dispatch categories (see `protocols/subagent-dispatch.md` for full Phase Dispatch Map):
+    
+    - Requirement Review: **KEEP** (requires user interaction)
+    - Findings evidence collection: **DELEGATABLE** (delegate when read volume is high)
+    - Confirmed Requirement: **KEEP** (gate decision)
+    - Research Gate review: **MUST_DELEGATE** (role separation — implementer cannot review own work)
+    
+    ## Innovate Phase
+    
+    Goal: define viable approaches before choosing.
+    
+    Drive option exploration and design clarification with `brainstorming` (see `vendored/superpowers/brainstorming/SKILL.md` — read on demand; prefer the global skill if loaded): explore intent one question at a time, propose 2-3 approaches with a recommendation, and present the design in sections for approval before any implementation.
+    
+    SDD adaptation: keep artifacts in SDD's control plane. Write options into the Spec `Innovate Options` section and the design into the external `design-file` — not into `brainstorming`'s default `docs/superpowers/specs/` path. Do not auto-invoke `writing-plans` at the end; SDD's Plan phase and configured gate own that transition.
+    
+    standard requires at least two options:
+    
+    - option summary
+    - pros / cons
+    - risks
+    - requirement fit
+    - rejected rationale
+    - selected option
+    
+    lite may skip Innovate only with an explicit reason:
+    
+    ```text
+    Innovate: Skipped, Reason: ...
+    ```
+    
+    micro skips Innovate.
+    
+    Dispatch categories:
+    
+    - Option exploration: **DELEGATABLE** (subagent can brainstorm, but high decision density makes inline natural for small tasks)
+    - Option selection: **KEEP** (gate decision)
+    
+    ## Design / Acceptance Phase
+    
+    This phase happens after Innovate and before Plan.
+    
+    ### Method Routing (advisory)
+    
+    Do not spread every methodology over every task. SDD routes design methodology from `mode` + `riskFlags`. `riskFlags` extracts signals primarily from Confirmed Requirement structured fields (Irreversibility, Impact Radius, Dependencies & Constraints, Scope Boundary), falling back to full-text keyword scanning when structured fields are absent. `sdd next` and `sdd cruise` print `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` as advisory hints — follow them, but the orchestrator owns the final call.
+    
+    | Signal | Suggested methodology / focus |
+    | :--- | :--- |
+    | micro | none — design intent stays inside Plan |
+    | lite | ADR for the selected option; Design Note covers Approach + Impact |
+    | standard (baseline) | ADR + arc42 field structure; C4 context/container for Architecture View |
+    | + risk: migration | emphasize `Data Model / Schema` + `Data Migration / Backfill` |
+    | + risk: public-api | emphasize `Interface Contract` + `Compatibility / Rollback` |
+    | + risk: security | add a threat / permission-boundary pass |
+    | + risk: billing / irreversible | model state + failure modes; require a rollback/abort plan |
+    | complex domain (multiple bounded contexts) | consider DDD (advisory — orchestrator judges; no automatic signal) |
+    
+    The methods catalog lives in Reference Methods. Load a specific method's detail on demand (a global skill, or a vendored copy where available); SDD does not bundle DDD / C4 / arc42 as required reading.
+    
+    ### Standard
+    
+    Write technical design in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It is a technical design contract. It must cover these required core fields:
+    
+    - Selected Option / ADR
+    - Requirement Traceability
+    - Impact Scope
+    - Architecture View
+    - Data Model / Schema
+    - Interface Contract
+    - Compatibility / Rollback
+    - Test Strategy
+    
+    It should also cover these fields when relevant:
+    
+    - Context / Boundary
+    - Domain Model
+    - Data Migration / Backfill
+    - API Protocol
+    - State / Concurrency
+    - Failure Modes
+    - Security / Permission
+    - Observability
+    - Performance / Capacity
+    - Risks / Trade-offs
+    
+    Write acceptance criteria in Spec with `AC-###` ids. Keep labels such as `Requirement:` / `Type:` / `Verification:` / `Automated:` / `Test:` / `Manual Evidence:` in English. The verification value remains one of `unit | integration | e2e | manual`. BDD / Gherkin scenario descriptions should be written in Chinese. E2E ACs must reference `Test:` or `Manual Evidence:`; manual ACs must include `Manual Evidence:`.
+    
+    Testing strategy mapping: `unit` → `Method: tdd` (default for logic), `integration` → `Method: tdd` or `bdd` (interface contracts, data flow), `e2e` → `Method: bdd` (critical user paths, 3-5 scenarios), `manual` → `Method: manual` (last resort, `Manual Evidence:` required). Flaky E2E tests are not PASS — debug the root cause first. When E2E environment is unavailable, mark AC as `SKIPPED` with `Reason` + `Approved By: human:<name>` + `Approved At`.
+    
+    ### Lite
+    
+    Write design note in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It must cover:
+    
+    - Approach
+    - Impact Scope
+    - Interface / Data Impact
+    - Compatibility
+    - Risks
+    - Test Strategy
+    
+    Write lightweight acceptance criteria in Spec. Keep them compact, but each AC must still use `AC-###` and include `Verification:` metadata.
+    
+    Dispatch categories:
+    
+    - Design writing: **DELEGATABLE** (brief cost is high; small tasks: inline, large tasks: delegate per module)
+    - Acceptance Criteria writing: **DELEGATABLE** (same trade-off as Design)
+    - Design review: **MUST_DELEGATE** (implemented through the Challenge phase — not a separate dispatch)
+    
+    ### Micro
+    
+    No standalone Design. Plan must include English labels for:
+    
+    - Selected Option
+    - Scope
+    - Touched Files
+    - Change
+    - Impact Scope
+    - Data Impact
+    - Interface Impact
+    - Acceptance
+    - Verification
+    - Blast Radius
+    
+    ## Plan Phase
+    
+    Plan is an execution contract, not an architecture document.
+    
+    Every step should include:
+    
+    - target file path or module boundary
+    - concrete change
+    - linked AC or acceptance condition
+    - verification command or check
+    
+    Follow `writing-plans` for step granularity (see `vendored/superpowers/writing-plans/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    SDD scope adaptation: reuse only its file mapping, bite-sized step, TDD, and verification-command guidance. **Do not copy the upstream Plan Document Header or Execution Handoff** into an SDD Plan, because those sections belong to the upstream Superpowers workflow and may require skills that SDD-RIPER does not vendor. The Plan remains in the active Spec. Execute it through the **SDD Execute Phase**, `subagent-driven-development` when delegation is appropriate, or **host-native continuous execution** in the current session. Never declare `executing-plans` as a required SDD skill.
+    
+    Before Execute, satisfy the configured gate and write:
+    
+    ```text
+    Plan Approved By: agent:<id> | human:<name>
+    Approved At: <ISO timestamp>
+    Gate Evidence: <required for agent:<id>>
+    ```
+    
+    Agent approval is allowed only when the evidence is explicit and verifiable.
+    
+    Dispatch categories:
+    
+    - Plan writing: **KEEP** (requires full upstream context — Design + AC)
+    - Plan approval: **KEEP** (gate decision)
+    
+    ## Execute Phase
+    
+    Follow approved Plan steps in order.
+    
+    For production code, use TDD when applicable, following `test-driven-development` (see `vendored/superpowers/test-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded):
+    
+    1. Write a failing test.
+    2. Run and confirm it fails for the right reason.
+    3. Write the smallest implementation.
+    4. Refactor without changing behavior.
+    
+    After each step, append to the external Execute Log referenced by `execute-log-file`:
+    
+    ```text
+    ---
+    Step: <N and summary>
+    Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
+    Files: <paths>
+    Result: <what changed in Chinese>
+    Verification: <command/result>
+    AC Coverage:
+      - AC-###: PASS | FAIL | SKIPPED
+        Scenarios:
+          - "scenario name": PASS | FAIL
+        Test: <test file path>
+        Method: tdd | bdd | manual
+        Reason: <required for SKIPPED: why E2E environment was unavailable>
+        Approved By: <required for SKIPPED: human:<name>>
+        Approved At: <required for SKIPPED: ISO-8601>
+    Deviation: none | <Chinese explanation>
+    Timestamp: <ISO 8601>
+    ---
+    ```
+    
+    AC Coverage is a structured record linking each step to the acceptance criteria it covers. Every step that implements or verifies an AC must include an `AC Coverage` entry. The `Scenarios` sub-field maps BDD/Gherkin scenarios to their test results. `Method` declares whether the step used TDD, BDD, or manual verification.
+    
+    When an E2E test cannot run because the environment is unavailable, mark the AC as `SKIPPED` with `Reason`, `Approved By: human:<name>`, and `Approved At`. Skipping verification is a human decision. The agent should attempt to fix the environment first; only if it cannot, mark as BLOCKED and let the human decide to retry or skip.
+    
+    Deviation rules:
+    
+    - `DEVIATED_MINOR`: same step goal, same boundary, different implementation approach; log and continue.
+    - `DEVIATED_MAJOR`: step goal invalid, boundary crossed, downstream Plan invalid, or new requirement discovered; stop and return to Plan / Design.
+    - `BUGFIX`: defect fixed within current step boundary.
+    - `BUGFIX_ESCALATED`: not resolved after 3 retries.
+    
+    When a retry is needed, run:
+    
+    ```text
+    sdd debug "<PROJECT_ROOT>" --error "<error summary>"
+    ```
+    
+    For standard/lite, dispatch a Debug Investigator subagent when investigation would pollute context. Micro runs debug in the main context. Drive the investigation with `systematic-debugging` (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer the global skill if loaded): establish root cause before proposing a fix.
+    
+    Completion Verification Gate (see `vendored/superpowers/verification-before-completion/SKILL.md` — read on demand; prefer the global skill if loaded):
+    
+    1. Identify the proof command.
+    2. Run it freshly.
+    3. Read full output and exit code.
+    4. Confirm it proves the relevant acceptance criteria.
+    5. Record the four-axis self-check in the Execute Log's completion-verification step.
+    6. Only then report completion.
+    
+    Record Coverage only in a formal execution step, and keep completion-verification as the last step:
+    
+    ```text
+    Step: execution
+    Status: DONE | BUGFIX
+    AC Coverage:
+      - AC-###: PASS | FAIL | SKIPPED
+        Scenarios:
+          - "scenario name": PASS | FAIL
+        Test: <test file path>
+        Method: tdd | bdd | manual
+        Reason: <required for SKIPPED>
+        Approved By: <required for SKIPPED: human:<name>>
+        Approved At: <required for SKIPPED: ISO-8601>
+    ---
+    Step: completion-verification
+    Status: DONE | BLOCKED
+    Result: <Chinese summary of four-axis self-check>
+    Four-Axis Checklist:
+      - Axis 0 (Intake): aligned | misaligned
+      - Axis 1 (Design/Acceptance/Plan): complete | incomplete
+      - Axis 2 (Code Diff): within boundary | out of boundary
+      - Axis 3 (Execute Log): faithful | unfaithful
+    Verification: <commands run>
+    Timestamp: <ISO 8601>
+    ```
+    
+    This replaces the former Review Verdict / Review Summary section in the Spec. Review has been merged into Execute's Completion Verification Gate. Challenge is now the sole quality gate after Execute.
+    
+    Never rely on a subagent success report for final verification.
+    
+    Dispatch categories:
+    
+    - Code implementation: **DELEGATABLE** (Plan defines boundary; delegation saves context and protects Challenge independence. Small steps: inline may be acceptable)
+    - Result verification: **KEEP** (orchestrator re-reads changed files and runs tests)
+    
+    `validate --archive-ready` cross-checks AC Coverage (L1-L4):
+    - L1: every AC in Spec has a Coverage record in Execute Log
+    - L2: all Coverage results are PASS (SKIPPED with human approval is OK)
+    - L3: Test path files exist (when projectDir is provided)
+    - L4 (limited): Scenario names in Coverage appear in Spec (warning only)
+    
+    Old Execute Logs without AC Coverage are handled gracefully — the cross-check is skipped.
+    
+    ## Challenge Phase
+    
+    Review has been merged into Execute's Completion Verification Gate (four-axis self-check recorded in the Execute Log's completion-verification step). Challenge is now the sole quality gate after Execute. `PASS_WITH_CONCERNS` now routes to Learning Check (not Review).
+    
+    Run:
+    
+    ```text
+    sdd challenge "<PROJECT_ROOT>"
+    ```
+    
+    **standard/lite 必须派子 agent 执行对抗审查。** 对抗审查的核心价值是"不是自己审自己"——主 agent 写了代码再自己审，确认偏差不可避免。子 agent 有独立上下文，只返回 verdict + findings。
+    
+    micro 可在主上下文内执行，但必须保持对抗角色与实现角色分离。
+    
+    派发规则（遵循 `protocols/subagent-dispatch.md`）：
+    
+    1. **Brief 自足**：将 spec 内容、design 摘要、execute log 摘要直接贴入 brief，不让子 agent 自己找。
+    2. **子 agent 只读不写**：challenge agent 不修改任何文件（包括代码），只返回 verdict。
+    3. **返回压缩**：verdict + backtrack target + summary（≤200 词）。
+    
+    Challenge agent returns:
+    
+    ```text
+    Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
+    Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
+    Challenge Summary: <evidence>
+    ```
+    
+    Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+    
+    Dispatch categories:
+    
+    - Adversarial review: **MUST_DELEGATE** (role separation — the implementer cannot review their own work; standard/lite must dispatch)
+    - Verdict aggregation: **KEEP** (orchestrator applies verdict precedence and records via `sdd challenge --record-result`)
+    
+    Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+    
+    - **Research Challenge**: does confirmed requirement match the original goal? Are hidden assumptions exposed?
+    - **Design Challenge**: architecture, data model, interface contract, impact scope, compatibility, rollback, failure modes.
+    - **Acceptance Challenge**: are ACs observable, verifiable, and traceable to requirements?
+    - **Plan Challenge**: are steps executable, bounded, and derived from Design and ACs?
+    - **Code Challenge**: code quality (duplication, dead code, naming), security (hardcoded secrets, injection, input validation), correctness (does code match Spec/Design?), test quality (testing behavior or mocks?).
+    - **Execute Log Challenge**: did execution deviate from Plan? Is AC Coverage truthful?
+    
+    Code Challenge is what distinguishes SDD Challenge from a PR review. PR review focuses on team collaboration and style; Code Challenge focuses on whether code matches the Spec/Design/Plan constraints and whether it has security or quality defects.
+    
+    **Verdict guidance for Code Challenge**: if code faithfully implements a flawed Design, the correct verdict is `FAIL_DESIGN` (backtrack to Design), not `FAIL_CODE`. `FAIL_CODE` applies only when the code itself has defects. The challenge agent must distinguish "code is wrong" from "code is correct but the upstream artifact is wrong."
+    
+    Briefs for challenge subagents must include source code (`source_code` in `artifact_excerpts`) so the Code Challenge axis has input to review.
+    
+    **必须通过 `sdd challenge --record-result` 写入结果，不能手动填写 Challenge Evidence 字段。** 手动填写会被视为伪造证据。正确流程：
+    
+    1. 派发 subagent 执行对抗审查
+    2. 收到 subagent 返回的 verdict + summary
+    3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent:<id>"`
+    4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
+    
+    `validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. An automated reviewer may start without another prompt only under a fresh Spec authorization that includes its reviewer actor; otherwise pause for explicit current-user authorization. Never skip the gate or fabricate reviewer evidence. `Challenge Executed At` must be a valid ISO-8601 timestamp.
+    
+    Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
+    
+    ## Cruise Phase
+    
+    Run:
+    
+    ```text
+    sdd cruise "<PROJECT_ROOT>" [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+    ```
+    
+    The command generates a bounded repair-loop prompt for authorized `auto` or `supervised` work; `human` mode produces governance guidance instead of a native loop. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger. The main agent should re-enter the phase indicated by `BACKTRACK_TARGET`, obey that phase's gates and write boundaries, run `sdd validate`, then request `sdd challenge` again. Stop when the max iteration budget is reached or when a non-delegable stop appears.
+    
+    Cruise orchestrator 只负责读取 `BACKTRACK_TARGET`、控制迭代预算并协调阶段重入。主 Agent 必须进入目标阶段，遵守该阶段的写入边界与门禁完成修复，再回到 Cruise 执行 validate 和 Challenge。Challenge reviewer 始终是 read-only：只返回 verdict 与证据，不修改实现代码、Plan、Design 或 SDD 制品。`FAIL_DESIGN` 允许主 Agent 在 Design 阶段基于审查证据修订设计，但禁止为了迎合既有代码而静默倒推设计。
+    
+    ## Learning Check Phase
+    
+    Run Learning Check after Challenge and before Archive.
+    
+    Create a Learning Record when any of these are true:
+    
+    - Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
+    - Challenge verdict is `PASS_WITH_CONCERNS`.
+    - The task was reopened from archived work.
+    - Acceptance criteria were found insufficient during Execute or Challenge.
+    - The same failure pattern has appeared before.
+    
+    Use:
+    
+    ```text
+    sdd new-learning "<PROJECT_ROOT>" "<spec-name>"
+    ```
+    
+    Fill the generated `learning-file` with reusable decision rules in Chinese, not narrative status updates. Keep field labels in English:
+    
+    - Source Spec
+    - Trigger
+    - Observed Problem
+    - Root Cause
+    - Decision Rule
+    - Applies When
+    - Recommended Action
+    - Evidence
+    
+    Subagents may collect evidence for a Learning Record, but the orchestrator owns whether a lesson is required and writes the final rule.
+    
+    Dispatch categories:
+    
+    - Learning Record creation: **KEEP** (orchestrator decides whether a reusable lesson exists)
+    - Evidence collection for Learning: **DELEGATABLE** (subagent can gather evidence, orchestrator writes the rule)
+    
+    ## Archive Phase
+    
+    Before archive:
+    
+    ```text
+    sdd validate "<PROJECT_ROOT>" --archive-ready
+    ```
+    
+    If validation fails, fix listed gates first. A successful validation only proves completion readiness and does not authorize Archive.
+    
+    When `NEXT_ACTION: request_archive_authorization` appears, stop and ask the current user for explicit authorization. Do not infer authorization from Ready, PASS, Plan Approval, Challenge, prior messages, or prior authorization. The CLI records `human:<name>` as an audit declaration, not identity authentication, so an agent must never fabricate it.
+    
+    Before archiving, finish the development branch cleanly — commits, branch hygiene, no stray work-in-progress — following `finishing-a-development-branch` (see `vendored/superpowers/finishing-a-development-branch/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    Then run:
+    
+    ```text
+    sdd archive "<PROJECT_ROOT>" "<spec-name>" --authorized-by "human:<name>" --authorization-evidence "<current user authorization evidence>"
+    ```
+    
+    Archive moves:
+    
+    - Spec into `<docs-root>/archive/`
+    - referenced Design into `<docs-root>/archive/`
+    - referenced Execute Log into `<docs-root>/archive/`
+    - referenced Learning Record into `<docs-root>/archive/` when present
+    
+    Archive also updates the archived Spec references to archive-relative paths.
+    
+    Dispatch categories:
+    
+    - Archive execution: **KEEP** (orchestrator owns the archive decision and execution)
+    
+    Do not archive if the user reports a defect. Return to Execute / Challenge first.
+    
+    ## Reopen
+    
+    Use reopen only for defects found after archive:
+    
+    ```text
+    sdd reopen "<PROJECT_ROOT>" "<task-slug>" --defect "<summary>" [--mode standard|lite|micro]
+    ```
+    
+    Default mode is micro. Reopen creates a new active Spec and a new Execute Log; standard/lite also create a new Design artifact. Do not use reopen to expand scope or add unrelated features.
+    
+    ## Subagent Policy
+    
+    Use `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract, and `subagent-driven-development` for general routing technique (see `vendored/superpowers/subagent-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    The upstream `executing-plans` route does not apply inside SDD-RIPER. When work is not delegated to subagents, the main agent follows the approved Plan through the SDD Execute Phase and reuses host-native continuous execution; it does not hand off to an unvendored skill or a separate Superpowers session.
+    
+    Subagents are:
+    
+    - evidence owners
+    - work-package owners
+    - debug investigators
+    - review-axis investigators
+    
+    Subagents are not:
+    
+    - requirement owners
+    - selected-option owners
+    - Plan approval owners
+    - final verdict owners
+    - learning decision owners
+    - archive owners
+    
+    The orchestrator writes all final artifacts and verifies all gates.
+    
+    ## Reference Methods
+    
+    SDD-RIPER draws on two methodology layers. The **execution-quality** layer is the six vendored superpowers skills wired into Plan / Execute / Subagent / Archive above (see `INTEGRATIONS.md`). The **design-methodology** layer below is anchored in the Design / Acceptance / Learning phases. Use these as design supports, not as mandatory ceremony:
+    
+    - DDD: domain model, ubiquitous language, bounded context.
+    - C4: system/container/component architecture view.
+    - ADR: selected option and trade-off record (see `protocols/adr.md`).
+    - arc42: complete standard-mode technical design structure.
+    - TOGAF: business/data/application/technology views for enterprise scope.
+    - Phoenix Architecture: reliability, distributed systems, evolutionary architecture, failure modes.
+    - BDD / Gherkin: observable acceptance criteria; in SDD-RIPER this is expressed as `AC-###` plus `Verification:` metadata.
+    - Learning Record: reusable post-review decision rules derived from execution evidence.
+    
+    ## Command Reference
+    
+    - `sdd init <dir> --mode standard|lite|micro`
+    - `sdd discover <dir> --task-name <confirmed-slug> --version <confirmed-vN.M-or-vN.M.P> --requirement <text> [--context ...] [--mode ...]`
+    - `sdd resume <dir>`
+    - `sdd status <dir>`
+    - `sdd next <dir>`
+    - `sdd challenge <dir>`
+    - `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
+    - `sdd console [dir] [--port <port>]`
+    - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean] [--check]`
+    - `sdd validate <dir> --archive-ready`
+    - `sdd new-learning <dir> [spec-name]`
+    - `sdd learnings <dir> [--for <spec>]` — project-level learnings, or relevance-ranked recall for a spec
+    - `sdd review-execute <dir>`
+    - `sdd debug <dir> --error <msg>`
+    - `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"`
+    - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
+    - `sdd codemap <dir>`
+    - `sdd visual init <dir> --spec <path> --mode fidelity|direction`
+    - `sdd visual inspect <dir> --spec <path>`
+    - `sdd visual select <dir> --spec <path> --ui-impact yes|no [--intent not-required|direction|fidelity]`
+    - `sdd visual discover <dir> --spec <path>`
+    - `sdd verify visual <dir> --spec <path>`
+    
+  operator: 'match'
+  stack: |-
+    D:\workspace\personal\sdd-riper\tests\governance-contract.test.js:582:12
+    Array.forEach (<anonymous>)
+    TestContext.<anonymous> (D:\workspace\personal\sdd-riper\tests\governance-contract.test.js:578:47)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+not ok 30 - ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+  ---
+  duration_ms: 0.9353
+  type: 'test'
+  location: 'D:\\workspace\\personal\\sdd-riper\\tests\\governance-contract.test.js:597:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The input was expected to not match the regular expression /more than 3 files|more than 500 lines|1-2 files|3-5 files|6\+ files|<100 lines/i. Input:
+    
+    '---\r\n' +
+      'name: sdd-riper\r\n' +
+      'version: 2.0.0\r\n' +
+      'description: |\r\n' +
+      '  SDD-RIPER: Structured development workflow for AI-assisted delivery.\r\n' +
+      '  Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.\r\n' +
+      '  Uses Spec as control plane, external Design as technical design, external Execute Log as audit trail, and Learning Record as reusable decision memory.\r\n' +
+      '  Trigger with: /sdd-riper, /sdd, "setup SDD", "start sdd task".\r\n' +
+      'allowed-tools:\r\n' +
+      '  - Read\r\n' +
+      '  - Write\r\n' +
+      '  - Edit\r\n' +
+      '  - Grep\r\n' +
+      '  - Glob\r\n' +
+      '  - AskUserQuestion\r\n' +
+      '---\r\n' +
+      '\r\n' +
+      '# SDD-RIPER Skill\r\n' +
+      '\r\n' +
+      'Do not recite this file to the user. Use it to drive the workflow.\r\n' +
+      '\r\n' +
+      'The execution-quality methods referenced below (`writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `subagent-driven-development`, `finishing-a-development-branch`) are vendored under `vendored/superpowers/`. See `INTEGRATIONS.md` for the full touchpoint map. Resolution order at each touchpoint: global skill if your editor has it loaded → the vendored copy → the inlined summary kept here as fallback.\r\n' +
+      '\r\n' +
+      '## Non-Negotiable Rules\r\n' +
+      '\r\n' +
+      'This is the canonical rule text shared with the AI configs generated by `sdd init` (single source: `src/core/ai-config-rules.js`). Do not reword these lines independently — keep SKILL.md and the generated block consistent.\r\n' +
+      '\r\n' +
+      '- Load the latest active Spec before implementation; never write code without an active Spec.\r\n' +
+      '- Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.\r\n' +
+      '- Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; ask whether reference materials / context exist and bind them via `context-source`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`; the project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.\r\n' +
+      '- Spec is the control plane: it owns goal, Research, Innovate, Acceptance Criteria, Plan, approvals, and references to `design-file`, `execute-log-file`, and `learning-file`. Do not recreate embedded Design / Execute Log / Learning sections inside Spec.\r\n' +
+      '- When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.\r\n' +
+      '- Do not move past Plan without approval and gate evidence. `auto` may use `Plan Approved By: agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.\n' +
+      '- In auto mode, after the current user confirms the current scope and risk, automatically record task authorization for main, worker, research-reviewer, and challenge-reviewer. When a fresh authorization covers the current scope/risk and an agent-approved Plan has no activation, automatically record a `plan_activation` event with `sdd autonomy activate-plan`, the current scope, risk, and Plan digests, and `agent:<id>` evidence; do not request a human to approve the Plan again or re-authorize those reviewers. This does not bypass any dedicated human stop.\n' +
+      '- When a Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.\r\n' +
+      '- Independent Review is separate from approval. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline.\r\n' +
+      '- An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.\r\n' +
+      '- Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.\r\n' +
+      '- Challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.\r\n' +
+      '- When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.\r\n' +
+      '- In every autonomy mode, irreversible actions, scope expansion, new risks, and platform permissions must each stop separately for explicit human authorization.\r\n' +
+      '- E2E `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`; debug the environment first and record `BLOCKED` when it cannot be repaired. Never auto-install dependencies or browsers and never approve the skip yourself.\r\n' +
+      '- Record execution deviations and facts in the referenced Execute Log; debug before retrying failed steps.\r\n' +
+      '- The main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency; subagents collect evidence or perform bounded work.\r\n' +
+      '- Keep artifact headings and field labels in English; write artifact content in Chinese.\r\n' +
+      '- No Claim Without Verification: freshly run the relevant tests / lint / build before claiming completion.\r\n' +
+      '- Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.\r\n' +
+      '\r\n' +
+      '## CLI Rule\r\n' +
+      '\r\n' +
+      'Use the `sdd` command for workflow operations. If `sdd` is not found in PATH, locate it first:\r\n' +
+      '\r\n' +
+      '1. Try `which sdd` / `Get-Command sdd` — if found, use it directly.\r\n' +
+      '2. Try `npm root -g` to find the global node_modules, then use `node <npm-global>/sdd-riper/bin/cli.js` as the `sdd` command.\r\n' +
+      '3. If the project itself is the sdd-riper repo, use `node <project-root>/bin/cli.js`.\r\n' +
+      '\r\n' +
+      'Once located, store the resolved path (e.g. `SDD_BIN=node /path/to/bin/cli.js`) and use it for all subsequent `sdd` calls.\r\n' +
+      '\r\n' +
+      '## Artifact Model\r\n' +
+      '\r\n' +
+      'After `discover`, a task has:\r\n' +
+      '\r\n' +
+      '- Spec: `<docs-root>/specs/<vN.M-or-vN.M.P>-task.md`\r\n' +
+      '- Design: `<docs-root>/design/<vN.M-or-vN.M.P>-task.design.md` for standard/lite only\r\n' +
+      '- Execute Log: `<docs-root>/logs/<vN.M-or-vN.M.P>-task.execute.md`\r\n' +
+      '- Learning Record: `<docs-root>/learnings/<vN.M-or-vN.M.P>-task.learning.md` when required\r\n' +
+      '- Cruise Run Ledger: `<docs-root>/runs/<vN.M-or-vN.M.P>-task.cruise.jsonl` when autonomous cruise is recorded\r\n' +
+      '\r\n' +
+      'Spec frontmatter contains:\r\n' +
+      '\r\n' +
+      '```yaml\r\n' +
+      'design-file: "mydocs/design/<vN.M-or-vN.M.P>-task.design.md"\r\n' +
+      'execute-log-file: "mydocs/logs/<vN.M-or-vN.M.P>-task.execute.md"\r\n' +
+      'learning-file: ""\r\n' +
+      'project-profile-revision: "profiles/revisions/sha256-<digest>.json"\r\n' +
+      'project-profile-digest: "sha256:<digest>"\r\n' +
+      'affected-units: "web,api"\r\n' +
+      'autonomy-mode: "supervised"\r\n' +
+      'autonomy-mode-source: "project-default"\r\n' +
+      '```\r\n' +
+      '\r\n' +
+      'Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.\r\n' +
+      '\r\n' +
+      '## Activation\r\n' +
+      '\r\n' +
+      '1. Detect project root.\r\n' +
+      '2. Check for `.sdd-config` and docs root.\r\n' +
+      '3. If not initialized, ask whether to initialize.\r\n' +
+      '4. If initialized, run `sdd resume "<PROJECT_ROOT>"` (or `$SDD_BIN resume "<PROJECT_ROOT>"` if using resolved path) and follow `PHASE_HINT`.\r\n' +
+      '\r\n' +
+      'Use plain user-facing text for the activation choice, then stop and wait if the user must choose.\r\n' +
+      '\r\n' +
+      '## Setup Mode\r\n' +
+      '\r\n' +
+      'When the user chooses setup:\r\n' +
+      '\r\n' +
+      '1. Ask target directory if unclear.\r\n' +
+      '2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).\r\n' +
+      '3. Do not manually create the scaffold with Write/Edit.\r\n' +
+      '4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.\r\n' +
+      '5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, briefly explain the trade-offs, and recommend `supervised`. The project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.\r\n' +
+      '6. To create the first task, run:\r\n' +
+      '\r\n' +
+      '```text\r\n' +
+      'sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro] --autonomy-mode auto|supervised|human\r\n' +
+      '```\r\n' +
+      '\r\n' +
+      'If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.\r\n' +
+      '\r\n' +
+      '## Workflow Routing\r\n' +
+      '\r\n' +
+      'Run:\r\n' +
+      '\r\n' +
+      '```text\r\n' +
+      'sdd resume "<PROJECT_ROOT>"\r\n' +
+      '```\r\n' +
+      '\r\n' +
+      'Use `PHASE_HINT`:\r\n' +
+      '\r\n' +
+      '- `new_task`: ask whether to run `discover`.\r\n' +
+      '- `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.\r\n' +
+      '- `execute`: enter Execute only if Plan approval is present.\r\n' +
+      '- `learning`: complete the Learning Check.\r\n' +
+      '- `await_archive_authorization`: stop and request explicit archive authorization from the current user; do not run archive yet.\r\n' +
+      '\r\n' +
+      'For micro mode, skip Research, Innovate, and standalone Design. '... 36783 more characters
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+  actual: |-
+    ---
+    name: sdd-riper
+    version: 2.0.0
+    description: |
+      SDD-RIPER: Structured development workflow for AI-assisted delivery.
+      Guides Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
+      Uses Spec as control plane, external Design as technical design, external Execute Log as audit trail, and Learning Record as reusable decision memory.
+      Trigger with: /sdd-riper, /sdd, "setup SDD", "start sdd task".
+    allowed-tools:
+      - Read
+      - Write
+      - Edit
+      - Grep
+      - Glob
+      - AskUserQuestion
+    ---
+    
+    # SDD-RIPER Skill
+    
+    Do not recite this file to the user. Use it to drive the workflow.
+    
+    The execution-quality methods referenced below (`writing-plans`, `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `subagent-driven-development`, `finishing-a-development-branch`) are vendored under `vendored/superpowers/`. See `INTEGRATIONS.md` for the full touchpoint map. Resolution order at each touchpoint: global skill if your editor has it loaded → the vendored copy → the inlined summary kept here as fallback.
+    
+    ## Non-Negotiable Rules
+    
+    This is the canonical rule text shared with the AI configs generated by `sdd init` (single source: `src/core/ai-config-rules.js`). Do not reword these lines independently — keep SKILL.md and the generated block consistent.
+    
+    - Load the latest active Spec before implementation; never write code without an active Spec.
+    - Follow the lifecycle: Research -> Innovate -> Design/Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive.
+    - Before creating a Spec, ask the user to provide or confirm `version` and `task-name`; ask whether reference materials / context exist and bind them via `context-source`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, explain the trade-offs, and recommend `supervised`; the project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
+    - Spec is the control plane: it owns goal, Research, Innovate, Acceptance Criteria, Plan, approvals, and references to `design-file`, `execute-log-file`, and `learning-file`. Do not recreate embedded Design / Execute Log / Learning sections inside Spec.
+    - When an AC declares `Verification: e2e`, it must also declare `Provider: <provider-id>`.
+    - Do not move past Plan without approval and gate evidence. `auto` may use `Plan Approved By: agent:<id>` with `Approved At:` and `Gate Evidence:`; `supervised` and `human` require `Plan Approved By: human:<name>`. Plan Approval never implies continuous automation authorization.
+    - In auto mode, after the current user confirms the current scope and risk, automatically record task authorization for main, worker, research-reviewer, and challenge-reviewer. When a fresh authorization covers the current scope/risk and an agent-approved Plan has no activation, automatically record a `plan_activation` event with `sdd autonomy activate-plan`, the current scope, risk, and Plan digests, and `agent:<id>` evidence; do not request a human to approve the Plan again or re-authorize those reviewers. This does not bypass any dedicated human stop.
+    - When a Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Before running `sdd profile confirm`, stop and obtain explicit current user authorization for the exact reviewed digest.
+    - Independent Review is separate from approval. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline.
+    - An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.
+    - Do not manually fill Challenge Evidence fields; use `sdd challenge --record-result "VERDICT" --summary "..." --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"`.
+    - Challenge `FAIL_*` verdicts block archive and route work back to the mapped phase.
+    - When `NEXT_ACTION: request_archive_authorization` appears, stop and request explicit archive authorization from the current user. Agents must not construct archive authorization parameters or infer permission from Ready, PASS, Plan Approval, Challenge, or prior authorization. A `human:<name>` record is an audit declaration, not identity authentication.
+    - In every autonomy mode, irreversible actions, scope expansion, new risks, and platform permissions must each stop separately for explicit human authorization.
+    - E2E `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`; debug the environment first and record `BLOCKED` when it cannot be repaired. Never auto-install dependencies or browsers and never approve the skip yourself.
+    - Record execution deviations and facts in the referenced Execute Log; debug before retrying failed steps.
+    - The main agent owns final requirements, selected option, Plan gate, Challenge verdict, Learning decision, and Archive consistency; subagents collect evidence or perform bounded work.
+    - Keep artifact headings and field labels in English; write artifact content in Chinese.
+    - No Claim Without Verification: freshly run the relevant tests / lint / build before claiming completion.
+    - Archived and legacy artifacts remain readable without migration; do not silently rewrite historical records.
+    
+    ## CLI Rule
+    
+    Use the `sdd` command for workflow operations. If `sdd` is not found in PATH, locate it first:
+    
+    1. Try `which sdd` / `Get-Command sdd` — if found, use it directly.
+    2. Try `npm root -g` to find the global node_modules, then use `node <npm-global>/sdd-riper/bin/cli.js` as the `sdd` command.
+    3. If the project itself is the sdd-riper repo, use `node <project-root>/bin/cli.js`.
+    
+    Once located, store the resolved path (e.g. `SDD_BIN=node /path/to/bin/cli.js`) and use it for all subsequent `sdd` calls.
+    
+    ## Artifact Model
+    
+    After `discover`, a task has:
+    
+    - Spec: `<docs-root>/specs/<vN.M-or-vN.M.P>-task.md`
+    - Design: `<docs-root>/design/<vN.M-or-vN.M.P>-task.design.md` for standard/lite only
+    - Execute Log: `<docs-root>/logs/<vN.M-or-vN.M.P>-task.execute.md`
+    - Learning Record: `<docs-root>/learnings/<vN.M-or-vN.M.P>-task.learning.md` when required
+    - Cruise Run Ledger: `<docs-root>/runs/<vN.M-or-vN.M.P>-task.cruise.jsonl` when autonomous cruise is recorded
+    
+    Spec frontmatter contains:
+    
+    ```yaml
+    design-file: "mydocs/design/<vN.M-or-vN.M.P>-task.design.md"
+    execute-log-file: "mydocs/logs/<vN.M-or-vN.M.P>-task.execute.md"
+    learning-file: ""
+    project-profile-revision: "profiles/revisions/sha256-<digest>.json"
+    project-profile-digest: "sha256:<digest>"
+    affected-units: "web,api"
+    autonomy-mode: "supervised"
+    autonomy-mode-source: "project-default"
+    ```
+    
+    Always follow these references. Do not recreate embedded `## Technical Design`, `## Design Note`, `## Execute Log`, or `## Learning Record` sections inside Spec.
+    
+    ## Activation
+    
+    1. Detect project root.
+    2. Check for `.sdd-config` and docs root.
+    3. If not initialized, ask whether to initialize.
+    4. If initialized, run `sdd resume "<PROJECT_ROOT>"` (or `$SDD_BIN resume "<PROJECT_ROOT>"` if using resolved path) and follow `PHASE_HINT`.
+    
+    Use plain user-facing text for the activation choice, then stop and wait if the user must choose.
+    
+    ## Setup Mode
+    
+    When the user chooses setup:
+    
+    1. Ask target directory if unclear.
+    2. Run `sdd init "<TARGET_DIR>" --mode <standard|lite|micro>` when mode is known; otherwise pick with `protocols/mode-selection.md` (default `micro`, escalate only on a named signal).
+    3. Do not manually create the scaffold with Write/Edit.
+    4. Run `sdd codemap "<TARGET_DIR>"` when an on-demand architecture view is needed — it scans source code live and is never stale.
+    5. Before creating any task Spec, the agent **must ask the user to provide or confirm `version` and `task-name`**. The agent may suggest a task-name, but must not infer either field silently. The agent must also **ask whether reference materials / context exist**; if yes, place or reference them through `context-source` / `mydocs/context/<task-name>/`. Before creating a Spec, if the user has not explicitly selected an autonomy mode, ask them to choose `auto`, `supervised`, or `human`, briefly explain the trade-offs, and recommend `supervised`. The project default is a recommendation and must not be silently chosen for the user. If the user has already explicitly selected a mode, restate it and ask for confirmation without presenting the choice again.
+    6. To create the first task, run:
+    
+    ```text
+    sdd discover "<TARGET_DIR>" --task-name "<confirmed-slug>" --version <confirmed-vN.M-or-vN.M.P> --requirement "<requirement>" [--context "<context-source-or-none>"] [--goal "<goal>"] [--constraints "<constraints>"] [--mode standard|lite|micro] --autonomy-mode auto|supervised|human
+    ```
+    
+    If you have raw materials (PRD, UI mockups, prototypes), place them in `mydocs/context/<slug>/` before running `discover`. The command auto-detects the directory and sets `context-source` in the spec frontmatter.
+    
+    ## Workflow Routing
+    
+    Run:
+    
+    ```text
+    sdd resume "<PROJECT_ROOT>"
+    ```
+    
+    Use `PHASE_HINT`:
+    
+    - `new_task`: ask whether to run `discover`.
+    - `research_or_plan`: continue Research / Innovate / Design / Acceptance / Plan as appropriate.
+    - `execute`: enter Execute only if Plan approval is present.
+    - `learning`: complete the Learning Check.
+    - `await_archive_authorization`: stop and request explicit archive authorization from the current user; do not run archive yet.
+    
+    For micro mode, skip Research, Innovate, and standalone Design. Go to Plan unless already approved.
+    
+    ### Resolving Open Questions
+    
+    When the spec contains unresolved `Open Questions` or Plan approval is blocked by unclear requirements:
+    
+    1. **Ask the user interactively with suggested answers** — use `AskUserQuestion` to present each question with 2-4 concrete options. Each option should be an **AI-suggested answer** derived from the spec context, codebase findings, and domain knowledge — not a placeholder like "fill in yourself." The user confirms, adjusts, or provides a different answer via the "Other" free-text option. Do not try to cover every possibility in the options — the "Other" option is the escape hatch. This is faster and more reliable than telling the user to "edit the spec yourself."
+    2. **Write answers into the spec** — once the user answers, update the spec's `Open Questions` → `Assumptions` or `Confirmed Requirement` sections accordingly. Do not leave resolved questions as open.
+    3. **Then proceed to Plan approval** — with clarified requirements, the Plan gate can be satisfied.
+    
+    Do NOT just list questions and wait. Do NOT offer empty or placeholder options. Actively drive resolution with reasoned suggestions.
+    
+    Use `sdd next "<PROJECT_ROOT>"` when the next phase or backtrack target is unclear. Use `sdd cruise "<PROJECT_ROOT>"` to generate an autonomous repair-loop prompt. Use `sdd challenge "<PROJECT_ROOT>"` for independent adversarial review.
+    
+    When the host agent supports a native autonomous loop, reuse it instead of making SDD own model execution. Claude Code may use Dynamic Workflows; Codex and opencode may use their native continuation / loop features when available. SDD remains the control protocol and artifact truth chain.
+    
+    ## Capability Routing
+    
+    - **Project Profile**: when engineering facts are insufficient or unknown, proactively run read-only `sdd profile detect <dir>` and inspect the existing Profile facts. When the active Spec declares `project-profile-revision`, read that exact revision; never substitute `profiles/current.json`. Profile `commandRefs` are facts and must not be executed automatically. Profile routing must not install dependencies or browsers, and must not initialize or approve a Verification Provider.
+    - **Quality Plan**: during Design / Acceptance / Plan, when AC `Verification:` values need mapping to available test capabilities, proactively run read-only `sdd quality plan <project-dir> --spec <spec>`. Treat the result as a temporary projection: do not write it back, install dependencies or browsers, initialize or approve a Provider, or execute verification.
+    - **E2E**: `SKIPPED` requires `Reason`, `Approved By: human:<name>`, and `Approved At`. Keep the existing Provider boundary. When the environment is unavailable, debug first; if it cannot be repaired, record `BLOCKED` and let a human decide whether to retry or skip. Do not approve the skip or automatically install dependencies or browsers.
+    - **Visual**: establish `ui-impact` for every Spec before routing visual intent. A baseline is the human-approved target UI PNG frozen by the current Spec, not a cross-Spec historical baseline library: a new Spec may directly use the latest UI PNG, while an old-page screenshot is optional Context. Recommend `fidelity` only for a decodable PNG with explicit scenario, route, state, and viewport, comparable target/current screenshot dimensions whose pixel width and height respectively match exactly, and stable test data, fonts, and assets; otherwise recommend `direction`. The Agent explains why it recommends `direction` or `fidelity`, and candidate images and default images do not constitute human approval. Strict visual evidence becomes active only when the current user explicitly runs `sdd visual init ...`; the Agent must never create, generate, approve, replace, version, or manage a baseline, must not automatically start a browser, and must not implicitly initialize or approve the visual Provider.
+    
+    ## Autonomy Policy
+    
+    SDD keeps project configuration small. **Mode** is the Spec workflow shape; **Autonomy Mode** controls how far the host AI may proceed between human governance decisions. Independent Research/Challenge review still requires auditable reviewer evidence.
+    
+    ```text
+    AUTONOMY_MODE="supervised"      # auto | supervised | human
+    CRUISE_MAX_ITERATIONS="5"
+    ```
+    
+    New projects default to `supervised` with a repair budget of `5`. Missing, invalid, or legacy active governance configuration is migration-required and must not be guessed.
+    
+    - `auto`: after current-user authorization bound to the current task scope/risk digest, the host AI may launch planned worker and read-only reviewer agents and continue to archive authorization.
+    - `supervised`: requires a human-approved Plan plus a separate, explicit authorization fact for subsequent automation.
+    - `human`: pauses at governance transitions; mechanical tests and in-plan debugging do not require per-action approval.
+    
+    Autonomy write commands target only the current active Spec and re-read all expected digests under `.sdd-autonomy.lock`. `supervised` authorization binds both the current Scope and exact Plan digest. In `auto`, task authorization records main, worker, research-reviewer, and challenge-reviewer after the current user confirms scope and risk. When an Agent-approved Plan has no activation but those scope, risk, and Plan digests still match, the main Agent automatically runs `sdd autonomy activate-plan` with auditable `agent:<id>` evidence; it does not ask the user to approve the Plan again or re-authorize reviewers. A Plan rebind is valid only while Scope and risk remain unchanged. Never continue a native loop when `STOP_REASON` is non-empty.
+    
+    All modes still stop for archive, exact Profile digest confirmation, E2E SKIPPED, irreversible actions, scope expansion, new risk, and platform permissions. A project default is not current-user authorization.
+    
+    Cruise driver options:
+    
+    - `auto`: default. Prefer host-native loop, then fallback to prompt loop.
+    - `claude-code`: generate instructions for Claude Code Dynamic Workflows when available.
+    - `codex`: generate instructions for the Codex native loop when the current Codex surface supports it.
+    - `opencode`: generate instructions for opencode native loop support when available.
+    - `prompt`: generic prompt loop.
+    - `local-loop`: prompt-loop compensation for hosts without native loop support; SDD records snapshots but does not run a model executor.
+    
+    Never move Spec, Design, Plan, Execute Log, Learning, or Challenge evidence into a host-specific workflow file as the source of truth.
+    
+    Use `sdd cruise "<PROJECT_ROOT>" --driver claude-code --emit-claude-prompt` to output a Claude Code prompt with `ultracode:` and `/effort ultracode` guidance. Claude Code owns the actual workflow script and runtime. Use `sdd cruise "<PROJECT_ROOT>" --record-run --iteration <n>` to append `<docs-root>/runs/<spec>.cruise.jsonl`.
+    
+    ## Mode Policy
+    
+    | Mode | Use When | Design | Execute Log | Subagent |
+    | :--- | :--- | :--- | :--- | :--- |
+    | standard | New features, refactors, cross-module work, security, permissions, billing, migrations, public APIs | external Technical Design | external required | recommended for evidence/work packages/review axes |
+    | lite | Medium/small scoped changes with known codebase | external Design Note | external required | optional |
+    | micro | Single-file, low-risk, reversible changes | no standalone Design; Plan contains impact analysis, Acceptance, and Verification | external required | default no |
+    
+    Upgrade from micro to lite/standard for security, permission, billing, data migration, public API, cross-module side effects, irreversible change, or high uncertainty.
+    
+    Default to `micro` and escalate only on a named signal — `standard` must be earned (an interface contract, irreversibility, risk class, or three or more stacked signals), not chosen "to be safe". Full rubric: `protocols/mode-selection.md`. The rubric is advisory; it guides the mode chosen at `init` / `discover` and does not change `--mode` behavior.
+    
+    ## Research Phase
+    
+    Goal: turn raw request into Confirmed Requirement.
+    
+    Required outputs in Spec:
+    
+    - Requirement Review
+    - Findings (from code, docs, historical Specs, **and project conventions**: eslint/prettier/tsconfig rules, test framework, CI gates, etc. — Design and Execute must comply)
+    - Open Questions
+    - Assumptions
+    - Confirmed Requirement (five structured fields: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent)
+    - Research Reviewed By / Research Reviewed At (gate confirmation)
+    
+    Confirmed Requirement structured fields are consumed by downstream phases: Scope Boundary → Design Impact Scope; Irreversibility → mode reversibility signal + Design Compatibility / Rollback; Impact Radius → riskFlags blast radius + Design Architecture View; Dependencies & Constraints → riskFlags security/billing/migration signals; Acceptance Intent → AC derivation.
+    
+    Research Gate requires `Research Reviewed By` and `Research Reviewed At` before proceeding to Innovate. Standard/lite modes require auditable independent reviewer evidence (`subagent:<id>`, `external-agent:<id>`, or `human:<name>`); micro skips. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that includes its reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause for explicit current-user authorization; never skip the gate or fabricate reviewer evidence.
+    
+    Use `sdd codemap <dir>` for an on-demand architecture view, or archive only when relevant. Place external materials (PRD, UI mockups, API specs, SDK docs) in `mydocs/context/<task-name>/`; `sdd discover` auto-binds the matching directory as `context-source`. If Research requires reading more than 3 files or 500 lines, dispatch a subagent as evidence owner using `protocols/subagent-dispatch.md`. The subagent returns evidence; the orchestrator writes final Research content.
+    
+    ### Visual Context Guidance
+    
+    For every new Spec, first establish `ui-impact`. Use the bound exact Project Profile and `affected-units` when they identify a frontend unit; when they do not establish the answer, ask the user once whether the task affects a user interface. A pure backend Spec records `ui-impact: no` and skips visual guidance. Any frontend or mixed Spec records `ui-impact: yes` and must make one `visual-context-intent` selection with `sdd visual select`: `not-required`, `direction`, or `fidelity`.
+    
+    Users may place PNG/PDF/SVG, screenshots, Markdown/TXT notes, and URL references together in `context-source`. Run `sdd visual discover <dir> --spec <spec>` to report local material candidates, gaps, and only the questions that cannot be inferred reliably. Do not treat candidates as confirmed design evidence. A Figma URL is handled exactly like every other URL reference: discovery only records it and does not access the network to read its content. A future Figma MCP importer is a separate Spec, not a branch of this workflow.
+    
+    A baseline is the human-approved target UI PNG frozen by the current Spec, not a cross-Spec historical baseline library. A new Spec may directly use the latest UI PNG; an old-page screenshot is optional Context rather than a required historical baseline. Candidate images and default images do not constitute human approval, and the Agent must never create, generate, approve, replace, version, or manage a baseline.
+    
+    The Agent recommends `fidelity` only when all prerequisites hold: the target is a decodable PNG; scenario, route, state, and viewport are explicit; target and post-development current screenshot dimensions are comparable, with pixel width and height respectively matching exactly; and test data, fonts, and assets are stable. Otherwise the Agent recommends `direction`, and it must explain why it recommends `direction` or `fidelity`.
+    
+    `not-required` never blocks Plan because Context is empty. `direction` and `fidelity` become strict only after the current user explicitly runs `sdd visual init <dir> --spec <spec> --mode fidelity|direction`; then use `sdd visual inspect` before Plan approval. For an approved `fidelity` contract only, a project may configure the separate `playwright-visual` Provider with a static, project-local `sdd.visual.config.json` scenario mapping, then run `sdd verify visual <dir> --spec <spec>`. Each `scenario.baseline.path` must point into the current Spec Context and pass both lexical and realpath project-local containment. A configured mask is only a static pixel rectangle `{x,y,width,height}`; selectors and runtime expressions are not allowed. The command accepts no URL, command, selector, threshold, mask, or environment pass-through; it reads human-approved baselines, persists current/diff evidence in `mydocs/runs/visual/`, and never creates, approves, or replaces a baseline. It never starts a browser automatically. Provider, workspace, config, contract, baseline and code-state changes make prior evidence stale; a worktree mutation yields an auditable BLOCKED Run without current/diff attachments. Never fabricate a source, screenshot baseline, approval, browser result, or screenshot diff PASS. This contract does not create an Archive Gate.
+    
+    Dispatch categories (see `protocols/subagent-dispatch.md` for full Phase Dispatch Map):
+    
+    - Requirement Review: **KEEP** (requires user interaction)
+    - Findings evidence collection: **DELEGATABLE** (delegate when read volume is high)
+    - Confirmed Requirement: **KEEP** (gate decision)
+    - Research Gate review: **MUST_DELEGATE** (role separation — implementer cannot review own work)
+    
+    ## Innovate Phase
+    
+    Goal: define viable approaches before choosing.
+    
+    Drive option exploration and design clarification with `brainstorming` (see `vendored/superpowers/brainstorming/SKILL.md` — read on demand; prefer the global skill if loaded): explore intent one question at a time, propose 2-3 approaches with a recommendation, and present the design in sections for approval before any implementation.
+    
+    SDD adaptation: keep artifacts in SDD's control plane. Write options into the Spec `Innovate Options` section and the design into the external `design-file` — not into `brainstorming`'s default `docs/superpowers/specs/` path. Do not auto-invoke `writing-plans` at the end; SDD's Plan phase and configured gate own that transition.
+    
+    standard requires at least two options:
+    
+    - option summary
+    - pros / cons
+    - risks
+    - requirement fit
+    - rejected rationale
+    - selected option
+    
+    lite may skip Innovate only with an explicit reason:
+    
+    ```text
+    Innovate: Skipped, Reason: ...
+    ```
+    
+    micro skips Innovate.
+    
+    Dispatch categories:
+    
+    - Option exploration: **DELEGATABLE** (subagent can brainstorm, but high decision density makes inline natural for small tasks)
+    - Option selection: **KEEP** (gate decision)
+    
+    ## Design / Acceptance Phase
+    
+    This phase happens after Innovate and before Plan.
+    
+    ### Method Routing (advisory)
+    
+    Do not spread every methodology over every task. SDD routes design methodology from `mode` + `riskFlags`. `riskFlags` extracts signals primarily from Confirmed Requirement structured fields (Irreversibility, Impact Radius, Dependencies & Constraints, Scope Boundary), falling back to full-text keyword scanning when structured fields are absent. `sdd next` and `sdd cruise` print `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` as advisory hints — follow them, but the orchestrator owns the final call.
+    
+    | Signal | Suggested methodology / focus |
+    | :--- | :--- |
+    | micro | none — design intent stays inside Plan |
+    | lite | ADR for the selected option; Design Note covers Approach + Impact |
+    | standard (baseline) | ADR + arc42 field structure; C4 context/container for Architecture View |
+    | + risk: migration | emphasize `Data Model / Schema` + `Data Migration / Backfill` |
+    | + risk: public-api | emphasize `Interface Contract` + `Compatibility / Rollback` |
+    | + risk: security | add a threat / permission-boundary pass |
+    | + risk: billing / irreversible | model state + failure modes; require a rollback/abort plan |
+    | complex domain (multiple bounded contexts) | consider DDD (advisory — orchestrator judges; no automatic signal) |
+    
+    The methods catalog lives in Reference Methods. Load a specific method's detail on demand (a global skill, or a vendored copy where available); SDD does not bundle DDD / C4 / arc42 as required reading.
+    
+    ### Standard
+    
+    Write technical design in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It is a technical design contract. It must cover these required core fields:
+    
+    - Selected Option / ADR
+    - Requirement Traceability
+    - Impact Scope
+    - Architecture View
+    - Data Model / Schema
+    - Interface Contract
+    - Compatibility / Rollback
+    - Test Strategy
+    
+    It should also cover these fields when relevant:
+    
+    - Context / Boundary
+    - Domain Model
+    - Data Migration / Backfill
+    - API Protocol
+    - State / Concurrency
+    - Failure Modes
+    - Security / Permission
+    - Observability
+    - Performance / Capacity
+    - Risks / Trade-offs
+    
+    Write acceptance criteria in Spec with `AC-###` ids. Keep labels such as `Requirement:` / `Type:` / `Verification:` / `Automated:` / `Test:` / `Manual Evidence:` in English. The verification value remains one of `unit | integration | e2e | manual`. BDD / Gherkin scenario descriptions should be written in Chinese. E2E ACs must reference `Test:` or `Manual Evidence:`; manual ACs must include `Manual Evidence:`.
+    
+    Testing strategy mapping: `unit` → `Method: tdd` (default for logic), `integration` → `Method: tdd` or `bdd` (interface contracts, data flow), `e2e` → `Method: bdd` (critical user paths, 3-5 scenarios), `manual` → `Method: manual` (last resort, `Manual Evidence:` required). Flaky E2E tests are not PASS — debug the root cause first. When E2E environment is unavailable, mark AC as `SKIPPED` with `Reason` + `Approved By: human:<name>` + `Approved At`.
+    
+    ### Lite
+    
+    Write design note in `design-file`, not in Spec. Keep labels in English and fill the content in Chinese. It must cover:
+    
+    - Approach
+    - Impact Scope
+    - Interface / Data Impact
+    - Compatibility
+    - Risks
+    - Test Strategy
+    
+    Write lightweight acceptance criteria in Spec. Keep them compact, but each AC must still use `AC-###` and include `Verification:` metadata.
+    
+    Dispatch categories:
+    
+    - Design writing: **DELEGATABLE** (brief cost is high; small tasks: inline, large tasks: delegate per module)
+    - Acceptance Criteria writing: **DELEGATABLE** (same trade-off as Design)
+    - Design review: **MUST_DELEGATE** (implemented through the Challenge phase — not a separate dispatch)
+    
+    ### Micro
+    
+    No standalone Design. Plan must include English labels for:
+    
+    - Selected Option
+    - Scope
+    - Touched Files
+    - Change
+    - Impact Scope
+    - Data Impact
+    - Interface Impact
+    - Acceptance
+    - Verification
+    - Blast Radius
+    
+    ## Plan Phase
+    
+    Plan is an execution contract, not an architecture document.
+    
+    Every step should include:
+    
+    - target file path or module boundary
+    - concrete change
+    - linked AC or acceptance condition
+    - verification command or check
+    
+    Follow `writing-plans` for step granularity (see `vendored/superpowers/writing-plans/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    SDD scope adaptation: reuse only its file mapping, bite-sized step, TDD, and verification-command guidance. **Do not copy the upstream Plan Document Header or Execution Handoff** into an SDD Plan, because those sections belong to the upstream Superpowers workflow and may require skills that SDD-RIPER does not vendor. The Plan remains in the active Spec. Execute it through the **SDD Execute Phase**, `subagent-driven-development` when delegation is appropriate, or **host-native continuous execution** in the current session. Never declare `executing-plans` as a required SDD skill.
+    
+    Before Execute, satisfy the configured gate and write:
+    
+    ```text
+    Plan Approved By: agent:<id> | human:<name>
+    Approved At: <ISO timestamp>
+    Gate Evidence: <required for agent:<id>>
+    ```
+    
+    Agent approval is allowed only when the evidence is explicit and verifiable.
+    
+    Dispatch categories:
+    
+    - Plan writing: **KEEP** (requires full upstream context — Design + AC)
+    - Plan approval: **KEEP** (gate decision)
+    
+    ## Execute Phase
+    
+    Follow approved Plan steps in order.
+    
+    For production code, use TDD when applicable, following `test-driven-development` (see `vendored/superpowers/test-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded):
+    
+    1. Write a failing test.
+    2. Run and confirm it fails for the right reason.
+    3. Write the smallest implementation.
+    4. Refactor without changing behavior.
+    
+    After each step, append to the external Execute Log referenced by `execute-log-file`:
+    
+    ```text
+    ---
+    Step: <N and summary>
+    Status: DONE | BUGFIX | BUGFIX_ESCALATED | DEVIATED_MINOR | DEVIATED_MAJOR | BLOCKED
+    Files: <paths>
+    Result: <what changed in Chinese>
+    Verification: <command/result>
+    AC Coverage:
+      - AC-###: PASS | FAIL | SKIPPED
+        Scenarios:
+          - "scenario name": PASS | FAIL
+        Test: <test file path>
+        Method: tdd | bdd | manual
+        Reason: <required for SKIPPED: why E2E environment was unavailable>
+        Approved By: <required for SKIPPED: human:<name>>
+        Approved At: <required for SKIPPED: ISO-8601>
+    Deviation: none | <Chinese explanation>
+    Timestamp: <ISO 8601>
+    ---
+    ```
+    
+    AC Coverage is a structured record linking each step to the acceptance criteria it covers. Every step that implements or verifies an AC must include an `AC Coverage` entry. The `Scenarios` sub-field maps BDD/Gherkin scenarios to their test results. `Method` declares whether the step used TDD, BDD, or manual verification.
+    
+    When an E2E test cannot run because the environment is unavailable, mark the AC as `SKIPPED` with `Reason`, `Approved By: human:<name>`, and `Approved At`. Skipping verification is a human decision. The agent should attempt to fix the environment first; only if it cannot, mark as BLOCKED and let the human decide to retry or skip.
+    
+    Deviation rules:
+    
+    - `DEVIATED_MINOR`: same step goal, same boundary, different implementation approach; log and continue.
+    - `DEVIATED_MAJOR`: step goal invalid, boundary crossed, downstream Plan invalid, or new requirement discovered; stop and return to Plan / Design.
+    - `BUGFIX`: defect fixed within current step boundary.
+    - `BUGFIX_ESCALATED`: not resolved after 3 retries.
+    
+    When a retry is needed, run:
+    
+    ```text
+    sdd debug "<PROJECT_ROOT>" --error "<error summary>"
+    ```
+    
+    For standard/lite, dispatch a Debug Investigator subagent when investigation would pollute context. Micro runs debug in the main context. Drive the investigation with `systematic-debugging` (see `vendored/superpowers/systematic-debugging/SKILL.md` — read on demand; prefer the global skill if loaded): establish root cause before proposing a fix.
+    
+    Completion Verification Gate (see `vendored/superpowers/verification-before-completion/SKILL.md` — read on demand; prefer the global skill if loaded):
+    
+    1. Identify the proof command.
+    2. Run it freshly.
+    3. Read full output and exit code.
+    4. Confirm it proves the relevant acceptance criteria.
+    5. Record the four-axis self-check in the Execute Log's completion-verification step.
+    6. Only then report completion.
+    
+    Record Coverage only in a formal execution step, and keep completion-verification as the last step:
+    
+    ```text
+    Step: execution
+    Status: DONE | BUGFIX
+    AC Coverage:
+      - AC-###: PASS | FAIL | SKIPPED
+        Scenarios:
+          - "scenario name": PASS | FAIL
+        Test: <test file path>
+        Method: tdd | bdd | manual
+        Reason: <required for SKIPPED>
+        Approved By: <required for SKIPPED: human:<name>>
+        Approved At: <required for SKIPPED: ISO-8601>
+    ---
+    Step: completion-verification
+    Status: DONE | BLOCKED
+    Result: <Chinese summary of four-axis self-check>
+    Four-Axis Checklist:
+      - Axis 0 (Intake): aligned | misaligned
+      - Axis 1 (Design/Acceptance/Plan): complete | incomplete
+      - Axis 2 (Code Diff): within boundary | out of boundary
+      - Axis 3 (Execute Log): faithful | unfaithful
+    Verification: <commands run>
+    Timestamp: <ISO 8601>
+    ```
+    
+    This replaces the former Review Verdict / Review Summary section in the Spec. Review has been merged into Execute's Completion Verification Gate. Challenge is now the sole quality gate after Execute.
+    
+    Never rely on a subagent success report for final verification.
+    
+    Dispatch categories:
+    
+    - Code implementation: **DELEGATABLE** (Plan defines boundary; delegation saves context and protects Challenge independence. Small steps: inline may be acceptable)
+    - Result verification: **KEEP** (orchestrator re-reads changed files and runs tests)
+    
+    `validate --archive-ready` cross-checks AC Coverage (L1-L4):
+    - L1: every AC in Spec has a Coverage record in Execute Log
+    - L2: all Coverage results are PASS (SKIPPED with human approval is OK)
+    - L3: Test path files exist (when projectDir is provided)
+    - L4 (limited): Scenario names in Coverage appear in Spec (warning only)
+    
+    Old Execute Logs without AC Coverage are handled gracefully — the cross-check is skipped.
+    
+    ## Challenge Phase
+    
+    Review has been merged into Execute's Completion Verification Gate (four-axis self-check recorded in the Execute Log's completion-verification step). Challenge is now the sole quality gate after Execute. `PASS_WITH_CONCERNS` now routes to Learning Check (not Review).
+    
+    Run:
+    
+    ```text
+    sdd challenge "<PROJECT_ROOT>"
+    ```
+    
+    **standard/lite 必须派子 agent 执行对抗审查。** 对抗审查的核心价值是"不是自己审自己"——主 agent 写了代码再自己审，确认偏差不可避免。子 agent 有独立上下文，只返回 verdict + findings。
+    
+    micro 可在主上下文内执行，但必须保持对抗角色与实现角色分离。
+    
+    派发规则（遵循 `protocols/subagent-dispatch.md`）：
+    
+    1. **Brief 自足**：将 spec 内容、design 摘要、execute log 摘要直接贴入 brief，不让子 agent 自己找。
+    2. **子 agent 只读不写**：challenge agent 不修改任何文件（包括代码），只返回 verdict。
+    3. **返回压缩**：verdict + backtrack target + summary（≤200 词）。
+    
+    Challenge agent returns:
+    
+    ```text
+    Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
+    Backtrack Target: Research | Design | Acceptance | Plan | Execute / Debug | Execute Log | Learning Check | Ready
+    Challenge Summary: <evidence>
+    ```
+    
+    Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+    
+    Dispatch categories:
+    
+    - Adversarial review: **MUST_DELEGATE** (role separation — the implementer cannot review their own work; standard/lite must dispatch)
+    - Verdict aggregation: **KEEP** (orchestrator applies verdict precedence and records via `sdd challenge --record-result`)
+    
+    Challenge examines six axes. Each axis can trigger a `FAIL_*` verdict:
+    
+    - **Research Challenge**: does confirmed requirement match the original goal? Are hidden assumptions exposed?
+    - **Design Challenge**: architecture, data model, interface contract, impact scope, compatibility, rollback, failure modes.
+    - **Acceptance Challenge**: are ACs observable, verifiable, and traceable to requirements?
+    - **Plan Challenge**: are steps executable, bounded, and derived from Design and ACs?
+    - **Code Challenge**: code quality (duplication, dead code, naming), security (hardcoded secrets, injection, input validation), correctness (does code match Spec/Design?), test quality (testing behavior or mocks?).
+    - **Execute Log Challenge**: did execution deviate from Plan? Is AC Coverage truthful?
+    
+    Code Challenge is what distinguishes SDD Challenge from a PR review. PR review focuses on team collaboration and style; Code Challenge focuses on whether code matches the Spec/Design/Plan constraints and whether it has security or quality defects.
+    
+    **Verdict guidance for Code Challenge**: if code faithfully implements a flawed Design, the correct verdict is `FAIL_DESIGN` (backtrack to Design), not `FAIL_CODE`. `FAIL_CODE` applies only when the code itself has defects. The challenge agent must distinguish "code is wrong" from "code is correct but the upstream artifact is wrong."
+    
+    Briefs for challenge subagents must include source code (`source_code` in `artifact_excerpts`) so the Code Challenge axis has input to review.
+    
+    **必须通过 `sdd challenge --record-result` 写入结果，不能手动填写 Challenge Evidence 字段。** 手动填写会被视为伪造证据。正确流程：
+    
+    1. 派发 subagent 执行对抗审查
+    2. 收到 subagent 返回的 verdict + summary
+    3. 运行 `sdd challenge <project-dir> --record-result "VERDICT" --summary "summary" --executed-by "subagent:<id>"`
+    4. 命令自动写入 Challenge Verdict、Backtrack Target、Challenge Summary、Challenge Executed By、Challenge Executed At（当前时间戳）和 Challenge Evidence
+    
+    `validate --archive-ready` enforces the three challenge evidence fields. Standard/lite require auditable independent reviewer evidence in `Challenge Executed By`: `subagent:<id>`, `external-agent:<id>`, or `human:<name>`. Micro allows `inline`. An automated reviewer may start without another prompt only under a fresh Spec authorization that includes its reviewer actor; otherwise pause for explicit current-user authorization. Never skip the gate or fabricate reviewer evidence. `Challenge Executed At` must be a valid ISO-8601 timestamp.
+    
+    Any `FAIL_*` verdict blocks archive and routes `sdd cruise` back to the mapped phase for repair.
+    
+    ## Cruise Phase
+    
+    Run:
+    
+    ```text
+    sdd cruise "<PROJECT_ROOT>" [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]
+    ```
+    
+    The command generates a bounded repair-loop prompt for authorized `auto` or `supervised` work; `human` mode produces governance guidance instead of a native loop. With `--driver auto`, the host agent should reuse its native loop if available and fallback to the prompt loop if not. With `--emit-claude-prompt`, it prints Claude Code workflow/ultracode guidance; it does not write Claude workflow scripts. With `--record-run`, it appends the current state to the run ledger. The main agent should re-enter the phase indicated by `BACKTRACK_TARGET`, obey that phase's gates and write boundaries, run `sdd validate`, then request `sdd challenge` again. Stop when the max iteration budget is reached or when a non-delegable stop appears.
+    
+    Cruise orchestrator 只负责读取 `BACKTRACK_TARGET`、控制迭代预算并协调阶段重入。主 Agent 必须进入目标阶段，遵守该阶段的写入边界与门禁完成修复，再回到 Cruise 执行 validate 和 Challenge。Challenge reviewer 始终是 read-only：只返回 verdict 与证据，不修改实现代码、Plan、Design 或 SDD 制品。`FAIL_DESIGN` 允许主 Agent 在 Design 阶段基于审查证据修订设计，但禁止为了迎合既有代码而静默倒推设计。
+    
+    ## Learning Check Phase
+    
+    Run Learning Check after Challenge and before Archive.
+    
+    Create a Learning Record when any of these are true:
+    
+    - Execute Log contains `BUGFIX`, `BUGFIX_ESCALATED`, `DEVIATED_MINOR`, or `DEVIATED_MAJOR`.
+    - Challenge verdict is `PASS_WITH_CONCERNS`.
+    - The task was reopened from archived work.
+    - Acceptance criteria were found insufficient during Execute or Challenge.
+    - The same failure pattern has appeared before.
+    
+    Use:
+    
+    ```text
+    sdd new-learning "<PROJECT_ROOT>" "<spec-name>"
+    ```
+    
+    Fill the generated `learning-file` with reusable decision rules in Chinese, not narrative status updates. Keep field labels in English:
+    
+    - Source Spec
+    - Trigger
+    - Observed Problem
+    - Root Cause
+    - Decision Rule
+    - Applies When
+    - Recommended Action
+    - Evidence
+    
+    Subagents may collect evidence for a Learning Record, but the orchestrator owns whether a lesson is required and writes the final rule.
+    
+    Dispatch categories:
+    
+    - Learning Record creation: **KEEP** (orchestrator decides whether a reusable lesson exists)
+    - Evidence collection for Learning: **DELEGATABLE** (subagent can gather evidence, orchestrator writes the rule)
+    
+    ## Archive Phase
+    
+    Before archive:
+    
+    ```text
+    sdd validate "<PROJECT_ROOT>" --archive-ready
+    ```
+    
+    If validation fails, fix listed gates first. A successful validation only proves completion readiness and does not authorize Archive.
+    
+    When `NEXT_ACTION: request_archive_authorization` appears, stop and ask the current user for explicit authorization. Do not infer authorization from Ready, PASS, Plan Approval, Challenge, prior messages, or prior authorization. The CLI records `human:<name>` as an audit declaration, not identity authentication, so an agent must never fabricate it.
+    
+    Before archiving, finish the development branch cleanly — commits, branch hygiene, no stray work-in-progress — following `finishing-a-development-branch` (see `vendored/superpowers/finishing-a-development-branch/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    Then run:
+    
+    ```text
+    sdd archive "<PROJECT_ROOT>" "<spec-name>" --authorized-by "human:<name>" --authorization-evidence "<current user authorization evidence>"
+    ```
+    
+    Archive moves:
+    
+    - Spec into `<docs-root>/archive/`
+    - referenced Design into `<docs-root>/archive/`
+    - referenced Execute Log into `<docs-root>/archive/`
+    - referenced Learning Record into `<docs-root>/archive/` when present
+    
+    Archive also updates the archived Spec references to archive-relative paths.
+    
+    Dispatch categories:
+    
+    - Archive execution: **KEEP** (orchestrator owns the archive decision and execution)
+    
+    Do not archive if the user reports a defect. Return to Execute / Challenge first.
+    
+    ## Reopen
+    
+    Use reopen only for defects found after archive:
+    
+    ```text
+    sdd reopen "<PROJECT_ROOT>" "<task-slug>" --defect "<summary>" [--mode standard|lite|micro]
+    ```
+    
+    Default mode is micro. Reopen creates a new active Spec and a new Execute Log; standard/lite also create a new Design artifact. Do not use reopen to expand scope or add unrelated features.
+    
+    ## Subagent Policy
+    
+    Use `protocols/subagent-dispatch.md` for SDD-RIPER's own dispatch contract, and `subagent-driven-development` for general routing technique (see `vendored/superpowers/subagent-driven-development/SKILL.md` — read on demand; prefer the global skill if loaded).
+    
+    The upstream `executing-plans` route does not apply inside SDD-RIPER. When work is not delegated to subagents, the main agent follows the approved Plan through the SDD Execute Phase and reuses host-native continuous execution; it does not hand off to an unvendored skill or a separate Superpowers session.
+    
+    Subagents are:
+    
+    - evidence owners
+    - work-package owners
+    - debug investigators
+    - review-axis investigators
+    
+    Subagents are not:
+    
+    - requirement owners
+    - selected-option owners
+    - Plan approval owners
+    - final verdict owners
+    - learning decision owners
+    - archive owners
+    
+    The orchestrator writes all final artifacts and verifies all gates.
+    
+    ## Reference Methods
+    
+    SDD-RIPER draws on two methodology layers. The **execution-quality** layer is the six vendored superpowers skills wired into Plan / Execute / Subagent / Archive above (see `INTEGRATIONS.md`). The **design-methodology** layer below is anchored in the Design / Acceptance / Learning phases. Use these as design supports, not as mandatory ceremony:
+    
+    - DDD: domain model, ubiquitous language, bounded context.
+    - C4: system/container/component architecture view.
+    - ADR: selected option and trade-off record (see `protocols/adr.md`).
+    - arc42: complete standard-mode technical design structure.
+    - TOGAF: business/data/application/technology views for enterprise scope.
+    - Phoenix Architecture: reliability, distributed systems, evolutionary architecture, failure modes.
+    - BDD / Gherkin: observable acceptance criteria; in SDD-RIPER this is expressed as `AC-###` plus `Verification:` metadata.
+    - Learning Record: reusable post-review decision rules derived from execution evidence.
+    
+    ## Command Reference
+    
+    - `sdd init <dir> --mode standard|lite|micro`
+    - `sdd discover <dir> --task-name <confirmed-slug> --version <confirmed-vN.M-or-vN.M.P> --requirement <text> [--context ...] [--mode ...]`
+    - `sdd resume <dir>`
+    - `sdd status <dir>`
+    - `sdd next <dir>`
+    - `sdd challenge <dir>`
+    - `sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex|opencode] [--emit-claude-prompt] [--record-run] [--iteration N]`
+    - `sdd console [dir] [--port <port>]`
+    - `sdd install-skill --target codex|cc-switch|claude|opencode|all [--clean] [--check]`
+    - `sdd validate <dir> --archive-ready`
+    - `sdd new-learning <dir> [spec-name]`
+    - `sdd learnings <dir> [--for <spec>]` — project-level learnings, or relevance-ranked recall for a spec
+    - `sdd review-execute <dir>`
+    - `sdd debug <dir> --error <msg>`
+    - `sdd archive <dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"`
+    - `sdd reopen <dir> <slug> --defect <text> [--mode ...]`
+    - `sdd codemap <dir>`
+    - `sdd visual init <dir> --spec <path> --mode fidelity|direction`
+    - `sdd visual inspect <dir> --spec <path>`
+    - `sdd visual select <dir> --spec <path> --ui-impact yes|no [--intent not-required|direction|fidelity]`
+    - `sdd visual discover <dir> --spec <path>`
+    - `sdd verify visual <dir> --spec <path>`
+    
+  operator: 'doesNotMatch'
+  stack: |-
+    D:\workspace\personal\sdd-riper\tests\governance-contract.test.js:601:12
+    Array.forEach (<anonymous>)
+    TestContext.<anonymous> (D:\workspace\personal\sdd-riper\tests\governance-contract.test.js:600:21)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+ok 31 - AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+  ---
+  duration_ms: 1.2852
+  type: 'test'
+  ...
+# Subtest: Completion documentation separates execution Coverage from the completion contract
+ok 32 - Completion documentation separates execution Coverage from the completion contract
+  ---
+  duration_ms: 1.1328
+  type: 'test'
+  ...
+# Subtest: archived v4.3 Execute Log template keeps Coverage out of completion-verification
+ok 33 - archived v4.3 Execute Log template keeps Coverage out of completion-verification
+  ---
+  duration_ms: 1.7611
+  type: 'test'
+  ...
+# Subtest: package description names the complete current RIPER lifecycle
+ok 34 - package description names the complete current RIPER lifecycle
+  ---
+  duration_ms: 0.2933
+  type: 'test'
+  ...
+# Subtest: AI config generator reads its default mode from the governance Contract
+ok 35 - AI config generator reads its default mode from the governance Contract
+  ---
+  duration_ms: 7.6674
+  type: 'test'
+  ...
+# Subtest: init refreshes all managed root AI blocks without touching project text or existing Cruise override
+ok 36 - init refreshes all managed root AI blocks without touching project text or existing Cruise override
+  ---
+  duration_ms: 22.481
+  type: 'test'
+  ...
+# Subtest: AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+ok 37 - AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+  ---
+  duration_ms: 30.2171
+  type: 'test'
+  ...
+1..37
+# tests 37
+# suites 0
+# pass 34
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 317.9759

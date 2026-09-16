@@ -1,0 +1,71 @@
+## ADVERSARIAL REVIEW PROMPT
+
+Role: independent challenge agent. Do not modify code or artifacts.
+Output labels must stay in English; evidence and explanation may be written in Chinese.
+
+SPEC: D:\workspace\personal\sdd-riper\mydocs\specs\v4.14-workflow-ceremony-reduction.md
+EXECUTE_LOG: mydocs/logs/v4.14-workflow-ceremony-reduction.execute.md
+DESIGN: mydocs/design/v4.14-workflow-ceremony-reduction.design.md
+CODE_FILES: Verification:, src/core/learning.js, tests/learning.test.js, tests/state-matrix.test.js, tests/commands.test.js, templates/spec-micro.md, SKILL.md, protocols/sdd-riper-one-light.md, REFERENCE.md, tests/governance-contract.test.js, tests/helpers/sdd-fixtures.js, src/core/ai-config-rules.js, protocols/subagent-dispatch.md, README.md, GUIDE.md, TEAM-GUIDE.md, .cursorrules, AGENTS.md, CLAUDE.md, .github/copilot-instructions.md, protocols/learning-check.md, protocols/sdd-riper-one.md
+DIFF_BASE: 3b27902d8a1a6d1a84327e027caa82d302d5acc8
+AUTONOMY_MODE: supervised
+AUTONOMY_MODE_SOURCE: discover-override
+AUTHORIZATION_STATE: active
+AUTHORIZED_ACTORS: main,worker,research-reviewer,challenge-reviewer
+AUTHORIZED_SCOPE_DIGEST: sha256:0fbae723e709b0c425021a1825800bfa2df91dc0cb476058cf7d884d7b043462
+AUTHORIZED_RISK_SNAPSHOT: sha256:4d5e341f69872edd28b61a63d675bb6d7e9571f8b1523e7f9b056bc148e13bc9
+ACTIVE_PLAN_DIGEST: sha256:56c0627fb40412dd85613024bf93653342a9a6c4884b5d2dd096bf64891d6a18
+STOP_REASON: none
+NEXT_ACTION: run_challenge
+CURRENT_VERDICT_HINT: FAIL_LOG
+BACKTRACK_TARGET_HINT: Challenge
+ALLOWED_VERDICTS: PASS | PASS_WITH_CONCERNS | FAIL_SPEC | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN | FAIL_CODE | FAIL_LOG | FAIL_LEARNING
+
+### Reviewer Evidence
+- Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline.
+- An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization.
+- Do not skip the gate or fabricate reviewer evidence.
+
+### Research Challenge
+- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.
+- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.
+- Challenge whether Research Reviewed By and Research Reviewed At are properly recorded.
+
+### Design Challenge
+- Challenge architecture, data model, interface contract, impact scope, compatibility, rollback, and failure modes.
+- Methodology the task should be using (advisory router; challenge under-use of these):
+  DESIGN_METHOD: ADR; arc42 field structure; C4 context/container for Architecture View
+  DESIGN_FOCUS_FIELDS: Data Model / Schema; Data Migration / Backfill; Security / Permission
+  - standard: anchor the Technical Design on its required fields; use C4 context/container views for Architecture View and an ADR for the selected option.
+  - migration risk: detail schema changes and a backfill/rollback path.
+  - security risk: add a threat / permission-boundary pass (consider a STRIDE-style review).
+  - if the domain has multiple bounded contexts or a rich model, consider DDD (advisory; orchestrator decides).
+
+### Acceptance Challenge
+- Challenge whether AC-### items are observable, verifiable, and traceable to requirements.
+
+### Plan Challenge
+- Challenge whether Plan steps are executable, bounded, and derived from Design and Acceptance.
+
+### Code Challenge
+- Challenge code quality: duplication, dead code, unclear naming, pattern violations.
+- Challenge security: hardcoded secrets, injection risks, missing input validation.
+- Challenge correctness: does the code actually implement what the Spec/Design/Plan prescribe?
+- Challenge test quality: do tests verify behavior or just mock it? Are edge cases covered?
+- Verdict guidance: if the code faithfully implements a flawed Design, the correct verdict is FAIL_DESIGN (not FAIL_CODE). FAIL_CODE applies when the code itself has defects; FAIL_DESIGN applies when the code is correct but the upstream artifact is wrong.
+
+### Execute Challenge
+- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.
+
+### Archive Challenge
+- Challenge whether archive would hide drift, failed verification, missing Learning, or a failed challenge verdict.
+
+### Required Output
+Challenge Verdict: <PASS|PASS_WITH_CONCERNS|FAIL_SPEC|FAIL_DESIGN|FAIL_ACCEPTANCE|FAIL_PLAN|FAIL_CODE|FAIL_LOG|FAIL_LEARNING>
+Backtrack Target: <Research|Design|Acceptance|Plan|Execute / Debug|Execute Log|Learning Check|Ready>
+Challenge Summary: <evidence-backed summary>
+
+After the challenge agent returns, record the result with:
+  sdd challenge <project-dir> --record-result "VERDICT" --summary "summary text" --executed-by "subagent:<id>|external-agent:<id>|human:<name>|inline"
+
+Reviewer authorization reminder: Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.

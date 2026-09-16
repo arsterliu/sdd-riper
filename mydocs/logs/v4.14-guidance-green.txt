@@ -1,0 +1,742 @@
+TAP version 13
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-MivMLi\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-MivMLi\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-MivMLi\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-MivMLi\\.github\\copilot-instructions.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-ojCClU\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-ojCClU\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-ojCClU\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-ojCClU\\.github\\copilot-instructions.md
+# Subtest: CORE_RULES stays within the confirmed 20-line budget
+ok 1 - CORE_RULES stays within the confirmed 20-line budget
+  ---
+  duration_ms: 2.4763
+  type: 'test'
+  ...
+# Subtest: every canonical core rule line appears in SKILL.md
+ok 2 - every canonical core rule line appears in SKILL.md
+  ---
+  duration_ms: 1.1179
+  type: 'test'
+  ...
+# Subtest: generated AI config block never references REFERENCE.md
+ok 3 - generated AI config block never references REFERENCE.md
+  ---
+  duration_ms: 9.1408
+  type: 'test'
+  ...
+# Subtest: shared visual rule helpers accept reverse word order and reject negated boundaries
+ok 4 - shared visual rule helpers accept reverse word order and reject negated boundaries
+  ---
+  duration_ms: 3.0691
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires a decodable PNG
+ok 5 - src/core/ai-config-rules.js states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.1189
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires explicit scenario, route, state, and viewport
+ok 6 - src/core/ai-config-rules.js states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.0645
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires comparable target and current dimensions
+ok 7 - src/core/ai-config-rules.js states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.1409
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires stable data, fonts, and assets
+ok 8 - src/core/ai-config-rules.js states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.0563
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that otherwise routes to direction
+ok 9 - src/core/ai-config-rules.js states that otherwise routes to direction
+  ---
+  duration_ms: 0.2558
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that the Agent explains why it recommends direction or fidelity
+ok 10 - src/core/ai-config-rules.js states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.3743
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that candidate and default images do not constitute human approval
+ok 11 - src/core/ai-config-rules.js states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1589
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 12 - src/core/ai-config-rules.js states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.0795
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 13 - src/core/ai-config-rules.js states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.0521
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that Provider scenario mapping is static and project-local
+ok 14 - src/core/ai-config-rules.js states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.0326
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 15 - src/core/ai-config-rules.js states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.0386
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that the visual contract does not create an Archive Gate
+ok 16 - src/core/ai-config-rules.js states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.0312
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that visual routing must not implicitly initialize or approve its Provider
+ok 17 - src/core/ai-config-rules.js states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.1565
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 18 - src/core/ai-config-rules.js states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.0954
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires a decodable PNG
+ok 19 - AGENTS.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 3.8346
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 20 - AGENTS.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.4656
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires comparable target and current dimensions
+ok 21 - AGENTS.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.3507
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires stable data, fonts, and assets
+ok 22 - AGENTS.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.3235
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that otherwise routes to direction
+ok 23 - AGENTS.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.2841
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 24 - AGENTS.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.2646
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that candidate and default images do not constitute human approval
+ok 25 - AGENTS.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.2998
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires a decodable PNG
+ok 26 - CLAUDE.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.274
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 27 - CLAUDE.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.3111
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires comparable target and current dimensions
+ok 28 - CLAUDE.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.2766
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires stable data, fonts, and assets
+ok 29 - CLAUDE.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.2314
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that otherwise routes to direction
+ok 30 - CLAUDE.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.3886
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 31 - CLAUDE.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.3036
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that candidate and default images do not constitute human approval
+ok 32 - CLAUDE.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1686
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires a decodable PNG
+ok 33 - .cursorrules managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.1608
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 34 - .cursorrules managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.1465
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires comparable target and current dimensions
+ok 35 - .cursorrules managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.2032
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires stable data, fonts, and assets
+ok 36 - .cursorrules managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.1559
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that otherwise routes to direction
+ok 37 - .cursorrules managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.1239
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that the Agent explains why it recommends direction or fidelity
+ok 38 - .cursorrules managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.1256
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that candidate and default images do not constitute human approval
+ok 39 - .cursorrules managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1388
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires a decodable PNG
+ok 40 - .github\\copilot-instructions.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.2137
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 41 - .github\\copilot-instructions.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.1564
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires comparable target and current dimensions
+ok 42 - .github\\copilot-instructions.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.1477
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires stable data, fonts, and assets
+ok 43 - .github\\copilot-instructions.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.1456
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that otherwise routes to direction
+ok 44 - .github\\copilot-instructions.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.1431
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 45 - .github\\copilot-instructions.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.1243
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that candidate and default images do not constitute human approval
+ok 46 - .github\\copilot-instructions.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1241
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 47 - AGENTS.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.1939
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 48 - AGENTS.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.1452
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that Provider scenario mapping is static and project-local
+ok 49 - AGENTS.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.1341
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 50 - AGENTS.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.1418
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that the visual contract does not create an Archive Gate
+ok 51 - AGENTS.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.1438
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 52 - CLAUDE.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.1368
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 53 - CLAUDE.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.129
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that Provider scenario mapping is static and project-local
+ok 54 - CLAUDE.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.1719
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 55 - CLAUDE.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.1624
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that the visual contract does not create an Archive Gate
+ok 56 - CLAUDE.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.1507
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 57 - .cursorrules managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.1387
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 58 - .cursorrules managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.1324
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that Provider scenario mapping is static and project-local
+ok 59 - .cursorrules managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.1274
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 60 - .cursorrules managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.1479
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that the visual contract does not create an Archive Gate
+ok 61 - .cursorrules managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.1313
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 62 - .github\\copilot-instructions.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.1278
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 63 - .github\\copilot-instructions.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.1243
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that Provider scenario mapping is static and project-local
+ok 64 - .github\\copilot-instructions.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.1266
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 65 - .github\\copilot-instructions.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.2094
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that the visual contract does not create an Archive Gate
+ok 66 - .github\\copilot-instructions.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.1466
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 67 - AGENTS.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.3371
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 68 - AGENTS.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2117
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 69 - CLAUDE.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.156
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 70 - CLAUDE.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.3615
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 71 - .cursorrules managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.1856
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 72 - .cursorrules managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2903
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 73 - .github\\copilot-instructions.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.2789
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 74 - .github\\copilot-instructions.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2135
+  type: 'test'
+  ...
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-jhz2Vm\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-jhz2Vm\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-jhz2Vm\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-jhz2Vm\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.sdd-config already exists
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\AGENTS.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\CLAUDE.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.cursorrules refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.github\\copilot-instructions.md refreshed SDD-RIPER block
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB. Created: 12 files, Skipped: 1 files.
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.sdd-config already exists
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-YVntUB. Created: 0 files, Skipped: 5 files.
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-i5noAf\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-PboTeK\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-J77wzP\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-ZgldHp\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-eGDsgd\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Subtest: exposes the governance default values
+ok 75 - exposes the governance default values
+  ---
+  duration_ms: 1.172
+  type: 'test'
+  ...
+# Subtest: keeps governance defaults from being rebound by consumers
+ok 76 - keeps governance defaults from being rebound by consumers
+  ---
+  duration_ms: 0.0915
+  type: 'test'
+  ...
+# Subtest: defines the micro Plan required and recommended fields
+ok 77 - defines the micro Plan required and recommended fields
+  ---
+  duration_ms: 0.1314
+  type: 'test'
+  ...
+# Subtest: returns isolated micro Plan field arrays
+ok 78 - returns isolated micro Plan field arrays
+  ---
+  duration_ms: 0.4794
+  type: 'test'
+  ...
+# Subtest: requires a Provider only for e2e verification
+ok 79 - requires a Provider only for e2e verification
+  ---
+  duration_ms: 0.1631
+  type: 'test'
+  ...
+# Subtest: accepts auditable reviewers and limits inline to micro mode
+ok 80 - accepts auditable reviewers and limits inline to micro mode
+  ---
+  duration_ms: 0.2404
+  type: 'test'
+  ...
+# Subtest: exposes an immutable complete auditable reviewer identity list for CLI guidance
+ok 81 - exposes an immutable complete auditable reviewer identity list for CLI guidance
+  ---
+  duration_ms: 0.0804
+  type: 'test'
+  ...
+# Subtest: recognizes known Challenge verdicts and their routing targets
+ok 82 - recognizes known Challenge verdicts and their routing targets
+  ---
+  duration_ms: 0.1174
+  type: 'test'
+  ...
+# Subtest: publishes immutable verdicts and derives known and passing semantics from them
+ok 83 - publishes immutable verdicts and derives known and passing semantics from them
+  ---
+  duration_ms: 1.1823
+  type: 'test'
+  ...
+# Subtest: Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+ok 84 - Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+  ---
+  duration_ms: 30.3048
+  type: 'test'
+  ...
+# Subtest: Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+ok 85 - Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+  ---
+  duration_ms: 4.5167
+  type: 'test'
+  ...
+# Subtest: Challenge derives every inline reviewer hint from the governance Contract
+ok 86 - Challenge derives every inline reviewer hint from the governance Contract
+  ---
+  duration_ms: 2.4476
+  type: 'test'
+  ...
+# Subtest: validate delegates micro Plan fields to the governance Contract
+ok 87 - validate delegates micro Plan fields to the governance Contract
+  ---
+  duration_ms: 59.204
+  type: 'test'
+  ...
+# Subtest: validate treats every legal nonpassing Contract verdict as an adversarial failure
+ok 88 - validate treats every legal nonpassing Contract verdict as an adversarial failure
+  ---
+  duration_ms: 91.0351
+  type: 'test'
+  ...
+# Subtest: spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+ok 89 - spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+  ---
+  duration_ms: 3.997
+  type: 'test'
+  ...
+# Subtest: verification readiness delegates e2e Provider requirements to the governance Contract
+ok 90 - verification readiness delegates e2e Provider requirements to the governance Contract
+  ---
+  duration_ms: 1.4276
+  type: 'test'
+  ...
+# Subtest: Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+ok 91 - Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+  ---
+  duration_ms: 2.0145
+  type: 'test'
+  ...
+# Subtest: historical compatibility helper accepts the positive contract and rejects its antonym
+ok 92 - historical compatibility helper accepts the positive contract and rejects its antonym
+  ---
+  duration_ms: 1.615
+  type: 'test'
+  ...
+# Subtest: precise references state the current workflow Provider requirement and positive legacy-read compatibility
+ok 93 - precise references state the current workflow Provider requirement and positive legacy-read compatibility
+  ---
+  duration_ms: 3.5274
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+ok 94 - SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+  ---
+  duration_ms: 1.7827
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+ok 95 - SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+  ---
+  duration_ms: 1.2977
+  type: 'test'
+  ...
+# Subtest: REFERENCE visual section retains explicit human activation and baseline decisions
+ok 96 - REFERENCE visual section retains explicit human activation and baseline decisions
+  ---
+  duration_ms: 1.4972
+  type: 'test'
+  ...
+# Subtest: REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+ok 97 - REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+  ---
+  duration_ms: 1.6924
+  type: 'test'
+  ...
+# Subtest: paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+ok 98 - paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+  ---
+  duration_ms: 0.4699
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 99 - SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 0.5728
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that Provider scenario bindings are static and project-local
+ok 100 - SKILL.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 0.4869
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 101 - REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 2.0635
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+ok 102 - REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 2.5273
+  type: 'test'
+  ...
+# Subtest: AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+ok 103 - AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+  ---
+  duration_ms: 2.1258
+  type: 'test'
+  ...
+# Subtest: ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+ok 104 - ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+  ---
+  duration_ms: 0.8734
+  type: 'test'
+  ...
+# Subtest: AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+ok 105 - AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+  ---
+  duration_ms: 1.2509
+  type: 'test'
+  ...
+# Subtest: Completion documentation separates execution Coverage from the completion contract
+ok 106 - Completion documentation separates execution Coverage from the completion contract
+  ---
+  duration_ms: 1.0172
+  type: 'test'
+  ...
+# Subtest: archived v4.3 Execute Log template keeps Coverage out of completion-verification
+ok 107 - archived v4.3 Execute Log template keeps Coverage out of completion-verification
+  ---
+  duration_ms: 0.3348
+  type: 'test'
+  ...
+# Subtest: package description names the complete current RIPER lifecycle
+ok 108 - package description names the complete current RIPER lifecycle
+  ---
+  duration_ms: 0.2522
+  type: 'test'
+  ...
+# Subtest: AI config generator reads its default mode from the governance Contract
+ok 109 - AI config generator reads its default mode from the governance Contract
+  ---
+  duration_ms: 5.6769
+  type: 'test'
+  ...
+# Subtest: init refreshes all managed root AI blocks without touching project text or existing Cruise override
+ok 110 - init refreshes all managed root AI blocks without touching project text or existing Cruise override
+  ---
+  duration_ms: 34.5712
+  type: 'test'
+  ...
+# Subtest: AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+ok 111 - AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+  ---
+  duration_ms: 27.5659
+  type: 'test'
+  ...
+1..111
+# tests 111
+# suites 0
+# pass 111
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 438.5898

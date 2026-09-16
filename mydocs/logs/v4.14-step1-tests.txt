@@ -1,0 +1,1305 @@
+TAP version 13
+# [ERROR] Spec already exists: task-name must be unique within version v1.3.6.
+# [ERROR] Invalid version format. Expected: v{N}.{M} or v{N}.{M}.{P}
+# [ERROR] --executed-by is required with --record-result (use subagent:<id>|external-agent:<id>|human:<name>|inline).
+# [ERROR] Spec is not archive-ready. Run: sdd validate "C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-cmd-test-1788596723725\\d4b" --spec "C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-cmd-test-1788596723725\\d4b\\mydocs\\specs\\v1.0-blocked.md" --archive-ready
+#   - Confirmed Requirement missing Scope Boundary.
+#   - Confirmed Requirement missing Irreversibility.
+#   - Confirmed Requirement missing Impact Radius.
+#   - Confirmed Requirement missing Dependencies & Constraints.
+#   - Confirmed Requirement missing Acceptance Intent.
+#   - Research Reviewed By is empty. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.
+#   - Research Reviewed At is empty.
+#   - Innovate Options is empty.
+#   - Technical Design missing Selected Option / ADR.
+#   - Technical Design missing Requirement Traceability.
+#   - Technical Design missing Impact Scope.
+#   - Technical Design missing Architecture View.
+#   - Technical Design missing Data Model / Schema.
+#   - Technical Design missing Interface Contract.
+#   - Technical Design missing Compatibility / Rollback.
+#   - Technical Design missing Test Strategy.
+#   - Acceptance Criteria should include at least one AC-\#\#\# item.
+#   - Plan Approved By is empty.
+#   - Approved At is empty.
+#   - Execute Log is empty.
+#   - Confirmed Requirement is empty.
+#   - Technical Design is empty.
+#   - Acceptance Criteria is empty.
+# [ERROR] Invalid cruise driver: typo-engine
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# [ERROR] Invalid cruise driver: local
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# [ERROR] Invalid cruise driver: claude
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# error: unknown option '--engine'
+# Subtest: CLI commands
+    # Subtest: init creates project structure
+    ok 1 - init creates project structure
+      ---
+      duration_ms: 160.0309
+      type: 'test'
+      ...
+    # Subtest: init defaults generated AI config mode to micro
+    ok 2 - init defaults generated AI config mode to micro
+      ---
+      duration_ms: 125.2698
+      type: 'test'
+      ...
+    # Subtest: init appends SDD-RIPER block to existing AI config files
+    ok 3 - init appends SDD-RIPER block to existing AI config files
+      ---
+      duration_ms: 140.0843
+      type: 'test'
+      ...
+    # Subtest: init refreshes existing SDD-RIPER block without duplicating it
+    ok 4 - init refreshes existing SDD-RIPER block without duplicating it
+      ---
+      duration_ms: 227.2265
+      type: 'test'
+      ...
+    # Subtest: init --force does not overwrite existing AI config content
+    ok 5 - init --force does not overwrite existing AI config content
+      ---
+      duration_ms: 118.3176
+      type: 'test'
+      ...
+    # Subtest: discover creates spec, design, and execute log artifacts
+    ok 6 - discover creates spec, design, and execute log artifacts
+      ---
+      duration_ms: 283.0364
+      type: 'test'
+      ...
+    # Subtest: discover defaults new specs to micro when no mode is configured
+    ok 7 - discover defaults new specs to micro when no mode is configured
+      ---
+      duration_ms: 306.1655
+      type: 'test'
+      ...
+    # Subtest: discover accepts three-part versions and keeps version plus task-name unique
+    ok 8 - discover accepts three-part versions and keeps version plus task-name unique
+      ---
+      duration_ms: 550.0534
+      type: 'test'
+      ...
+    # Subtest: discover keeps two-part versions compatible
+    ok 9 - discover keeps two-part versions compatible
+      ---
+      duration_ms: 280.339
+      type: 'test'
+      ...
+    # Subtest: discover rejects unsupported version formats with clear guidance
+    ok 10 - discover rejects unsupported version formats with clear guidance
+      ---
+      duration_ms: 219.257
+      type: 'test'
+      ...
+    # Subtest: discover accepts --version alias and fills structured intake fields
+    ok 11 - discover accepts --version alias and fills structured intake fields
+      ---
+      duration_ms: 286.5986
+      type: 'test'
+      ...
+    # Subtest: discover auto-binds context/<task-name>/ as context-source
+    ok 12 - discover auto-binds context/<task-name>/ as context-source
+      ---
+      duration_ms: 300.58
+      type: 'test'
+      ...
+    # Subtest: discover uses --context override when provided
+    ok 13 - discover uses --context override when provided
+      ---
+      duration_ms: 280.5048
+      type: 'test'
+      ...
+    # Subtest: resume shows context-source when present
+    ok 14 - resume shows context-source when present
+      ---
+      duration_ms: 457.4439
+      type: 'test'
+      ...
+    # Subtest: archive and reopen preserve three-part versions
+    ok 15 - archive and reopen preserve three-part versions
+      ---
+      duration_ms: 561.6694
+      type: 'test'
+      ...
+    # Subtest: archive honors an explicit version when same task-name exists in multiple versions
+    ok 16 - archive honors an explicit version when same task-name exists in multiple versions
+      ---
+      duration_ms: 643.1543
+      type: 'test'
+      ...
+    # Subtest: reopen honors an explicit version when archived task-name exists in multiple versions
+    ok 17 - reopen honors an explicit version when archived task-name exists in multiple versions
+      ---
+      duration_ms: 918.2391
+      type: 'test'
+      ...
+    # Subtest: new-learning honors an explicit version when same task-name exists in multiple versions
+    ok 18 - new-learning honors an explicit version when same task-name exists in multiple versions
+      ---
+      duration_ms: 531.1374
+      type: 'test'
+      ...
+    # Subtest: challenge record-result honors an explicit versioned --name
+    ok 19 - challenge record-result honors an explicit versioned --name
+      ---
+      duration_ms: 554.1254
+      type: 'test'
+      ...
+    # Subtest: challenge record-result honors an explicit --spec path
+    ok 20 - challenge record-result honors an explicit --spec path
+      ---
+      duration_ms: 608.4955
+      type: 'test'
+      ...
+    # Subtest: challenge record-result requires explicit executed-by evidence
+    ok 21 - challenge record-result requires explicit executed-by evidence
+      ---
+      duration_ms: 410.5428
+      type: 'test'
+      ...
+    # Subtest: resume routes executed standard specs without challenge evidence to challenge phase
+    ok 22 - resume routes executed standard specs without challenge evidence to challenge phase
+      ---
+      duration_ms: 559.5422
+      type: 'test'
+      ...
+    # Subtest: resume does not execute when agent plan approval is missing gate evidence
+    ok 23 - resume does not execute when agent plan approval is missing gate evidence
+      ---
+      duration_ms: 516.4306
+      type: 'test'
+      ...
+    # Subtest: resume backtracks a fresh FAIL_CODE challenge to execute
+    ok 24 - resume backtracks a fresh FAIL_CODE challenge to execute
+      ---
+      duration_ms: 649.77
+      type: 'test'
+      ...
+    # Subtest: next routes executed specs without challenge evidence to run_challenge
+    ok 25 - next routes executed specs without challenge evidence to run_challenge
+      ---
+      duration_ms: 477.6101
+      type: 'test'
+      ...
+    # Subtest: validate archive-ready explains how to run and record missing challenge
+    ok 26 - validate archive-ready explains how to run and record missing challenge
+      ---
+      duration_ms: 458.8836
+      type: 'test'
+      ...
+    # Subtest: recorded challenge pass no longer routes to run_challenge
+    ok 27 - recorded challenge pass no longer routes to run_challenge
+      ---
+      duration_ms: 750.6428
+      type: 'test'
+      ...
+    # Subtest: stale recorded challenge routes back to run_challenge after new execution
+    ok 28 - stale recorded challenge routes back to run_challenge after new execution
+      ---
+      duration_ms: 951.8261
+      type: 'test'
+      ...
+    # Subtest: stale failed challenge routes to rerun challenge instead of old backtrack
+    ok 29 - stale failed challenge routes to rerun challenge instead of old backtrack
+      ---
+      duration_ms: 602.6816
+      type: 'test'
+      ...
+    # Subtest: stale non-code failed challenge routes to rerun challenge instead of old backtrack
+    ok 30 - stale non-code failed challenge routes to rerun challenge instead of old backtrack
+      ---
+      duration_ms: 601.5374
+      type: 'test'
+      ...
+    # Subtest: partial challenge evidence routes back to run_challenge
+    ok 31 - partial challenge evidence routes back to run_challenge
+      ---
+      duration_ms: 1008.3761
+      type: 'test'
+      ...
+    # Subtest: blocked completion verification does not route to challenge yet
+    ok 32 - blocked completion verification does not route to challenge yet
+      ---
+      duration_ms: 878.1662
+      type: 'test'
+      ...
+    # Subtest: validate does not request challenge before completion verification is done
+    ok 33 - validate does not request challenge before completion verification is done
+      ---
+      duration_ms: 553.7996
+      type: 'test'
+      ...
+    # Subtest: completion verification status uses the latest appended completion block
+    ok 34 - completion verification status uses the latest appended completion block
+      ---
+      duration_ms: 872.5502
+      type: 'test'
+      ...
+    # Subtest: next shows context-source when present
+    ok 35 - next shows context-source when present
+      ---
+      duration_ms: 623.7554
+      type: 'test'
+      ...
+    # Subtest: resume and status work
+    ok 36 - resume and status work
+      ---
+      duration_ms: 484.7388
+      type: 'test'
+      ...
+    # Subtest: status warns when agent plan approval is missing gate evidence
+    ok 37 - status warns when agent plan approval is missing gate evidence
+      ---
+      duration_ms: 683.3998
+      type: 'test'
+      ...
+    # Subtest: archive and reopen flow moves referenced artifacts
+    ok 38 - archive and reopen flow moves referenced artifacts
+      ---
+      duration_ms: 886.2952
+      type: 'test'
+      ...
+    # Subtest: archive authorization failures are fail-closed before any filesystem write
+    ok 39 - archive authorization failures are fail-closed before any filesystem write
+      ---
+      duration_ms: 3477.6641
+      type: 'test'
+      ...
+    # Subtest: archive records one-shot human authorization in the archived Spec
+    ok 40 - archive records one-shot human authorization in the archived Spec
+      ---
+      duration_ms: 764.1101
+      type: 'test'
+      ...
+    # Subtest: archive completion failure with valid authorization does not create archive output
+    ok 41 - archive completion failure with valid authorization does not create archive output
+      ---
+      duration_ms: 637.713
+      type: 'test'
+      ...
+    # Subtest: completed command routing stops to request archive authorization
+    ok 42 - completed command routing stops to request archive authorization
+      ---
+      duration_ms: 1333.7485
+      type: 'test'
+      ...
+    # Subtest: cruise budget exhaustion disables the actual native loop
+    ok 43 - cruise budget exhaustion disables the actual native loop
+      ---
+      duration_ms: 844.4465
+      type: 'test'
+      ...
+    # Subtest: archive index records Challenge Verdict for new specs
+    ok 44 - archive index records Challenge Verdict for new specs
+      ---
+      duration_ms: 742.9947
+      type: 'test'
+      ...
+    # Subtest: archive requires and moves learning records when execution produced reusable lessons
+    ok 45 - archive requires and moves learning records when execution produced reusable lessons
+      ---
+      duration_ms: 1738.777
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when required gates are missing
+    ok 46 - validate blocks archive when required gates are missing
+      ---
+      duration_ms: 662.9418
+      type: 'test'
+      ...
+    # Subtest: validate enforces standard technical design contract fields
+    ok 47 - validate enforces standard technical design contract fields
+      ---
+      duration_ms: 644.5299
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate plan approval
+    ok 48 - validate rejects legacy auto-gate plan approval
+      ---
+      duration_ms: 619.5206
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when adversarial challenge failed
+    ok 49 - validate blocks archive when adversarial challenge failed
+      ---
+      duration_ms: 734.58
+      type: 'test'
+      ...
+    # Subtest: validate requires challenge evidence fields for archive (AC-001)
+    ok 50 - validate requires challenge evidence fields for archive (AC-001)
+      ---
+      duration_ms: 693.7511
+      type: 'test'
+      ...
+    # Subtest: validate requires Challenge Executed At when Executed By is present
+    ok 51 - validate requires Challenge Executed At when Executed By is present
+      ---
+      duration_ms: 476.6414
+      type: 'test'
+      ...
+    # Subtest: validate requires Challenge Evidence when Executed By and At are present
+    ok 52 - validate requires Challenge Evidence when Executed By and At are present
+      ---
+      duration_ms: 490.6761
+      type: 'test'
+      ...
+    # Subtest: validate rejects inline challenge for lite mode (AC-004 lite)
+    ok 53 - validate rejects inline challenge for lite mode (AC-004 lite)
+      ---
+      duration_ms: 448.2085
+      type: 'test'
+      ...
+    # Subtest: validate passes when challenge evidence is complete (AC-002)
+    ok 54 - validate passes when challenge evidence is complete (AC-002)
+      ---
+      duration_ms: 468.6501
+      type: 'test'
+      ...
+    # Subtest: validate accepts agent plan approval with evidence in auto mode
+    ok 55 - validate accepts agent plan approval with evidence in auto mode
+      ---
+      duration_ms: 512.098
+      type: 'test'
+      ...
+    # Subtest: validate rejects agent plan approval in human mode
+    ok 56 - validate rejects agent plan approval in human mode
+      ---
+      duration_ms: 653.5777
+      type: 'test'
+      ...
+    # Subtest: validate rejects agent fixture approval in supervised mode
+    ok 57 - validate rejects agent fixture approval in supervised mode
+      ---
+      duration_ms: 687.2032
+      type: 'test'
+      ...
+    # Subtest: validate accepts auditable independent reviewers for standard challenge
+    ok 58 - validate accepts auditable independent reviewers for standard challenge
+      ---
+      duration_ms: 612.9149
+      type: 'test'
+      ...
+    # Subtest: validate rejects ambiguous independent reviewers for standard challenge and research gate
+    ok 59 - validate rejects ambiguous independent reviewers for standard challenge and research gate
+      ---
+      duration_ms: 755.0153
+      type: 'test'
+      ...
+    # Subtest: validate and next surface reviewer guidance when research reviewer is missing
+    ok 60 - validate and next surface reviewer guidance when research reviewer is missing
+      ---
+      duration_ms: 1003.4101
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate challenge evidence (AC-003)
+    ok 61 - validate rejects legacy auto-gate challenge evidence (AC-003)
+      ---
+      duration_ms: 693.5217
+      type: 'test'
+      ...
+    # Subtest: validate rejects inline challenge for standard/lite modes (AC-004)
+    ok 62 - validate rejects inline challenge for standard/lite modes (AC-004)
+      ---
+      duration_ms: 730.8114
+      type: 'test'
+      ...
+    # Subtest: validate allows inline challenge for micro mode (AC-005)
+    ok 63 - validate allows inline challenge for micro mode (AC-005)
+      ---
+      duration_ms: 694.6827
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when Challenge Executed At is before Execute Log step
+    ok 64 - validate blocks archive when Challenge Executed At is before Execute Log step
+      ---
+      duration_ms: 729.1185
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate Research review
+    ok 65 - validate rejects legacy auto-gate Research review
+      ---
+      duration_ms: 733.3507
+      type: 'test'
+      ...
+    # Subtest: validate warns but does not block on missing CR fields when not archive-ready
+    ok 66 - validate warns but does not block on missing CR fields when not archive-ready
+      ---
+      duration_ms: 496.8559
+      type: 'test'
+      ...
+    # Subtest: validate enforces lite design note and acceptance criteria
+    ok 67 - validate enforces lite design note and acceptance criteria
+      ---
+      duration_ms: 695.6196
+      type: 'test'
+      ...
+    # Subtest: validate requires acceptance verification metadata
+    ok 68 - validate requires acceptance verification metadata
+      ---
+      duration_ms: 1185.1042
+      type: 'test'
+      ...
+    # Subtest: validate reports missing Provider for an active e2e AC even when Test is present
+    ok 69 - validate reports missing Provider for an active e2e AC even when Test is present
+      ---
+      duration_ms: 550.338
+      type: 'test'
+      ...
+    # Subtest: generated artifacts keep English labels and request Chinese content
+    ok 70 - generated artifacts keep English labels and request Chinese content
+      ---
+      duration_ms: 477.6168
+      type: 'test'
+      ...
+    # Subtest: validate enforces micro plan acceptance and verification labels
+    ok 71 - validate enforces micro plan acceptance and verification labels
+      ---
+      duration_ms: 873.4931
+      type: 'test'
+      ...
+    # Subtest: uses Node CLI only and ships no shell entrypoints
+    ok 72 - uses Node CLI only and ships no shell entrypoints
+      ---
+      duration_ms: 1.9547
+      type: 'test'
+      ...
+    # Subtest: install-skill includes published REFERENCE in the controlled copy entries
+    ok 73 - install-skill includes published REFERENCE in the controlled copy entries
+      ---
+      duration_ms: 2.5763
+      type: 'test'
+      ...
+    # Subtest: install-skill clean install copies REFERENCE and resolves installed guide links
+    ok 74 - install-skill clean install copies REFERENCE and resolves installed guide links
+      ---
+      duration_ms: 325.2827
+      type: 'test'
+      ...
+    # Subtest: install-skill check detects REFERENCE content drift through the fingerprint
+    ok 75 - install-skill check detects REFERENCE content drift through the fingerprint
+      ---
+      duration_ms: 357.9155
+      type: 'test'
+      ...
+    # Subtest: install-skill copies bundled skill entries and can clean stale files
+    ok 76 - install-skill copies bundled skill entries and can clean stale files
+      ---
+      duration_ms: 262.131
+      type: 'test'
+      ...
+    # Subtest: install-skill detects same-version content drift without modifying the target
+    ok 77 - install-skill detects same-version content drift without modifying the target
+      ---
+      duration_ms: 650.4548
+      type: 'test'
+      ...
+    # Subtest: sdd codemap outputs on-demand architecture view
+    ok 78 - sdd codemap outputs on-demand architecture view
+      ---
+      duration_ms: 361.9847
+      type: 'test'
+      ...
+    # Subtest: init no longer creates codemap directory or projectmap
+    ok 79 - init no longer creates codemap directory or projectmap
+      ---
+      duration_ms: 166.9468
+      type: 'test'
+      ...
+    # Subtest: prompt commands generate output
+    ok 80 - prompt commands generate output
+      ---
+      duration_ms: 1056.5557
+      type: 'test'
+      ...
+    # Subtest: next, challenge, and cruise expose autonomous workflow prompts
+    ok 81 - next, challenge, and cruise expose autonomous workflow prompts
+      ---
+      duration_ms: 865.182
+      type: 'test'
+      ...
+    # Subtest: next surfaces platform-neutral authorization guidance when challenge is missing
+    ok 82 - next surfaces platform-neutral authorization guidance when challenge is missing
+      ---
+      duration_ms: 481.8219
+      type: 'test'
+      ...
+    # Subtest: cruise can target native host loop drivers
+    ok 83 - cruise can target native host loop drivers
+      ---
+      duration_ms: 949.7087
+      type: 'test'
+      ...
+    # Subtest: next preserves explicit challenge PASS even when validation has blockers
+    ok 84 - next preserves explicit challenge PASS even when validation has blockers
+      ---
+      duration_ms: 598.9429
+      type: 'test'
+      ...
+    # Subtest: human mode suppresses native cruise and legacy active config requires migration
+    ok 85 - human mode suppresses native cruise and legacy active config requires migration
+      ---
+      duration_ms: 1419.8373
+      type: 'test'
+      ...
+    # Subtest: cruise reports local-loop as prompt-loop compensation
+    ok 86 - cruise reports local-loop as prompt-loop compensation
+      ---
+      duration_ms: 725.2828
+      type: 'test'
+      ...
+    # Subtest: cruise rejects invalid drivers instead of falling back to auto
+    ok 87 - cruise rejects invalid drivers instead of falling back to auto
+      ---
+      duration_ms: 1220.3511
+      type: 'test'
+      ...
+    # Subtest: cruise rejects legacy engine option
+    ok 88 - cruise rejects legacy engine option
+      ---
+      duration_ms: 523.3816
+      type: 'test'
+      ...
+    # Subtest: cruise emits Claude ultracode prompt and records run ledger
+    ok 89 - cruise emits Claude ultracode prompt and records run ledger
+      ---
+      duration_ms: 920.2024
+      type: 'test'
+      ...
+# warning: in the working copy of 'fresh.txt', LF will be replaced by CRLF the next time Git touches it
+    # Subtest: console spec detail exposes latest cruise run ledger entry
+    ok 90 - console spec detail exposes latest cruise run ledger entry
+      ---
+      duration_ms: 944.0064
+      type: 'test'
+      ...
+    # Subtest: next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack
+    ok 91 - next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack
+      ---
+      duration_ms: 608.5186
+      type: 'test'
+      ...
+    # Subtest: review-execute includes design and acceptance evidence in Axis 1
+    ok 92 - review-execute includes design and acceptance evidence in Axis 1
+      ---
+      duration_ms: 757.9397
+      type: 'test'
+      ...
+    # Subtest: review-execute default diffs the working tree including untracked files (AC-001/002/004)
+    ok 93 - review-execute default diffs the working tree including untracked files (AC-001/002/004)
+      ---
+      duration_ms: 1330.6125
+      type: 'test'
+      ...
+    # Subtest: review-execute --diff-base uses the branch model (AC-003)
+    ok 94 - review-execute --diff-base uses the branch model (AC-003)
+      ---
+      duration_ms: 1736.3506
+      type: 'test'
+      ...
+    # Subtest: review-execute reports no git diff outside a repo (AC-005)
+    ok 95 - review-execute reports no git diff outside a repo (AC-005)
+      ---
+      duration_ms: 473.1475
+      type: 'test'
+      ...
+    # Subtest: discover prints the mode-selection advisory and escalates the nudge for standard
+    ok 96 - discover prints the mode-selection advisory and escalates the nudge for standard
+      ---
+      duration_ms: 447.2708
+      type: 'test'
+      ...
+    # Subtest: learnings lists the project index and recalls per spec (AC-003)
+    ok 97 - learnings lists the project index and recalls per spec (AC-003)
+      ---
+      duration_ms: 961.7219
+      type: 'test'
+      ...
+    # Subtest: console API exposes spec list, detail, and archive validation
+    ok 98 - console API exposes spec list, detail, and archive validation
+      ---
+      duration_ms: 792.5232
+      type: 'test'
+      ...
+    # Subtest: console can start without a project and select one through the API
+    ok 99 - console can start without a project and select one through the API
+      ---
+      duration_ms: 572.8879
+      type: 'test'
+      ...
+    # Subtest: console browse API can select a project directory
+    ok 100 - console browse API can select a project directory
+      ---
+      duration_ms: 485.5256
+      type: 'test'
+      ...
+    # Subtest: console project board API summarizes multiple projects
+    ok 101 - console project board API summarizes multiple projects
+      ---
+      duration_ms: 1098.4702
+      type: 'test'
+      ...
+    # Subtest: console hidden utility overrides detail empty-state display
+    ok 102 - console hidden utility overrides detail empty-state display
+      ---
+      duration_ms: 2.4579
+      type: 'test'
+      ...
+    # Subtest: console copy matches gate and cruise control-plane semantics
+    ok 103 - console copy matches gate and cruise control-plane semantics
+      ---
+      duration_ms: 3.1068
+      type: 'test'
+      ...
+    # Subtest: console phase tabs wrap instead of forcing horizontal scroll
+    ok 104 - console phase tabs wrap instead of forcing horizontal scroll
+      ---
+      duration_ms: 2.1853
+      type: 'test'
+      ...
+    # Subtest: console Windows opener avoids PowerShell command argument parsing
+    ok 105 - console Windows opener avoids PowerShell command argument parsing
+      ---
+      duration_ms: 1.4003
+      type: 'test'
+      ...
+    # Subtest: console renders risk flags with per-type color classes (AC-001)
+    ok 106 - console renders risk flags with per-type color classes (AC-001)
+      ---
+      duration_ms: 2.5109
+      type: 'test'
+      ...
+    # Subtest: console renders design method advisory with methods, focusFields, and notes (AC-002)
+    ok 107 - console renders design method advisory with methods, focusFields, and notes (AC-002)
+      ---
+      duration_ms: 2.3264
+      type: 'test'
+      ...
+    # Subtest: console renders learning triggers when learning is required (AC-003)
+    ok 108 - console renders learning triggers when learning is required (AC-003)
+      ---
+      duration_ms: 2.3278
+      type: 'test'
+      ...
+    # Subtest: console renders blockers list from workflow (AC-004)
+    ok 109 - console renders blockers list from workflow (AC-004)
+      ---
+      duration_ms: 2.8348
+      type: 'test'
+      ...
+    # Subtest: console renders challenge summary in blocker card (AC-005)
+    ok 110 - console renders challenge summary in blocker card (AC-005)
+      ---
+      duration_ms: 3.397
+      type: 'test'
+      ...
+    # Subtest: console detail page has Status Overview and Methodology sections in HTML
+    ok 111 - console detail page has Status Overview and Methodology sections in HTML
+      ---
+      duration_ms: 2.7343
+      type: 'test'
+      ...
+    # Subtest: console renders AC Coverage from the structured DTO
+    ok 112 - console renders AC Coverage from the structured DTO
+      ---
+      duration_ms: 2.5708
+      type: 'test'
+      ...
+    # Subtest: console renders challenge verdict with color-coded pill (AC-001)
+    ok 113 - console renders challenge verdict with color-coded pill (AC-001)
+      ---
+      duration_ms: 2.2971
+      type: 'test'
+      ...
+    # Subtest: console renders backtrack target only on FAIL verdict (AC-002)
+    ok 114 - console renders backtrack target only on FAIL verdict (AC-002)
+      ---
+      duration_ms: 1.8268
+      type: 'test'
+      ...
+    # Subtest: console renders cruise run with enabled state, iterations, and latest run (AC-003)
+    ok 115 - console renders cruise run with enabled state, iterations, and latest run (AC-003)
+      ---
+      duration_ms: 2.2772
+      type: 'test'
+      ...
+    # Subtest: console renders cruise stop reason with color coding (AC-004)
+    ok 116 - console renders cruise stop reason with color coding (AC-004)
+      ---
+      duration_ms: 2.7668
+      type: 'test'
+      ...
+    # Subtest: console blocker card no longer contains challenge and backtrack text (AC-005)
+    ok 117 - console blocker card no longer contains challenge and backtrack text (AC-005)
+      ---
+      duration_ms: 2.6222
+      type: 'test'
+      ...
+    # Subtest: console detail page has Challenge Verdict and Cruise Run sections in HTML
+    ok 118 - console detail page has Challenge Verdict and Cruise Run sections in HTML
+      ---
+      duration_ms: 1.8889
+      type: 'test'
+      ...
+    # Subtest: design method router maps mode and risk to advisory hints
+    ok 119 - design method router maps mode and risk to advisory hints
+      ---
+      duration_ms: 656.1748
+      type: 'test'
+      ...
+    # Subtest: skill and generated AI configs require human-confirmed spec creation inputs
+    ok 120 - skill and generated AI configs require human-confirmed spec creation inputs
+      ---
+      duration_ms: 189.17
+      type: 'test'
+      ...
+    # Subtest: Console labels completed active work as awaiting archive authorization
+    ok 121 - Console labels completed active work as awaiting archive authorization
+      ---
+      duration_ms: 1.3958
+      type: 'test'
+      ...
+    # Subtest: archive help and Agent protocols require current explicit user authorization
+    ok 122 - archive help and Agent protocols require current explicit user authorization
+      ---
+      duration_ms: 133.4108
+      type: 'test'
+      ...
+    # Subtest: generated AI configs include platform-neutral reviewer authorization guidance
+    ok 123 - generated AI configs include platform-neutral reviewer authorization guidance
+      ---
+      duration_ms: 174.714
+      type: 'test'
+      ...
+    # Subtest: agent docs and skill describe platform-neutral reviewer authorization
+    ok 124 - agent docs and skill describe platform-neutral reviewer authorization
+      ---
+      duration_ms: 4.7708
+      type: 'test'
+      ...
+    # Subtest: README provides a reader-first entry point and links to the detailed guide
+    ok 125 - README provides a reader-first entry point and links to the detailed guide
+      ---
+      duration_ms: 2.8198
+      type: 'test'
+      ...
+    # Subtest: README puts AI-guided quick start before direct CLI instructions
+    ok 126 - README puts AI-guided quick start before direct CLI instructions
+      ---
+      duration_ms: 3.7353
+      type: 'test'
+      ...
+    # Subtest: GUIDE is scenario-first while REFERENCE preserves the exact protocol
+    ok 127 - GUIDE is scenario-first while REFERENCE preserves the exact protocol
+      ---
+      duration_ms: 3.9593
+      type: 'test'
+      ...
+    # Subtest: REFERENCE helps humans navigate without weakening the exact protocol
+    ok 128 - REFERENCE helps humans navigate without weakening the exact protocol
+      ---
+      duration_ms: 1.9418
+      type: 'test'
+      ...
+    # Subtest: REFERENCE routes major capabilities from facts through agent action and human gates to CLI
+    ok 129 - REFERENCE routes major capabilities from facts through agent action and human gates to CLI
+      ---
+      duration_ms: 7.7536
+      type: 'test'
+      ...
+    # Subtest: REFERENCE lists every public top-level CLI command group
+    ok 130 - REFERENCE lists every public top-level CLI command group
+      ---
+      duration_ms: 3.122
+      type: 'test'
+      ...
+    # Subtest: GFM anchor helper preserves underscores, punctuation spacing, duplicates, and ignores fences
+    ok 131 - GFM anchor helper preserves underscores, punctuation spacing, duplicates, and ignores fences
+      ---
+      duration_ms: 1.9224
+      type: 'test'
+      ...
+    # Subtest: REFERENCE internal Markdown links resolve to real headings
+    ok 132 - REFERENCE internal Markdown links resolve to real headings
+      ---
+      duration_ms: 4.3334
+      type: 'test'
+      ...
+    # Subtest: TEAM-GUIDE contains only current governance facts
+    ok 133 - TEAM-GUIDE contains only current governance facts
+      ---
+      duration_ms: 3.7581
+      type: 'test'
+      ...
+    # Subtest: human reference docs explain archive authorization in Chinese
+    ok 134 - human reference docs explain archive authorization in Chinese
+      ---
+      duration_ms: 4.392
+      type: 'test'
+      ...
+    # Subtest: Cruise is documented as orchestrator while Challenge reviewer remains read-only
+    ok 135 - Cruise is documented as orchestrator while Challenge reviewer remains read-only
+      ---
+      duration_ms: 2.2922
+      type: 'test'
+      ...
+    # Subtest: ADR method doc exists and is wired into SKILL.md
+    ok 136 - ADR method doc exists and is wired into SKILL.md
+      ---
+      duration_ms: 1.0191
+      type: 'test'
+      ...
+    # Subtest: SDD integration overrides upstream executing-plans handoffs
+    ok 137 - SDD integration overrides upstream executing-plans handoffs
+      ---
+      duration_ms: 1.0876
+      type: 'test'
+      ...
+    # Subtest: doctor passes on the real repo and fails on dangling references
+    ok 138 - doctor passes on the real repo and fails on dangling references
+      ---
+      duration_ms: 311.4034
+      type: 'test'
+      ...
+    # Subtest: help and version
+    ok 139 - help and version
+      ---
+      duration_ms: 607.1946
+      type: 'test'
+      ...
+    # Subtest: validate reports AC without execution evidence (AC-001: coverage format)
+    ok 140 - validate reports AC without execution evidence (AC-001: coverage format)
+      ---
+      duration_ms: 431.1961
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC has no coverage record (AC-002: L1)
+    ok 141 - validate blocks archive when AC has no coverage record (AC-002: L1)
+      ---
+      duration_ms: 452.2213
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC coverage result is FAIL (AC-002: L2)
+    ok 142 - validate blocks archive when AC coverage result is FAIL (AC-002: L2)
+      ---
+      duration_ms: 534.5458
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC test file not found (AC-002: L3)
+    ok 143 - validate blocks archive when AC test file not found (AC-002: L3)
+      ---
+      duration_ms: 669.8783
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when SKIPPED AC lacks approval (AC-003)
+    ok 144 - validate blocks archive when SKIPPED AC lacks approval (AC-003)
+      ---
+      duration_ms: 593.0147
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when SKIPPED AC has agent approval (AC-003)
+    ok 145 - validate blocks archive when SKIPPED AC has agent approval (AC-003)
+      ---
+      duration_ms: 686.9964
+      type: 'test'
+      ...
+    # Subtest: validate accepts SKIPPED AC with proper human approval (AC-003)
+    ok 146 - validate accepts SKIPPED AC with proper human approval (AC-003)
+      ---
+      duration_ms: 617.964
+      type: 'test'
+      ...
+    # Subtest: new spec templates do not contain Review Verdict or Review Summary (AC-004)
+    ok 147 - new spec templates do not contain Review Verdict or Review Summary (AC-004)
+      ---
+      duration_ms: 885.5306
+      type: 'test'
+      ...
+    # Subtest: validate does not require Review Verdict for new specs (AC-004)
+    ok 148 - validate does not require Review Verdict for new specs (AC-004)
+      ---
+      duration_ms: 727.7917
+      type: 'test'
+      ...
+    # Subtest: PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)
+    ok 149 - PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)
+      ---
+      duration_ms: 1.9501
+      type: 'test'
+      ...
+    # Subtest: FAIL_CODE backtrack target is Execute / Debug
+    ok 150 - FAIL_CODE backtrack target is Execute / Debug
+      ---
+      duration_ms: 2.6221
+      type: 'test'
+      ...
+    # Subtest: classifyIssue maps code quality issues to FAIL_CODE
+    ok 151 - classifyIssue maps code quality issues to FAIL_CODE
+      ---
+      duration_ms: 2.4334
+      type: 'test'
+      ...
+    # Subtest: classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE
+    ok 152 - classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE
+      ---
+      duration_ms: 2.6284
+      type: 'test'
+      ...
+    # Subtest: Console phases do not include review (AC-004)
+    ok 153 - Console phases do not include review (AC-004)
+      ---
+      duration_ms: 2.3473
+      type: 'test'
+      ...
+    # Subtest: templates document Provider for e2e AC without exposing transport or command
+    ok 154 - templates document Provider for e2e AC without exposing transport or command
+      ---
+      duration_ms: 1.9955
+      type: 'test'
+      ...
+    # Subtest: Console exposes read-only Provider readiness and no execution button
+    ok 155 - Console exposes read-only Provider readiness and no execution button
+      ---
+      duration_ms: 1.6892
+      type: 'test'
+      ...
+# [ERROR] Spec template is missing Challenge label line(s): Challenge Evidence. Result not recorded.
+    # Subtest: Console spec detail adds a versioned read-only Verification projection
+    ok 156 - Console spec detail adds a versioned read-only Verification projection
+      ---
+      duration_ms: 655.0609
+      type: 'test'
+      ...
+    # Subtest: Console renders Verification runs, freshness, matrix, diagnostics, attachments, and responsive empty states
+    ok 157 - Console renders Verification runs, freshness, matrix, diagnostics, attachments, and responsive empty states
+      ---
+      duration_ms: 5.2602
+      type: 'test'
+      ...
+    # Subtest: docs state the v3.0 adapter scope and deferred boundaries
+    ok 158 - docs state the v3.0 adapter scope and deferred boundaries
+      ---
+      duration_ms: 5.4311
+      type: 'test'
+      ...
+    1..158
+ok 1 - CLI commands
+  ---
+  duration_ms: 75937.9476
+  type: 'suite'
+  ...
+# Subtest: gate integrity fixes (v4.12)
+    # Subtest: record-result with $-pattern summary does not corrupt the spec (AC-001)
+    ok 1 - record-result with $-pattern summary does not corrupt the spec (AC-001)
+      ---
+      duration_ms: 569.1559
+      type: 'test'
+      ...
+    # Subtest: record-result fails loudly when a Challenge label line is missing (AC-002)
+    ok 2 - record-result fails loudly when a Challenge label line is missing (AC-002)
+      ---
+      duration_ms: 600.6182
+      type: 'test'
+      ...
+    # Subtest: non-three-digit AC declarations produce a diagnostic blocker (AC-003)
+    ok 3 - non-three-digit AC declarations produce a diagnostic blocker (AC-003)
+      ---
+      duration_ms: 3.3996
+      type: 'test'
+      ...
+    # Subtest: cruise --record-run on migration-required project prints guidance and exits 0 (AC-004)
+    ok 4 - cruise --record-run on migration-required project prints guidance and exits 0 (AC-004)
+      ---
+      duration_ms: 392.9274
+      type: 'test'
+      ...
+    1..4
+ok 2 - gate integrity fixes (v4.12)
+  ---
+  duration_ms: 1566.4523
+  type: 'suite'
+  ...
+# Subtest: learning trigger policy
+    # Subtest: keeps routine correction facts without requiring Learning: BUGFIX
+    ok 1 - keeps routine correction facts without requiring Learning: BUGFIX
+      ---
+      duration_ms: 1.2913
+      type: 'test'
+      ...
+    # Subtest: keeps routine correction facts without requiring Learning: DEVIATED_MINOR
+    ok 2 - keeps routine correction facts without requiring Learning: DEVIATED_MINOR
+      ---
+      duration_ms: 0.2342
+      type: 'test'
+      ...
+    # Subtest: keeps routine correction facts without requiring Learning: BUGFIX\\nStatus: DEVIATED_MINOR
+    ok 3 - keeps routine correction facts without requiring Learning: BUGFIX\\nStatus: DEVIATED_MINOR
+      ---
+      duration_ms: 0.0908
+      type: 'test'
+      ...
+    # Subtest: requires Learning for BUGFIX_ESCALATED alone and mixed with routine corrections
+    ok 4 - requires Learning for BUGFIX_ESCALATED alone and mixed with routine corrections
+      ---
+      duration_ms: 0.1961
+      type: 'test'
+      ...
+    # Subtest: requires Learning for DEVIATED_MAJOR alone and mixed with routine corrections
+    ok 5 - requires Learning for DEVIATED_MAJOR alone and mixed with routine corrections
+      ---
+      duration_ms: 0.1573
+      type: 'test'
+      ...
+    # Subtest: preserves concerns and reopened work even with routine corrections
+    ok 6 - preserves concerns and reopened work even with routine corrections
+      ---
+      duration_ms: 0.2066
+      type: 'test'
+      ...
+    1..6
+ok 3 - learning trigger policy
+  ---
+  duration_ms: 2.9191
+  type: 'suite'
+  ...
+# Subtest: learning recall
+    # Subtest: ranks a lexically relevant older learning above newer unrelated ones (AC-001)
+    ok 1 - ranks a lexically relevant older learning above newer unrelated ones (AC-001)
+      ---
+      duration_ms: 15.7617
+      type: 'test'
+      ...
+    # Subtest: falls back to mtime recency when nothing matches (AC-002)
+    ok 2 - falls back to mtime recency when nothing matches (AC-002)
+      ---
+      duration_ms: 11.837
+      type: 'test'
+      ...
+    # Subtest: buildLearningIndex aggregates every learning with its match surface
+    ok 3 - buildLearningIndex aggregates every learning with its match surface
+      ---
+      duration_ms: 11.1993
+      type: 'test'
+      ...
+    1..3
+ok 4 - learning recall
+  ---
+  duration_ms: 39.2014
+  type: 'suite'
+  ...
+# Subtest: authoritative workflow state matrix
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX
+    ok 1 - projects routine corrections consistently without a Learning gate: BUGFIX
+      ---
+      duration_ms: 736.9046
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+    ok 2 - projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+      ---
+      duration_ms: 685.663
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+    ok 3 - projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+      ---
+      duration_ms: 694.3862
+      type: 'test'
+      ...
+    # Subtest: exposes a pure evaluator with structured blockers and safe routing defaults
+    ok 4 - exposes a pure evaluator with structured blockers and safe routing defaults
+      ---
+      duration_ms: 1.9484
+      type: 'test'
+      ...
+    # Subtest: evaluateProjectSpec routes completed work to archive authorization without an archive action
+    ok 5 - evaluateProjectSpec routes completed work to archive authorization without an archive action
+      ---
+      duration_ms: 307.7936
+      type: 'test'
+      ...
+    # Subtest: rejects an unknown Challenge Verdict instead of deriving PASS
+    ok 6 - rejects an unknown Challenge Verdict instead of deriving PASS
+      ---
+      duration_ms: 381.0056
+      type: 'test'
+      ...
+    # Subtest: rejects Challenge Evidence that disagrees with the verdict summary pair
+    ok 7 - rejects Challenge Evidence that disagrees with the verdict summary pair
+      ---
+      duration_ms: 383.5347
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+    ok 8 - pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+      ---
+      duration_ms: 289.1234
+      type: 'test'
+      ...
+    # Subtest: status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+    ok 9 - status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+      ---
+      duration_ms: 1340.6357
+      type: 'test'
+      ...
+    # Subtest: lightweight project indexing cannot report malformed Acceptance as ready
+    ok 10 - lightweight project indexing cannot report malformed Acceptance as ready
+      ---
+      duration_ms: 299.5436
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on AC Coverage blockers
+    ok 11 - full, lightweight and project indexing agree on AC Coverage blockers
+      ---
+      duration_ms: 953.9429
+      type: 'test'
+      ...
+    # Subtest: accepts a standard-order SKIPPED record with human approval after Scenarios
+    ok 12 - accepts a standard-order SKIPPED record with human approval after Scenarios
+      ---
+      duration_ms: 449.962
+      type: 'test'
+      ...
+    # Subtest: latest AC Coverage result overrides an earlier PASS
+    ok 13 - latest AC Coverage result overrides an earlier PASS
+      ---
+      duration_ms: 929.3298
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree when the latest PASS Test file is missing
+    ok 14 - full, lightweight and project indexing agree when the latest PASS Test file is missing
+      ---
+      duration_ms: 323.4379
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on remaining archive-only blockers
+    ok 15 - full, lightweight and project indexing agree on remaining archive-only blockers
+      ---
+      duration_ms: 1504.2951
+      type: 'test'
+      ...
+    # Subtest: central evaluator enforces every required micro Plan field
+    ok 16 - central evaluator enforces every required micro Plan field
+      ---
+      duration_ms: 332.6102
+      type: 'test'
+      ...
+    # Subtest: an active Spec cannot hide itself with status archived
+    ok 17 - an active Spec cannot hide itself with status archived
+      ---
+      duration_ms: 324.1784
+      type: 'test'
+      ...
+    # Subtest: status prints authoritative blocker code and message
+    ok 18 - status prints authoritative blocker code and message
+      ---
+      duration_ms: 402.8393
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks an incomplete completion contract without validation pre-processing
+    ok 19 - pure evaluator blocks an incomplete completion contract without validation pre-processing
+      ---
+      duration_ms: 288.5072
+      type: 'test'
+      ...
+    # Subtest: rejects a DONE completion block that has no four-axis or AC evidence
+    ok 20 - rejects a DONE completion block that has no four-axis or AC evidence
+      ---
+      duration_ms: 362.2039
+      type: 'test'
+      ...
+    # Subtest: rejects a completion-verification block with an invalid timestamp
+    ok 21 - rejects a completion-verification block with an invalid timestamp
+      ---
+      duration_ms: 290.8743
+      type: 'test'
+      ...
+    # Subtest: resume does not bypass Research when a signed Plan exists
+    ok 22 - resume does not bypass Research when a signed Plan exists
+      ---
+      duration_ms: 386.8441
+      type: 'test'
+      ...
+    # Subtest: PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+    ok 23 - PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+      ---
+      duration_ms: 544.0484
+      type: 'test'
+      ...
+    # Subtest: status does not report Challenge OK for an unknown verdict
+    ok 24 - status does not report Challenge OK for an unknown verdict
+      ---
+      duration_ms: 405.9181
+      type: 'test'
+      ...
+    # Subtest: spec-index does not report ready when completion-verification is blocked
+    ok 25 - spec-index does not report ready when completion-verification is blocked
+      ---
+      duration_ms: 317.2642
+      type: 'test'
+      ...
+    # Subtest: spec-index exposes the authoritative challenge phase after completion
+    ok 26 - spec-index exposes the authoritative challenge phase after completion
+      ---
+      duration_ms: 293.7268
+      type: 'test'
+      ...
+    # Subtest: archive generates a complete summary without unresolved placeholders
+    ok 27 - archive generates a complete summary without unresolved placeholders
+      ---
+      duration_ms: 409.2041
+      type: 'test'
+      ...
+    # Subtest: marks historical archives as read-only legacy without re-declaring current archive readiness
+    ok 28 - marks historical archives as read-only legacy without re-declaring current archive readiness
+      ---
+      duration_ms: 493.9146
+      type: 'test'
+      ...
+    # Subtest: requires an explicit Provider for every e2e AC
+    ok 29 - requires an explicit Provider for every e2e AC
+      ---
+      duration_ms: 0.4449
+      type: 'test'
+      ...
+    # Subtest: applies missing Provider blockers only to active e2e Specs, not real archive paths
+    ok 30 - applies missing Provider blockers only to active e2e Specs, not real archive paths
+      ---
+      duration_ms: 72.4307
+      type: 'test'
+      ...
+    # Subtest: keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+    ok 31 - keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+      ---
+      duration_ms: 1.6482
+      type: 'test'
+      ...
+    # Subtest: reports configured providers without loading project code
+    ok 32 - reports configured providers without loading project code
+      ---
+      duration_ms: 6.5135
+      type: 'test'
+      ...
+    # Subtest: routes an unplanned missing Provider to the Plan gate
+    ok 33 - routes an unplanned missing Provider to the Plan gate
+      ---
+      duration_ms: 1.7775
+      type: 'test'
+      ...
+    1..33
+ok 5 - authoritative workflow state matrix
+  ---
+  duration_ms: 14218.7825
+  type: 'suite'
+  ...
+1..5
+# tests 204
+# suites 5
+# pass 204
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 77620.0255

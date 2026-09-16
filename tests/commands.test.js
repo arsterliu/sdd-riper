@@ -539,6 +539,10 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'logs', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'learnings', '.gitkeep')));
     assert.ok(fs.existsSync(path.join(tmpBase, 'demo', 'mydocs', 'runs', '.gitkeep')));
+    var ignoreText = fs.readFileSync(path.join(tmpBase, 'demo', '.gitignore'), 'utf-8');
+    assert.ok(ignoreText.indexOf('<!-- sdd-riper:gitignore:start -->') !== -1);
+    assert.ok(ignoreText.indexOf('.sdd-config') !== -1);
+    assert.strictEqual(ignoreText.indexOf('/mydocs/'), -1);
     var agentsText = fs.readFileSync(path.join(tmpBase, 'demo', 'AGENTS.md'), 'utf-8');
     var claudeText = fs.readFileSync(path.join(tmpBase, 'demo', 'CLAUDE.md'), 'utf-8');
     assert.ok(agentsText.indexOf('<!-- sdd-riper:start -->') !== -1);

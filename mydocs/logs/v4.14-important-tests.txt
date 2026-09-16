@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: CLI commands
+    # Subtest: important Learning triggers still block when mixed with routine corrections
+    ok 1 - important Learning triggers still block when mixed with routine corrections
+      ---
+      duration_ms: 4017.8021
+      type: 'test'
+      ...
+    1..1
+ok 1 - CLI commands
+  ---
+  duration_ms: 4020.3033
+  type: 'suite'
+  ...
+1..1
+# tests 1
+# suites 1
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4128.7279

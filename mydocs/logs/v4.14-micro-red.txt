@@ -1,0 +1,256 @@
+TAP version 13
+# Subtest: CLI commands
+    # Subtest: compact generated micro completes without optional fields but still requires delivery facts and approval
+    not ok 1 - compact generated micro completes without optional fields but still requires delivery facts and approval
+      ---
+      duration_ms: 353.4158
+      type: 'test'
+      location: 'D:\\workspace\\personal\\sdd-riper\\tests\\commands.test.js:1223:3'
+      failureType: 'testCodeFailure'
+      error: |-
+        The input was expected to not match the regular expression /^Scope:/m. Input:
+        
+        '---\r\n' +
+          'date: 2026-09-05\r\n' +
+          'task-name: "compact-micro"\r\n' +
+          'mode: micro\n' +
+          'autonomy-mode: "auto"\n' +
+          'autonomy-mode-source: "discover-override"\n' +
+          'status: draft\r\n' +
+          'reopened-from: ""\r\n' +
+          'context-source: ""\r\n' +
+          'ui-impact: ""\r\n' +
+          'visual-context-intent: ""\r\n' +
+          'visual-evidence: ""\r\n' +
+          'visual-evidence-file: ""\r\n' +
+          'diff-base: ""\r\n' +
+          'design-file: ""\r\n' +
+          'execute-log-file: "mydocs/logs/v1.0-compact-micro.execute.md"\r\n' +
+          'learning-file:\r\n' +
+          'project-profile-revision: ""\r\n' +
+          'project-profile-digest: ""\r\n' +
+          'affected-units: ""\r\n' +
+          '---\r\n' +
+          '\r\n' +
+          '<!-- Keep template headings and labels in English. Fill actual narrative content in Chinese. -->\r\n' +
+          '\r\n' +
+          '## Summary\r\n' +
+          '\r\n' +
+          '## Intake\r\n' +
+          'requirement: state matrix micro fixture\r\n' +
+          '<!-- Micro skips Research, Innovate, and standalone Design. -->\r\n' +
+          '\r\n' +
+          '## Plan\r\n' +
+          '<!-- Required labels below stay English; fill values in Chinese where possible. -->\r\n' +
+          '\r\n' +
+          'Required fields:\r\n' +
+          'Impact Scope: fixture only\r\n' +
+          'Data Impact: none\r\n' +
+          'Interface Impact: none\r\n' +
+          'Acceptance: fixture passes\r\n' +
+          'Verification: node --test tests/state-matrix.test.js\r\n' +
+          '\r\n' +
+          'Conditional field:\r\n' +
+          'Provider: <required for e2e; named provider id>\r\n' +
+          '\r\n' +
+          'Recommended fields:\n' +
+          'Selected Option:\n' +
+          'Scope: fixture scope\n' +
+          'Touched Files: tests/state-matrix.test.js\r\n' +
+          'Change: fixture change\r\n' +
+          'Blast Radius: fixture only\r\n' +
+          '\r\n' +
+          'Plan Approved By: agent:fixture\r\n' +
+          'Approved At: 2026-01-01T00:00:00Z\r\n' +
+          'Gate Evidence: fixture plan evidence\r\n' +
+          '\r\n' +
+          '## Execute Log Reference\r\n' +
+          'execute-log-file: "mydocs/logs/v1.0-compact-micro.execute.md"\r\n' +
+          '\r\n' +
+          '## Completion Verification\r\n' +
+          "<!-- AC Coverage records belong to a formal execution Step's `AC Coverage:` section. The `completion-verification` records only the four-axis self-check, result, and verification; Summary is not evidence. This replaces the former Review Summary section. -->\n" +
+          '\r\n' +
+          'Challenge Verdict: PASS\r\n' +
+          'Backtrack Target: Ready\r\n' +
+          'Challenge Summary: independent fixture review\r\n' +
+          'Challenge Executed By: subagent:challenge-fixture\r\n' +
+          'Challenge Executed At: 2026-01-01T00:02:00Z\r\n' +
+          'Challenge Evidence: PASS - independent fixture review\n' +
+          '\n' +
+          '<!-- sdd-autonomy:start -->\n' +
+          '## Autonomy Control\n' +
+          'Autonomy Schema: 1\n' +
+          '\n' +
+          '### Event: fixture-task-authorization\n' +
+          'Event Type: task_authorization\n' +
+          'Mode: auto\n' +
+          'Gate: \n' +
+          'Decision: authorized\n' +
+          'Scope Digest: sha256:c380f1bd805201a203247a7dcfe3b57fdef8b616a283a2e70b9ff2f25235c7be\n' +
+          'Risk Snapshot: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n' +
+          'Plan Digest: \n' +
+          'Authorized Actors: main,worker,research-reviewer,challenge-reviewer\n' +
+          'Authorized By: human:fixture\n' +
+          'Authorized At: 2026-01-01T00:00:00Z\n' +
+          'Authorization Evidence: fixture task authorization\n' +
+          'Invalidated At: \n' +
+          'Invalidation Reason: \n' +
+          '\n' +
+          '### Event: fixture-plan-activation\n' +
+          'Event Type: plan_activation\n' +
+          'Mode: auto\n' +
+          'Gate: Plan\n' +
+          'Decision: activated\n' +
+          'Scope Digest: sha256:c380f1bd805201a203247a7dcfe3b57fdef8b616a283a2e70b9ff2f25235c7be\n' +
+          'Risk Snapshot: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\n' +
+          'Plan Digest: sha256:40e7694bdbb738fa101163e7c336f83b6b00a8885d422ddb7124e9f00c839341\n' +
+          'Authorized Actors: main,worker,research-reviewer,challenge-reviewer\n' +
+          'Authorized By: agent:fixture\n' +
+          'Authorized At: 2026-01-01T00:00:01Z\n' +
+          'Authorization Evidence: fixture plan activation\n' +
+          'Invalidated At: \n' +
+          'Invalidation Reason: \n' +
+          '\n' +
+          '<!-- sdd-autonomy:end -->\n'
+        
+      code: 'ERR_ASSERTION'
+      name: 'AssertionError'
+      expected:
+      actual: |-
+        ---
+        date: 2026-09-05
+        task-name: "compact-micro"
+        mode: micro
+        autonomy-mode: "auto"
+        autonomy-mode-source: "discover-override"
+        status: draft
+        reopened-from: ""
+        context-source: ""
+        ui-impact: ""
+        visual-context-intent: ""
+        visual-evidence: ""
+        visual-evidence-file: ""
+        diff-base: ""
+        design-file: ""
+        execute-log-file: "mydocs/logs/v1.0-compact-micro.execute.md"
+        learning-file:
+        project-profile-revision: ""
+        project-profile-digest: ""
+        affected-units: ""
+        ---
+        
+        <!-- Keep template headings and labels in English. Fill actual narrative content in Chinese. -->
+        
+        ## Summary
+        
+        ## Intake
+        requirement: state matrix micro fixture
+        <!-- Micro skips Research, Innovate, and standalone Design. -->
+        
+        ## Plan
+        <!-- Required labels below stay English; fill values in Chinese where possible. -->
+        
+        Required fields:
+        Impact Scope: fixture only
+        Data Impact: none
+        Interface Impact: none
+        Acceptance: fixture passes
+        Verification: node --test tests/state-matrix.test.js
+        
+        Conditional field:
+        Provider: <required for e2e; named provider id>
+        
+        Recommended fields:
+        Selected Option:
+        Scope: fixture scope
+        Touched Files: tests/state-matrix.test.js
+        Change: fixture change
+        Blast Radius: fixture only
+        
+        Plan Approved By: agent:fixture
+        Approved At: 2026-01-01T00:00:00Z
+        Gate Evidence: fixture plan evidence
+        
+        ## Execute Log Reference
+        execute-log-file: "mydocs/logs/v1.0-compact-micro.execute.md"
+        
+        ## Completion Verification
+        <!-- AC Coverage records belong to a formal execution Step's `AC Coverage:` section. The `completion-verification` records only the four-axis self-check, result, and verification; Summary is not evidence. This replaces the former Review Summary section. -->
+        
+        Challenge Verdict: PASS
+        Backtrack Target: Ready
+        Challenge Summary: independent fixture review
+        Challenge Executed By: subagent:challenge-fixture
+        Challenge Executed At: 2026-01-01T00:02:00Z
+        Challenge Evidence: PASS - independent fixture review
+        
+        <!-- sdd-autonomy:start -->
+        ## Autonomy Control
+        Autonomy Schema: 1
+        
+        ### Event: fixture-task-authorization
+        Event Type: task_authorization
+        Mode: auto
+        Gate: 
+        Decision: authorized
+        Scope Digest: sha256:c380f1bd805201a203247a7dcfe3b57fdef8b616a283a2e70b9ff2f25235c7be
+        Risk Snapshot: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        Plan Digest: 
+        Authorized Actors: main,worker,research-reviewer,challenge-reviewer
+        Authorized By: human:fixture
+        Authorized At: 2026-01-01T00:00:00Z
+        Authorization Evidence: fixture task authorization
+        Invalidated At: 
+        Invalidation Reason: 
+        
+        ### Event: fixture-plan-activation
+        Event Type: plan_activation
+        Mode: auto
+        Gate: Plan
+        Decision: activated
+        Scope Digest: sha256:c380f1bd805201a203247a7dcfe3b57fdef8b616a283a2e70b9ff2f25235c7be
+        Risk Snapshot: sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+        Plan Digest: sha256:40e7694bdbb738fa101163e7c336f83b6b00a8885d422ddb7124e9f00c839341
+        Authorized Actors: main,worker,research-reviewer,challenge-reviewer
+        Authorized By: agent:fixture
+        Authorized At: 2026-01-01T00:00:01Z
+        Authorization Evidence: fixture plan activation
+        Invalidated At: 
+        Invalidation Reason: 
+        
+        <!-- sdd-autonomy:end -->
+        
+      operator: 'doesNotMatch'
+      stack: |-
+        TestContext.<anonymous> (D:\workspace\personal\sdd-riper\tests\commands.test.js:1228:14)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        async Promise.all (index 44)
+        async Suite.run (node:internal/test_runner/test:1442:7)
+        async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+      ...
+    # Subtest: archives an optional Learning Record after routine corrections without losing logged facts
+    ok 2 - archives an optional Learning Record after routine corrections without losing logged facts
+      ---
+      duration_ms: 584.8394
+      type: 'test'
+      ...
+    1..2
+not ok 1 - CLI commands
+  ---
+  duration_ms: 941.6186
+  type: 'suite'
+  location: 'D:\\workspace\\personal\\sdd-riper\\tests\\commands.test.js:519:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 2
+# suites 1
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1061.6759

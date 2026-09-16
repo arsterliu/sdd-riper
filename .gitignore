@@ -15,5 +15,21 @@ Thumbs.db
 *.swp
 *.swo
 node_modules/
-/mydocs/
+
+<!-- sdd-riper:gitignore:start -->
+# Local SDD framework configuration (keep files in the workspace, do not commit)
+.sdd-config
+.sdd-verification.json
+.cursorrules
+AGENTS.md
+CLAUDE.md
+**/.github/copilot-instructions.md
 /.claude/
+/.codex/
+/.agents/
+<!-- sdd-riper:gitignore:end -->
+
+# mydocs contains project artifacts and remains committable
+
+# Playwright verification artifacts remain local and are not pushed
+/mydocs/runs/verification/**/artifacts/

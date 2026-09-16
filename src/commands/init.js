@@ -3,6 +3,7 @@ const path = require('path');
 const { getDocsDir, isValidDocsDirName } = require('../../lib/common');
 const governanceContract = require('../core/governance-contract');
 const genAiConfigs = require('./_gen-ai-configs');
+const gitignore = require('../core/gitignore');
 
 function run(projectDir, opts) {
   var mode = opts.mode || governanceContract.defaults.mode;
@@ -68,6 +69,15 @@ function run(projectDir, opts) {
   var aiResult = genAiConfigs.run(projectDir, mode, force);
   created += aiResult.created;
   skipped += aiResult.skipped;
+
+  var ignoreResult = gitignore.ensure(projectDir);
+  if (ignoreResult.changed) {
+    console.log('[CREATE] ' + ignoreResult.file);
+    created++;
+  } else {
+    console.log('[SKIP] ' + ignoreResult.file + ' already contains the managed SDD block');
+    skipped++;
+  }
 
   console.log("Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.");
   console.log('SDD initialized in ' + projectDir + '. Created: ' + created + ' files, Skipped: ' + skipped + ' files.');

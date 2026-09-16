@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "kind": "sdd-project-profile-candidate",
+  "profile": {
+    "detectorVersion": 1,
+    "sourceSnapshot": [
+      {
+        "path": "package.json",
+        "kind": "package-json",
+        "size": 817,
+        "sha256": "4fd2277a16a5886c670eb86ffbca4165f1e811bf125917eb62e693252a113e8a"
+      },
+      {
+        "path": "tests/fixtures/playwright-workspace/package.json",
+        "kind": "package-json",
+        "size": 375,
+        "sha256": "e44515db5a825aeab50266e0d8386c5120918a141e2c26a9c63f4678d5a97a24"
+      }
+    ],
+    "units": [
+      {
+        "id": "sdd-playwright-contract-fixture",
+        "root": "tests/fixtures/playwright-workspace",
+        "roles": ["unknown"],
+        "languages": ["javascript"],
+        "runtimes": ["node"],
+        "frameworks": [],
+        "manifests": ["tests/fixtures/playwright-workspace/package.json"],
+        "commandRefs": [],
+        "evidence": []
+      },
+      {
+        "id": "sdd-riper",
+        "root": ".",
+        "roles": ["unknown"],
+        "languages": ["javascript", "typescript"],
+        "runtimes": ["node"],
+        "frameworks": [],
+        "manifests": ["package.json"],
+        "commandRefs": [
+          {
+            "kind": "npm-script",
+            "name": "test",
+            "source": "package.json"
+          }
+        ],
+        "evidence": []
+      }
+    ],
+    "relations": []
+  }
+}

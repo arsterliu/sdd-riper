@@ -1,0 +1,4682 @@
+
+> sdd-riper@2.0.0 test
+> node --test tests/*.test.js
+
+TAP version 13
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-7dgttr\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-7dgttr\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-7dgttr\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-parity-7dgttr\\.github\\copilot-instructions.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-E1gBCX\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-E1gBCX\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-E1gBCX\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-visual-parity-E1gBCX\\.github\\copilot-instructions.md
+# Subtest: CORE_RULES stays within the confirmed 20-line budget
+ok 1 - CORE_RULES stays within the confirmed 20-line budget
+  ---
+  duration_ms: 1.8892
+  type: 'test'
+  ...
+# Subtest: every canonical core rule line appears in SKILL.md
+ok 2 - every canonical core rule line appears in SKILL.md
+  ---
+  duration_ms: 0.513
+  type: 'test'
+  ...
+# Subtest: generated AI config block never references REFERENCE.md
+ok 3 - generated AI config block never references REFERENCE.md
+  ---
+  duration_ms: 6.2334
+  type: 'test'
+  ...
+# Subtest: shared visual rule helpers accept reverse word order and reject negated boundaries
+ok 4 - shared visual rule helpers accept reverse word order and reject negated boundaries
+  ---
+  duration_ms: 3.4795
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires a decodable PNG
+ok 5 - src/core/ai-config-rules.js states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.1716
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires explicit scenario, route, state, and viewport
+ok 6 - src/core/ai-config-rules.js states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.0739
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires comparable target and current dimensions
+ok 7 - src/core/ai-config-rules.js states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.1827
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that fidelity requires stable data, fonts, and assets
+ok 8 - src/core/ai-config-rules.js states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.0579
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that otherwise routes to direction
+ok 9 - src/core/ai-config-rules.js states that otherwise routes to direction
+  ---
+  duration_ms: 0.2474
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that the Agent explains why it recommends direction or fidelity
+ok 10 - src/core/ai-config-rules.js states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.3242
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that candidate and default images do not constitute human approval
+ok 11 - src/core/ai-config-rules.js states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1618
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 12 - src/core/ai-config-rules.js states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.0867
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 13 - src/core/ai-config-rules.js states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.0394
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that Provider scenario mapping is static and project-local
+ok 14 - src/core/ai-config-rules.js states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.0357
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 15 - src/core/ai-config-rules.js states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.0409
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that the visual contract does not create an Archive Gate
+ok 16 - src/core/ai-config-rules.js states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.0311
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that visual routing must not implicitly initialize or approve its Provider
+ok 17 - src/core/ai-config-rules.js states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.6052
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 18 - src/core/ai-config-rules.js states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.102
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires a decodable PNG
+ok 19 - AGENTS.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 5.338
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 20 - AGENTS.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.4234
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires comparable target and current dimensions
+ok 21 - AGENTS.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.2358
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that fidelity requires stable data, fonts, and assets
+ok 22 - AGENTS.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.2001
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that otherwise routes to direction
+ok 23 - AGENTS.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.1764
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 24 - AGENTS.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.1913
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that candidate and default images do not constitute human approval
+ok 25 - AGENTS.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.2068
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires a decodable PNG
+ok 26 - CLAUDE.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.2244
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 27 - CLAUDE.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.2054
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires comparable target and current dimensions
+ok 28 - CLAUDE.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.3326
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that fidelity requires stable data, fonts, and assets
+ok 29 - CLAUDE.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.2971
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that otherwise routes to direction
+ok 30 - CLAUDE.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.2894
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 31 - CLAUDE.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.3077
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that candidate and default images do not constitute human approval
+ok 32 - CLAUDE.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.2096
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires a decodable PNG
+ok 33 - .cursorrules managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.191
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 34 - .cursorrules managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.4004
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires comparable target and current dimensions
+ok 35 - .cursorrules managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.324
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that fidelity requires stable data, fonts, and assets
+ok 36 - .cursorrules managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.2459
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that otherwise routes to direction
+ok 37 - .cursorrules managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.2218
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that the Agent explains why it recommends direction or fidelity
+ok 38 - .cursorrules managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.2185
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that candidate and default images do not constitute human approval
+ok 39 - .cursorrules managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.2792
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires a decodable PNG
+ok 40 - .github\\copilot-instructions.md managed block states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.3578
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+ok 41 - .github\\copilot-instructions.md managed block states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.2039
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires comparable target and current dimensions
+ok 42 - .github\\copilot-instructions.md managed block states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.2007
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that fidelity requires stable data, fonts, and assets
+ok 43 - .github\\copilot-instructions.md managed block states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.1904
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that otherwise routes to direction
+ok 44 - .github\\copilot-instructions.md managed block states that otherwise routes to direction
+  ---
+  duration_ms: 0.192
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that the Agent explains why it recommends direction or fidelity
+ok 45 - .github\\copilot-instructions.md managed block states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.205
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that candidate and default images do not constitute human approval
+ok 46 - .github\\copilot-instructions.md managed block states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1731
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 47 - AGENTS.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.258
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 48 - AGENTS.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.1798
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that Provider scenario mapping is static and project-local
+ok 49 - AGENTS.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.1733
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 50 - AGENTS.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.2248
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that the visual contract does not create an Archive Gate
+ok 51 - AGENTS.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.2553
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 52 - CLAUDE.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.2356
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 53 - CLAUDE.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.3229
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that Provider scenario mapping is static and project-local
+ok 54 - CLAUDE.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.248
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 55 - CLAUDE.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.2722
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that the visual contract does not create an Archive Gate
+ok 56 - CLAUDE.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.3514
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 57 - .cursorrules managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.3208
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 58 - .cursorrules managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.3477
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that Provider scenario mapping is static and project-local
+ok 59 - .cursorrules managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.2888
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 60 - .cursorrules managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.2569
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that the visual contract does not create an Archive Gate
+ok 61 - .cursorrules managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.2752
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+ok 62 - .github\\copilot-instructions.md managed block states that strict visual evidence activates only when the current user explicitly runs visual init
+  ---
+  duration_ms: 0.3372
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+ok 63 - .github\\copilot-instructions.md managed block states that scenario.baseline.path is contained in the current Spec Context lexically and by realpath
+  ---
+  duration_ms: 0.2698
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that Provider scenario mapping is static and project-local
+ok 64 - .github\\copilot-instructions.md managed block states that Provider scenario mapping is static and project-local
+  ---
+  duration_ms: 0.2665
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+ok 65 - .github\\copilot-instructions.md managed block states that any Provider, config, contract, baseline, or code-state change makes the Visual Run stale
+  ---
+  duration_ms: 0.2637
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that the visual contract does not create an Archive Gate
+ok 66 - .github\\copilot-instructions.md managed block states that the visual contract does not create an Archive Gate
+  ---
+  duration_ms: 0.2711
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 67 - AGENTS.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.2975
+  type: 'test'
+  ...
+# Subtest: AGENTS.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 68 - AGENTS.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2365
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 69 - CLAUDE.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.2319
+  type: 'test'
+  ...
+# Subtest: CLAUDE.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 70 - CLAUDE.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.3652
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 71 - .cursorrules managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.2999
+  type: 'test'
+  ...
+# Subtest: .cursorrules managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 72 - .cursorrules managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2872
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that visual routing must not implicitly initialize or approve its Provider
+ok 73 - .github\\copilot-instructions.md managed block states that visual routing must not implicitly initialize or approve its Provider
+  ---
+  duration_ms: 0.9263
+  type: 'test'
+  ...
+# Subtest: .github\\copilot-instructions.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+ok 74 - .github\\copilot-instructions.md managed block states that only an approved fidelity contract may configure the separate playwright-visual Provider
+  ---
+  duration_ms: 0.2766
+  type: 'test'
+  ...
+# Subtest: init writes supervised by default and supports an explicit autonomy mode
+ok 75 - init writes supervised by default and supports an explicit autonomy mode
+  ---
+  duration_ms: 337.5248
+  type: 'test'
+  ...
+# Subtest: discover freezes the project default or explicit autonomy override in the Spec
+ok 76 - discover freezes the project default or explicit autonomy override in the Spec
+  ---
+  duration_ms: 646.17
+  type: 'test'
+  ...
+# Subtest: autonomy migrate requires an explicit mode and removes active legacy fields
+ok 77 - autonomy migrate requires an explicit mode and removes active legacy fields
+  ---
+  duration_ms: 158.8827
+  type: 'test'
+  ...
+# Subtest: auto authorization requires the inspected scope digest and appends an auditable event
+ok 78 - auto authorization requires the inspected scope digest and appends an auditable event
+  ---
+  duration_ms: 962.4812
+  type: 'test'
+  ...
+# Subtest: supervised continuous authorization requires a human-approved Plan
+ok 79 - supervised continuous authorization requires a human-approved Plan
+  ---
+  duration_ms: 614.8077
+  type: 'test'
+  ...
+# Subtest: active Spec mode switch is authorized atomic and invalidates prior authority
+ok 80 - active Spec mode switch is authorized atomic and invalidates prior authority
+  ---
+  duration_ms: 696.4702
+  type: 'test'
+  ...
+# Subtest: autonomy writes reject archived and non-current Specs without mutation
+ok 81 - autonomy writes reject archived and non-current Specs without mutation
+  ---
+  duration_ms: 817.318
+  type: 'test'
+  ...
+# Subtest: supervised authorization binds the exact reviewed Plan digest
+ok 82 - supervised authorization binds the exact reviewed Plan digest
+  ---
+  duration_ms: 675.6264
+  type: 'test'
+  ...
+# Subtest: auto task authorization requires auditable Plan activation after Plan approval
+ok 83 - auto task authorization requires auditable Plan activation after Plan approval
+  ---
+  duration_ms: 872.1668
+  type: 'test'
+  ...
+# Subtest: auto next routes a fresh Agent-approved Plan to automatic activation
+ok 84 - auto next routes a fresh Agent-approved Plan to automatic activation
+  ---
+  duration_ms: 678.1593
+  type: 'test'
+  ...
+# Subtest: autonomy lock fails closed before any Spec mutation
+ok 85 - autonomy lock fails closed before any Spec mutation
+  ---
+  duration_ms: 403.0985
+  type: 'test'
+  ...
+# Subtest: human-facing guides explain the three autonomy modes without legacy policy switches
+ok 86 - human-facing guides explain the three autonomy modes without legacy policy switches
+  ---
+  duration_ms: 4.7318
+  type: 'test'
+  ...
+# Subtest: generated agent guidance permits only freshly authorized automatic reviewers
+ok 87 - generated agent guidance permits only freshly authorized automatic reviewers
+  ---
+  duration_ms: 1.4103
+  type: 'test'
+  ...
+# Subtest: auto guidance distinguishes automatic Plan activation from a human approval request
+ok 88 - auto guidance distinguishes automatic Plan activation from a human approval request
+  ---
+  duration_ms: 1.4932
+  type: 'test'
+  ...
+# Subtest: current governance sources do not restore removed approval or cruise switches
+ok 89 - current governance sources do not restore removed approval or cruise switches
+  ---
+  duration_ms: 1.0487
+  type: 'test'
+  ...
+# Subtest: legacy switch helper accepts removal prose and rejects active support or lookup prose
+ok 90 - legacy switch helper accepts removal prose and rejects active support or lookup prose
+  ---
+  duration_ms: 1.9868
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: archive
+ok 91 - SKILL.md preserves hard stop: archive
+  ---
+  duration_ms: 0.8014
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: profile
+ok 92 - SKILL.md preserves hard stop: profile
+  ---
+  duration_ms: 1.1398
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: E2E Provider
+ok 93 - SKILL.md preserves hard stop: E2E Provider
+  ---
+  duration_ms: 0.3126
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: E2E SKIPPED human gate
+ok 94 - SKILL.md preserves hard stop: E2E SKIPPED human gate
+  ---
+  duration_ms: 0.4463
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: visual baseline
+ok 95 - SKILL.md preserves hard stop: visual baseline
+  ---
+  duration_ms: 3.7405
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: irreversible stop
+ok 96 - SKILL.md preserves hard stop: irreversible stop
+  ---
+  duration_ms: 1.6033
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: scope expansion stop
+ok 97 - SKILL.md preserves hard stop: scope expansion stop
+  ---
+  duration_ms: 1.4127
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: new risk stop
+ok 98 - SKILL.md preserves hard stop: new risk stop
+  ---
+  duration_ms: 1.3882
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: platform permission stop
+ok 99 - SKILL.md preserves hard stop: platform permission stop
+  ---
+  duration_ms: 1.6068
+  type: 'test'
+  ...
+# Subtest: SKILL.md preserves hard stop: history readonly
+ok 100 - SKILL.md preserves hard stop: history readonly
+  ---
+  duration_ms: 0.385
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: archive
+ok 101 - src/core/ai-config-rules.js preserves hard stop: archive
+  ---
+  duration_ms: 0.3363
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: profile
+ok 102 - src/core/ai-config-rules.js preserves hard stop: profile
+  ---
+  duration_ms: 0.738
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: E2E Provider
+ok 103 - src/core/ai-config-rules.js preserves hard stop: E2E Provider
+  ---
+  duration_ms: 0.1892
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: E2E SKIPPED human gate
+ok 104 - src/core/ai-config-rules.js preserves hard stop: E2E SKIPPED human gate
+  ---
+  duration_ms: 0.1752
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: visual baseline
+ok 105 - src/core/ai-config-rules.js preserves hard stop: visual baseline
+  ---
+  duration_ms: 1.5709
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: irreversible stop
+ok 106 - src/core/ai-config-rules.js preserves hard stop: irreversible stop
+  ---
+  duration_ms: 1.6338
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: scope expansion stop
+ok 107 - src/core/ai-config-rules.js preserves hard stop: scope expansion stop
+  ---
+  duration_ms: 1.4516
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: new risk stop
+ok 108 - src/core/ai-config-rules.js preserves hard stop: new risk stop
+  ---
+  duration_ms: 1.6223
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: platform permission stop
+ok 109 - src/core/ai-config-rules.js preserves hard stop: platform permission stop
+  ---
+  duration_ms: 1.6392
+  type: 'test'
+  ...
+# Subtest: src/core/ai-config-rules.js preserves hard stop: history readonly
+ok 110 - src/core/ai-config-rules.js preserves hard stop: history readonly
+  ---
+  duration_ms: 0.3604
+  type: 'test'
+  ...
+# Subtest: README.md preserves assigned hard stop 1
+ok 111 - README.md preserves assigned hard stop 1
+  ---
+  duration_ms: 0.6018
+  type: 'test'
+  ...
+# Subtest: README.md preserves assigned hard stop 2
+ok 112 - README.md preserves assigned hard stop 2
+  ---
+  duration_ms: 0.2944
+  type: 'test'
+  ...
+# Subtest: README.md preserves assigned hard stop 3
+ok 113 - README.md preserves assigned hard stop 3
+  ---
+  duration_ms: 0.2583
+  type: 'test'
+  ...
+# Subtest: GUIDE.md preserves assigned hard stop 1
+ok 114 - GUIDE.md preserves assigned hard stop 1
+  ---
+  duration_ms: 0.2907
+  type: 'test'
+  ...
+# Subtest: GUIDE.md preserves assigned hard stop 2
+ok 115 - GUIDE.md preserves assigned hard stop 2
+  ---
+  duration_ms: 0.3093
+  type: 'test'
+  ...
+# Subtest: GUIDE.md preserves assigned hard stop 3
+ok 116 - GUIDE.md preserves assigned hard stop 3
+  ---
+  duration_ms: 0.2495
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md preserves assigned hard stop 1
+ok 117 - REFERENCE.md preserves assigned hard stop 1
+  ---
+  duration_ms: 0.7248
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md preserves assigned hard stop 2
+ok 118 - REFERENCE.md preserves assigned hard stop 2
+  ---
+  duration_ms: 1.3685
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md preserves assigned hard stop 3
+ok 119 - REFERENCE.md preserves assigned hard stop 3
+  ---
+  duration_ms: 4.0426
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md preserves assigned hard stop 4
+ok 120 - REFERENCE.md preserves assigned hard stop 4
+  ---
+  duration_ms: 0.77
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md preserves assigned hard stop 1
+ok 121 - TEAM-GUIDE.md preserves assigned hard stop 1
+  ---
+  duration_ms: 0.4741
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md preserves assigned hard stop 2
+ok 122 - TEAM-GUIDE.md preserves assigned hard stop 2
+  ---
+  duration_ms: 0.3263
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md preserves assigned hard stop 3
+ok 123 - TEAM-GUIDE.md preserves assigned hard stop 3
+  ---
+  duration_ms: 0.7015
+  type: 'test'
+  ...
+# Subtest: README.md preserves four independently checked human risk stops
+ok 124 - README.md preserves four independently checked human risk stops
+  ---
+  duration_ms: 0.4193
+  type: 'test'
+  ...
+# Subtest: GUIDE.md preserves four independently checked human risk stops
+ok 125 - GUIDE.md preserves four independently checked human risk stops
+  ---
+  duration_ms: 0.3278
+  type: 'test'
+  ...
+# Subtest: governance contract exposes only the three autonomy modes and supervised default
+ok 126 - governance contract exposes only the three autonomy modes and supervised default
+  ---
+  duration_ms: 1.2503
+  type: 'test'
+  ...
+# Subtest: scope plan and risk snapshots are deterministic and boundary-sensitive
+ok 127 - scope plan and risk snapshots are deterministic and boundary-sensitive
+  ---
+  duration_ms: 1.4262
+  type: 'test'
+  ...
+# Subtest: autonomy events round-trip without leaking labels outside the controlled block
+ok 128 - autonomy events round-trip without leaking labels outside the controlled block
+  ---
+  duration_ms: 0.7945
+  type: 'test'
+  ...
+# Subtest: project autonomy accepts only an explicit legal AUTONOMY_MODE
+ok 129 - project autonomy accepts only an explicit legal AUTONOMY_MODE
+  ---
+  duration_ms: 4.4613
+  type: 'test'
+  ...
+# Subtest: project autonomy requires migration for missing invalid or legacy policy fields
+ok 130 - project autonomy requires migration for missing invalid or legacy policy fields
+  ---
+  duration_ms: 8.8923
+  type: 'test'
+  ...
+# Subtest: Plan approval follows effective autonomy mode instead of a project approval policy
+ok 131 - Plan approval follows effective autonomy mode instead of a project approval policy
+  ---
+  duration_ms: 1.4321
+  type: 'test'
+  ...
+# Subtest: authorization resolver distinguishes active and stale scope
+ok 132 - authorization resolver distinguishes active and stale scope
+  ---
+  duration_ms: 2.3632
+  type: 'test'
+  ...
+# Subtest: empty auto Plan approval fields do not trigger Plan activation
+ok 133 - empty auto Plan approval fields do not trigger Plan activation
+  ---
+  duration_ms: 0.4879
+  type: 'test'
+  ...
+# Subtest: empty auto approval timestamp does not consume a following narrative line
+ok 134 - empty auto approval timestamp does not consume a following narrative line
+  ---
+  duration_ms: 0.2977
+  type: 'test'
+  ...
+# Subtest: human gate approval is fresh only for the current scope risk and plan
+ok 135 - human gate approval is fresh only for the current scope risk and plan
+  ---
+  duration_ms: 1.3826
+  type: 'test'
+  ...
+# Subtest: human mode pauses only at governance transitions
+ok 136 - human mode pauses only at governance transitions
+  ---
+  duration_ms: 0.2977
+  type: 'test'
+  ...
+# Subtest: structured reversible declaration is not overridden by narrative safety wording
+ok 137 - structured reversible declaration is not overridden by narrative safety wording
+  ---
+  duration_ms: 1.9228
+  type: 'test'
+  ...
+# Subtest: auto Plan changes require a matching plan activation and runtime risk changes invalidate authority
+ok 138 - auto Plan changes require a matching plan activation and runtime risk changes invalidate authority
+  ---
+  duration_ms: 1.169
+  type: 'test'
+  ...
+# Subtest: Cruise native loop is disabled by any explicit stop reason
+ok 139 - Cruise native loop is disabled by any explicit stop reason
+  ---
+  duration_ms: 4.3955
+  type: 'test'
+  ...
+# Subtest: Cruise ledger uses precise archive and budget stop reasons
+ok 140 - Cruise ledger uses precise archive and budget stop reasons
+  ---
+  duration_ms: 0.6751
+  type: 'test'
+  ...
+# Subtest: invalidation starts a new authority generation and cannot reuse an older Plan activation
+ok 141 - invalidation starts a new authority generation and cannot reuse an older Plan activation
+  ---
+  duration_ms: 0.4511
+  type: 'test'
+  ...
+# Subtest: a new auto task authorization cannot reuse an older Plan activation
+ok 142 - a new auto task authorization cannot reuse an older Plan activation
+  ---
+  duration_ms: 0.2221
+  type: 'test'
+  ...
+# Subtest: human mode exposes the latest fresh gate approval as reauthorization time
+ok 143 - human mode exposes the latest fresh gate approval as reauthorization time
+  ---
+  duration_ms: 0.1809
+  type: 'test'
+  ...
+# Subtest: dedicated hard stops have precise workflow reasons
+ok 144 - dedicated hard stops have precise workflow reasons
+  ---
+  duration_ms: 0.6203
+  type: 'test'
+  ...
+# [ERROR] Spec already exists: task-name must be unique within version v1.3.6.
+# [ERROR] Invalid version format. Expected: v{N}.{M} or v{N}.{M}.{P}
+# [ERROR] --executed-by is required with --record-result (use subagent:<id>|external-agent:<id>|human:<name>|inline).
+# [ERROR] Spec is not archive-ready. Run: sdd validate "C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-cmd-test-1788597335478\\d4b" --spec "C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-cmd-test-1788597335478\\d4b\\mydocs\\specs\\v1.0-blocked.md" --archive-ready
+#   - Confirmed Requirement missing Scope Boundary.
+#   - Confirmed Requirement missing Irreversibility.
+#   - Confirmed Requirement missing Impact Radius.
+#   - Confirmed Requirement missing Dependencies & Constraints.
+#   - Confirmed Requirement missing Acceptance Intent.
+#   - Research Reviewed By is empty. Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>; micro Challenge may use inline. An automated reviewer may start without another prompt only when the active Spec has a fresh task/plan authorization that explicitly includes the reviewer actor; project configuration or Plan Approval alone is insufficient. Otherwise pause and request explicit current-user authorization. Do not skip the gate or fabricate reviewer evidence.
+#   - Research Reviewed At is empty.
+#   - Innovate Options is empty.
+#   - Technical Design missing Selected Option / ADR.
+#   - Technical Design missing Requirement Traceability.
+#   - Technical Design missing Impact Scope.
+#   - Technical Design missing Architecture View.
+#   - Technical Design missing Data Model / Schema.
+#   - Technical Design missing Interface Contract.
+#   - Technical Design missing Compatibility / Rollback.
+#   - Technical Design missing Test Strategy.
+#   - Acceptance Criteria should include at least one AC-\#\#\# item.
+#   - Plan Approved By is empty.
+#   - Approved At is empty.
+#   - Execute Log is empty.
+#   - Confirmed Requirement is empty.
+#   - Technical Design is empty.
+#   - Acceptance Criteria is empty.
+# [ERROR] Invalid cruise driver: typo-engine
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# [ERROR] Invalid cruise driver: local
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# [ERROR] Invalid cruise driver: claude
+# Allowed drivers: auto, prompt, local-loop, claude-code, codex, opencode
+# error: unknown option '--engine'
+# Subtest: CLI commands
+    # Subtest: init creates project structure
+    ok 1 - init creates project structure
+      ---
+      duration_ms: 220.485
+      type: 'test'
+      ...
+    # Subtest: init defaults generated AI config mode to micro
+    ok 2 - init defaults generated AI config mode to micro
+      ---
+      duration_ms: 245.6902
+      type: 'test'
+      ...
+    # Subtest: init appends SDD-RIPER block to existing AI config files
+    ok 3 - init appends SDD-RIPER block to existing AI config files
+      ---
+      duration_ms: 230.0451
+      type: 'test'
+      ...
+    # Subtest: init refreshes existing SDD-RIPER block without duplicating it
+    ok 4 - init refreshes existing SDD-RIPER block without duplicating it
+      ---
+      duration_ms: 475.3362
+      type: 'test'
+      ...
+    # Subtest: init --force does not overwrite existing AI config content
+    ok 5 - init --force does not overwrite existing AI config content
+      ---
+      duration_ms: 227.7648
+      type: 'test'
+      ...
+    # Subtest: discover creates spec, design, and execute log artifacts
+    ok 6 - discover creates spec, design, and execute log artifacts
+      ---
+      duration_ms: 584.4349
+      type: 'test'
+      ...
+    # Subtest: discover defaults new specs to micro when no mode is configured
+    ok 7 - discover defaults new specs to micro when no mode is configured
+      ---
+      duration_ms: 515.6592
+      type: 'test'
+      ...
+    # Subtest: discover accepts three-part versions and keeps version plus task-name unique
+    ok 8 - discover accepts three-part versions and keeps version plus task-name unique
+      ---
+      duration_ms: 951.7089
+      type: 'test'
+      ...
+    # Subtest: discover keeps two-part versions compatible
+    ok 9 - discover keeps two-part versions compatible
+      ---
+      duration_ms: 498.8591
+      type: 'test'
+      ...
+    # Subtest: discover rejects unsupported version formats with clear guidance
+    ok 10 - discover rejects unsupported version formats with clear guidance
+      ---
+      duration_ms: 468.4928
+      type: 'test'
+      ...
+    # Subtest: discover accepts --version alias and fills structured intake fields
+    ok 11 - discover accepts --version alias and fills structured intake fields
+      ---
+      duration_ms: 484.3586
+      type: 'test'
+      ...
+    # Subtest: discover auto-binds context/<task-name>/ as context-source
+    ok 12 - discover auto-binds context/<task-name>/ as context-source
+      ---
+      duration_ms: 496.952
+      type: 'test'
+      ...
+    # Subtest: discover uses --context override when provided
+    ok 13 - discover uses --context override when provided
+      ---
+      duration_ms: 494.6614
+      type: 'test'
+      ...
+    # Subtest: resume shows context-source when present
+    ok 14 - resume shows context-source when present
+      ---
+      duration_ms: 627.2341
+      type: 'test'
+      ...
+    # Subtest: archive and reopen preserve three-part versions
+    ok 15 - archive and reopen preserve three-part versions
+      ---
+      duration_ms: 695.6926
+      type: 'test'
+      ...
+    # Subtest: archive honors an explicit version when same task-name exists in multiple versions
+    ok 16 - archive honors an explicit version when same task-name exists in multiple versions
+      ---
+      duration_ms: 699.6055
+      type: 'test'
+      ...
+    # Subtest: reopen honors an explicit version when archived task-name exists in multiple versions
+    ok 17 - reopen honors an explicit version when archived task-name exists in multiple versions
+      ---
+      duration_ms: 1051.2776
+      type: 'test'
+      ...
+    # Subtest: new-learning honors an explicit version when same task-name exists in multiple versions
+    ok 18 - new-learning honors an explicit version when same task-name exists in multiple versions
+      ---
+      duration_ms: 788.7388
+      type: 'test'
+      ...
+    # Subtest: challenge record-result honors an explicit versioned --name
+    ok 19 - challenge record-result honors an explicit versioned --name
+      ---
+      duration_ms: 678.9316
+      type: 'test'
+      ...
+    # Subtest: challenge record-result honors an explicit --spec path
+    ok 20 - challenge record-result honors an explicit --spec path
+      ---
+      duration_ms: 627.6275
+      type: 'test'
+      ...
+    # Subtest: challenge record-result requires explicit executed-by evidence
+    ok 21 - challenge record-result requires explicit executed-by evidence
+      ---
+      duration_ms: 417.246
+      type: 'test'
+      ...
+    # Subtest: resume routes executed standard specs without challenge evidence to challenge phase
+    ok 22 - resume routes executed standard specs without challenge evidence to challenge phase
+      ---
+      duration_ms: 494.818
+      type: 'test'
+      ...
+    # Subtest: resume does not execute when agent plan approval is missing gate evidence
+    ok 23 - resume does not execute when agent plan approval is missing gate evidence
+      ---
+      duration_ms: 482.4413
+      type: 'test'
+      ...
+    # Subtest: resume backtracks a fresh FAIL_CODE challenge to execute
+    ok 24 - resume backtracks a fresh FAIL_CODE challenge to execute
+      ---
+      duration_ms: 639.2519
+      type: 'test'
+      ...
+    # Subtest: next routes executed specs without challenge evidence to run_challenge
+    ok 25 - next routes executed specs without challenge evidence to run_challenge
+      ---
+      duration_ms: 513.5415
+      type: 'test'
+      ...
+    # Subtest: validate archive-ready explains how to run and record missing challenge
+    ok 26 - validate archive-ready explains how to run and record missing challenge
+      ---
+      duration_ms: 470.0769
+      type: 'test'
+      ...
+    # Subtest: recorded challenge pass no longer routes to run_challenge
+    ok 27 - recorded challenge pass no longer routes to run_challenge
+      ---
+      duration_ms: 829.3575
+      type: 'test'
+      ...
+    # Subtest: stale recorded challenge routes back to run_challenge after new execution
+    ok 28 - stale recorded challenge routes back to run_challenge after new execution
+      ---
+      duration_ms: 1012.9907
+      type: 'test'
+      ...
+    # Subtest: stale failed challenge routes to rerun challenge instead of old backtrack
+    ok 29 - stale failed challenge routes to rerun challenge instead of old backtrack
+      ---
+      duration_ms: 648.9932
+      type: 'test'
+      ...
+    # Subtest: stale non-code failed challenge routes to rerun challenge instead of old backtrack
+    ok 30 - stale non-code failed challenge routes to rerun challenge instead of old backtrack
+      ---
+      duration_ms: 635.7975
+      type: 'test'
+      ...
+    # Subtest: partial challenge evidence routes back to run_challenge
+    ok 31 - partial challenge evidence routes back to run_challenge
+      ---
+      duration_ms: 902.1282
+      type: 'test'
+      ...
+    # Subtest: blocked completion verification does not route to challenge yet
+    ok 32 - blocked completion verification does not route to challenge yet
+      ---
+      duration_ms: 692.1131
+      type: 'test'
+      ...
+    # Subtest: validate does not request challenge before completion verification is done
+    ok 33 - validate does not request challenge before completion verification is done
+      ---
+      duration_ms: 480.8913
+      type: 'test'
+      ...
+    # Subtest: completion verification status uses the latest appended completion block
+    ok 34 - completion verification status uses the latest appended completion block
+      ---
+      duration_ms: 681.2476
+      type: 'test'
+      ...
+    # Subtest: next shows context-source when present
+    ok 35 - next shows context-source when present
+      ---
+      duration_ms: 445.7069
+      type: 'test'
+      ...
+    # Subtest: resume and status work
+    ok 36 - resume and status work
+      ---
+      duration_ms: 340.8952
+      type: 'test'
+      ...
+    # Subtest: status warns when agent plan approval is missing gate evidence
+    ok 37 - status warns when agent plan approval is missing gate evidence
+      ---
+      duration_ms: 449.4695
+      type: 'test'
+      ...
+    # Subtest: archive and reopen flow moves referenced artifacts
+    ok 38 - archive and reopen flow moves referenced artifacts
+      ---
+      duration_ms: 549.2401
+      type: 'test'
+      ...
+    # Subtest: archive authorization failures are fail-closed before any filesystem write
+    ok 39 - archive authorization failures are fail-closed before any filesystem write
+      ---
+      duration_ms: 2231.7092
+      type: 'test'
+      ...
+    # Subtest: archive records one-shot human authorization in the archived Spec
+    ok 40 - archive records one-shot human authorization in the archived Spec
+      ---
+      duration_ms: 439.206
+      type: 'test'
+      ...
+    # Subtest: archive completion failure with valid authorization does not create archive output
+    ok 41 - archive completion failure with valid authorization does not create archive output
+      ---
+      duration_ms: 427.0661
+      type: 'test'
+      ...
+    # Subtest: completed command routing stops to request archive authorization
+    ok 42 - completed command routing stops to request archive authorization
+      ---
+      duration_ms: 1077.7615
+      type: 'test'
+      ...
+    # Subtest: cruise budget exhaustion disables the actual native loop
+    ok 43 - cruise budget exhaustion disables the actual native loop
+      ---
+      duration_ms: 882.4231
+      type: 'test'
+      ...
+    # Subtest: archive index records Challenge Verdict for new specs
+    ok 44 - archive index records Challenge Verdict for new specs
+      ---
+      duration_ms: 744.7124
+      type: 'test'
+      ...
+    # Subtest: compact generated micro completes without optional fields but still requires delivery facts and approval
+    ok 45 - compact generated micro completes without optional fields but still requires delivery facts and approval
+      ---
+      duration_ms: 2809.8678
+      type: 'test'
+      ...
+    # Subtest: archives an optional Learning Record after routine corrections without losing logged facts
+    ok 46 - archives an optional Learning Record after routine corrections without losing logged facts
+      ---
+      duration_ms: 535.539
+      type: 'test'
+      ...
+    # Subtest: important Learning triggers still block when mixed with routine corrections
+    ok 47 - important Learning triggers still block when mixed with routine corrections
+      ---
+      duration_ms: 3921.2363
+      type: 'test'
+      ...
+    # Subtest: archive requires and moves learning records when execution produced reusable lessons
+    ok 48 - archive requires and moves learning records when execution produced reusable lessons
+      ---
+      duration_ms: 1502.0935
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when required gates are missing
+    ok 49 - validate blocks archive when required gates are missing
+      ---
+      duration_ms: 684.6786
+      type: 'test'
+      ...
+    # Subtest: validate enforces standard technical design contract fields
+    ok 50 - validate enforces standard technical design contract fields
+      ---
+      duration_ms: 702.5326
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate plan approval
+    ok 51 - validate rejects legacy auto-gate plan approval
+      ---
+      duration_ms: 629.0117
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when adversarial challenge failed
+    ok 52 - validate blocks archive when adversarial challenge failed
+      ---
+      duration_ms: 649.8118
+      type: 'test'
+      ...
+    # Subtest: validate requires challenge evidence fields for archive (AC-001)
+    ok 53 - validate requires challenge evidence fields for archive (AC-001)
+      ---
+      duration_ms: 859.0622
+      type: 'test'
+      ...
+    # Subtest: validate requires Challenge Executed At when Executed By is present
+    ok 54 - validate requires Challenge Executed At when Executed By is present
+      ---
+      duration_ms: 711.9838
+      type: 'test'
+      ...
+    # Subtest: validate requires Challenge Evidence when Executed By and At are present
+    ok 55 - validate requires Challenge Evidence when Executed By and At are present
+      ---
+      duration_ms: 639.1584
+      type: 'test'
+      ...
+    # Subtest: validate rejects inline challenge for lite mode (AC-004 lite)
+    ok 56 - validate rejects inline challenge for lite mode (AC-004 lite)
+      ---
+      duration_ms: 627.3026
+      type: 'test'
+      ...
+    # Subtest: validate passes when challenge evidence is complete (AC-002)
+    ok 57 - validate passes when challenge evidence is complete (AC-002)
+      ---
+      duration_ms: 693.7847
+      type: 'test'
+      ...
+    # Subtest: validate accepts agent plan approval with evidence in auto mode
+    ok 58 - validate accepts agent plan approval with evidence in auto mode
+      ---
+      duration_ms: 618.655
+      type: 'test'
+      ...
+    # Subtest: validate rejects agent plan approval in human mode
+    ok 59 - validate rejects agent plan approval in human mode
+      ---
+      duration_ms: 586.9372
+      type: 'test'
+      ...
+    # Subtest: validate rejects agent fixture approval in supervised mode
+    ok 60 - validate rejects agent fixture approval in supervised mode
+      ---
+      duration_ms: 658.4276
+      type: 'test'
+      ...
+    # Subtest: validate accepts auditable independent reviewers for standard challenge
+    ok 61 - validate accepts auditable independent reviewers for standard challenge
+      ---
+      duration_ms: 664.9148
+      type: 'test'
+      ...
+    # Subtest: validate rejects ambiguous independent reviewers for standard challenge and research gate
+    ok 62 - validate rejects ambiguous independent reviewers for standard challenge and research gate
+      ---
+      duration_ms: 920.7998
+      type: 'test'
+      ...
+    # Subtest: validate and next surface reviewer guidance when research reviewer is missing
+    ok 63 - validate and next surface reviewer guidance when research reviewer is missing
+      ---
+      duration_ms: 943.7102
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate challenge evidence (AC-003)
+    ok 64 - validate rejects legacy auto-gate challenge evidence (AC-003)
+      ---
+      duration_ms: 722.7866
+      type: 'test'
+      ...
+    # Subtest: validate rejects inline challenge for standard/lite modes (AC-004)
+    ok 65 - validate rejects inline challenge for standard/lite modes (AC-004)
+      ---
+      duration_ms: 939.8944
+      type: 'test'
+      ...
+    # Subtest: validate allows inline challenge for micro mode (AC-005)
+    ok 66 - validate allows inline challenge for micro mode (AC-005)
+      ---
+      duration_ms: 759.7176
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when Challenge Executed At is before Execute Log step
+    ok 67 - validate blocks archive when Challenge Executed At is before Execute Log step
+      ---
+      duration_ms: 733.549
+      type: 'test'
+      ...
+    # Subtest: validate rejects legacy auto-gate Research review
+    ok 68 - validate rejects legacy auto-gate Research review
+      ---
+      duration_ms: 669.2708
+      type: 'test'
+      ...
+    # Subtest: validate warns but does not block on missing CR fields when not archive-ready
+    ok 69 - validate warns but does not block on missing CR fields when not archive-ready
+      ---
+      duration_ms: 572.5772
+      type: 'test'
+      ...
+    # Subtest: validate enforces lite design note and acceptance criteria
+    ok 70 - validate enforces lite design note and acceptance criteria
+      ---
+      duration_ms: 608.2754
+      type: 'test'
+      ...
+    # Subtest: validate requires acceptance verification metadata
+    ok 71 - validate requires acceptance verification metadata
+      ---
+      duration_ms: 1492.9543
+      type: 'test'
+      ...
+    # Subtest: validate reports missing Provider for an active e2e AC even when Test is present
+    ok 72 - validate reports missing Provider for an active e2e AC even when Test is present
+      ---
+      duration_ms: 490.8686
+      type: 'test'
+      ...
+    # Subtest: generated artifacts keep English labels and request Chinese content
+    ok 73 - generated artifacts keep English labels and request Chinese content
+      ---
+      duration_ms: 598.1685
+      type: 'test'
+      ...
+    # Subtest: validate enforces micro plan acceptance and verification labels
+    ok 74 - validate enforces micro plan acceptance and verification labels
+      ---
+      duration_ms: 940.7334
+      type: 'test'
+      ...
+    # Subtest: uses Node CLI only and ships no shell entrypoints
+    ok 75 - uses Node CLI only and ships no shell entrypoints
+      ---
+      duration_ms: 1.5886
+      type: 'test'
+      ...
+    # Subtest: install-skill includes published REFERENCE in the controlled copy entries
+    ok 76 - install-skill includes published REFERENCE in the controlled copy entries
+      ---
+      duration_ms: 5.7445
+      type: 'test'
+      ...
+    # Subtest: install-skill clean install copies REFERENCE and resolves installed guide links
+    ok 77 - install-skill clean install copies REFERENCE and resolves installed guide links
+      ---
+      duration_ms: 619.3741
+      type: 'test'
+      ...
+    # Subtest: install-skill check detects REFERENCE content drift through the fingerprint
+    ok 78 - install-skill check detects REFERENCE content drift through the fingerprint
+      ---
+      duration_ms: 443.2316
+      type: 'test'
+      ...
+    # Subtest: install-skill copies bundled skill entries and can clean stale files
+    ok 79 - install-skill copies bundled skill entries and can clean stale files
+      ---
+      duration_ms: 598.5226
+      type: 'test'
+      ...
+    # Subtest: install-skill detects same-version content drift without modifying the target
+    ok 80 - install-skill detects same-version content drift without modifying the target
+      ---
+      duration_ms: 1074.4424
+      type: 'test'
+      ...
+    # Subtest: sdd codemap outputs on-demand architecture view
+    ok 81 - sdd codemap outputs on-demand architecture view
+      ---
+      duration_ms: 463.3736
+      type: 'test'
+      ...
+    # Subtest: init no longer creates codemap directory or projectmap
+    ok 82 - init no longer creates codemap directory or projectmap
+      ---
+      duration_ms: 194.8542
+      type: 'test'
+      ...
+    # Subtest: prompt commands generate output
+    ok 83 - prompt commands generate output
+      ---
+      duration_ms: 1129.4884
+      type: 'test'
+      ...
+    # Subtest: next, challenge, and cruise expose autonomous workflow prompts
+    ok 84 - next, challenge, and cruise expose autonomous workflow prompts
+      ---
+      duration_ms: 1221.7927
+      type: 'test'
+      ...
+    # Subtest: next surfaces platform-neutral authorization guidance when challenge is missing
+    ok 85 - next surfaces platform-neutral authorization guidance when challenge is missing
+      ---
+      duration_ms: 772.4232
+      type: 'test'
+      ...
+    # Subtest: cruise can target native host loop drivers
+    ok 86 - cruise can target native host loop drivers
+      ---
+      duration_ms: 1328.5206
+      type: 'test'
+      ...
+    # Subtest: next preserves explicit challenge PASS even when validation has blockers
+    ok 87 - next preserves explicit challenge PASS even when validation has blockers
+      ---
+      duration_ms: 733.4772
+      type: 'test'
+      ...
+    # Subtest: human mode suppresses native cruise and legacy active config requires migration
+    ok 88 - human mode suppresses native cruise and legacy active config requires migration
+      ---
+      duration_ms: 1339.7821
+      type: 'test'
+      ...
+    # Subtest: cruise reports local-loop as prompt-loop compensation
+    ok 89 - cruise reports local-loop as prompt-loop compensation
+      ---
+      duration_ms: 574.2579
+      type: 'test'
+      ...
+    # Subtest: cruise rejects invalid drivers instead of falling back to auto
+    ok 90 - cruise rejects invalid drivers instead of falling back to auto
+      ---
+      duration_ms: 1268.8585
+      type: 'test'
+      ...
+    # Subtest: cruise rejects legacy engine option
+    ok 91 - cruise rejects legacy engine option
+      ---
+      duration_ms: 610.6575
+      type: 'test'
+      ...
+    # Subtest: cruise emits Claude ultracode prompt and records run ledger
+    ok 92 - cruise emits Claude ultracode prompt and records run ledger
+      ---
+      duration_ms: 1070.4291
+      type: 'test'
+      ...
+# warning: in the working copy of 'fresh.txt', LF will be replaced by CRLF the next time Git touches it
+    # Subtest: console spec detail exposes latest cruise run ledger entry
+    ok 93 - console spec detail exposes latest cruise run ledger entry
+      ---
+      duration_ms: 1184.1712
+      type: 'test'
+      ...
+    # Subtest: next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack
+    ok 94 - next maps missing acceptance metadata to FAIL_ACCEPTANCE backtrack
+      ---
+      duration_ms: 562.4006
+      type: 'test'
+      ...
+    # Subtest: review-execute includes design and acceptance evidence in Axis 1
+    ok 95 - review-execute includes design and acceptance evidence in Axis 1
+      ---
+      duration_ms: 652.8202
+      type: 'test'
+      ...
+    # Subtest: review-execute default diffs the working tree including untracked files (AC-001/002/004)
+    ok 96 - review-execute default diffs the working tree including untracked files (AC-001/002/004)
+      ---
+      duration_ms: 1483.3099
+      type: 'test'
+      ...
+    # Subtest: review-execute --diff-base uses the branch model (AC-003)
+    ok 97 - review-execute --diff-base uses the branch model (AC-003)
+      ---
+      duration_ms: 1712.6892
+      type: 'test'
+      ...
+    # Subtest: review-execute reports no git diff outside a repo (AC-005)
+    ok 98 - review-execute reports no git diff outside a repo (AC-005)
+      ---
+      duration_ms: 468.7863
+      type: 'test'
+      ...
+    # Subtest: discover prints the mode-selection advisory and escalates the nudge for standard
+    ok 99 - discover prints the mode-selection advisory and escalates the nudge for standard
+      ---
+      duration_ms: 626.3481
+      type: 'test'
+      ...
+    # Subtest: learnings lists the project index and recalls per spec (AC-003)
+    ok 100 - learnings lists the project index and recalls per spec (AC-003)
+      ---
+      duration_ms: 1369.914
+      type: 'test'
+      ...
+    # Subtest: console API exposes spec list, detail, and archive validation
+    ok 101 - console API exposes spec list, detail, and archive validation
+      ---
+      duration_ms: 999.8761
+      type: 'test'
+      ...
+    # Subtest: console can start without a project and select one through the API
+    ok 102 - console can start without a project and select one through the API
+      ---
+      duration_ms: 651.4419
+      type: 'test'
+      ...
+    # Subtest: console browse API can select a project directory
+    ok 103 - console browse API can select a project directory
+      ---
+      duration_ms: 1012.9755
+      type: 'test'
+      ...
+    # Subtest: console project board API summarizes multiple projects
+    ok 104 - console project board API summarizes multiple projects
+      ---
+      duration_ms: 1344.09
+      type: 'test'
+      ...
+    # Subtest: console hidden utility overrides detail empty-state display
+    ok 105 - console hidden utility overrides detail empty-state display
+      ---
+      duration_ms: 3.61
+      type: 'test'
+      ...
+    # Subtest: console copy matches gate and cruise control-plane semantics
+    ok 106 - console copy matches gate and cruise control-plane semantics
+      ---
+      duration_ms: 4.1363
+      type: 'test'
+      ...
+    # Subtest: console phase tabs wrap instead of forcing horizontal scroll
+    ok 107 - console phase tabs wrap instead of forcing horizontal scroll
+      ---
+      duration_ms: 2.7263
+      type: 'test'
+      ...
+    # Subtest: console Windows opener avoids PowerShell command argument parsing
+    ok 108 - console Windows opener avoids PowerShell command argument parsing
+      ---
+      duration_ms: 2.4638
+      type: 'test'
+      ...
+    # Subtest: console renders risk flags with per-type color classes (AC-001)
+    ok 109 - console renders risk flags with per-type color classes (AC-001)
+      ---
+      duration_ms: 3.3787
+      type: 'test'
+      ...
+    # Subtest: console renders design method advisory with methods, focusFields, and notes (AC-002)
+    ok 110 - console renders design method advisory with methods, focusFields, and notes (AC-002)
+      ---
+      duration_ms: 2.1905
+      type: 'test'
+      ...
+    # Subtest: console renders learning triggers when learning is required (AC-003)
+    ok 111 - console renders learning triggers when learning is required (AC-003)
+      ---
+      duration_ms: 4.7568
+      type: 'test'
+      ...
+    # Subtest: console renders blockers list from workflow (AC-004)
+    ok 112 - console renders blockers list from workflow (AC-004)
+      ---
+      duration_ms: 3.3383
+      type: 'test'
+      ...
+    # Subtest: console renders challenge summary in blocker card (AC-005)
+    ok 113 - console renders challenge summary in blocker card (AC-005)
+      ---
+      duration_ms: 3.4801
+      type: 'test'
+      ...
+    # Subtest: console detail page has Status Overview and Methodology sections in HTML
+    ok 114 - console detail page has Status Overview and Methodology sections in HTML
+      ---
+      duration_ms: 4.3777
+      type: 'test'
+      ...
+    # Subtest: console renders AC Coverage from the structured DTO
+    ok 115 - console renders AC Coverage from the structured DTO
+      ---
+      duration_ms: 4.9517
+      type: 'test'
+      ...
+    # Subtest: console renders challenge verdict with color-coded pill (AC-001)
+    ok 116 - console renders challenge verdict with color-coded pill (AC-001)
+      ---
+      duration_ms: 4.0401
+      type: 'test'
+      ...
+    # Subtest: console renders backtrack target only on FAIL verdict (AC-002)
+    ok 117 - console renders backtrack target only on FAIL verdict (AC-002)
+      ---
+      duration_ms: 2.4563
+      type: 'test'
+      ...
+    # Subtest: console renders cruise run with enabled state, iterations, and latest run (AC-003)
+    ok 118 - console renders cruise run with enabled state, iterations, and latest run (AC-003)
+      ---
+      duration_ms: 3.6302
+      type: 'test'
+      ...
+    # Subtest: console renders cruise stop reason with color coding (AC-004)
+    ok 119 - console renders cruise stop reason with color coding (AC-004)
+      ---
+      duration_ms: 3.3932
+      type: 'test'
+      ...
+    # Subtest: console blocker card no longer contains challenge and backtrack text (AC-005)
+    ok 120 - console blocker card no longer contains challenge and backtrack text (AC-005)
+      ---
+      duration_ms: 2.6892
+      type: 'test'
+      ...
+    # Subtest: console detail page has Challenge Verdict and Cruise Run sections in HTML
+    ok 121 - console detail page has Challenge Verdict and Cruise Run sections in HTML
+      ---
+      duration_ms: 2.3607
+      type: 'test'
+      ...
+    # Subtest: design method router maps mode and risk to advisory hints
+    ok 122 - design method router maps mode and risk to advisory hints
+      ---
+      duration_ms: 730.4735
+      type: 'test'
+      ...
+    # Subtest: skill and generated AI configs reuse explicit current-task inputs without inheriting authorization
+    ok 123 - skill and generated AI configs reuse explicit current-task inputs without inheriting authorization
+      ---
+      duration_ms: 312.2625
+      type: 'test'
+      ...
+    # Subtest: Console labels completed active work as awaiting archive authorization
+    ok 124 - Console labels completed active work as awaiting archive authorization
+      ---
+      duration_ms: 1.6891
+      type: 'test'
+      ...
+    # Subtest: archive help and Agent protocols require current explicit user authorization
+    ok 125 - archive help and Agent protocols require current explicit user authorization
+      ---
+      duration_ms: 159.7694
+      type: 'test'
+      ...
+    # Subtest: generated AI configs include platform-neutral reviewer authorization guidance
+    ok 126 - generated AI configs include platform-neutral reviewer authorization guidance
+      ---
+      duration_ms: 190.6375
+      type: 'test'
+      ...
+    # Subtest: agent docs and skill describe platform-neutral reviewer authorization
+    ok 127 - agent docs and skill describe platform-neutral reviewer authorization
+      ---
+      duration_ms: 6.0118
+      type: 'test'
+      ...
+    # Subtest: README provides a reader-first entry point and links to the detailed guide
+    ok 128 - README provides a reader-first entry point and links to the detailed guide
+      ---
+      duration_ms: 2.4574
+      type: 'test'
+      ...
+    # Subtest: README puts AI-guided quick start before direct CLI instructions
+    ok 129 - README puts AI-guided quick start before direct CLI instructions
+      ---
+      duration_ms: 4.5459
+      type: 'test'
+      ...
+    # Subtest: GUIDE is scenario-first while REFERENCE preserves the exact protocol
+    ok 130 - GUIDE is scenario-first while REFERENCE preserves the exact protocol
+      ---
+      duration_ms: 5.3059
+      type: 'test'
+      ...
+    # Subtest: REFERENCE helps humans navigate without weakening the exact protocol
+    ok 131 - REFERENCE helps humans navigate without weakening the exact protocol
+      ---
+      duration_ms: 2.5794
+      type: 'test'
+      ...
+    # Subtest: REFERENCE routes major capabilities from facts through agent action and human gates to CLI
+    ok 132 - REFERENCE routes major capabilities from facts through agent action and human gates to CLI
+      ---
+      duration_ms: 7.3351
+      type: 'test'
+      ...
+    # Subtest: REFERENCE lists every public top-level CLI command group
+    ok 133 - REFERENCE lists every public top-level CLI command group
+      ---
+      duration_ms: 3.341
+      type: 'test'
+      ...
+    # Subtest: GFM anchor helper preserves underscores, punctuation spacing, duplicates, and ignores fences
+    ok 134 - GFM anchor helper preserves underscores, punctuation spacing, duplicates, and ignores fences
+      ---
+      duration_ms: 3.0506
+      type: 'test'
+      ...
+    # Subtest: REFERENCE internal Markdown links resolve to real headings
+    ok 135 - REFERENCE internal Markdown links resolve to real headings
+      ---
+      duration_ms: 5.5859
+      type: 'test'
+      ...
+    # Subtest: TEAM-GUIDE contains only current governance facts
+    ok 136 - TEAM-GUIDE contains only current governance facts
+      ---
+      duration_ms: 3.3664
+      type: 'test'
+      ...
+    # Subtest: human reference docs explain archive authorization in Chinese
+    ok 137 - human reference docs explain archive authorization in Chinese
+      ---
+      duration_ms: 3.6126
+      type: 'test'
+      ...
+    # Subtest: Cruise is documented as orchestrator while Challenge reviewer remains read-only
+    ok 138 - Cruise is documented as orchestrator while Challenge reviewer remains read-only
+      ---
+      duration_ms: 5.7631
+      type: 'test'
+      ...
+    # Subtest: ADR method doc exists and is wired into SKILL.md
+    ok 139 - ADR method doc exists and is wired into SKILL.md
+      ---
+      duration_ms: 2.6459
+      type: 'test'
+      ...
+    # Subtest: SDD integration overrides upstream executing-plans handoffs
+    ok 140 - SDD integration overrides upstream executing-plans handoffs
+      ---
+      duration_ms: 3.3714
+      type: 'test'
+      ...
+    # Subtest: doctor passes on the real repo and fails on dangling references
+    ok 141 - doctor passes on the real repo and fails on dangling references
+      ---
+      duration_ms: 350.1762
+      type: 'test'
+      ...
+    # Subtest: help and version
+    ok 142 - help and version
+      ---
+      duration_ms: 812.2527
+      type: 'test'
+      ...
+    # Subtest: validate reports AC without execution evidence (AC-001: coverage format)
+    ok 143 - validate reports AC without execution evidence (AC-001: coverage format)
+      ---
+      duration_ms: 819.2363
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC has no coverage record (AC-002: L1)
+    ok 144 - validate blocks archive when AC has no coverage record (AC-002: L1)
+      ---
+      duration_ms: 789.6734
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC coverage result is FAIL (AC-002: L2)
+    ok 145 - validate blocks archive when AC coverage result is FAIL (AC-002: L2)
+      ---
+      duration_ms: 1135.3514
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when AC test file not found (AC-002: L3)
+    ok 146 - validate blocks archive when AC test file not found (AC-002: L3)
+      ---
+      duration_ms: 1031.6869
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when SKIPPED AC lacks approval (AC-003)
+    ok 147 - validate blocks archive when SKIPPED AC lacks approval (AC-003)
+      ---
+      duration_ms: 812.0425
+      type: 'test'
+      ...
+    # Subtest: validate blocks archive when SKIPPED AC has agent approval (AC-003)
+    ok 148 - validate blocks archive when SKIPPED AC has agent approval (AC-003)
+      ---
+      duration_ms: 975.7024
+      type: 'test'
+      ...
+    # Subtest: validate accepts SKIPPED AC with proper human approval (AC-003)
+    ok 149 - validate accepts SKIPPED AC with proper human approval (AC-003)
+      ---
+      duration_ms: 831.9303
+      type: 'test'
+      ...
+    # Subtest: new spec templates do not contain Review Verdict or Review Summary (AC-004)
+    ok 150 - new spec templates do not contain Review Verdict or Review Summary (AC-004)
+      ---
+      duration_ms: 1375.6707
+      type: 'test'
+      ...
+    # Subtest: validate does not require Review Verdict for new specs (AC-004)
+    ok 151 - validate does not require Review Verdict for new specs (AC-004)
+      ---
+      duration_ms: 1196.9148
+      type: 'test'
+      ...
+    # Subtest: PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)
+    ok 152 - PASS_WITH_CONCERNS backtrack target is Learning Check (AC-005)
+      ---
+      duration_ms: 4.4924
+      type: 'test'
+      ...
+    # Subtest: FAIL_CODE backtrack target is Execute / Debug
+    ok 153 - FAIL_CODE backtrack target is Execute / Debug
+      ---
+      duration_ms: 2.46
+      type: 'test'
+      ...
+    # Subtest: classifyIssue maps code quality issues to FAIL_CODE
+    ok 154 - classifyIssue maps code quality issues to FAIL_CODE
+      ---
+      duration_ms: 2.4677
+      type: 'test'
+      ...
+    # Subtest: classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE
+    ok 155 - classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE
+      ---
+      duration_ms: 2.2026
+      type: 'test'
+      ...
+    # Subtest: Console phases do not include review (AC-004)
+    ok 156 - Console phases do not include review (AC-004)
+      ---
+      duration_ms: 2.512
+      type: 'test'
+      ...
+    # Subtest: templates document Provider for e2e AC without exposing transport or command
+    ok 157 - templates document Provider for e2e AC without exposing transport or command
+      ---
+      duration_ms: 3.7619
+      type: 'test'
+      ...
+    # Subtest: Console exposes read-only Provider readiness and no execution button
+    ok 158 - Console exposes read-only Provider readiness and no execution button
+      ---
+      duration_ms: 3.6771
+      type: 'test'
+      ...
+# [ERROR] Spec template is missing Challenge label line(s): Challenge Evidence. Result not recorded.
+    # Subtest: Console spec detail adds a versioned read-only Verification projection
+    ok 159 - Console spec detail adds a versioned read-only Verification projection
+      ---
+      duration_ms: 754.7107
+      type: 'test'
+      ...
+    # Subtest: Console renders Verification runs, freshness, matrix, diagnostics, attachments, and responsive empty states
+    ok 160 - Console renders Verification runs, freshness, matrix, diagnostics, attachments, and responsive empty states
+      ---
+      duration_ms: 5.6861
+      type: 'test'
+      ...
+    # Subtest: docs state the v3.0 adapter scope and deferred boundaries
+    ok 161 - docs state the v3.0 adapter scope and deferred boundaries
+      ---
+      duration_ms: 6.7969
+      type: 'test'
+      ...
+    1..161
+ok 145 - CLI commands
+  ---
+  duration_ms: 93405.4264
+  type: 'suite'
+  ...
+# Subtest: gate integrity fixes (v4.12)
+    # Subtest: record-result with $-pattern summary does not corrupt the spec (AC-001)
+    ok 1 - record-result with $-pattern summary does not corrupt the spec (AC-001)
+      ---
+      duration_ms: 655.6942
+      type: 'test'
+      ...
+    # Subtest: record-result fails loudly when a Challenge label line is missing (AC-002)
+    ok 2 - record-result fails loudly when a Challenge label line is missing (AC-002)
+      ---
+      duration_ms: 683.3424
+      type: 'test'
+      ...
+    # Subtest: non-three-digit AC declarations produce a diagnostic blocker (AC-003)
+    ok 3 - non-three-digit AC declarations produce a diagnostic blocker (AC-003)
+      ---
+      duration_ms: 5.8499
+      type: 'test'
+      ...
+    # Subtest: cruise --record-run on migration-required project prints guidance and exits 0 (AC-004)
+    ok 4 - cruise --record-run on migration-required project prints guidance and exits 0 (AC-004)
+      ---
+      duration_ms: 442.3628
+      type: 'test'
+      ...
+    1..4
+ok 146 - gate integrity fixes (v4.12)
+  ---
+  duration_ms: 1787.6412
+  type: 'suite'
+  ...
+# Subtest: common.js utilities
+    # Subtest: getConfigFile returns correct path
+    ok 1 - getConfigFile returns correct path
+      ---
+      duration_ms: 18.5456
+      type: 'test'
+      ...
+    # Subtest: isValidDocsDirName accepts valid names
+    ok 2 - isValidDocsDirName accepts valid names
+      ---
+      duration_ms: 8.3541
+      type: 'test'
+      ...
+    # Subtest: isValidDocsDirName rejects invalid names
+    ok 3 - isValidDocsDirName rejects invalid names
+      ---
+      duration_ms: 9.8663
+      type: 'test'
+      ...
+    # Subtest: getDocsDir reads from config
+    ok 4 - getDocsDir reads from config
+      ---
+      duration_ms: 10.8778
+      type: 'test'
+      ...
+    # Subtest: getDocsDir defaults to mydocs when no config
+    ok 5 - getDocsDir defaults to mydocs when no config
+      ---
+      duration_ms: 11.8285
+      type: 'test'
+      ...
+    # Subtest: getDocsRoot returns joined path
+    ok 6 - getDocsRoot returns joined path
+      ---
+      duration_ms: 7.9677
+      type: 'test'
+      ...
+    # Subtest: getMode ignores project config and defaults to micro
+    ok 7 - getMode ignores project config and defaults to micro
+      ---
+      duration_ms: 7.1732
+      type: 'test'
+      ...
+    # Subtest: getMode defaults to micro
+    ok 8 - getMode defaults to micro
+      ---
+      duration_ms: 13.6044
+      type: 'test'
+      ...
+    # Subtest: reads strict autonomy mode and the independent cruise budget
+    ok 9 - reads strict autonomy mode and the independent cruise budget
+      ---
+      duration_ms: 15.0671
+      type: 'test'
+      ...
+    # Subtest: versionExists detects existing spec
+    ok 10 - versionExists detects existing spec
+      ---
+      duration_ms: 10.9992
+      type: 'test'
+      ...
+    # Subtest: validates two-part and three-part spec versions
+    ok 11 - validates two-part and three-part spec versions
+      ---
+      duration_ms: 10.1769
+      type: 'test'
+      ...
+    # Subtest: parses two-part and three-part spec filenames
+    ok 12 - parses two-part and three-part spec filenames
+      ---
+      duration_ms: 10.683
+      type: 'test'
+      ...
+    # Subtest: normalizeSlug handles various inputs
+    ok 13 - normalizeSlug handles various inputs
+      ---
+      duration_ms: 15.4646
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec returns empty for empty dir
+    ok 14 - findLatestSpec returns empty for empty dir
+      ---
+      duration_ms: 14.689
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec finds the latest spec
+    ok 15 - findLatestSpec finds the latest spec
+      ---
+      duration_ms: 16.2946
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec prefers non-archived over a newer-mtime archived spec (AC-001)
+    ok 16 - findLatestSpec prefers non-archived over a newer-mtime archived spec (AC-001)
+      ---
+      duration_ms: 17.641
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec orders non-archived by date, not mtime (AC-002)
+    ok 17 - findLatestSpec orders non-archived by date, not mtime (AC-002)
+      ---
+      duration_ms: 10.447
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec breaks date ties by version (AC-003)
+    ok 18 - findLatestSpec breaks date ties by version (AC-003)
+      ---
+      duration_ms: 15.2741
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec sorts three-part versions by patch when dates tie
+    ok 19 - findLatestSpec sorts three-part versions by patch when dates tie
+      ---
+      duration_ms: 13.9072
+      type: 'test'
+      ...
+    # Subtest: getFrontmatterField reads YAML frontmatter
+    ok 20 - getFrontmatterField reads YAML frontmatter
+      ---
+      duration_ms: 13.3737
+      type: 'test'
+      ...
+    # Subtest: sectionIsEmpty detects empty sections
+    ok 21 - sectionIsEmpty detects empty sections
+      ---
+      duration_ms: 12.335
+      type: 'test'
+      ...
+    # Subtest: findSourceSpec finds by slug
+    ok 22 - findSourceSpec finds by slug
+      ---
+      duration_ms: 12.0693
+      type: 'test'
+      ...
+    # Subtest: findSourceSpec finds three-part versions by slug
+    ok 23 - findSourceSpec finds three-part versions by slug
+      ---
+      duration_ms: 17.2907
+      type: 'test'
+      ...
+    # Subtest: extractSection extracts content between headings
+    ok 24 - extractSection extracts content between headings
+      ---
+      duration_ms: 9.4448
+      type: 'test'
+      ...
+    1..24
+ok 147 - common.js utilities
+  ---
+  duration_ms: 306.3499
+  type: 'suite'
+  ...
+# Subtest: auxiliary spec name filtering (v4.13 AC-003)
+    # Subtest: isAuxiliarySpecName detects design/execute/learning artifacts only
+    ok 1 - isAuxiliarySpecName detects design/execute/learning artifacts only
+      ---
+      duration_ms: 11.7203
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec ignores auxiliary artifacts in specs dir
+    ok 2 - findLatestSpec ignores auxiliary artifacts in specs dir
+      ---
+      duration_ms: 13.0622
+      type: 'test'
+      ...
+    # Subtest: findLatestSpec returns empty when only auxiliary artifacts exist
+    ok 3 - findLatestSpec returns empty when only auxiliary artifacts exist
+      ---
+      duration_ms: 16.7246
+      type: 'test'
+      ...
+    1..3
+ok 148 - auxiliary spec name filtering (v4.13 AC-003)
+  ---
+  duration_ms: 42.9537
+  type: 'suite'
+  ...
+# Subtest: GET /api/project 返回安全的 missing Profile view
+ok 149 - GET /api/project 返回安全的 missing Profile view
+  ---
+  duration_ms: 70.8991
+  type: 'test'
+  ...
+# Subtest: GET /api/specs 为响应副本附加 Work State
+ok 150 - GET /api/specs 为响应副本附加 Work State
+  ---
+  duration_ms: 174.9911
+  type: 'test'
+  ...
+# Subtest: GET /api/specs 不污染 Spec index 缓存
+ok 151 - GET /api/specs 不污染 Spec index 缓存
+  ---
+  duration_ms: 156.6951
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id 同时返回 Quality blocking 和既有 Verification view
+ok 152 - GET /api/specs/:id 同时返回 Quality blocking 和既有 Verification view
+  ---
+  duration_ms: 201.6077
+  type: 'test'
+  ...
+# Subtest: Console API 将 confirmed Profile、exact Quality Plan 与 archived 边界一起投影
+ok 153 - Console API 将 confirmed Profile、exact Quality Plan 与 archived 边界一起投影
+  ---
+  duration_ms: 4344.4571
+  type: 'test'
+  ...
+# Subtest: Console detail 仅在请求内共享 assessment，并为新请求重新创建
+ok 154 - Console detail 仅在请求内共享 assessment，并为新请求重新创建
+  ---
+  duration_ms: 3429.7784
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id projects a stable unavailable detail when assessment throws
+ok 155 - GET /api/specs/:id projects a stable unavailable detail when assessment throws
+  ---
+  duration_ms: 142.0177
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id projects a stable unavailable detail when freshness throws
+ok 156 - GET /api/specs/:id projects a stable unavailable detail when freshness throws
+  ---
+  duration_ms: 2429.2036
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id appends a redacted v1 AC Coverage DTO
+ok 157 - GET /api/specs/:id appends a redacted v1 AC Coverage DTO
+  ---
+  duration_ms: 128.2363
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id returns a stable safe DTO when coverage records are missing
+ok 158 - GET /api/specs/:id returns a stable safe DTO when coverage records are missing
+  ---
+  duration_ms: 120.2808
+  type: 'test'
+  ...
+# Subtest: GET /api/specs/:id keeps a successful detail response when Coverage facts fail
+ok 159 - GET /api/specs/:id keeps a successful detail response when Coverage facts fail
+  ---
+  duration_ms: 125.4418
+  type: 'test'
+  ...
+# Subtest: 普通 Research 任务不因未来归档校验问题被标记为 Needs repair
+ok 160 - 普通 Research 任务不因未来归档校验问题被标记为 Needs repair
+  ---
+  duration_ms: 2.7664
+  type: 'test'
+  ...
+# Subtest: 只有显式失败的 Challenge verdict 才会派生 Needs repair
+ok 161 - 只有显式失败的 Challenge verdict 才会派生 Needs repair
+  ---
+  duration_ms: 0.2016
+  type: 'test'
+  ...
+# Subtest: 归档授权等待状态与普通进行中状态分离
+ok 162 - 归档授权等待状态与普通进行中状态分离
+  ---
+  duration_ms: 0.0977
+  type: 'test'
+  ...
+# Subtest: 归档生命周期始终显示 Archived
+ok 163 - 归档生命周期始终显示 Archived
+  ---
+  duration_ms: 0.086
+  type: 'test'
+  ...
+# Subtest: 仅缺 Plan 审批字段时显示 Awaiting plan approval
+ok 164 - 仅缺 Plan 审批字段时显示 Awaiting plan approval
+  ---
+  duration_ms: 0.2206
+  type: 'test'
+  ...
+# Subtest: 通过前置门禁但尚未 Challenge 时显示 Awaiting challenge
+ok 165 - 通过前置门禁但尚未 Challenge 时显示 Awaiting challenge
+  ---
+  duration_ms: 0.1471
+  type: 'test'
+  ...
+# Subtest: confirmed current Profile 只投影状态和白名单单元摘要
+ok 166 - confirmed current Profile 只投影状态和白名单单元摘要
+  ---
+  duration_ms: 0.5173
+  type: 'test'
+  ...
+# Subtest: missing current Profile 返回固定恢复诊断
+ok 167 - missing current Profile 返回固定恢复诊断
+  ---
+  duration_ms: 0.1206
+  type: 'test'
+  ...
+# Subtest: invalid current Profile 不泄漏原始异常
+ok 168 - invalid current Profile 不泄漏原始异常
+  ---
+  duration_ms: 0.3136
+  type: 'test'
+  ...
+# Subtest: 归档 Spec 不生成当前 Quality Plan
+ok 169 - 归档 Spec 不生成当前 Quality Plan
+  ---
+  duration_ms: 0.4376
+  type: 'test'
+  ...
+# Subtest: 活动 Spec 的 Quality Plan 只消费其 exact revision 输入和注入的 readiness summary
+ok 170 - 活动 Spec 的 Quality Plan 只消费其 exact revision 输入和注入的 readiness summary
+  ---
+  duration_ms: 0.5233
+  type: 'test'
+  ...
+# Subtest: Quality 输入已 blocking 时不读取 readiness 且保留恢复诊断
+ok 171 - Quality 输入已 blocking 时不读取 readiness 且保留恢复诊断
+  ---
+  duration_ms: 0.2271
+  type: 'test'
+  ...
+# Subtest: Quality source 不泄露父目录相对路径
+ok 172 - Quality source 不泄露父目录相对路径
+  ---
+  duration_ms: 0.2394
+  type: 'test'
+  ...
+# Subtest: Quality 诊断和 readiness 只输出白名单且脱敏
+ok 173 - Quality 诊断和 readiness 只输出白名单且脱敏
+  ---
+  duration_ms: 0.2192
+  type: 'test'
+  ...
+# Subtest: Quality 输入读取异常返回固定 unavailable 状态且不泄漏异常
+ok 174 - Quality 输入读取异常返回固定 unavailable 状态且不泄漏异常
+  ---
+  duration_ms: 0.0983
+  type: 'test'
+  ...
+# Subtest: Quality Plan 对 AC、策略焦点与映射执行白名单投影
+ok 175 - Quality Plan 对 AC、策略焦点与映射执行白名单投影
+  ---
+  duration_ms: 0.2424
+  type: 'test'
+  ...
+# Subtest: AC Coverage projector fails closed when Coverage facts are unavailable
+ok 176 - AC Coverage projector fails closed when Coverage facts are unavailable
+  ---
+  duration_ms: 0.1706
+  type: 'test'
+  ...
+# Subtest: AC Coverage projector fails closed when Coverage facts have an invalid shape
+ok 177 - AC Coverage projector fails closed when Coverage facts have an invalid shape
+  ---
+  duration_ms: 0.0799
+  type: 'test'
+  ...
+# Subtest: AC Coverage projector folds duplicate decisions and preserves invalid prior Test evidence
+ok 178 - AC Coverage projector folds duplicate decisions and preserves invalid prior Test evidence
+  ---
+  duration_ms: 0.3743
+  type: 'test'
+  ...
+# Subtest: AC Coverage projector treats an invalid SKIPPED approval timestamp as incomplete
+ok 179 - AC Coverage projector treats an invalid SKIPPED approval timestamp as incomplete
+  ---
+  duration_ms: 0.2458
+  type: 'test'
+  ...
+# Subtest: AC Coverage projector keeps a real ISO calendar timestamp approved
+ok 180 - AC Coverage projector keeps a real ISO calendar timestamp approved
+  ---
+  duration_ms: 0.158
+  type: 'test'
+  ...
+# Subtest: Console 把 Spec 态势板、Profile 与 Quality Plan 固定为只读 UI 契约
+ok 181 - Console 把 Spec 态势板、Profile 与 Quality Plan 固定为只读 UI 契约
+  ---
+  duration_ms: 2.9224
+  type: 'test'
+  ...
+# Subtest: Console AC Coverage renders only the DTO states and ignores validation prose
+ok 182 - Console AC Coverage renders only the DTO states and ignores validation prose
+  ---
+  duration_ms: 4.803
+  type: 'test'
+  ...
+# Subtest: Console AC Coverage shows a safe unavailable notice for absent or unsupported DTOs
+ok 183 - Console AC Coverage shows a safe unavailable notice for absent or unsupported DTOs
+  ---
+  duration_ms: 2.0433
+  type: 'test'
+  ...
+# Subtest: Console AC Coverage drops malicious or duplicate DTO entries and unrecognized diagnostics
+ok 184 - Console AC Coverage drops malicious or duplicate DTO entries and unrecognized diagnostics
+  ---
+  duration_ms: 2.7611
+  type: 'test'
+  ...
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-RtZiSy\\AGENTS.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-RtZiSy\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-RtZiSy\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-default-mode-RtZiSy\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.sdd-config already exists
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\AGENTS.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\CLAUDE.md refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.cursorrules refreshed SDD-RIPER block
+# [UPDATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.github\\copilot-instructions.md refreshed SDD-RIPER block
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9. Created: 12 files, Skipped: 1 files.
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.sdd-config already exists
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Use 'sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> ...' to create your first spec.
+# SDD initialized in C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-init-projection-4BWzS9. Created: 0 files, Skipped: 5 files.
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-0-u5rKzG\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-1-MtE1Ac\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-2-3L4Fgs\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-3-hfSX20\\.github\\copilot-instructions.md SDD-RIPER block already current
+# [MERGE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\AGENTS.md appended SDD-RIPER block
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\CLAUDE.md
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\.cursorrules
+# [CREATE] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\.github\\copilot-instructions.md
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\AGENTS.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\CLAUDE.md SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\.cursorrules SDD-RIPER block already current
+# [SKIP] C:\\Users\\liuyl\\AppData\\Local\\Temp\\sdd-governance-ai-malformed-4-smNiws\\.github\\copilot-instructions.md SDD-RIPER block already current
+# Subtest: exposes the governance default values
+ok 185 - exposes the governance default values
+  ---
+  duration_ms: 1.4219
+  type: 'test'
+  ...
+# Subtest: keeps governance defaults from being rebound by consumers
+ok 186 - keeps governance defaults from being rebound by consumers
+  ---
+  duration_ms: 0.12
+  type: 'test'
+  ...
+# Subtest: defines the micro Plan required and recommended fields
+ok 187 - defines the micro Plan required and recommended fields
+  ---
+  duration_ms: 0.1695
+  type: 'test'
+  ...
+# Subtest: returns isolated micro Plan field arrays
+ok 188 - returns isolated micro Plan field arrays
+  ---
+  duration_ms: 0.189
+  type: 'test'
+  ...
+# Subtest: requires a Provider only for e2e verification
+ok 189 - requires a Provider only for e2e verification
+  ---
+  duration_ms: 0.1194
+  type: 'test'
+  ...
+# Subtest: accepts auditable reviewers and limits inline to micro mode
+ok 190 - accepts auditable reviewers and limits inline to micro mode
+  ---
+  duration_ms: 0.2629
+  type: 'test'
+  ...
+# Subtest: exposes an immutable complete auditable reviewer identity list for CLI guidance
+ok 191 - exposes an immutable complete auditable reviewer identity list for CLI guidance
+  ---
+  duration_ms: 0.0926
+  type: 'test'
+  ...
+# Subtest: recognizes known Challenge verdicts and their routing targets
+ok 192 - recognizes known Challenge verdicts and their routing targets
+  ---
+  duration_ms: 0.1235
+  type: 'test'
+  ...
+# Subtest: publishes immutable verdicts and derives known and passing semantics from them
+ok 193 - publishes immutable verdicts and derives known and passing semantics from them
+  ---
+  duration_ms: 0.4921
+  type: 'test'
+  ...
+# Subtest: Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+ok 194 - Challenge command delegates verdict, reviewer, and backtrack rules to the governance Contract
+  ---
+  duration_ms: 33.171
+  type: 'test'
+  ...
+# Subtest: Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+ok 195 - Challenge command takes prompt and invalid-verdict lists from injected Contract verdicts
+  ---
+  duration_ms: 7.8888
+  type: 'test'
+  ...
+# Subtest: Challenge derives every inline reviewer hint from the governance Contract
+ok 196 - Challenge derives every inline reviewer hint from the governance Contract
+  ---
+  duration_ms: 4.1643
+  type: 'test'
+  ...
+# Subtest: validate delegates micro Plan fields to the governance Contract
+ok 197 - validate delegates micro Plan fields to the governance Contract
+  ---
+  duration_ms: 107.2068
+  type: 'test'
+  ...
+# Subtest: validate treats every legal nonpassing Contract verdict as an adversarial failure
+ok 198 - validate treats every legal nonpassing Contract verdict as an adversarial failure
+  ---
+  duration_ms: 135.9674
+  type: 'test'
+  ...
+# Subtest: spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+ok 199 - spec-state derives verdict exports, passing state, and failed routing from the governance Contract
+  ---
+  duration_ms: 4.4763
+  type: 'test'
+  ...
+# Subtest: verification readiness delegates e2e Provider requirements to the governance Contract
+ok 200 - verification readiness delegates e2e Provider requirements to the governance Contract
+  ---
+  duration_ms: 1.3616
+  type: 'test'
+  ...
+# Subtest: Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+ok 201 - Spec templates make the Contract mode fields and conditional E2E Provider rule visible
+  ---
+  duration_ms: 0.8631
+  type: 'test'
+  ...
+# Subtest: historical compatibility helper accepts the positive contract and rejects its antonym
+ok 202 - historical compatibility helper accepts the positive contract and rejects its antonym
+  ---
+  duration_ms: 0.5572
+  type: 'test'
+  ...
+# Subtest: precise references state the current workflow Provider requirement and positive legacy-read compatibility
+ok 203 - precise references state the current workflow Provider requirement and positive legacy-read compatibility
+  ---
+  duration_ms: 1.4495
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+ok 204 - SKILL visual section retains explicit activation and Agent baseline-mutation boundaries
+  ---
+  duration_ms: 1.1602
+  type: 'test'
+  ...
+# Subtest: SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+ok 205 - SKILL visual section retains approved fidelity Provider containment and freshness boundaries
+  ---
+  duration_ms: 0.8773
+  type: 'test'
+  ...
+# Subtest: REFERENCE visual section retains explicit human activation and baseline decisions
+ok 206 - REFERENCE visual section retains explicit human activation and baseline decisions
+  ---
+  duration_ms: 0.904
+  type: 'test'
+  ...
+# Subtest: REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+ok 207 - REFERENCE Provider section retains fidelity containment and stale evidence boundaries
+  ---
+  duration_ms: 0.8794
+  type: 'test'
+  ...
+# Subtest: paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+ok 208 - paragraphContainingTerms accepts reordered local terms and rejects cross-paragraph fallback
+  ---
+  duration_ms: 0.2576
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 209 - SKILL.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 0.3619
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual contract states that Provider scenario bindings are static and project-local
+ok 210 - SKILL.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 0.3176
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+ok 211 - REFERENCE.md visual contract states that baseline Context paths pass lexical and realpath project-local containment
+  ---
+  duration_ms: 1.0208
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+ok 212 - REFERENCE.md visual contract states that Provider scenario bindings are static and project-local
+  ---
+  duration_ms: 1.1741
+  type: 'test'
+  ...
+# Subtest: AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+ok 213 - AI guidance reuses explicit current-task intake and asks only for missing or ambiguous inputs
+  ---
+  duration_ms: 1.818
+  type: 'test'
+  ...
+# Subtest: ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+ok 214 - ordinary delegation uses judgment while standard/lite reviewers stay independent and authorized
+  ---
+  duration_ms: 0.9512
+  type: 'test'
+  ...
+# Subtest: Learning guidance retains important triggers, acceptance gaps and repeated failures
+ok 215 - Learning guidance retains important triggers, acceptance gaps and repeated failures
+  ---
+  duration_ms: 1.1711
+  type: 'test'
+  ...
+# Subtest: AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+ok 216 - AI guidance narrowly and proactively routes Profile and Quality without weakening hard stops
+  ---
+  duration_ms: 1.3297
+  type: 'test'
+  ...
+# Subtest: Completion documentation separates execution Coverage from the completion contract
+ok 217 - Completion documentation separates execution Coverage from the completion contract
+  ---
+  duration_ms: 1.1528
+  type: 'test'
+  ...
+# Subtest: archived v4.3 Execute Log template keeps Coverage out of completion-verification
+ok 218 - archived v4.3 Execute Log template keeps Coverage out of completion-verification
+  ---
+  duration_ms: 0.3741
+  type: 'test'
+  ...
+# Subtest: package description names the complete current RIPER lifecycle
+ok 219 - package description names the complete current RIPER lifecycle
+  ---
+  duration_ms: 0.2495
+  type: 'test'
+  ...
+# Subtest: AI config generator reads its default mode from the governance Contract
+ok 220 - AI config generator reads its default mode from the governance Contract
+  ---
+  duration_ms: 8.4782
+  type: 'test'
+  ...
+# Subtest: init refreshes all managed root AI blocks without touching project text or existing Cruise override
+ok 221 - init refreshes all managed root AI blocks without touching project text or existing Cruise override
+  ---
+  duration_ms: 46.0129
+  type: 'test'
+  ...
+# Subtest: AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+ok 222 - AI config generator preserves malformed markers, appends one managed block, and then stays byte-idempotent
+  ---
+  duration_ms: 62.2245
+  type: 'test'
+  ...
+# Subtest: 共享 immutable transaction 保持 staging、wx、附件、collision 与清理顺序
+ok 223 - 共享 immutable transaction 保持 staging、wx、附件、collision 与清理顺序
+  ---
+  duration_ms: 33.241
+  type: 'test'
+  ...
+# Subtest: learning trigger policy
+    # Subtest: keeps routine correction facts without requiring Learning: BUGFIX
+    ok 1 - keeps routine correction facts without requiring Learning: BUGFIX
+      ---
+      duration_ms: 1.9777
+      type: 'test'
+      ...
+    # Subtest: keeps routine correction facts without requiring Learning: DEVIATED_MINOR
+    ok 2 - keeps routine correction facts without requiring Learning: DEVIATED_MINOR
+      ---
+      duration_ms: 0.3506
+      type: 'test'
+      ...
+    # Subtest: keeps routine correction facts without requiring Learning: BUGFIX\\nStatus: DEVIATED_MINOR
+    ok 3 - keeps routine correction facts without requiring Learning: BUGFIX\\nStatus: DEVIATED_MINOR
+      ---
+      duration_ms: 0.1191
+      type: 'test'
+      ...
+    # Subtest: requires Learning for BUGFIX_ESCALATED alone and mixed with routine corrections
+    ok 4 - requires Learning for BUGFIX_ESCALATED alone and mixed with routine corrections
+      ---
+      duration_ms: 0.2509
+      type: 'test'
+      ...
+    # Subtest: requires Learning for DEVIATED_MAJOR alone and mixed with routine corrections
+    ok 5 - requires Learning for DEVIATED_MAJOR alone and mixed with routine corrections
+      ---
+      duration_ms: 0.1882
+      type: 'test'
+      ...
+    # Subtest: preserves concerns and reopened work even with routine corrections
+    ok 6 - preserves concerns and reopened work even with routine corrections
+      ---
+      duration_ms: 0.2621
+      type: 'test'
+      ...
+    1..6
+ok 224 - learning trigger policy
+  ---
+  duration_ms: 4.0985
+  type: 'suite'
+  ...
+# Subtest: learning recall
+    # Subtest: ranks a lexically relevant older learning above newer unrelated ones (AC-001)
+    ok 1 - ranks a lexically relevant older learning above newer unrelated ones (AC-001)
+      ---
+      duration_ms: 26.4263
+      type: 'test'
+      ...
+    # Subtest: falls back to mtime recency when nothing matches (AC-002)
+    ok 2 - falls back to mtime recency when nothing matches (AC-002)
+      ---
+      duration_ms: 16.1018
+      type: 'test'
+      ...
+    # Subtest: buildLearningIndex aggregates every learning with its match surface
+    ok 3 - buildLearningIndex aggregates every learning with its match surface
+      ---
+      duration_ms: 22.8374
+      type: 'test'
+      ...
+    1..3
+ok 225 - learning recall
+  ---
+  duration_ms: 65.778
+  type: 'suite'
+  ...
+# Subtest: 两个 Reporter wrapper 保持各自安全事件合同
+ok 226 - 两个 Reporter wrapper 保持各自安全事件合同
+  ---
+  duration_ms: 8.704
+  type: 'test'
+  ...
+# Subtest: 共享 Reporter factory 只负责固定生命周期，payload 与 capability 仍由 wrapper 固定
+ok 227 - 共享 Reporter factory 只负责固定生命周期，payload 与 capability 仍由 wrapper 固定
+  ---
+  duration_ms: 5.487
+  type: 'test'
+  ...
+# Subtest: 现有普通与 Visual result-contract 对受控终态保持完全等价
+ok 228 - 现有普通与 Visual result-contract 对受控终态保持完全等价
+  ---
+  duration_ms: 1.6412
+  type: 'test'
+  ...
+# Subtest: 共享 evaluator 保持两个旧入口的精确结果形状与优先级
+ok 229 - 共享 evaluator 保持两个旧入口的精确结果形状与优先级
+  ---
+  duration_ms: 0.5609
+  type: 'test'
+  ...
+# Subtest: profile detect emits clean JSON and remains read-only
+ok 230 - profile detect emits clean JSON and remains read-only
+  ---
+  duration_ms: 197.2017
+  type: 'test'
+  ...
+# Subtest: profile detect returns actionable empty state without creating a profile
+ok 231 - profile detect returns actionable empty state without creating a profile
+  ---
+  duration_ms: 203.0309
+  type: 'test'
+  ...
+# Subtest: profile review validates a saved and human-corrected candidate without writes
+ok 232 - profile review validates a saved and human-corrected candidate without writes
+  ---
+  duration_ms: 346.1631
+  type: 'test'
+  ...
+# Subtest: profile review rejects stale sources and candidate path escape
+ok 233 - profile review rejects stale sources and candidate path escape
+  ---
+  duration_ms: 463.4751
+  type: 'test'
+  ...
+# Subtest: profile confirm requires explicit authorization and emits a confirmed digest
+ok 234 - profile confirm requires explicit authorization and emits a confirmed digest
+  ---
+  duration_ms: 561.5621
+  type: 'test'
+  ...
+# Subtest: detects deterministic frontend backend contract units and internal relations
+ok 235 - detects deterministic frontend backend contract units and internal relations
+  ---
+  duration_ms: 74.1373
+  type: 'test'
+  ...
+# Subtest: models one package with frontend and backend roles instead of a fullstack label
+ok 236 - models one package with frontend and backend roles instead of a fullstack label
+  ---
+  duration_ms: 27.0812
+  type: 'test'
+  ...
+# Subtest: detects mixed-language manifest roots without executing build tools
+ok 237 - detects mixed-language manifest roots without executing build tools
+  ---
+  duration_ms: 42.7066
+  type: 'test'
+  ...
+# Subtest: returns an empty successful candidate without writing project files
+ok 238 - returns an empty successful candidate without writing project files
+  ---
+  duration_ms: 37.9894
+  type: 'test'
+  ...
+# Subtest: never executes or persists package script bodies and keeps unsupported roles unknown
+ok 239 - never executes or persists package script bodies and keeps unsupported roles unknown
+  ---
+  duration_ms: 27.5254
+  type: 'test'
+  ...
+# Subtest: discover binds exact immutable profile revision and normalized affected units
+ok 240 - discover binds exact immutable profile revision and normalized affected units
+  ---
+  duration_ms: 376.7108
+  type: 'test'
+  ...
+# Subtest: discover with confirmed profile rejects missing or unknown units before any artifact write
+ok 241 - discover with confirmed profile rejects missing or unknown units before any artifact write
+  ---
+  duration_ms: 404.3219
+  type: 'test'
+  ...
+# Subtest: discover preserves legacy behavior without current profile and accepts project scope with one
+ok 242 - discover preserves legacy behavior without current profile and accepts project scope with one
+  ---
+  duration_ms: 596.9525
+  type: 'test'
+  ...
+# Subtest: later current changes do not alter or remove historical Spec revision
+ok 243 - later current changes do not alter or remove historical Spec revision
+  ---
+  duration_ms: 394.1461
+  type: 'test'
+  ...
+# Subtest: validate checks declared immutable profile references without consulting current
+ok 244 - validate checks declared immutable profile references without consulting current
+  ---
+  duration_ms: 498.7307
+  type: 'test'
+  ...
+# Subtest: profile show resolves and validates current immutable revision
+ok 245 - profile show resolves and validates current immutable revision
+  ---
+  duration_ms: 264.8003
+  type: 'test'
+  ...
+# Subtest: profile check reports clean without writes when detected facts are unchanged
+ok 246 - profile check reports clean without writes when detected facts are unchanged
+  ---
+  duration_ms: 255.8838
+  type: 'test'
+  ...
+# Subtest: profile check reports bounded drift and never overwrites current
+ok 247 - profile check reports bounded drift and never overwrites current
+  ---
+  duration_ms: 224.6175
+  type: 'test'
+  ...
+# Subtest: human classification stays pinned but conflicting static evidence requires review
+ok 248 - human classification stays pinned but conflicting static evidence requires review
+  ---
+  duration_ms: 394.2515
+  type: 'test'
+  ...
+# Subtest: human roles are not pinned by unrelated human evidence or missing classification evidence
+ok 249 - human roles are not pinned by unrelated human evidence or missing classification evidence
+  ---
+  duration_ms: 511.2786
+  type: 'test'
+  ...
+# Subtest: human relations require valid relation evidence and matching endpoint roots
+ok 250 - human relations require valid relation evidence and matching endpoint roots
+  ---
+  duration_ms: 510.5522
+  type: 'test'
+  ...
+# Subtest: profile check reports missing current as an actionable read-only state
+ok 251 - profile check reports missing current as an actionable read-only state
+  ---
+  duration_ms: 179.6378
+  type: 'test'
+  ...
+# Subtest: profile v1 schema accepts exact candidate and rejects unknown or invalid facts
+ok 252 - profile v1 schema accepts exact candidate and rejects unknown or invalid facts
+  ---
+  duration_ms: 5.2509
+  type: 'test'
+  ...
+# Subtest: canonical profile digest ignores key and set ordering but changes with facts
+ok 253 - canonical profile digest ignores key and set ordering but changes with facts
+  ---
+  duration_ms: 5.385
+  type: 'test'
+  ...
+# Subtest: revision and current schemas verify digest and exact references
+ok 254 - revision and current schemas verify digest and exact references
+  ---
+  duration_ms: 7.2249
+  type: 'test'
+  ...
+# Subtest: profile boundary rejects lexical escapes and absolute paths
+ok 255 - profile boundary rejects lexical escapes and absolute paths
+  ---
+  duration_ms: 30.9209
+  type: 'test'
+  ...
+# Subtest: bounded walk skips ignored directories and fails on file budget
+ok 256 - bounded walk skips ignored directories and fails on file budget
+  ---
+  duration_ms: 53.9255
+  type: 'test'
+  ...
+# Subtest: explicit contained reads reject symlinks escaping project root
+ok 257 - explicit contained reads reject symlinks escaping project root # SKIP symlink unavailable: EPERM
+  ---
+  duration_ms: 17.7706
+  type: 'test'
+  ...
+# Subtest: confirm never creates a revision through an escaping profiles directory link
+ok 258 - confirm never creates a revision through an escaping profiles directory link
+  ---
+  duration_ms: 80.6471
+  type: 'test'
+  ...
+# Subtest: confirm requires complete human authorization before creating profile state
+ok 259 - confirm requires complete human authorization before creating profile state
+  ---
+  duration_ms: 52.6823
+  type: 'test'
+  ...
+# Subtest: confirm commits immutable revision before current and unchanged retry is idempotent
+ok 260 - confirm commits immutable revision before current and unchanged retry is idempotent
+  ---
+  duration_ms: 101.6921
+  type: 'test'
+  ...
+# Subtest: confirm rejects digest mismatch and stale candidates without changing current
+ok 261 - confirm rejects digest mismatch and stale candidates without changing current
+  ---
+  duration_ms: 47.435
+  type: 'test'
+  ...
+# Subtest: confirm lock is fail-fast and leaves profile state untouched
+ok 262 - confirm lock is fail-fast and leaves profile state untouched
+  ---
+  duration_ms: 41.9678
+  type: 'test'
+  ...
+# Subtest: pointer write failure preserves previous current and releases the lock
+ok 263 - pointer write failure preserves previous current and releases the lock
+  ---
+  duration_ms: 110.3862
+  type: 'test'
+  ...
+# Subtest: unlock failure is the controlling diagnostic and retains transaction error details
+ok 264 - unlock failure is the controlling diagnostic and retains transaction error details
+  ---
+  duration_ms: 52.2051
+  type: 'test'
+  ...
+# Subtest: init creates only the profile revisions skeleton and never detects or confirms
+ok 265 - init creates only the profile revisions skeleton and never detects or confirms
+  ---
+  duration_ms: 175.6191
+  type: 'test'
+  ...
+# Subtest: next resume and status surface exact bound profile context and cross-unit advisory
+ok 266 - next resume and status surface exact bound profile context and cross-unit advisory
+  ---
+  duration_ms: 1670.885
+  type: 'test'
+  ...
+# Subtest: generated agent instructions and source skill enforce exact revision and human confirm boundaries
+ok 267 - generated agent instructions and source skill enforce exact revision and human confirm boundaries
+  ---
+  duration_ms: 203.3317
+  type: 'test'
+  ...
+# Subtest: quality plan returns structured profile-required diagnostics without mutating the project
+ok 268 - quality plan returns structured profile-required diagnostics without mutating the project
+  ---
+  duration_ms: 331.59
+  type: 'test'
+  ...
+# Subtest: quality plan projects the existing required readiness only for provider-bound e2e ACs
+ok 269 - quality plan projects the existing required readiness only for provider-bound e2e ACs
+  ---
+  duration_ms: 347.5012
+  type: 'test'
+  ...
+# Subtest: quality plan preserves configured, blocked, and ready readiness snapshots without executing verification
+ok 270 - quality plan preserves configured, blocked, and ready readiness snapshots without executing verification
+  ---
+  duration_ms: 545.4959
+  type: 'test'
+  ...
+# Subtest: quality plan returns readiness-unavailable when existing e2e freshness cannot be inspected
+ok 271 - quality plan returns readiness-unavailable when existing e2e freshness cannot be inspected
+  ---
+  duration_ms: 160.8312
+  type: 'test'
+  ...
+# Subtest: quality plan uses the Spec-bound historical Profile and fail-closes incomplete exact references
+ok 272 - quality plan uses the Spec-bound historical Profile and fail-closes incomplete exact references
+  ---
+  duration_ms: 340.7977
+  type: 'test'
+  ...
+# Subtest: quality plan follows existing Spec selectors and rejects ambiguous selector usage
+ok 273 - quality plan follows existing Spec selectors and rejects ambiguous selector usage
+  ---
+  duration_ms: 678.1257
+  type: 'test'
+  ...
+# Subtest: quality plan rejects traversal and absolute Spec paths outside the project specs directory
+ok 274 - quality plan rejects traversal and absolute Spec paths outside the project specs directory
+  ---
+  duration_ms: 313.7161
+  type: 'test'
+  ...
+# Subtest: quality plan rejects a Spec link whose real path escapes the specs directory
+ok 275 - quality plan rejects a Spec link whose real path escapes the specs directory # SKIP 当前 Windows 未授予文件 symlink 权限
+  ---
+  duration_ms: 13.8702
+  type: 'test'
+  ...
+# Subtest: quality plan default selection rejects an escaping Spec link before reading external content
+ok 276 - quality plan default selection rejects an escaping Spec link before reading external content
+  ---
+  duration_ms: 46.2367
+  type: 'test'
+  ...
+# Subtest: quality plan accepts a docs-root link whose resolved target remains inside the project
+ok 277 - quality plan accepts a docs-root link whose resolved target remains inside the project
+  ---
+  duration_ms: 195.0975
+  type: 'test'
+  ...
+# Subtest: manual and unbound e2e facts never call or report Provider readiness
+ok 278 - manual and unbound e2e facts never call or report Provider readiness
+  ---
+  duration_ms: 337.535
+  type: 'test'
+  ...
+# Subtest: Quality composition short-circuits unbound E2E before readiness inspection
+ok 279 - Quality composition short-circuits unbound E2E before readiness inspection
+  ---
+  duration_ms: 21.93
+  type: 'test'
+  ...
+# Subtest: quality plan maps every existing Verification form while keeping AC facts separate from policy focus
+ok 280 - quality plan maps every existing Verification form while keeping AC facts separate from policy focus
+  ---
+  duration_ms: 325.4817
+  type: 'test'
+  ...
+# Subtest: quality plan is deterministic and Quality modules do not add execution primitives
+ok 281 - quality plan is deterministic and Quality modules do not add execution primitives
+  ---
+  duration_ms: 319.9332
+  type: 'test'
+  ...
+# Subtest: README and GUIDE describe quality plan according to their document roles
+ok 282 - README and GUIDE describe quality plan according to their document roles
+  ---
+  duration_ms: 0.6704
+  type: 'test'
+  ...
+# Subtest: quality plan rejects invalid format as a stable quality usage error
+ok 283 - quality plan rejects invalid format as a stable quality usage error
+  ---
+  duration_ms: 139.252
+  type: 'test'
+  ...
+# Subtest: Catalog v1 exposes only the approved role, relation, and verification mappings
+ok 284 - Catalog v1 exposes only the approved role, relation, and verification mappings
+  ---
+  duration_ms: 2.5814
+  type: 'test'
+  ...
+# Subtest: Catalog rules cannot be mutated by a planner caller
+ok 285 - Catalog rules cannot be mutated by a planner caller
+  ---
+  duration_ms: 0.5088
+  type: 'test'
+  ...
+# Subtest: Planner expands project scope, preserves reasons, and never claims AC coverage
+ok 286 - Planner expands project scope, preserves reasons, and never claims AC coverage
+  ---
+  duration_ms: 9.5363
+  type: 'test'
+  ...
+# Subtest: Planner routes every catalog role and only maps relations whose two endpoints are in scope
+ok 287 - Planner routes every catalog role and only maps relations whose two endpoints are in scope
+  ---
+  duration_ms: 0.8367
+  type: 'test'
+  ...
+# Subtest: Quality input resolves the Spec-bound immutable Profile and ignores commented AC scaffolding
+ok 288 - Quality input resolves the Spec-bound immutable Profile and ignores commented AC scaffolding
+  ---
+  duration_ms: 53.5961
+  type: 'test'
+  ...
+# Subtest: Planner preserves a corrupted Profile reference diagnostic without inventing profile-required
+ok 289 - Planner preserves a corrupted Profile reference diagnostic without inventing profile-required
+  ---
+  duration_ms: 0.4513
+  type: 'test'
+  ...
+# Subtest: Planner blocks mixed project scope and keeps single-ended relations outside explicit scope
+ok 290 - Planner blocks mixed project scope and keeps single-ended relations outside explicit scope
+  ---
+  duration_ms: 0.5618
+  type: 'test'
+  ...
+# Subtest: Planner fail-closes an unknown affected unit without expanding scope from relation facts
+ok 291 - Planner fail-closes an unknown affected unit without expanding scope from relation facts
+  ---
+  duration_ms: 0.5607
+  type: 'test'
+  ...
+# Subtest: authoritative workflow state matrix
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX
+    ok 1 - projects routine corrections consistently without a Learning gate: BUGFIX
+      ---
+      duration_ms: 1369.9467
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+    ok 2 - projects routine corrections consistently without a Learning gate: DEVIATED_MINOR
+      ---
+      duration_ms: 1247.5097
+      type: 'test'
+      ...
+    # Subtest: projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+    ok 3 - projects routine corrections consistently without a Learning gate: BUGFIX+DEVIATED_MINOR
+      ---
+      duration_ms: 1181.4868
+      type: 'test'
+      ...
+    # Subtest: routine corrections never waive acceptance, completion, Challenge or supervised approval
+    ok 4 - routine corrections never waive acceptance, completion, Challenge or supervised approval
+      ---
+      duration_ms: 2231.9148
+      type: 'test'
+      ...
+    # Subtest: routine corrections never authorize supervised continuation after scope, risk or Plan changes
+    ok 5 - routine corrections never authorize supervised continuation after scope, risk or Plan changes
+      ---
+      duration_ms: 1113.2575
+      type: 'test'
+      ...
+    # Subtest: exposes a pure evaluator with structured blockers and safe routing defaults
+    ok 6 - exposes a pure evaluator with structured blockers and safe routing defaults
+      ---
+      duration_ms: 2.0636
+      type: 'test'
+      ...
+    # Subtest: evaluateProjectSpec routes completed work to archive authorization without an archive action
+    ok 7 - evaluateProjectSpec routes completed work to archive authorization without an archive action
+      ---
+      duration_ms: 340.4883
+      type: 'test'
+      ...
+    # Subtest: rejects an unknown Challenge Verdict instead of deriving PASS
+    ok 8 - rejects an unknown Challenge Verdict instead of deriving PASS
+      ---
+      duration_ms: 431.9279
+      type: 'test'
+      ...
+    # Subtest: rejects Challenge Evidence that disagrees with the verdict summary pair
+    ok 9 - rejects Challenge Evidence that disagrees with the verdict summary pair
+      ---
+      duration_ms: 463.3057
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+    ok 10 - pure evaluator blocks mismatched Challenge evidence without validation pre-processing
+      ---
+      duration_ms: 485.6364
+      type: 'test'
+      ...
+    # Subtest: status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+    ok 11 - status, spec-index and workflow agree on mismatch, partial and stale Challenge evidence
+      ---
+      duration_ms: 1658.3965
+      type: 'test'
+      ...
+    # Subtest: lightweight project indexing cannot report malformed Acceptance as ready
+    ok 12 - lightweight project indexing cannot report malformed Acceptance as ready
+      ---
+      duration_ms: 326.3719
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on AC Coverage blockers
+    ok 13 - full, lightweight and project indexing agree on AC Coverage blockers
+      ---
+      duration_ms: 1003.0324
+      type: 'test'
+      ...
+    # Subtest: accepts a standard-order SKIPPED record with human approval after Scenarios
+    ok 14 - accepts a standard-order SKIPPED record with human approval after Scenarios
+      ---
+      duration_ms: 510.3636
+      type: 'test'
+      ...
+    # Subtest: latest AC Coverage result overrides an earlier PASS
+    ok 15 - latest AC Coverage result overrides an earlier PASS
+      ---
+      duration_ms: 988.1235
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree when the latest PASS Test file is missing
+    ok 16 - full, lightweight and project indexing agree when the latest PASS Test file is missing
+      ---
+      duration_ms: 332.9634
+      type: 'test'
+      ...
+    # Subtest: full, lightweight and project indexing agree on remaining archive-only blockers
+    ok 17 - full, lightweight and project indexing agree on remaining archive-only blockers
+      ---
+      duration_ms: 1491.3658
+      type: 'test'
+      ...
+    # Subtest: central evaluator enforces every required micro Plan field
+    ok 18 - central evaluator enforces every required micro Plan field
+      ---
+      duration_ms: 338.363
+      type: 'test'
+      ...
+    # Subtest: an active Spec cannot hide itself with status archived
+    ok 19 - an active Spec cannot hide itself with status archived
+      ---
+      duration_ms: 349.762
+      type: 'test'
+      ...
+    # Subtest: status prints authoritative blocker code and message
+    ok 20 - status prints authoritative blocker code and message
+      ---
+      duration_ms: 409.1943
+      type: 'test'
+      ...
+    # Subtest: pure evaluator blocks an incomplete completion contract without validation pre-processing
+    ok 21 - pure evaluator blocks an incomplete completion contract without validation pre-processing
+      ---
+      duration_ms: 309.9431
+      type: 'test'
+      ...
+    # Subtest: rejects a DONE completion block that has no four-axis or AC evidence
+    ok 22 - rejects a DONE completion block that has no four-axis or AC evidence
+      ---
+      duration_ms: 406.9241
+      type: 'test'
+      ...
+    # Subtest: rejects a completion-verification block with an invalid timestamp
+    ok 23 - rejects a completion-verification block with an invalid timestamp
+      ---
+      duration_ms: 330.7543
+      type: 'test'
+      ...
+    # Subtest: resume does not bypass Research when a signed Plan exists
+    ok 24 - resume does not bypass Research when a signed Plan exists
+      ---
+      duration_ms: 426.3322
+      type: 'test'
+      ...
+    # Subtest: PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+    ok 25 - PASS_WITH_CONCERNS converges to archive authorization after Learning is complete
+      ---
+      duration_ms: 602.9274
+      type: 'test'
+      ...
+    # Subtest: status does not report Challenge OK for an unknown verdict
+    ok 26 - status does not report Challenge OK for an unknown verdict
+      ---
+      duration_ms: 417.9647
+      type: 'test'
+      ...
+    # Subtest: spec-index does not report ready when completion-verification is blocked
+    ok 27 - spec-index does not report ready when completion-verification is blocked
+      ---
+      duration_ms: 308.3676
+      type: 'test'
+      ...
+    # Subtest: spec-index exposes the authoritative challenge phase after completion
+    ok 28 - spec-index exposes the authoritative challenge phase after completion
+      ---
+      duration_ms: 296.5367
+      type: 'test'
+      ...
+    # Subtest: archive generates a complete summary without unresolved placeholders
+    ok 29 - archive generates a complete summary without unresolved placeholders
+      ---
+      duration_ms: 395.2837
+      type: 'test'
+      ...
+    # Subtest: marks historical archives as read-only legacy without re-declaring current archive readiness
+    ok 30 - marks historical archives as read-only legacy without re-declaring current archive readiness
+      ---
+      duration_ms: 402.8752
+      type: 'test'
+      ...
+    # Subtest: requires an explicit Provider for every e2e AC
+    ok 31 - requires an explicit Provider for every e2e AC
+      ---
+      duration_ms: 0.4143
+      type: 'test'
+      ...
+    # Subtest: applies missing Provider blockers only to active e2e Specs, not real archive paths
+    ok 32 - applies missing Provider blockers only to active e2e Specs, not real archive paths
+      ---
+      duration_ms: 53.7387
+      type: 'test'
+      ...
+    # Subtest: keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+    ok 33 - keeps legacy snapshots without a location fail-closed for e2e Provider readiness
+      ---
+      duration_ms: 1.7536
+      type: 'test'
+      ...
+    # Subtest: reports configured providers without loading project code
+    ok 34 - reports configured providers without loading project code
+      ---
+      duration_ms: 6.0374
+      type: 'test'
+      ...
+    # Subtest: routes an unplanned missing Provider to the Plan gate
+    ok 35 - routes an unplanned missing Provider to the Plan gate
+      ---
+      duration_ms: 2.6156
+      type: 'test'
+      ...
+    1..35
+ok 292 - authoritative workflow state matrix
+  ---
+  duration_ms: 20240.3691
+  type: 'suite'
+  ...
+# Subtest: runSddCli uses the repository CLI and returns successful output
+ok 293 - runSddCli uses the repository CLI and returns successful output
+  ---
+  duration_ms: 137.3977
+  type: 'test'
+  ...
+# Subtest: runSddCli forwards the explicit cwd and env into the fixed CLI process
+ok 294 - runSddCli forwards the explicit cwd and env into the fixed CLI process
+  ---
+  duration_ms: 151.9877
+  type: 'test'
+  ...
+# Subtest: runSddCli returns combined output for a non-zero CLI result
+ok 295 - runSddCli returns combined output for a non-zero CLI result
+  ---
+  duration_ms: 145.9081
+  type: 'test'
+  ...
+# Subtest: 迁移目标保留原有的可观察测试行为
+ok 296 - 迁移目标保留原有的可观察测试行为
+  ---
+  duration_ms: 115.1592
+  type: 'test'
+  ...
+# Subtest: makeTempDir creates distinct directories using the caller prefix
+ok 297 - makeTempDir creates distinct directories using the caller prefix
+  ---
+  duration_ms: 3.6219
+  type: 'test'
+  ...
+# Subtest: writeText creates parent directories and preserves text exactly
+ok 298 - writeText creates parent directories and preserves text exactly
+  ---
+  duration_ms: 3.0599
+  type: 'test'
+  ...
+# Subtest: writeBuffer creates parent directories and preserves bytes exactly
+ok 299 - writeBuffer creates parent directories and preserves bytes exactly
+  ---
+  duration_ms: 5.2195
+  type: 'test'
+  ...
+# Subtest: writeJson creates parent directories and serializes the caller value
+ok 300 - writeJson creates parent directories and serializes the caller value
+  ---
+  duration_ms: 4.0827
+  type: 'test'
+  ...
+# [SDD_VERIFY_INJECTED_WRITE] injected write failure
+# [SDD_VERIFY_INIT_UNLOCK_FAILED] failed to release verification init lock; configuration may have been written, check .sdd-verification.json before retrying
+# [SDD_VERIFY_INIT_UNLOCK_FAILED] failed to release verification init lock; configuration may have been written, check .sdd-verification.json before retrying; original [SDD_VERIFY_INJECTED_WRITE] injected write failure
+# Subtest: verify init atomically creates a named configured provider without browser installation
+ok 301 - verify init atomically creates a named configured provider without browser installation
+  ---
+  duration_ms: 386.6018
+  type: 'test'
+  ...
+# Subtest: verify init fails fast when the project config lock already exists
+ok 302 - verify init fails fast when the project config lock already exists
+  ---
+  duration_ms: 176.2616
+  type: 'test'
+  ...
+# Subtest: verify init releases the lock and preserves original config when atomic write fails, then retry succeeds
+ok 303 - verify init releases the lock and preserves original config when atomic write fails, then retry succeeds
+  ---
+  duration_ms: 389.8964
+  type: 'test'
+  ...
+# Subtest: verify init reports an unlock-only failure with inspect-config guidance
+ok 304 - verify init reports an unlock-only failure with inspect-config guidance
+  ---
+  duration_ms: 163.1044
+  type: 'test'
+  ...
+# Subtest: verify init prioritizes unlock failure while preserving the transaction error diagnostic
+ok 305 - verify init prioritizes unlock failure while preserving the transaction error diagnostic
+  ---
+  duration_ms: 196.1227
+  type: 'test'
+  ...
+# Subtest: verify init runtime exposes only the single project lock contract and guide stays user-level
+ok 306 - verify init runtime exposes only the single project lock contract and guide stays user-level
+  ---
+  duration_ms: 0.7179
+  type: 'test'
+  ...
+# Subtest: verify init preserves the original config byte-for-byte when preflight fails
+ok 307 - verify init preserves the original config byte-for-byte when preflight fails
+  ---
+  duration_ms: 184.4519
+  type: 'test'
+  ...
+# Subtest: verify init rejects a config whose realpath escapes through a directory link
+ok 308 - verify init rejects a config whose realpath escapes through a directory link
+  ---
+  duration_ms: 194.1636
+  type: 'test'
+  ...
+# Subtest: verify help does not expose execution internals as provider options
+ok 309 - verify help does not expose execution internals as provider options
+  ---
+  duration_ms: 130.5028
+  type: 'test'
+  ...
+# Subtest: verify run executes the registered adapter and commits a fresh immutable PASS run
+ok 310 - verify run executes the registered adapter and commits a fresh immutable PASS run
+  ---
+  duration_ms: 4162.3675
+  type: 'test'
+  ...
+# Subtest: verify run aggregates fresh subset Runs before declaring complete provider coverage
+ok 311 - verify run aggregates fresh subset Runs before declaring complete provider coverage
+  ---
+  duration_ms: 2773.5341
+  type: 'test'
+  ...
+# Subtest: verify run validates raw identity fields before redacting persisted diagnostics
+ok 312 - verify run validates raw identity fields before redacting persisted diagnostics
+  ---
+  duration_ms: 2391.2755
+  type: 'test'
+  ...
+# Subtest: readiness uses the latest fresh evidence for each AC and project pair
+ok 313 - readiness uses the latest fresh evidence for each AC and project pair
+  ---
+  duration_ms: 1629.5055
+  type: 'test'
+  ...
+# Subtest: verify run blocks before adapter execution when Plan Gate is not approved
+ok 314 - verify run blocks before adapter execution when Plan Gate is not approved
+  ---
+  duration_ms: 675.1095
+  type: 'test'
+  ...
+# Subtest: verify run help exposes explicit environment authorization but no arbitrary command
+ok 315 - verify run help exposes explicit environment authorization but no arbitrary command
+  ---
+  duration_ms: 80.7647
+  type: 'test'
+  ...
+# Subtest: verify usage errors use a stable code and exit 3
+ok 316 - verify usage errors use a stable code and exit 3
+  ---
+  duration_ms: 77.6481
+  type: 'test'
+  ...
+# Subtest: browser missing after Reporter handshake is BLOCKED with an install suggestion
+ok 317 - browser missing after Reporter handshake is BLOCKED with an install suggestion
+  ---
+  duration_ms: 1223.8363
+  type: 'test'
+  ...
+# Subtest: business errors mentioning browser installation remain ordinary gate failures
+ok 318 - business errors mentioning browser installation remain ordinary gate failures
+  ---
+  duration_ms: 1190.9358
+  type: 'test'
+  ...
+# Subtest: pre-handshake business executable errors remain HANDSHAKE_FAILED
+ok 319 - pre-handshake business executable errors remain HANDSHAKE_FAILED
+  ---
+  duration_ms: 955.6559
+  type: 'test'
+  ...
+# Subtest: global setup browser missing with no tests still commits a BLOCKED Run
+ok 320 - global setup browser missing with no tests still commits a BLOCKED Run
+  ---
+  duration_ms: 1204.1548
+  type: 'test'
+  ...
+# Subtest: shared evaluator uses dynamic freshness and latest fresh evidence for each AC/project
+ok 321 - shared evaluator uses dynamic freshness and latest fresh evidence for each AC/project
+  ---
+  duration_ms: 2.3544
+  type: 'test'
+  ...
+# Subtest: run projection is a strict whitelist with secondary redaction and controlled attachments
+ok 322 - run projection is a strict whitelist with secondary redaction and controlled attachments
+  ---
+  duration_ms: 0.6943
+  type: 'test'
+  ...
+# Subtest: console projection exposes only referenced provider configuration and bounded run evidence
+ok 323 - console projection exposes only referenced provider configuration and bounded run evidence
+  ---
+  duration_ms: 6.1836
+  type: 'test'
+  ...
+# Subtest: temporary project cleanup requires prefix, temp containment, marker kind, token, and matching pid
+ok 324 - temporary project cleanup requires prefix, temp containment, marker kind, token, and matching pid
+  ---
+  duration_ms: 27.8308
+  type: 'test'
+  ...
+# Subtest: complete fresh evidence keeps Console ready despite historical stale runs and sanitizes matrix projects
+ok 325 - complete fresh evidence keeps Console ready despite historical stale runs and sanitizes matrix projects
+  ---
+  duration_ms: 1.3422
+  type: 'test'
+  ...
+# Subtest: redaction collisions never merge raw project identities in gate evaluation or Console matrix
+ok 326 - redaction collisions never merge raw project identities in gate evaluation or Console matrix
+  ---
+  duration_ms: 1.1653
+  type: 'test'
+  ...
+# Subtest: readiness assessment aggregates configured Provider Run evidence and inspect projects its summary
+ok 327 - readiness assessment aggregates configured Provider Run evidence and inspect projects its summary
+  ---
+  duration_ms: 1.9118
+  type: 'test'
+  ...
+# Subtest: assessment preserves inspect short-circuit summary while retaining later Provider evidence for Console
+ok 328 - assessment preserves inspect short-circuit summary while retaining later Provider evidence for Console
+  ---
+  duration_ms: 1.5543
+  type: 'test'
+  ...
+# Subtest: Console projection consumes an injected assessment without rereading dependencies and preserves redaction
+ok 329 - Console projection consumes an injected assessment without rereading dependencies and preserves redaction
+  ---
+  duration_ms: 1.3842
+  type: 'test'
+  ...
+# Subtest: separate readiness assessments recompute config Run and freshness facts
+ok 330 - separate readiness assessments recompute config Run and freshness facts
+  ---
+  duration_ms: 1.1713
+  type: 'test'
+  ...
+# Subtest: forged ready assessment is recomputed instead of deciding Console readiness
+ok 331 - forged ready assessment is recomputed instead of deciding Console readiness
+  ---
+  duration_ms: 0.8065
+  type: 'test'
+  ...
+# Subtest: forged assessment raw Provider and Run fields never reach Console JSON
+ok 332 - forged assessment raw Provider and Run fields never reach Console JSON
+  ---
+  duration_ms: 0.8855
+  type: 'test'
+  ...
+# Subtest: incomplete or tampered assessment is recomputed without TypeError or a false ready state
+ok 333 - incomplete or tampered assessment is recomputed without TypeError or a false ready state
+  ---
+  duration_ms: 2.3193
+  type: 'test'
+  ...
+# Subtest: accepts the exact v1 provider shape
+ok 334 - accepts the exact v1 provider shape
+  ---
+  duration_ms: 1.5943
+  type: 'test'
+  ...
+# Subtest: rejects execution internals and unknown provider fields
+ok 335 - rejects execution internals and unknown provider fields
+  ---
+  duration_ms: 1.113
+  type: 'test'
+  ...
+# Subtest: rejects invalid provider ids and top-level fields
+ok 336 - rejects invalid provider ids and top-level fields
+  ---
+  duration_ms: 1.3436
+  type: 'test'
+  ...
+# Subtest: registry exposes only the built-in playwright-test gate adapter
+ok 337 - registry exposes only the built-in playwright-test gate adapter
+  ---
+  duration_ms: 0.3209
+  type: 'test'
+  ...
+# Subtest: registry fails closed for deferred or custom adapters
+ok 338 - registry fails closed for deferred or custom adapters
+  ---
+  duration_ms: 0.2569
+  type: 'test'
+  ...
+# Subtest: gate resolution rejects a registered adapter without gate capability
+ok 339 - gate resolution rejects a registered adapter without gate capability
+  ---
+  duration_ms: 0.1935
+  type: 'test'
+  ...
+# Subtest: binds HEAD, staged, unstaged and untracked content into code state
+ok 340 - binds HEAD, staged, unstaged and untracked content into code state
+  ---
+  duration_ms: 2654.8289
+  type: 'test'
+  ...
+# Subtest: excludes docs root evidence output from code mutation checks
+ok 341 - excludes docs root evidence output from code mutation checks
+  ---
+  duration_ms: 1451.0655
+  type: 'test'
+  ...
+# Subtest: playwright-test adapter completes a real Chromium smoke contract
+ok 342 - playwright-test adapter completes a real Chromium smoke contract
+  ---
+  duration_ms: 8561.5671
+  type: 'test'
+  ...
+# Subtest: normalizes strict many-to-many AC coverage across projects
+ok 343 - normalizes strict many-to-many AC coverage across projects
+  ---
+  duration_ms: 5.9666
+  type: 'test'
+  ...
+# Subtest: fails closed for unknown tags or zero project coverage
+ok 344 - fails closed for unknown tags or zero project coverage
+  ---
+  duration_ms: 1.2025
+  type: 'test'
+  ...
+# Subtest: never treats retries, skips, expected failures or interruptions as PASS
+ok 345 - never treats retries, skips, expected failures or interruptions as PASS
+  ---
+  duration_ms: 0.7798
+  type: 'test'
+  ...
+# Subtest: reporter emits hello first and captures official TestCase tags and TestResult fields
+ok 346 - reporter emits hello first and captures official TestCase tags and TestResult fields
+  ---
+  duration_ms: 2.706
+  type: 'test'
+  ...
+# Subtest: process and onEnd anomalies can never preserve a PASS gate
+ok 347 - process and onEnd anomalies can never preserve a PASS gate
+  ---
+  duration_ms: 0.2128
+  type: 'test'
+  ...
+# Subtest: adapter derives a workspace-local browser cache without fingerprinting ambient browser path
+ok 348 - adapter derives a workspace-local browser cache without fingerprinting ambient browser path
+  ---
+  duration_ms: 2.9248
+  type: 'test'
+  ...
+# Subtest: atomically commits an immutable run and refuses collisions
+ok 349 - atomically commits an immutable run and refuses collisions
+  ---
+  duration_ms: 19.4323
+  type: 'test'
+  ...
+# Subtest: copies content-addressed attachments and rejects path escape
+ok 350 - copies content-addressed attachments and rejects path escape
+  ---
+  duration_ms: 24.9469
+  type: 'test'
+  ...
+# Subtest: rejects attachments outside the Provider workspaceRoot even when still inside the repository
+ok 351 - rejects attachments outside the Provider workspaceRoot even when still inside the repository
+  ---
+  duration_ms: 14.4932
+  type: 'test'
+  ...
+# Subtest: safe gateway fixes executable, reporter and shell boundary
+ok 352 - safe gateway fixes executable, reporter and shell boundary
+  ---
+  duration_ms: 0.5117
+  type: 'test'
+  ...
+# Subtest: rejects a malformed Run before creating any immutable directory
+ok 353 - rejects a malformed Run before creating any immutable directory
+  ---
+  duration_ms: 2.1042
+  type: 'test'
+  ...
+# Subtest: resolves npm, pnpm and Yarn node_modules hoists declared by an ancestor manifest
+ok 354 - resolves npm, pnpm and Yarn node_modules hoists declared by an ancestor manifest
+  ---
+  duration_ms: 75.7788
+  type: 'test'
+  ...
+# Subtest: accepts a direct declaration in the package manifest with a root hoist
+ok 355 - accepts a direct declaration in the package manifest with a root hoist
+  ---
+  duration_ms: 24.6495
+  type: 'test'
+  ...
+# Subtest: rejects transitive-only, missing installs, missing or ambiguous lockfiles
+ok 356 - rejects transitive-only, missing installs, missing or ambiguous lockfiles
+  ---
+  duration_ms: 86.8348
+  type: 'test'
+  ...
+# Subtest: rejects Yarn PnP, unsupported versions and path escape
+ok 357 - rejects Yarn PnP, unsupported versions and path escape
+  ---
+  duration_ms: 41.01
+  type: 'test'
+  ...
+# Subtest: rejects an empty lockfile instead of treating its filename as lock management evidence
+ok 358 - rejects an empty lockfile instead of treating its filename as lock management evidence
+  ---
+  duration_ms: 11.0063
+  type: 'test'
+  ...
+# Subtest: rejects a non-empty lockfile that does not lock the resolved Playwright version
+ok 359 - rejects a non-empty lockfile that does not lock the resolved Playwright version
+  ---
+  duration_ms: 75.5849
+  type: 'test'
+  ...
+# Subtest: accepts a modern Yarn node_modules lock stanza with an npm selector
+ok 360 - accepts a modern Yarn node_modules lock stanza with an npm selector
+  ---
+  duration_ms: 25.4143
+  type: 'test'
+  ...
+# Subtest: enforces the Adapter manifest runtime range
+ok 361 - enforces the Adapter manifest runtime range
+  ---
+  duration_ms: 0.3265
+  type: 'test'
+  ...
+# Subtest: rejects manifest and lockfile symlinks whose realpaths escape workspaceRoot
+ok 362 - rejects manifest and lockfile symlinks whose realpaths escape workspaceRoot # SKIP 当前 Windows 未授予文件 symlink 权限
+  ---
+  duration_ms: 12.059
+  type: 'test'
+  ...
+# Subtest: 发现本地混合视觉材料、低置信度场景线索和统一 URL 引用，且结果稳定只读
+ok 363 - 发现本地混合视觉材料、低置信度场景线索和统一 URL 引用，且结果稳定只读
+  ---
+  duration_ms: 90.7552
+  type: 'test'
+  ...
+# Subtest: 空 Context 报告明确缺口而非抛出异常
+ok 364 - 空 Context 报告明确缺口而非抛出异常
+  ---
+  duration_ms: 7.2765
+  type: 'test'
+  ...
+# Subtest: 仅含未知文件的 Context 只询问用途，不误报为空或要求补充材料
+ok 365 - 仅含未知文件的 Context 只询问用途，不误报为空或要求补充材料
+  ---
+  duration_ms: 13.9878
+  type: 'test'
+  ...
+# Subtest: 拒绝 Context 内逃逸链接且不读取外部材料
+ok 366 - 拒绝 Context 内逃逸链接且不读取外部材料
+  ---
+  duration_ms: 10.5555
+  type: 'test'
+  ...
+# Subtest: 为超深路径和过大文件返回稳定诊断且继续保持只读
+ok 367 - 为超深路径和过大文件返回稳定诊断且继续保持只读
+  ---
+  duration_ms: 36.9604
+  type: 'test'
+  ...
+# Subtest: 超过条目上限时给出稳定诊断并停止继续扫描
+ok 368 - 超过条目上限时给出稳定诊断并停止继续扫描
+  ---
+  duration_ms: 1348.1989
+  type: 'test'
+  ...
+# Subtest: 超过全局条目上限的结果不依赖目录枚举顺序
+ok 369 - 超过全局条目上限的结果不依赖目录枚举顺序
+  ---
+  duration_ms: 2306.7885
+  type: 'test'
+  ...
+# Subtest: 目录扫描使用逐项目录句柄，并在真实目录中保持稳定输出
+ok 370 - 目录扫描使用逐项目录句柄，并在真实目录中保持稳定输出
+  ---
+  duration_ms: 23.3649
+  type: 'test'
+  ...
+# Subtest: 受限文本仅用文件描述符读取前缀，发现前段 URL 而不读取后段 URL
+ok 371 - 受限文本仅用文件描述符读取前缀，发现前段 URL 而不读取后段 URL
+  ---
+  duration_ms: 16.4497
+  type: 'test'
+  ...
+# Subtest: realpath containment helper rejects an external child before directory or file access
+ok 372 - realpath containment helper rejects an external child before directory or file access
+  ---
+  duration_ms: 8.6075
+  type: 'test'
+  ...
+# [VISUAL_CONTEXT_ALREADY_SELECTED] VISUAL_CONTEXT_ALREADY_SELECTED: visual context intent is already recorded for this Spec
+# [VISUAL_CONTEXT_USAGE] VISUAL_CONTEXT_USAGE: --intent must be not-required, direction, or fidelity when --ui-impact is yes
+# [VISUAL_CONTEXT_SPEC_INVALID] VISUAL_CONTEXT_SPEC_INVALID: --spec must resolve to an active Spec
+# [VISUAL_CONTEXT_SPEC_INVALID] VISUAL_CONTEXT_SPEC_INVALID: --spec must resolve to an active Spec
+# [VISUAL_EVIDENCE_SPEC_INVALID] VISUAL_EVIDENCE_SPEC_INVALID: --spec must resolve to an active Spec
+# Subtest: 三种 Spec 模板包含空的视觉 Context 选择字段
+ok 373 - 三种 Spec 模板包含空的视觉 Context 选择字段
+  ---
+  duration_ms: 1.5282
+  type: 'test'
+  ...
+# Subtest: visual select 为前端 Spec 记录 direction 而不启用严格视觉合同
+ok 374 - visual select 为前端 Spec 记录 direction 而不启用严格视觉合同
+  ---
+  duration_ms: 546.9822
+  type: 'test'
+  ...
+# Subtest: visual select 对纯后端任务写入 not-applicable
+ok 375 - visual select 对纯后端任务写入 not-applicable
+  ---
+  duration_ms: 502.9178
+  type: 'test'
+  ...
+# Subtest: visual select 不允许覆盖已记录的一次性选择
+ok 376 - visual select 不允许覆盖已记录的一次性选择
+  ---
+  duration_ms: 668.9488
+  type: 'test'
+  ...
+# Subtest: visual select 允许纠正非法或矛盾的历史视觉选择
+ok 377 - visual select 允许纠正非法或矛盾的历史视觉选择
+  ---
+  duration_ms: 1053.4423
+  type: 'test'
+  ...
+# Subtest: visual select 拒绝缺少 intent 且不修改 Spec
+ok 378 - visual select 拒绝缺少 intent 且不修改 Spec
+  ---
+  duration_ms: 536.2547
+  type: 'test'
+  ...
+# Subtest: visual select 拒绝 archive 目录中的 Spec 且不修改它
+ok 379 - visual select 拒绝 archive 目录中的 Spec 且不修改它
+  ---
+  duration_ms: 511.4815
+  type: 'test'
+  ...
+# Subtest: visual init 与 select 都拒绝 specs 目录内 status archived 的 Spec 且不修改它
+ok 380 - visual init 与 select 都拒绝 specs 目录内 status archived 的 Spec 且不修改它
+  ---
+  duration_ms: 785.4913
+  type: 'test'
+  ...
+# Subtest: visual select 拒绝通过符号链接逃逸 active specs 目录的 Spec
+ok 381 - visual select 拒绝通过符号链接逃逸 active specs 目录的 Spec # SKIP 当前环境未授予文件符号链接权限
+  ---
+  duration_ms: 302.8538
+  type: 'test'
+  ...
+# Subtest: ui-impact=no 和 not-required 不产生视觉 Plan blocker
+ok 382 - ui-impact=no 和 not-required 不产生视觉 Plan blocker
+  ---
+  duration_ms: 230.7143
+  type: 'test'
+  ...
+# Subtest: 新前端 Spec 缺少 intent 时在 Plan 前提供一次性选择 blocker
+ok 383 - 新前端 Spec 缺少 intent 时在 Plan 前提供一次性选择 blocker
+  ---
+  duration_ms: 124.3797
+  type: 'test'
+  ...
+# Subtest: direction/fidelity 未启用严格合同仅给出 discover/init 指导
+ok 384 - direction/fidelity 未启用严格合同仅给出 discover/init 指导
+  ---
+  duration_ms: 209.3276
+  type: 'test'
+  ...
+# Subtest: archive-ready 不因新视觉意图字段新增 blocker，旧 Spec 也兼容
+ok 385 - archive-ready 不因新视觉意图字段新增 blocker，旧 Spec 也兼容
+  ---
+  duration_ms: 161.735
+  type: 'test'
+  ...
+# Subtest: archive-ready 工作流不注入视觉选择 blocker，但普通工作流仍会注入
+ok 386 - archive-ready 工作流不注入视觉选择 blocker，但普通工作流仍会注入
+  ---
+  duration_ms: 115.2358
+  type: 'test'
+  ...
+# Subtest: 严格视觉合同未就绪只阻塞普通 Plan 工作流，不污染 archive-ready 工作流
+ok 387 - 严格视觉合同未就绪只阻塞普通 Plan 工作流，不污染 archive-ready 工作流
+  ---
+  duration_ms: 111.6578
+  type: 'test'
+  ...
+# Subtest: 非法或矛盾的视觉选择在普通路径阻塞 Plan，archive-ready 路径保持不注入
+ok 388 - 非法或矛盾的视觉选择在普通路径阻塞 Plan，archive-ready 路径保持不注入
+  ---
+  duration_ms: 217.7274
+  type: 'test'
+  ...
+# Subtest: 新模板的双空字段要求确认 UI 影响，已确认前端单元时才阻塞 Plan
+ok 389 - 新模板的双空字段要求确认 UI 影响，已确认前端单元时才阻塞 Plan
+  ---
+  duration_ms: 309.1369
+  type: 'test'
+  ...
+# Subtest: backend-only Profile 跳过视觉提示，正文中的字段名不破坏旧 Spec 兼容
+ok 390 - backend-only Profile 跳过视觉提示，正文中的字段名不破坏旧 Spec 兼容
+  ---
+  duration_ms: 286.0024
+  type: 'test'
+  ...
+# Subtest: affected-units=project 聚合全部单元：含前端的项目要求选择，纯后端项目跳过
+ok 391 - affected-units=project 聚合全部单元：含前端的项目要求选择，纯后端项目跳过
+  ---
+  duration_ms: 318.1081
+  type: 'test'
+  ...
+# Subtest: 绑定前端或混合 Profile 的 Spec 拒绝选择 no，纯后端和未知 Profile 允许
+ok 392 - 绑定前端或混合 Profile 的 Spec 拒绝选择 no，纯后端和未知 Profile 允许
+  ---
+  duration_ms: 35.1532
+  type: 'test'
+  ...
+# Subtest: 手工写入的前端或混合 Profile 的 no/not-applicable 在普通工作流被拦截
+ok 393 - 手工写入的前端或混合 Profile 的 no/not-applicable 在普通工作流被拦截
+  ---
+  duration_ms: 258.0322
+  type: 'test'
+  ...
+# Subtest: pure Visual Contract inspection exposes only the stable contract projection
+ok 394 - pure Visual Contract inspection exposes only the stable contract projection
+  ---
+  duration_ms: 23.9669
+  type: 'test'
+  ...
+# Subtest: pure Visual Contract inspection ignores malformed runtime Visual Run evidence
+ok 395 - pure Visual Contract inspection ignores malformed runtime Visual Run evidence
+  ---
+  duration_ms: 18.8602
+  type: 'test'
+  ...
+# Subtest: visual init 为指定活动 Spec 创建 direction 清单并写入 opt-in 引用
+ok 396 - visual init 为指定活动 Spec 创建 direction 清单并写入 opt-in 引用
+  ---
+  duration_ms: 548.3142
+  type: 'test'
+  ...
+# Subtest: visual init 拒绝通过符号链接逃逸 active specs 目录的 Spec
+ok 397 - visual init 拒绝通过符号链接逃逸 active specs 目录的 Spec # SKIP 当前环境未授予文件符号链接权限
+  ---
+  duration_ms: 4.098
+  type: 'test'
+  ...
+# Subtest: visual discover 对已选择 direction 的活动 Spec 输出稳定分区且不写入任何制品
+ok 398 - visual discover 对已选择 direction 的活动 Spec 输出稳定分区且不写入任何制品
+  ---
+  duration_ms: 712.3023
+  type: 'test'
+  ...
+# Subtest: visual discover 对空 Context 和非活动 Spec 返回可预测结果
+ok 399 - visual discover 对空 Context 和非活动 Spec 返回可预测结果
+  ---
+  duration_ms: 741.2531
+  type: 'test'
+  ...
+# Subtest: direction 模式在方向已批准且首版基线待补齐时允许进入 Plan
+ok 400 - direction 模式在方向已批准且首版基线待补齐时允许进入 Plan
+  ---
+  duration_ms: 11.0631
+  type: 'test'
+  ...
+# Subtest: 拒绝位于任务 Context 外的视觉清单
+ok 401 - 拒绝位于任务 Context 外的视觉清单
+  ---
+  duration_ms: 6.3487
+  type: 'test'
+  ...
+# Subtest: fidelity 模式在来源与基线均已批准时报告为 ready
+ok 402 - fidelity 模式在来源与基线均已批准时报告为 ready
+  ---
+  duration_ms: 31.9486
+  type: 'test'
+  ...
+# Subtest: 拒绝借由 Context 内符号链接逃逸的视觉清单
+ok 403 - 拒绝借由 Context 内符号链接逃逸的视觉清单
+  ---
+  duration_ms: 16.9044
+  type: 'test'
+  ...
+# Subtest: 拒绝缺少场景 route、state 或有效视口的 direction 清单
+ok 404 - 拒绝缺少场景 route、state 或有效视口的 direction 清单
+  ---
+  duration_ms: 17.7205
+  type: 'test'
+  ...
+# Subtest: 拒绝形状正确但不可解析的视觉合同批准时间
+ok 405 - 拒绝形状正确但不可解析的视觉合同批准时间
+  ---
+  duration_ms: 7.2339
+  type: 'test'
+  ...
+# Subtest: 拒绝 direction 模式中位于 Context 外的已批准基线
+ok 406 - 拒绝 direction 模式中位于 Context 外的已批准基线
+  ---
+  duration_ms: 11.7957
+  type: 'test'
+  ...
+# Subtest: 拒绝 direction 模式中借由 Context 内链接逃逸的已批准基线
+ok 407 - 拒绝 direction 模式中借由 Context 内链接逃逸的已批准基线
+  ---
+  duration_ms: 13.3665
+  type: 'test'
+  ...
+# Subtest: 拒绝 direction 模式中未知的基线状态
+ok 408 - 拒绝 direction 模式中未知的基线状态
+  ---
+  duration_ms: 8.3122
+  type: 'test'
+  ...
+# Subtest: 视觉能力路由存在于权威来源，而非用户入口文档
+ok 409 - 视觉能力路由存在于权威来源，而非用户入口文档
+  ---
+  duration_ms: 4.3585
+  type: 'test'
+  ...
+# Subtest: README、GUIDE、SKILL 与 REFERENCE 保留视觉材料的只读安全边界
+ok 410 - README、GUIDE、SKILL 与 REFERENCE 保留视觉材料的只读安全边界
+  ---
+  duration_ms: 2.017
+  type: 'test'
+  ...
+# Subtest: README.md visual section defines the current-Spec baseline as a frozen user-recognized target UI PNG
+ok 411 - README.md visual section defines the current-Spec baseline as a frozen user-recognized target UI PNG
+  ---
+  duration_ms: 1.5455
+  type: 'test'
+  ...
+# Subtest: README.md visual section says a new Spec can directly use the latest UI PNG
+ok 412 - README.md visual section says a new Spec can directly use the latest UI PNG
+  ---
+  duration_ms: 0.4757
+  type: 'test'
+  ...
+# Subtest: README.md visual section treats old screenshots as optional Context, not a cross-Spec historical library
+ok 413 - README.md visual section treats old screenshots as optional Context, not a cross-Spec historical library
+  ---
+  duration_ms: 0.5547
+  type: 'test'
+  ...
+# Subtest: README.md visual section links to the exact Visual Context Guidance reference
+ok 414 - README.md visual section links to the exact Visual Context Guidance reference
+  ---
+  duration_ms: 0.363
+  type: 'test'
+  ...
+# Subtest: GUIDE.md visual section starts the UI flow from the latest target image confirmed by the current user
+ok 415 - GUIDE.md visual section starts the UI flow from the latest target image confirmed by the current user
+  ---
+  duration_ms: 0.8968
+  type: 'test'
+  ...
+# Subtest: GUIDE.md visual section has AI explain why it recommends direction or fidelity
+ok 416 - GUIDE.md visual section has AI explain why it recommends direction or fidelity
+  ---
+  duration_ms: 0.6634
+  type: 'test'
+  ...
+# Subtest: GUIDE.md visual section verifies a post-development current screenshot at exactly matching pixel width and height
+ok 417 - GUIDE.md visual section verifies a post-development current screenshot at exactly matching pixel width and height
+  ---
+  duration_ms: 0.9017
+  type: 'test'
+  ...
+# Subtest: GUIDE.md visual section does not require an old-page screenshot before strict visual verification
+ok 418 - GUIDE.md visual section does not require an old-page screenshot before strict visual verification
+  ---
+  duration_ms: 0.9335
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section defines scenario.baseline.path and scenario.baseline.status
+ok 419 - REFERENCE.md visual section defines scenario.baseline.path and scenario.baseline.status
+  ---
+  duration_ms: 1.8128
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section defines baseline as current-Spec state rather than cross-Spec management
+ok 420 - REFERENCE.md visual section defines baseline as current-Spec state rather than cross-Spec management
+  ---
+  duration_ms: 0.6828
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section requires a decodable PNG for fidelity
+ok 421 - REFERENCE.md visual section requires a decodable PNG for fidelity
+  ---
+  duration_ms: 0.8705
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section requires explicit scenario, route, state, and viewport
+ok 422 - REFERENCE.md visual section requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.7984
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section requires target and current pixel width and height to match exactly
+ok 423 - REFERENCE.md visual section requires target and current pixel width and height to match exactly
+  ---
+  duration_ms: 2.6261
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section requires stable test data, fonts, and assets
+ok 424 - REFERENCE.md visual section requires stable test data, fonts, and assets
+  ---
+  duration_ms: 1.4758
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section keeps candidates and defaults unapproved and forbids an automatic baseline lifecycle
+ok 425 - REFERENCE.md visual section keeps candidates and defaults unapproved and forbids an automatic baseline lifecycle
+  ---
+  duration_ms: 1.2171
+  type: 'test'
+  ...
+# Subtest: REFERENCE.md visual section documents both path containment and stale-result handling
+ok 426 - REFERENCE.md visual section documents both path containment and stale-result handling
+  ---
+  duration_ms: 0.9364
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md visual section requires the current user to confirm the latest target UI PNG
+ok 427 - TEAM-GUIDE.md visual section requires the current user to confirm the latest target UI PNG
+  ---
+  duration_ms: 0.8794
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md visual section assigns stable environment and static project-local mapping to the team or Provider maintainer
+ok 428 - TEAM-GUIDE.md visual section assigns stable environment and static project-local mapping to the team or Provider maintainer
+  ---
+  duration_ms: 0.7799
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md visual section forbids a worker from reusing stale evidence and requires a fresh record
+ok 429 - TEAM-GUIDE.md visual section forbids a worker from reusing stale evidence and requires a fresh record
+  ---
+  duration_ms: 0.9022
+  type: 'test'
+  ...
+# Subtest: TEAM-GUIDE.md visual section forbids the automatic baseline lifecycle
+ok 430 - TEAM-GUIDE.md visual section forbids the automatic baseline lifecycle
+  ---
+  duration_ms: 1.1502
+  type: 'test'
+  ...
+# Subtest: baseline rule helper accepts reverse word order and rejects historical-library or automatic-management claims
+ok 431 - baseline rule helper accepts reverse word order and rejects historical-library or automatic-management claims
+  ---
+  duration_ms: 0.808
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that fidelity requires a decodable PNG
+ok 432 - SKILL.md visual section states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.745
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+ok 433 - SKILL.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.4983
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that fidelity requires comparable target and current dimensions
+ok 434 - SKILL.md visual section states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 1.7559
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that fidelity requires stable data, fonts, and assets
+ok 435 - SKILL.md visual section states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.4999
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that otherwise routes to direction
+ok 436 - SKILL.md visual section states that otherwise routes to direction
+  ---
+  duration_ms: 0.7164
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that the Agent explains why it recommends direction or fidelity
+ok 437 - SKILL.md visual section states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.6057
+  type: 'test'
+  ...
+# Subtest: SKILL.md visual section states that candidate and default images do not constitute human approval
+ok 438 - SKILL.md visual section states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.4728
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that fidelity requires a decodable PNG
+ok 439 - protocols/sdd-riper-one.md visual section states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.3857
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+ok 440 - protocols/sdd-riper-one.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.2352
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that fidelity requires comparable target and current dimensions
+ok 441 - protocols/sdd-riper-one.md visual section states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.4294
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that fidelity requires stable data, fonts, and assets
+ok 442 - protocols/sdd-riper-one.md visual section states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.2583
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that otherwise routes to direction
+ok 443 - protocols/sdd-riper-one.md visual section states that otherwise routes to direction
+  ---
+  duration_ms: 0.3006
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that the Agent explains why it recommends direction or fidelity
+ok 444 - protocols/sdd-riper-one.md visual section states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.2692
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one.md visual section states that candidate and default images do not constitute human approval
+ok 445 - protocols/sdd-riper-one.md visual section states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.3341
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that fidelity requires a decodable PNG
+ok 446 - protocols/sdd-riper-one-light.md visual section states that fidelity requires a decodable PNG
+  ---
+  duration_ms: 0.4095
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+ok 447 - protocols/sdd-riper-one-light.md visual section states that fidelity requires explicit scenario, route, state, and viewport
+  ---
+  duration_ms: 0.2376
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that fidelity requires comparable target and current dimensions
+ok 448 - protocols/sdd-riper-one-light.md visual section states that fidelity requires comparable target and current dimensions
+  ---
+  duration_ms: 0.2034
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that fidelity requires stable data, fonts, and assets
+ok 449 - protocols/sdd-riper-one-light.md visual section states that fidelity requires stable data, fonts, and assets
+  ---
+  duration_ms: 0.205
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that otherwise routes to direction
+ok 450 - protocols/sdd-riper-one-light.md visual section states that otherwise routes to direction
+  ---
+  duration_ms: 0.1822
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that the Agent explains why it recommends direction or fidelity
+ok 451 - protocols/sdd-riper-one-light.md visual section states that the Agent explains why it recommends direction or fidelity
+  ---
+  duration_ms: 0.2555
+  type: 'test'
+  ...
+# Subtest: protocols/sdd-riper-one-light.md visual section states that candidate and default images do not constitute human approval
+ok 452 - protocols/sdd-riper-one-light.md visual section states that candidate and default images do not constitute human approval
+  ---
+  duration_ms: 0.1997
+  type: 'test'
+  ...
+# Subtest: spec-standard.md 为视觉合同保留默认关闭的 frontmatter 字段
+ok 453 - spec-standard.md 为视觉合同保留默认关闭的 frontmatter 字段
+  ---
+  duration_ms: 2.9103
+  type: 'test'
+  ...
+# Subtest: spec-lite.md 为视觉合同保留默认关闭的 frontmatter 字段
+ok 454 - spec-lite.md 为视觉合同保留默认关闭的 frontmatter 字段
+  ---
+  duration_ms: 0.4194
+  type: 'test'
+  ...
+# Subtest: spec-micro.md 为视觉合同保留默认关闭的 frontmatter 字段
+ok 455 - spec-micro.md 为视觉合同保留默认关闭的 frontmatter 字段
+  ---
+  duration_ms: 0.2864
+  type: 'test'
+  ...
+# Subtest: 普通 validate 与 next 投影已启用但待批准的视觉合同
+ok 456 - 普通 validate 与 next 投影已启用但待批准的视觉合同
+  ---
+  duration_ms: 151.2206
+  type: 'test'
+  ...
+# warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+# warning: in the working copy of 'mydocs/specs/v1.0-checkout-ui.md', LF will be replaced by CRLF the next time Git touches it
+# warning: in the working copy of 'sdd.visual.config.json', LF will be replaced by CRLF the next time Git touches it
+# Subtest: compatibility projection preserves Visual Run semantics without touching verification Runs
+ok 457 - compatibility projection preserves Visual Run semantics without touching verification Runs
+  ---
+  duration_ms: 1880.1729
+  type: 'test'
+  ...
+# Subtest: verify visual treats direction contracts as not applicable and never creates a visual Run
+ok 458 - verify visual treats direction contracts as not applicable and never creates a visual Run
+  ---
+  duration_ms: 176.3469
+  type: 'test'
+  ...
+# Subtest: verify visual fails closed before browser execution when a fidelity contract has no configured visual provider
+ok 459 - verify visual fails closed before browser execution when a fidelity contract has no configured visual provider
+  ---
+  duration_ms: 160.5254
+  type: 'test'
+  ...
+# Subtest: verify init permits the dedicated visual adapter while preserving the controlled workspace contract
+ok 460 - verify init permits the dedicated visual adapter while preserving the controlled workspace contract
+  ---
+  duration_ms: 196.9027
+  type: 'test'
+  ...
+# Subtest: loads only the exact static visual scenario bindings inside the package root
+ok 461 - loads only the exact static visual scenario bindings inside the package root
+  ---
+  duration_ms: 12.0983
+  type: 'test'
+  ...
+# Subtest: rejects arbitrary execution inputs, paths outside the package root, and unknown Playwright projects
+ok 462 - rejects arbitrary execution inputs, paths outside the package root, and unknown Playwright projects
+  ---
+  duration_ms: 22.6976
+  type: 'test'
+  ...
+# Subtest: accepts only static pixel rectangles for masks, never selectors or runtime expressions
+ok 463 - accepts only static pixel rectangles for masks, never selectors or runtime expressions
+  ---
+  duration_ms: 14.5028
+  type: 'test'
+  ...
+# Subtest: requires one binding for every fidelity scenario and rejects unbound or stale config ids
+ok 464 - requires one binding for every fidelity scenario and rejects unbound or stale config ids
+  ---
+  duration_ms: 8.7335
+  type: 'test'
+  ...
+# Subtest: registers a separate visual-only Playwright adapter without changing the e2e gate adapter
+ok 465 - registers a separate visual-only Playwright adapter without changing the e2e gate adapter
+  ---
+  duration_ms: 0.3727
+  type: 'test'
+  ...
+# Subtest: returns an auditable PASS when every pixel is within the explicit threshold
+ok 466 - returns an auditable PASS when every pixel is within the explicit threshold
+  ---
+  duration_ms: 3.1705
+  type: 'test'
+  ...
+# Subtest: returns FAIL and a per-pixel diff artifact when the changed ratio exceeds the explicit threshold
+ok 467 - returns FAIL and a per-pixel diff artifact when the changed ratio exceeds the explicit threshold
+  ---
+  duration_ms: 0.3329
+  type: 'test'
+  ...
+# Subtest: excludes only explicitly configured static mask rectangles from pixel comparison
+ok 468 - excludes only explicitly configured static mask rectangles from pixel comparison
+  ---
+  duration_ms: 0.322
+  type: 'test'
+  ...
+# Subtest: rejects images with different dimensions even when both contain complete RGBA data
+ok 469 - rejects images with different dimensions even when both contain complete RGBA data
+  ---
+  duration_ms: 0.4276
+  type: 'test'
+  ...
+# Subtest: rejects images with incomplete RGBA data
+ok 470 - rejects images with incomplete RGBA data
+  ---
+  duration_ms: 0.2739
+  type: 'test'
+  ...
+# Subtest: normalizes exactly one current screenshot from the static scenario binding
+ok 471 - normalizes exactly one current screenshot from the static scenario binding
+  ---
+  duration_ms: 2.7943
+  type: 'test'
+  ...
+# Subtest: fails closed for unknown, duplicated, or unstable screenshot events
+ok 472 - fails closed for unknown, duplicated, or unstable screenshot events
+  ---
+  duration_ms: 0.7018
+  type: 'test'
+  ...
+# Subtest: reporter emits a visual-gate handshake and only official attachment metadata
+ok 473 - reporter emits a visual-gate handshake and only official attachment metadata
+  ---
+  duration_ms: 4.5605
+  type: 'test'
+  ...
+# Subtest: process or Reporter terminal anomalies cannot preserve a visual PASS
+ok 474 - process or Reporter terminal anomalies cannot preserve a visual PASS
+  ---
+  duration_ms: 0.2711
+  type: 'test'
+  ...
+# Subtest: gateway only adds prevalidated static test files after the Playwright argument boundary
+ok 475 - gateway only adds prevalidated static test files after the Playwright argument boundary
+  ---
+  duration_ms: 0.4774
+  type: 'test'
+  ...
+# Subtest: playwright-visual creates auditable PASS and FAIL visual Runs from approved baselines
+ok 476 - playwright-visual creates auditable PASS and FAIL visual Runs from approved baselines
+  ---
+  duration_ms: 19945.8597
+  type: 'test'
+  ...
+# warning: in the working copy of '.gitignore', LF will be replaced by CRLF the next time Git touches it
+# warning: in the working copy of 'mydocs/specs/v1.0-checkout-ui.md', LF will be replaced by CRLF the next time Git touches it
+# warning: in the working copy of 'sdd.visual.config.json', LF will be replaced by CRLF the next time Git touches it
+# Subtest: visual contract projects the latest matching visual Run without changing e2e readiness semantics
+ok 477 - visual contract projects the latest matching visual Run without changing e2e readiness semantics
+  ---
+  duration_ms: 1516.2693
+  type: 'test'
+  ...
+# Subtest: commits a visual-only immutable run under its own namespace
+ok 478 - commits a visual-only immutable run under its own namespace
+  ---
+  duration_ms: 19.2284
+  type: 'test'
+  ...
+# Subtest: content-addresses current and diff attachments while retaining the immutable baseline reference only as a digest
+ok 479 - content-addresses current and diff attachments while retaining the immutable baseline reference only as a digest
+  ---
+  duration_ms: 27.3723
+  type: 'test'
+  ...
+# Subtest: rejects e2e AC targets, unsafe attachments, and PASS conclusions that exceed a configured threshold
+ok 480 - rejects e2e AC targets, unsafe attachments, and PASS conclusions that exceed a configured threshold
+  ---
+  duration_ms: 11.9234
+  type: 'test'
+  ...
+# Subtest: collectGateFacts inspects active Provider readiness once and returns that inspection
+ok 481 - collectGateFacts inspects active Provider readiness once and returns that inspection
+  ---
+  duration_ms: 12.0471
+  type: 'test'
+  ...
+# Subtest: collectGateFacts centralizes structural gate facts for independent consumers
+ok 482 - collectGateFacts centralizes structural gate facts for independent consumers
+  ---
+  duration_ms: 3.2257
+  type: 'test'
+  ...
+# Subtest: evaluate reuses one active Provider readiness inspection for blockers and facts
+ok 483 - evaluate reuses one active Provider readiness inspection for blockers and facts
+  ---
+  duration_ms: 4.117
+  type: 'test'
+  ...
+# Subtest: validateSpec shares one Provider readiness inspection with archive-ready workflow evaluation
+ok 484 - validateSpec shares one Provider readiness inspection with archive-ready workflow evaluation
+  ---
+  duration_ms: 116.9138
+  type: 'test'
+  ...
+# Subtest: validateSpec preserves the active Provider diagnostic during regular validation
+ok 485 - validateSpec preserves the active Provider diagnostic during regular validation
+  ---
+  duration_ms: 97.7125
+  type: 'test'
+  ...
+# Subtest: validateSpec maps the shared Plan approval fact in regular diagnostic mode
+ok 486 - validateSpec maps the shared Plan approval fact in regular diagnostic mode
+  ---
+  duration_ms: 82.1384
+  type: 'test'
+  ...
+# Subtest: validateSpec maps the shared Confirmed Requirement fact in regular diagnostic mode
+ok 487 - validateSpec maps the shared Confirmed Requirement fact in regular diagnostic mode
+  ---
+  duration_ms: 87.65
+  type: 'test'
+  ...
+# Subtest: collectGateFacts skips only explicit archive snapshots and keeps legacy snapshots fail-closed
+ok 488 - collectGateFacts skips only explicit archive snapshots and keeps legacy snapshots fail-closed
+  ---
+  duration_ms: 1.5378
+  type: 'test'
+  ...
+# Subtest: evaluate refreshes Provider readiness for each evaluation
+ok 489 - evaluate refreshes Provider readiness for each evaluation
+  ---
+  duration_ms: 1.4035
+  type: 'test'
+  ...
+# Subtest: coverageFacts reuses declarations and records without weakening the missing Test evidence gate
+ok 490 - coverageFacts reuses declarations and records without weakening the missing Test evidence gate
+  ---
+  duration_ms: 3.8517
+  type: 'test'
+  ...
+# Subtest: AC Coverage parser accepts only formal execution-step records and ignores comments, code fences, and nested notes
+ok 491 - AC Coverage parser accepts only formal execution-step records and ignores comments, code fences, and nested notes
+  ---
+  duration_ms: 0.3837
+  type: 'test'
+  ...
+# Subtest: AC Coverage parser rejects Summary records and keeps only formal fields and scenarios
+ok 492 - AC Coverage parser rejects Summary records and keeps only formal fields and scenarios
+  ---
+  duration_ms: 0.2824
+  type: 'test'
+  ...
+# Subtest: shared Markdown scanning rejects fenced and boundary-leaked completion verification
+ok 493 - shared Markdown scanning rejects fenced and boundary-leaked completion verification
+  ---
+  duration_ms: 1.4813
+  type: 'test'
+  ...
+# Subtest: shared Markdown scanning closes Coverage at separators and unapproved top-level labels
+ok 494 - shared Markdown scanning closes Coverage at separators and unapproved top-level labels
+  ---
+  duration_ms: 0.1472
+  type: 'test'
+  ...
+# Subtest: shared Markdown scanning accepts formal Coverage and completion steps end to end
+ok 495 - shared Markdown scanning accepts formal Coverage and completion steps end to end
+  ---
+  duration_ms: 1.3252
+  type: 'test'
+  ...
+# Subtest: SKILL documents formal Step Coverage instead of legacy Coverage Summary
+ok 496 - SKILL documents formal Step Coverage instead of legacy Coverage Summary
+  ---
+  duration_ms: 0.4818
+  type: 'test'
+  ...
+# Subtest: shared Coverage record folding preserves prior evidence for the latest decision and keeps the gate fail-closed
+ok 497 - shared Coverage record folding preserves prior evidence for the latest decision and keeps the gate fail-closed
+  ---
+  duration_ms: 2.0284
+  type: 'test'
+  ...
+# Subtest: SKIPPED Coverage rejects normalized impossible ISO calendar dates in gate and archive validation
+ok 498 - SKIPPED Coverage rejects normalized impossible ISO calendar dates in gate and archive validation
+  ---
+  duration_ms: 87.5219
+  type: 'test'
+  ...
+# Subtest: riskFlags action-region scanning
+    # Subtest: does not flag risk words that appear only in narrative (AC-004)
+    ok 1 - does not flag risk words that appear only in narrative (AC-004)
+      ---
+      duration_ms: 14.3826
+      type: 'test'
+      ...
+    # Subtest: flags genuine risk actions in Plan/Design (AC-005)
+    ok 2 - flags genuine risk actions in Plan/Design (AC-005)
+      ---
+      duration_ms: 9.9563
+      type: 'test'
+      ...
+    # Subtest: security regex respects word boundaries (AC-006)
+    ok 3 - security regex respects word boundaries (AC-006)
+      ---
+      duration_ms: 0.6727
+      type: 'test'
+      ...
+    # Subtest: falls back to full content when there is no action region (AC-007)
+    ok 4 - falls back to full content when there is no action region (AC-007)
+      ---
+      duration_ms: 103.3278
+      type: 'test'
+      ...
+    # Subtest: flags Chinese risk keywords in action region (AC-008)
+    ok 5 - flags Chinese risk keywords in action region (AC-008)
+      ---
+      duration_ms: 9.5386
+      type: 'test'
+      ...
+    # Subtest: does not flag Chinese risk words in narrative (AC-009)
+    ok 6 - does not flag Chinese risk words in narrative (AC-009)
+      ---
+      duration_ms: 7.0484
+      type: 'test'
+      ...
+    # Subtest: Chinese security and billing keywords work directly (AC-010)
+    ok 7 - Chinese security and billing keywords work directly (AC-010)
+      ---
+      duration_ms: 0.4555
+      type: 'test'
+      ...
+    # Subtest: extracts irreversible flag from Irreversibility label (AC-011)
+    ok 8 - extracts irreversible flag from Irreversibility label (AC-011)
+      ---
+      duration_ms: 0.6553
+      type: 'test'
+      ...
+    # Subtest: extracts public-api flag from Impact Radius label (AC-012)
+    ok 9 - extracts public-api flag from Impact Radius label (AC-012)
+      ---
+      duration_ms: 0.6434
+      type: 'test'
+      ...
+    # Subtest: extracts security/billing/migration from Dependencies & Constraints label (AC-013)
+    ok 10 - extracts security/billing/migration from Dependencies & Constraints label (AC-013)
+      ---
+      duration_ms: 0.5464
+      type: 'test'
+      ...
+    # Subtest: extracts migration from Scope Boundary label when not already flagged (AC-014)
+    ok 11 - extracts migration from Scope Boundary label when not already flagged (AC-014)
+      ---
+      duration_ms: 0.3096
+      type: 'test'
+      ...
+    # Subtest: falls back to full-text scanning when no structured fields (AC-015)
+    ok 12 - falls back to full-text scanning when no structured fields (AC-015)
+      ---
+      duration_ms: 0.3117
+      type: 'test'
+      ...
+    # Subtest: Irreversibility none/reversible does not flag irreversible (AC-016)
+    ok 13 - Irreversibility none/reversible does not flag irreversible (AC-016)
+      ---
+      duration_ms: 0.3599
+      type: 'test'
+      ...
+    # Subtest: Chinese reversible wording suppresses irreversible while destructive wording still flags it
+    ok 14 - Chinese reversible wording suppresses irreversible while destructive wording still flags it
+      ---
+      duration_ms: 1.1081
+      type: 'test'
+      ...
+    1..14
+ok 499 - riskFlags action-region scanning
+  ---
+  duration_ms: 150.6232
+  type: 'suite'
+  ...
+# Subtest: analyzeSpec no-spec early return shape (v4.11)
+    # Subtest: no-spec state includes authorizedActors and digest fields for all consumers (AC-001)
+    ok 1 - no-spec state includes authorizedActors and digest fields for all consumers (AC-001)
+      ---
+      duration_ms: 7.0623
+      type: 'test'
+      ...
+    # Subtest: cruise no-spec path renders discover guidance without TypeError
+    ok 2 - cruise no-spec path renders discover guidance without TypeError
+      ---
+      duration_ms: 11.0152
+      type: 'test'
+      ...
+    # Subtest: active spec path still renders authorized fields in cruise output (AC-002 regression)
+    ok 3 - active spec path still renders authorized fields in cruise output (AC-002 regression)
+      ---
+      duration_ms: 99.4559
+      type: 'test'
+      ...
+    1..3
+ok 500 - analyzeSpec no-spec early return shape (v4.11)
+  ---
+  duration_ms: 117.7238
+  type: 'suite'
+  ...
+# Subtest: CJK risk keyword matching (v4.13)
+    # Subtest: Phase 2 full-text Chinese keywords produce flags without structured fields (AC-001)
+    ok 1 - Phase 2 full-text Chinese keywords produce flags without structured fields (AC-001)
+      ---
+      duration_ms: 0.1559
+      type: 'test'
+      ...
+    # Subtest: Phase 1 Impact Radius CJK alternatives match outside word boundaries (AC-001)
+    ok 2 - Phase 1 Impact Radius CJK alternatives match outside word boundaries (AC-001)
+      ---
+      duration_ms: 0.1324
+      type: 'test'
+      ...
+    # Subtest: English keyword behavior unchanged (AC-002 regression)
+    ok 3 - English keyword behavior unchanged (AC-002 regression)
+      ---
+      duration_ms: 0.0771
+      type: 'test'
+      ...
+    1..3
+ok 501 - CJK risk keyword matching (v4.13)
+  ---
+  duration_ms: 0.474
+  type: 'suite'
+  ...
+1..501
+# tests 747
+# suites 10
+# pass 742
+# fail 0
+# cancelled 0
+# skipped 5
+# todo 0
+# duration_ms 95366.7017
