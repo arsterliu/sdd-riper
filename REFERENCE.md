@@ -1010,6 +1010,7 @@ SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可�
 | 命令 | 作用 |
 | :--- | :--- |
 | `sdd init` | 初始化目录、配置和 AI 指令。 |
+| `sdd uninstall` | 移除 SDD 框架配置和受控指令块，保留 `mydocs/` 与用户自定义内容。 |
 | `sdd discover` | 创建 Spec 与 Execute Log；standard/lite 另建独立 Design，micro 不创建独立 Design。 |
 | `sdd autonomy` | 检查或受控变更任务自治模式、授权、Plan activation 与 Gate 记录；完整子命令见 [AUTONOMY_MODE](#autonomy_mode)。 |
 | `sdd resume` | 输出当前任务和阶段提示。 |

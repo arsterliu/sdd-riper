@@ -25,6 +25,10 @@ program.command('init <project-dir>')
   .option('--autonomy-mode <mode>', 'auto | supervised | human')
   .action(function(p, o) { require('../src/commands/init')(p, o); });
 
+program.command('uninstall <project-dir>')
+  .description('Remove SDD-RIPER framework files while preserving project artifacts')
+  .action(function(p) { require('../src/commands/uninstall')(p); });
+
 program.command('discover <project-dir>')
   .description('Create a new task Spec')
   .requiredOption('--task-name <name>', 'task name')

@@ -51,3 +51,4 @@
 | v0.7.5-challenge-target-spec.md | 2026-09-08 | challenge-target-spec | PASS |
 | v0.7.6-artifact-compatibility.md | 2026-09-10 | artifact-compatibility | PASS |
 | v4.15-gitignore-framework.md | 2026-09-16 | gitignore-framework | PASS |
+| v4.16-uninstall-framework.md | 2026-09-16 | uninstall-framework | PASS |

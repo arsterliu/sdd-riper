@@ -41,4 +41,20 @@ function ensure(projectDir) {
   return { file: ignoreFile, changed: next !== existing };
 }
 
-module.exports = { ensure, managedBlock, FRAMEWORK_RULES, START_MARKER, END_MARKER };
+function removeManagedBlock(projectDir) {
+  const ignoreFile = path.join(projectDir, '.gitignore');
+  if (!fs.existsSync(ignoreFile)) return { file: ignoreFile, changed: false, missing: true };
+  const existing = fs.readFileSync(ignoreFile, 'utf8');
+  const start = existing.indexOf(START_MARKER);
+  const end = existing.indexOf(END_MARKER);
+  if (start === -1 || end === -1 || end < start) return { file: ignoreFile, changed: false, missing: false };
+  let before = existing.slice(0, start);
+  let after = existing.slice(end + END_MARKER.length);
+  if (before.endsWith('\n\n')) before = before.slice(0, -1);
+  if (after.startsWith('\n')) after = after.slice(1);
+  const next = before + after;
+  if (next !== existing) fs.writeFileSync(ignoreFile, next, 'utf8');
+  return { file: ignoreFile, changed: next !== existing, missing: false };
+}
+
+module.exports = { ensure, removeManagedBlock, managedBlock, FRAMEWORK_RULES, START_MARKER, END_MARKER };

@@ -128,4 +128,4 @@ function run(projectDir, mode, force) {
   return { created: created, skipped: skipped };
 }
 
-module.exports = { run: run };
+module.exports = { run: run, BLOCK_START: BLOCK_START, BLOCK_END: BLOCK_END };
