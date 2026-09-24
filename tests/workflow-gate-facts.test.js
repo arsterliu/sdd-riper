@@ -386,6 +386,97 @@ test('coverageFacts reuses declarations and records without weakening the missin
   }
 });
 
+test('AC Coverage Test normalizes a Markdown inline-code single path before L3 existence checks', function() {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-gate-coverage-code-span-'));
+  const testPath = path.join(projectDir, 'tests', 'ac-cov.test.js');
+  fs.mkdirSync(path.dirname(testPath), { recursive: true });
+  fs.writeFileSync(testPath, 'test("fixture", () => {});\n', 'utf-8');
+  const executeLog = [
+    '## Execute Log',
+    '---',
+    'Step: fixture',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: `tests/ac-cov.test.js`',
+    '---'
+  ].join('\n');
+  const snapshot = {
+    exists: true,
+    location: 'active',
+    projectDir: projectDir,
+    specPath: path.join(projectDir, 'mydocs/specs/v1.0-fixture.md'),
+    status: 'draft',
+    mode: 'standard',
+    content: [
+      '## Acceptance Criteria',
+      '### AC-001: fixture',
+      'Verification: unit',
+      '## Plan',
+      'Step: fixture'
+    ].join('\n'),
+    executeLog: { exists: true, content: executeLog },
+    design: { exists: true, content: '## Technical Design\nfixture' }
+  };
+
+  try {
+    const records = gateFacts.coverageFacts(snapshot).records;
+    assert.equal(records[0].test, 'tests/ac-cov.test.js');
+    const state = specState.evaluate(snapshot);
+    assert.equal(state.blockers.some(function(blocker) {
+      return blocker.message.indexOf('Test file not found') !== -1;
+    }), false);
+  } finally {
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
+test('AC Coverage Test rejects multi-path and command evidence with actionable guidance', function() {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-gate-coverage-invalid-test-'));
+  const baseSnapshot = {
+    exists: true,
+    location: 'active',
+    projectDir: projectDir,
+    specPath: path.join(projectDir, 'mydocs/specs/v1.0-fixture.md'),
+    status: 'draft',
+    mode: 'standard',
+    content: [
+      '## Acceptance Criteria',
+      '### AC-001: fixture',
+      'Verification: unit',
+      '## Plan',
+      'Step: fixture'
+    ].join('\n'),
+    design: { exists: true, content: '## Technical Design\nfixture' }
+  };
+
+  try {
+    [
+      'tests/a.test.js; tests/b.test.js',
+      'pnpm --filter pkg test -- tests/a.test.js',
+      'covered by workflow regression tests'
+    ].forEach(function(testValue) {
+      const executeLog = [
+        '## Execute Log',
+        '---',
+        'Step: fixture',
+        'AC Coverage:',
+        '  - AC-001: PASS',
+        '    Test: ' + testValue,
+        '---'
+      ].join('\n');
+      const state = specState.evaluate(Object.assign({}, baseSnapshot, {
+        executeLog: { exists: true, content: executeLog }
+      }));
+      const messages = state.blockers.map(function(blocker) { return blocker.message; }).join('\n');
+      assert.match(messages, /Test must be one project-relative file path/);
+      assert.match(messages, /Command.*Verification/);
+      assert.doesNotMatch(messages, /Test file not found/);
+    });
+  } finally {
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
 test('AC Coverage parser accepts only formal execution-step records and ignores comments, code fences, and nested notes', function() {
   const records = gateFacts.acCoverageRecords([
     'Notes:',
@@ -610,6 +701,53 @@ test('shared Coverage record folding preserves prior evidence for the latest dec
     assert.equal(state.blockers.some(function(blocker) {
       return blocker.message.indexOf('AC Coverage: AC-001 Test file not found') !== -1;
     }), true);
+  } finally {
+    fs.rmSync(projectDir, { recursive: true, force: true });
+  }
+});
+
+test('shared Coverage record folding clears stale Test issues when a later record supplies a valid Test', function() {
+  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-gate-coverage-issue-clear-'));
+  const testPath = path.join(projectDir, 'tests', 'fixed.test.js');
+  fs.mkdirSync(path.dirname(testPath), { recursive: true });
+  fs.writeFileSync(testPath, 'test("fixture", () => {});\n', 'utf-8');
+  const executeLog = [
+    '## Execute Log',
+    'Step: first',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/a.test.js; tests/b.test.js',
+    'Step: second',
+    'AC Coverage:',
+    '  - AC-001: PASS',
+    '    Test: tests/fixed.test.js'
+  ].join('\n');
+  const snapshot = {
+    exists: true,
+    location: 'active',
+    projectDir: projectDir,
+    specPath: path.join(projectDir, 'mydocs/specs/v1.0-fixture.md'),
+    status: 'draft',
+    mode: 'standard',
+    content: [
+      '## Acceptance Criteria',
+      '### AC-001: fixture',
+      'Verification: unit',
+      '## Plan',
+      'Step: fixture'
+    ].join('\n'),
+    executeLog: { exists: true, content: executeLog },
+    design: { exists: true, content: '## Technical Design\nfixture' }
+  };
+
+  try {
+    const folded = gateFacts.coverageRecordMap(gateFacts.coverageFacts(snapshot).records)['AC-001'];
+    assert.equal(folded.test, 'tests/fixed.test.js');
+    assert.equal(folded.testIssue, '');
+    const messages = specState.evaluate(snapshot).blockers.map(function(blocker) {
+      return blocker.message;
+    }).join('\n');
+    assert.doesNotMatch(messages, /Test must be one project-relative file path/);
   } finally {
     fs.rmSync(projectDir, { recursive: true, force: true });
   }

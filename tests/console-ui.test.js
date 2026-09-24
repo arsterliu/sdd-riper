@@ -102,3 +102,42 @@ test('Console AC Coverage drops malicious or duplicate DTO entries and unrecogni
   assert.equal((html.match(/ac-coverage-invalid-evidence/g) || []).length, 1);
   assert.doesNotMatch(html, /coverage-secret|<img|onerror/);
 });
+
+test('Console gate and artifact labels follow policy and preserve an optional failed review', function() {
+  var js = source('console.js');
+  var rows = [];
+  var score = { textContent: '' };
+  var context = {
+    gateDefinitions: [['design', 'Design', 'Technical design'], ['executeLog', 'Execute Log', 'Execution facts'],
+      ['challengePass', 'Challenge PASS', 'Independent review']],
+    qs: function(id) { return id === 'gate-list' ? { innerHTML: '', appendChild: function(row) { rows.push(row); } } : score; },
+    document: { createElement: function() { return { className: '', innerHTML: '' }; } },
+    esc: function(value) { return String(value); }
+  };
+  vm.runInNewContext(js.slice(js.indexOf('function gateValue('), js.indexOf('function previewUrl(')), context);
+  vm.runInNewContext(js.slice(js.indexOf('function renderGateList('), js.indexOf('function renderArtifacts(')), context);
+
+  var highMicro = { mode: 'micro', phase: 'design', artifacts: { design: { notRequired: false } },
+    workflow: { gates: { design: { state: 'blocked' }, execute: { state: 'pass' }, challenge: { state: 'blocked' } },
+      policyRequirements: { completionReview: true }, challengeVerdict: 'FAIL_LOG' }, completion: {} };
+  assert.equal(context.gateValue(highMicro, 'design'), false);
+  context.renderGateList(highMicro);
+  assert.doesNotMatch(rows[0].innerHTML, /Not required/);
+
+  rows.length = 0;
+  var low = { mode: 'micro', phase: 'archive_authorization',
+    artifacts: { design: { notRequired: true }, executeLog: { notRequired: true } },
+    workflow: { gates: { design: { state: 'pass' }, execute: { state: 'pass' }, challenge: { state: 'pass' } },
+      policyRequirements: { completionReview: false }, challengeVerdict: 'NOT_REQUIRED' }, completion: {} };
+  context.renderGateList(low);
+  assert.equal(rows.filter(function(row) { return /Not required/.test(row.innerHTML); }).length, 3);
+  assert.match(context.artifactHtml('Execute Log', 'executeLog', { notRequired: true }), /Verification is recorded in Spec/);
+  assert.match(context.artifactHtml('Learning', 'learning', { notRequired: true }), /Learning Record/);
+
+  rows.length = 0;
+  low.workflow.gates.challenge.state = 'failed';
+  low.workflow.challengeVerdict = 'FAIL_CODE';
+  context.renderGateList(low);
+  assert.doesNotMatch(rows[2].innerHTML, /Not required/);
+  assert.match(rows[2].innerHTML, /Failed/);
+});

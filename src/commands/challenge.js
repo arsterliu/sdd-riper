@@ -209,11 +209,11 @@ function run(projectDir, opts) {
       var execLogPath = common.resolveProjectPath(projectDir, execLogRef);
       if (execLogPath && fs.existsSync(execLogPath)) {
         var execLogContent = fs.readFileSync(execLogPath, 'utf-8');
-        var fileMatches = execLogContent.match(/^Files:\s*(.+)$/gm);
+        var fileMatches = execLogContent.replace(/<!--[\s\S]*?-->/g, '').match(/^Files:[ \t]*(.+)$/gm);
         if (fileMatches && fileMatches.length) {
           var codeFiles = [];
           fileMatches.forEach(function(m) {
-            m.replace(/^Files:\s*/, '').split(/,\s*/).forEach(function(f) {
+            m.replace(/^Files:[ \t]*/, '').split(/,\s*/).forEach(function(f) {
               f = f.trim();
               if (f && codeFiles.indexOf(f) === -1) codeFiles.push(f);
             });
@@ -244,12 +244,18 @@ function run(projectDir, opts) {
   });
   console.log('');
   console.log('### Research Challenge');
-  console.log('- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.');
-  console.log('- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.');
-  console.log('- Challenge whether Research Reviewed By and Research Reviewed At are properly recorded.');
+  if (state.riskTier) {
+    console.log('- Challenge whether Intake Requirement, Scope, Risks, and Risk Signals match the actual task and whether blocking unknowns remain.');
+    console.log('- Confirm the risk tier and required artifacts/reviews match the named risk signals.');
+  } else {
+    console.log('- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.');
+    console.log('- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.');
+    console.log('- Challenge whether Research Reviewed By and Research Reviewed At are properly recorded.');
+  }
   console.log('');
   console.log('### Design Challenge');
-  console.log('- Challenge architecture, data model, interface contract, impact scope, compatibility, rollback, and failure modes.');
+  if (state.riskTier && !state.policyRequirements.design) console.log('- Design artifact is optional at this risk tier; assess whether the Plan captures the chosen approach.');
+  else console.log('- Challenge architecture, data model, interface contract, impact scope, compatibility, rollback, and failure modes.');
   console.log('- Methodology the task should be using (advisory router; challenge under-use of these):');
   workflow.formatDesignMethodLines(state.designMethod).forEach(function(line) {
     console.log('  ' + line);
@@ -269,7 +275,9 @@ function run(projectDir, opts) {
   console.log('- Verdict guidance: if the code faithfully implements a flawed Design, the correct verdict is FAIL_DESIGN (not FAIL_CODE). FAIL_CODE applies when the code itself has defects; FAIL_DESIGN applies when the code is correct but the upstream artifact is wrong.');
   console.log('');
   console.log('### Execute Challenge');
-  console.log('- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.');
+  console.log(state.riskTier && !state.policyRequirements.executeLog
+    ? '- Challenge whether the Spec completion verification is fresh and proves the acceptance criteria.'
+    : '- Challenge whether implementation evidence stayed inside Plan and whether tests prove the ACs.');
   console.log('');
   console.log('### Archive Challenge');
   console.log('- Challenge whether archive would hide drift, failed verification, missing Learning, or a failed challenge verdict.');

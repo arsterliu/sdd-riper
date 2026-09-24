@@ -4,7 +4,9 @@ const { runSddCli } = require('./test-cli');
 const autonomyState = require('../../src/core/autonomy-state');
 
 function runCli(args, cwd) {
-  return runSddCli(args, { cwd: cwd, env: process.env });
+  const legacyArgs = args[0] === 'discover' && !args.includes('--workflow-policy')
+    ? args.concat(['--workflow-policy', 'legacy-v1']) : args;
+  return runSddCli(legacyArgs, { cwd: cwd, env: process.env });
 }
 
 function artifactPath(projectDir, specPath, field) {

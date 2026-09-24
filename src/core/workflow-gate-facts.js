@@ -223,6 +223,22 @@ function learningFacts(snapshot) {
   return { triggers: learning.learningTriggers(content, executeLog, verdict) };
 }
 
+function normalizeCoverageTestValue(value) {
+  const original = String(value || '').trim();
+  if (!original) return { test: '', issue: '' };
+  const codeSpan = original.match(/^`([^`\r\n]+)`$/);
+  const normalized = (codeSpan ? codeSpan[1] : original).trim();
+  const commandLike = /^(?:npm|pnpm|yarn|node|npx|bun|pytest|python|go|cargo|mvn|gradle|make)\b/i.test(normalized) ||
+    /\s--(?:\s|$)/.test(normalized);
+  const multiPath = /[;,]\s*\S+/.test(normalized);
+  const narrativeLike = /^(?:covered|verified|validated|tested|manual|manually|see|refer|evidence|handled|checked)\b/i.test(normalized) ||
+    /^(?:已|由|见|参见|手工|人工|验证|覆盖)/.test(normalized);
+  if (commandLike) return { test: normalized, issue: 'command' };
+  if (multiPath) return { test: normalized, issue: 'multi-path' };
+  if (narrativeLike) return { test: normalized, issue: 'narrative' };
+  return { test: normalized, issue: '' };
+}
+
 function acCoverageRecords(executeLogContent) {
   const records = [];
   common.scanExecuteLog(executeLogContent).forEach(function(step) {
@@ -254,7 +270,8 @@ function acCoverageRecords(executeLogContent) {
           method: '',
           reason: '',
           approvedBy: '',
-          approvedAt: ''
+          approvedAt: '',
+          testIssue: ''
         };
         records.push(current);
         scenariosActive = false;
@@ -271,7 +288,11 @@ function acCoverageRecords(executeLogContent) {
         if (key === 'reason') current.reason = field[2].trim();
         if (key === 'approved by') current.approvedBy = field[2].trim();
         if (key === 'approved at') current.approvedAt = field[2].trim();
-        if (key === 'test') current.test = field[2].trim();
+        if (key === 'test') {
+          const normalizedTest = normalizeCoverageTestValue(field[2]);
+          current.test = normalizedTest.test;
+          current.testIssue = normalizedTest.issue;
+        }
         if (key === 'method') current.method = field[2].trim();
         scenariosActive = false;
         return;
@@ -321,7 +342,10 @@ function coverageRecordMap(records) {
       return;
     }
     const latest = Object.assign({}, record);
-    if (!latest.test) latest.test = existing.test;
+    if (!latest.test) {
+      latest.test = existing.test;
+      latest.testIssue = existing.testIssue;
+    }
     if (!latest.method) latest.method = existing.method;
     if (latest.result === 'SKIPPED' && existing.result === 'SKIPPED') {
       if (!latest.reason) latest.reason = existing.reason;

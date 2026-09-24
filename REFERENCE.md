@@ -78,7 +78,9 @@ harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳
 
 > 本章回答：Spec、Design、Execute Log、Learning Record 和 Cruise Run 分别存在哪里、谁拥有哪一类事实。
 
-当前版本采用 **Spec 控制面 + 独立 Design + 独立 Execute Log + 条件 Learning Record**。
+当前版本采用 **Spec 控制面 + 条件独立 Design + 条件独立 Execute Log + 条件 Learning Record**。新建 Spec 默认标记 `workflow-policy: streamlined-v1`；本文后续按 standard/lite/micro 固定制品和审查的详细流程适用于缺少该字段的旧 Spec，旧制品保持原样、无需迁移。新策略仍保留相同 CLI、阶段名称和制品引用，由显式 `Risk Signals` 与所选 mode 的较严格门禁共同决定必填项。
+
+新策略的低风险任务只强制 Spec 和新鲜验证；中风险强制独立 Execute Log 与完成后的独立 Challenge，存在实质方案取舍时另需 Design；高风险还强制 Design 与实施前的独立 Design 审查。`multi-step` 单独触发 Execute Log。不可逆、迁移、安全、隐私、计费、认证、合规、公共接口与持久化 Schema 属于高风险；跨模块、方案取舍和多场景验证属于中风险信号。Plan Approval、专门人工停机和归档授权仍独立有效。低风险单步骤验证写在 Spec 的 `Completion Verification`，历史任务继续使用原 Execute Log 门禁。
 
 | 产物 | 存放位置 | 职责 |
 | :--- | :--- | :--- |
@@ -227,7 +229,7 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 │  │  ┌─ Step / Status / Files / Result / Verification                      │
 │  │  ├─ AC Coverage: AC-###: PASS|FAIL|SKIPPED                             │
 │  │  │    ├─ Scenarios: "场景名": PASS|FAIL                                 │
-│  │  │    ├─ Test: <test file path>                                        │
+│  │  │    ├─ Test: <single project-relative test file path>                │
 │  │  │    ├─ Method: tdd|bdd|manual                                        │
 │  │  │    └─ SKIPPED 专属: Reason + Approved By: human:<name> + Approved At│
 │  │  ├─ Deviation: none | DEVIATED_MINOR | DEVIATED_MAJOR                  │
@@ -455,7 +457,7 @@ Agent 必须说明推荐理由，并按以下五项精确路由视觉意图：
 
 lite 可以跳过 Innovate，但必须写 `Innovate: Skipped, Reason: ...`。
 
-方案探索与设计澄清可借助 vendored 的 `brainstorming` 方法（见第六节）：一次一问澄清意图、提出 2-3 个方案并给推荐、分段呈现设计并逐段确认，且“无设计批准不进实现”。注意 SDD 适配——产物落到 Spec 的 `Innovate Options` 和外部 `design-file`，不走 brainstorming 默认的 `docs/superpowers/specs/` 路径，也不自动转入 writing-plans（交给 SDD 自己的 Plan 门禁）。
+方案探索与设计澄清默认使用 `protocols/clarification.md`：复用已确认答案、自己查事实，只追问当前阶段阻塞决策并给出推荐，达到停止条件即返回 SDD 阶段流程。它借鉴 grill-me 的提问方法，但不依赖外部 skill，不新增逐段设计批准或访谈完成批准。产物落到 Spec 的 `Innovate Options` 和外部 `design-file`；standard 的方案比较及既有 Design / AC / Plan 门禁保留。仅在明确要求或确需更广方案探索时参考 `brainstorming` 的相关方法。
 
 ### Design / Acceptance
 
@@ -628,6 +630,8 @@ AC Coverage:
     Test: tests/e2e/login.spec.ts
     Method: bdd
 ```
+
+`Test:` 是单一项目相对测试文件路径；如果需要记录完整测试命令、多个测试文件或叙述性证据，请写入同一 Step 的 `Command:` 或 `Verification:`。常见的 Markdown inline code 包裹会被规范化，但它不会把多路径或命令猜测成测试文件。
 
 E2E 环境不可用时，AC 标记为 `SKIPPED`，需人工批准三要素（Reason + `Approved By: human:<name>` + Approved At）。
 
@@ -914,7 +918,7 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 | Design / Acceptance | Design 审查 | MUST_DELEGATE | 通过 Challenge 阶段实现，不是独立派发 |
 | Plan | Plan 编写 | KEEP | 需要完整的上游上下文（Design + AC） |
 | Plan | Plan 审批 | KEEP | 门禁决策 |
-| Execute | 代码实现 | DELEGATABLE | Plan 已定义边界；委托节省上下文且保护 Challenge 独立性 |
+| Execute | 代码实现 | DELEGATABLE | Plan 定义边界；按任务边界、上下文成本和独立证据价值选择内联或委托 |
 | Execute | 结果验证 | KEEP | orchestrator 重读文件、跑测试——验证不可委托 |
 | Challenge | 对抗评审 | MUST_DELEGATE | 角色分离——实现者不能审查自己的工作 |
 | Challenge | Verdict 聚合 | KEEP | orchestrator 应用 verdict 优先级并记录 |
@@ -929,10 +933,10 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 | 信号 | 低 | 高 |
 | :--- | :--- | :--- |
 | **上下文负载** | 早期阶段，spec 小 → 内联 | 多阶段已完成，spec 大 → 委托 |
-| **任务规模** | 1-2 文件，<100 行变更 → 内联 | 6+ 文件或多模块 → 委托 |
-| **角色分离收益** | 下游无独立审查依赖 → 仅省上下文 | 委托保护下游审查独立性 → 双重收益 |
+| **任务边界** | 紧密相关、共享假设 → 倾向内联 | 可独立描述和验证的工作包 → 考虑委托 |
+| **独立证据价值** | 已有事实充分 → 内联即可 | 独立视角能验证假设或接口 → 考虑委托 |
 
-**关键行**：即使上下文负载低、任务规模小，如果委托能保护审查独立性（如 Execute → Challenge），也应该委托。一个内联 Execute 步骤看似无害，但会让 orchestrator 同时成为实现者和审查者——这正是导致自签 Challenge PASS 的模式。
+文件数、行数和 mode 本身不要求派发。主 Agent 可以内联实现，再由不同 reviewer 完成独立审查；委托实现也不能替代独立 Research / Challenge。自动 reviewer 仍须当前新鲜任务 / Plan 授权覆盖其 actor，或当前用户明确授权；角色允许 `subagent:<id>`、`external-agent:<id>`、`human:<name>`，micro Challenge 可 inline。
 
 ### 子 agent 的三个约束
 
@@ -954,7 +958,7 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 
 | 模式 | MUST_DELEGATE | DELEGATABLE |
 | :--- | :--- | :--- |
-| standard | 强制 | 默认委托（上下文负载高、产物要求多） |
+| standard | 强制 | 按任务边界、上下文成本与独立证据价值判断，不因 mode 自动派发 |
 | lite | 强制 | 可选（上下文量大或角色分离需要时委托） |
 | micro | 不适用（跳过 Research Gate，内联 Challenge） | 默认内联 |
 
@@ -964,23 +968,27 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 
 > 本章回答：执行质量方法和设计方法如何按任务风险选用，而不是把所有方法论堆到每个任务上。
 
-SDD 自身只定义流程契约，具体“怎么把事做好”交给两层可加载的方法论。
+SDD 自身定义流程契约，并提供足够执行的简短本地规则；外部方法只在具体需要时提供帮助，不能新增阶段、制品、审批或授权，也不能绕过既有门禁。
 
 ### 执行质量层（vendored superpowers）
 
-`vendored/superpowers/` 物理内置了 7 个来自 [obra/superpowers](https://github.com/obra/superpowers) 的方法论 skill，绑定到 RIPER 各阶段动作。触点映射见仓库根的 `INTEGRATIONS.md`；加载顺序为：宿主全局 skill → vendored 副本 → `SKILL.md` 内联摘要。
+`vendored/superpowers/` 保留 7 个来自 [obra/superpowers](https://github.com/obra/superpowers) 的副本，不代表默认加载全部方法。先按 `INTEGRATIONS.md` 判断触发条件，再对所需外部方法采用：宿主全局 skill → vendored 副本 → 内联摘要。用户禁止使用 skill 时直接使用 CLI 和本地规则，保留全部证据与治理要求。
 
-| Skill | 接入阶段 |
+| Skill | 默认路径与触发条件 |
 | :--- | :--- |
-| `brainstorming` | Innovate（方案探索 / 设计澄清） |
-| `writing-plans` | Plan（步骤粒度） |
+| `brainstorming` | 默认使用 `protocols/clarification.md`；明确要求或更广方案探索需要时参考 |
+| `writing-plans` | 默认按可独立验证变更组织 Plan；明确要求或复杂依赖 / 文件映射需要时参考 |
 | `test-driven-development` | Execute（TDD） |
 | `systematic-debugging` | Execute（debug / BUGFIX，先定根因） |
 | `verification-before-completion` | Execute（完成验证门禁） |
-| `subagent-driven-development` | Subagent 派发 |
-| `finishing-a-development-branch` | Archive（收尾分支） |
+| `subagent-driven-development` | 默认只遵循 `protocols/subagent-dispatch.md`；明确要求或具体 worker 协调需要时参考 |
+| `finishing-a-development-branch` | 默认仅检查与报告当前任务分支 / 工作区状态；明确请求或批准 Plan 覆盖合并、PR、清理，且确需支持时参考 |
 
-按 scope 政策只 vendor 方法论 markdown，不带 `scripts/` / `hooks/`（仅 `brainstorming` 的浏览器可视化伴侣因此降级为纯文本，需要时用宿主全局 superpowers）。维护流程见 `vendored/superpowers/SYNC.md`。
+Plan 每步保留修改位置、具体变更、关联 AC 和验证方式；不要求固定分钟数，不机械拆分每次编辑、测试运行和提交，也不重复 Design 的实现细节。必要的测试执行与日志证据不因计划更简短而省略。
+
+归档前的分支检查不增加工作区必须干净的门禁，不为收尾自动提交、暂存或丢弃已有改动、删除 worktree。分支操作的任务授权不替代专用人工停机要求；归档仍须当前用户单独明确授权。
+
+按 scope 政策只 vendor 方法论 markdown，不带 `scripts/` / `hooks/`。保留副本和归属，不修改上游原文；可选可视化能力不能绕过 SDD 的视觉与浏览器授权边界。维护流程见 `vendored/superpowers/SYNC.md`。
 
 ### 设计方法层
 

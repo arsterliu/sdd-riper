@@ -35,6 +35,9 @@ function run(root) {
   var skill = read('SKILL.md');
   var integrations = read('INTEGRATIONS.md');
   var checks = [];
+  var installedSkill = fs.existsSync(path.join(root, '.sdd-skill-manifest.json'));
+  var packageManifest = read('package.json');
+  var packagedWithoutVendored = !!packageManifest && !/"vendored\/"/.test(packageManifest);
 
   // 1. Referenced vendored + protocols paths exist on disk.
   var refs = uniq(
@@ -43,7 +46,9 @@ function run(root) {
   );
   refs.forEach(function(ref) {
     var exists = fs.existsSync(path.join(root, ref));
-    checks.push({ ok: exists, name: 'referenced path exists: ' + ref, detail: exists ? '' : 'missing on disk' });
+    var sourceOnly = (installedSkill || packagedWithoutVendored) && ref.indexOf('vendored/') === 0 && !fs.existsSync(path.join(root, 'vendored'));
+    checks.push({ ok: exists || sourceOnly, name: 'referenced path exists: ' + ref,
+      detail: sourceOnly ? 'optional source-only method; installed skill uses inline guidance' : (exists ? '' : 'missing on disk') });
   });
 
   // 2. Every INTEGRATIONS touchpoint skill is actually wired in SKILL.md.
@@ -60,7 +65,7 @@ function run(root) {
   });
 
   // 3. Referenced top-level dirs are carried by install-skill COPY_ENTRIES.
-  var topDirs = uniq(refs.map(function(r) { return r.split('/')[0]; }));
+  var topDirs = uniq(refs.map(function(r) { return r.split('/')[0]; })).filter(function(dir) { return dir !== 'vendored'; });
   topDirs.forEach(function(dir) {
     var covered = COPY_ENTRIES.indexOf(dir) !== -1;
     checks.push({ ok: covered, name: 'install-skill COPY_ENTRIES covers: ' + dir, detail: covered ? '' : 'not in COPY_ENTRIES — agent environment would be missing it' });

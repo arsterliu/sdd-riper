@@ -5,6 +5,7 @@ var learning = require('./learning');
 var reviewerGuidance = require('./reviewer-guidance');
 var governanceContract = require('./governance-contract');
 var workflowGateFacts = require('./workflow-gate-facts');
+var workflowPolicy = require('./workflow-policy');
 
 var VERDICTS = Object.freeze(governanceContract.verdicts.slice());
 var VERDICT_TO_TARGET = Object.freeze(VERDICTS.reduce(function(targets, verdict) {
@@ -183,6 +184,10 @@ function acCoverageContractIssues(acCoverage, projectDir) {
       if (!record.approvedAt) issues.push('AC Coverage: ' + id + ' is SKIPPED but missing Approved At.');
       else if (!workflowGateFacts.isValidIsoTimestamp(record.approvedAt)) issues.push('AC Coverage: ' + id + ' is SKIPPED but Approved At must be valid ISO-8601.');
       if (!record.reason) issues.push('AC Coverage: ' + id + ' is SKIPPED but missing Reason.');
+      return;
+    }
+    if (record.testIssue) {
+      issues.push('AC Coverage: ' + id + ' Test must be one project-relative file path; put full commands, test sets, or narrative evidence in Command or Verification. Received: ' + record.test);
       return;
     }
     if (record.test && projectDir) {
@@ -389,6 +394,9 @@ function directGateBlockers(snapshot, gateFacts) {
 function evaluate(snapshot, options) {
   options = options || {};
   snapshot = snapshot || { exists: false, content: '', status: 'draft' };
+  if (workflowPolicy.version(snapshot.content || '') !== workflowPolicy.LEGACY) {
+    return require('./streamlined-state').evaluate(snapshot, options);
+  }
   var gateFacts = options.gateFacts || workflowGateFacts.collectGateFacts(snapshot);
   var blockers = directGateBlockers(snapshot, gateFacts);
   (options.validationIssues || []).forEach(function(issue) {

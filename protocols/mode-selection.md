@@ -7,6 +7,17 @@ Picking `standard` "to be safe" dilutes it into a meaningless default. The
 rubric is **advisory** — it does not change how `--mode` behaves; it guides the
 human or agent who chooses the mode at `init` / `discover` time.
 
+New Specs default to `workflow-policy: streamlined-v1`. Record actual signals
+in `Intake` as `Risk Signals`; the CLI uses them to raise the minimum gate tier
+even when `--mode micro` was chosen. `lite` and `standard` can only increase
+the required gates. Unmarked legacy Specs keep their old mode gates.
+
+Use `none` alone for a localized, reversible, single-concern task. Medium
+signals are `cross-module`, `design-latitude`, and `multi-scenario`; add
+`multi-step` when a separate Execute Log is needed. High signals are
+`irreversible`, `data-migration`, `security`, `privacy`, `billing`, `auth`,
+`compliance`, `public-api`, and `persistent-schema`.
+
 ## The default is micro
 
 Start every task at `micro` unless a signal below pushes it up. Micro keeps the

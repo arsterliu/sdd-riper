@@ -7,6 +7,7 @@ var risk = require('./risk');
 var visualEvidenceContract = require('../visual-evidence/contract');
 var autonomyState = require('./autonomy-state');
 var workflowGateFacts = require('./workflow-gate-facts');
+var workflowPolicy = require('./workflow-policy');
 
 var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
 
@@ -171,6 +172,9 @@ function confirmedRequirement(content, mode) {
 
 function computeRiskFlags(projectDir, specPath, content) {
   var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
+  if (workflowPolicy.version(content) === workflowPolicy.STREAMLINED) {
+    return workflowPolicy.evaluate(content, mode).flags;
+  }
   var action = actionText(projectDir, specPath);
   var requirement = confirmedRequirement(content, mode);
   var fallback = workflowGateFacts.hasSubstantiveContent(requirement) ? requirement : content;
@@ -264,7 +268,8 @@ function analyzeSpec(projectDir, specPath, opts) {
   // Validation issues are separate blockers — they should not override an
   // explicit Challenge PASS. Only when no Challenge Verdict exists do we
   // derive one from validation issues for routing purposes.
-  var evaluated = validation.workflowState || specState.evaluate(specState.readSnapshot(projectDir, specPath), {
+  var snapshot = specState.readSnapshot(projectDir, specPath);
+  var evaluated = validation.workflowState || specState.evaluate(snapshot, {
     validationIssues: (validation.issues || []).filter(function(issue) { return !/^WARNING:/i.test(issue); })
   });
   // If Challenge passed but validation blockers remain, the task is not
@@ -331,6 +336,15 @@ function analyzeSpec(projectDir, specPath, opts) {
     phase: evaluated.phase,
     completionReady: evaluated.completionReady,
     riskFlags: flags,
+    riskTier: evaluated.policy ? evaluated.policy.tier : '',
+    policyRequirements: evaluated.policy ? {
+      design: evaluated.policy.requiresDesign,
+      executeLog: evaluated.policy.requiresLog,
+      designReview: evaluated.policy.requiresDesignReview,
+      completionReview: evaluated.policy.requiresCompletionReview
+    } : null,
+    designDigest: evaluated.policy && evaluated.policy.requiresDesign && evaluated.policy.requiresDesignReview && snapshot.design.exists
+      ? workflowPolicy.designReviewDigest(content, snapshot.design.content) : '',
     designMethod: designMethodHint(mode, flags),
     gateEvidence: labelValue(content, 'Gate Evidence'),
     challengeSummary: labelValue(content, 'Challenge Summary'),

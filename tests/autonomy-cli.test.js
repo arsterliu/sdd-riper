@@ -7,7 +7,11 @@ const { runSddCli } = require('./helpers/test-cli');
 const autonomyState = require('../src/core/autonomy-state');
 
 function root() { return fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-autonomy-cli-')); }
-function run(args, cwd) { return runSddCli(args, { cwd: cwd, env: process.env }); }
+function run(args, cwd) {
+  const legacyArgs = args[0] === 'discover' && !args.includes('--workflow-policy')
+    ? args.concat(['--workflow-policy', 'legacy-v1']) : args;
+  return runSddCli(legacyArgs, { cwd: cwd, env: process.env });
+}
 
 test('init writes supervised by default and supports an explicit autonomy mode', function() {
   const base = root();

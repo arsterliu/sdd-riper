@@ -52,3 +52,6 @@
 | v0.7.6-artifact-compatibility.md | 2026-09-10 | artifact-compatibility | PASS |
 | v4.15-gitignore-framework.md | 2026-09-16 | gitignore-framework | PASS |
 | v4.16-uninstall-framework.md | 2026-09-16 | uninstall-framework | PASS |
+| v4.17-ac-coverage-evidence-input-tolerance.md | 2026-09-20 | ac-coverage-evidence-input-tolerance | PASS |
+| v4.18-streamline-methodology-routing.md | 2026-09-22 | streamline-methodology-routing | PASS |
+| v4.19-streamline-workflow-policy.md | 2026-09-24 | streamline-workflow-policy | PASS |

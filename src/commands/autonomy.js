@@ -6,6 +6,7 @@ const state = require('../core/autonomy-state');
 const workflowGateFacts = require('../core/workflow-gate-facts');
 const autonomyStore = require('../core/autonomy-store');
 const workflow = require('../core/workflow');
+const workflowPolicy = require('../core/workflow-policy');
 
 function invalidMode(mode) {
   if (contract.isMode(mode)) return false;
@@ -47,6 +48,7 @@ function resolveSpec(projectDir, spec) {
 }
 
 function runtimeRiskSnapshot(projectDir, spec, content) {
+  if (workflowPolicy.version(content) === workflowPolicy.STREAMLINED) return state.riskSnapshot(content);
   return state.riskFlagsSnapshot(workflow.computeRiskFlags(path.resolve(projectDir), spec, content));
 }
 
@@ -72,6 +74,20 @@ function inspect(projectDir, opts) {
     console.log('ACTIVE_PLAN_DIGEST: ' + resolved.planDigest);
     console.log('RESEARCH_DIGEST: ' + state.researchSnapshot(content));
     console.log('INNOVATE_DIGEST: ' + state.innovateSnapshot(content));
+    if (workflowPolicy.version(content) === workflowPolicy.STREAMLINED) {
+      const policy = workflowPolicy.evaluate(content, workflowPolicy.frontmatter(content, 'mode') || 'micro');
+      console.log('WORKFLOW_POLICY: ' + policy.version);
+      console.log('RISK_TIER: ' + policy.tier);
+      console.log('REQUIRED_ARTIFACTS: Spec' + (policy.requiresDesign ? ',Design' : '') + (policy.requiresLog ? ',Execute Log' : ''));
+      const reviews = [policy.requiresDesignReview ? 'Design' : '', policy.requiresCompletionReview ? 'Completion' : ''].filter(Boolean).join(',');
+      console.log('REQUIRED_REVIEWS: ' + (reviews || 'none'));
+      if (policy.requiresDesignReview) {
+        const designRef = workflowPolicy.frontmatter(content, 'design-file');
+        const designPath = designRef && common.resolveProjectPath(projectDir, designRef);
+        console.log('DESIGN_DIGEST: ' + (designPath && fs.existsSync(designPath)
+          ? workflowPolicy.designReviewDigest(content, fs.readFileSync(designPath, 'utf8')) : 'none'));
+      }
+    }
     console.log('STOP_REASON: ' + (resolved.stopReason || 'none'));
   }
 }
@@ -128,11 +144,18 @@ function authorize(projectDir, opts) {
       if (mode === 'supervised' && !workflowGateFacts.planApprovalFacts(content, mode).human) { const e = new Error('supervised automation requires a human-approved Plan'); e.code = 'SDD_AUTONOMY_PLAN_APPROVAL_REQUIRED'; throw e; }
       if (mode === 'supervised' && opts.expectedPlanDigest !== plan) { const e = new Error('expected Plan digest does not match'); e.code = 'SDD_AUTONOMY_AUTHORIZATION_STALE'; throw e; }
       const now = new Date().toISOString();
+      const reviewerActors = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
+        ? (() => {
+          const policy = workflowPolicy.evaluate(content, workflowPolicy.frontmatter(content, 'mode') || 'micro');
+          return ['main', 'worker', ...(policy.requiresDesignReview ? ['design-reviewer'] : []),
+            ...(policy.requiresCompletionReview ? ['challenge-reviewer'] : [])].join(',');
+        })()
+        : 'main,worker,research-reviewer,challenge-reviewer';
       return state.appendEvent(content, {
         eventId: 'evt-' + now.replace(/[^0-9]/g, ''), eventType: mode === 'auto' ? 'task_authorization' : 'plan_authorization',
         mode, gate: mode === 'supervised' ? 'Plan' : '', decision: 'authorized', scopeDigest: actual,
         riskSnapshot: runtimeRiskSnapshot(projectDir, spec, content), planDigest: mode === 'supervised' ? plan : '',
-        authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: opts.authorizedBy,
+        authorizedActors: reviewerActors, authorizedBy: opts.authorizedBy,
         authorizedAt: now, authorizationEvidence: opts.authorizationEvidence, invalidatedAt: '', invalidationReason: ''
       });
     });

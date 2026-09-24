@@ -5,6 +5,7 @@ var validate = require('../commands/validate');
 var learning = require('./learning');
 var workflow = require('./workflow');
 var specState = require('./spec-state');
+var workflowPolicy = require('./workflow-policy');
 var cruiseRun = require('./cruise-run');
 var specCache = new Map();
 
@@ -115,11 +116,14 @@ function fileSignature(filePath) {
 function cacheKey(projectDir, specPath, location, lightweight) {
   var frontmatter = parseFrontmatter(specPath);
   var mode = frontmatter.mode || 'standard';
-  var designPattern = mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign;
+  var content = fs.readFileSync(specPath, 'utf8');
+  var policy = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
+    ? workflowPolicy.evaluate(content, mode) : null;
+  var designPattern = policy ? 'Design' : (mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign);
   var designRef = common.getFrontmatterField(specPath, 'design-file');
   var logRef = common.getFrontmatterField(specPath, 'execute-log-file');
   var learningRef = common.getFrontmatterField(specPath, 'learning-file');
-  var designPath = mode === 'micro' || !designRef ? '' : common.resolveProjectPath(projectDir, designRef);
+  var designPath = mode === 'micro' && !policy || !designRef ? '' : common.resolveProjectPath(projectDir, designRef);
   var logPath = logRef ? common.resolveProjectPath(projectDir, logRef) : '';
   var learningPath = learningRef ? common.resolveProjectPath(projectDir, learningRef) : '';
   return [
@@ -128,7 +132,7 @@ function cacheKey(projectDir, specPath, location, lightweight) {
     location,
     lightweight ? 'light' : 'full',
     fileSignature(specPath),
-    mode === 'micro' ? 'micro-design' : designPattern + ':' + fileSignature(designPath),
+    mode === 'micro' && !policy ? 'micro-design' : designPattern + ':' + fileSignature(designPath),
     'log:' + fileSignature(logPath),
     'learning:' + fileSignature(learningPath),
     'cruise:' + fileSignature(cruiseRun.ledgerPath(projectDir, specPath))
@@ -136,14 +140,18 @@ function cacheKey(projectDir, specPath, location, lightweight) {
 }
 
 function completionState(projectDir, specPath, mode) {
-  var designPattern = mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign;
-  var design = mode === 'micro'
+  var content = fs.readFileSync(specPath, 'utf-8');
+  var policy = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
+    ? workflowPolicy.evaluate(content, mode) : null;
+  var designPattern = policy ? 'Design' : (mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign);
+  var design = mode === 'micro' && !policy
     ? { ref: common.getFrontmatterField(specPath, 'design-file'), path: '', relativePath: '', exists: true, hasContent: true, notRequired: true }
     : artifactState(projectDir, specPath, 'design-file', designPattern);
+  if (policy && !policy.requiresDesign) design.notRequired = true;
   var executeLog = artifactState(projectDir, specPath, 'execute-log-file', SECTION.executeLog);
+  if (policy && !policy.requiresLog) executeLog.notRequired = true;
   var learningArtifact = learning.learningArtifact(projectDir, specPath);
   var learningContent = learningArtifact.content;
-  var content = fs.readFileSync(specPath, 'utf-8');
   var challengeVerdict = specState.challengeFacts(content).verdict;
   var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), challengeVerdict);
   var learningRequired = learningTriggers.length > 0;
@@ -155,7 +163,7 @@ function completionState(projectDir, specPath, mode) {
   return {
     research: false,
     innovate: false,
-    design: mode === 'micro',
+    design: !!(mode === 'micro' && !policy || policy && !policy.requiresDesign),
     acceptance: false,
     plan: false,
     executeLog: false,
@@ -210,7 +218,7 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
   var authoritativeCompletion = !legacy && workflowState.gates ? {
     research: gatePassed('research'),
     innovate: gatePassed('innovate'),
-    design: mode === 'micro' || gatePassed('design'),
+    design: completion.designArtifact.notRequired || gatePassed('design'),
     acceptance: gatePassed('acceptance'),
     plan: gatePassed('plan'),
     executeLog: gatePassed('execute'),

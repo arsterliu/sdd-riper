@@ -398,6 +398,7 @@ select {
 }
 
 .mini-gate.waiting,
+.mini-gate.bad,
 .phase-spark .waiting {
   background: var(--waiting);
 }

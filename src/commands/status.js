@@ -34,6 +34,7 @@ function run(projectDir) {
   var warnExecuteLog = [];
   var warnChallenge = [];
   var blockerDetails = [];
+  var policySummaries = [];
 
   if (fs.existsSync(specsDir)) {
     fs.readdirSync(specsDir).forEach(function(file) {
@@ -43,6 +44,7 @@ function run(projectDir) {
       if ((common.getFrontmatterField(specPath, 'status') || 'draft') !== 'archived') draft++;
 
       var state = workflow.analyzeSpec(projectDir, specPath);
+      if (state.riskTier) policySummaries.push({ file: file, state: state });
       if (state.gates.research.state !== 'pass') warnResearch.push(file);
       if (state.gates.innovate.state !== 'pass') warnInnovate.push(file);
       if (state.gates.design.state !== 'pass') warnDesign.push(file);
@@ -57,6 +59,16 @@ function run(projectDir) {
   }
 
   console.log('  Specs:        ' + total + ' total (' + draft + ' active)');
+  policySummaries.forEach(function(item) {
+    var state = item.state;
+    var requirements = state.policyRequirements;
+    var reviews = [requirements.designReview ? 'Design' : '', requirements.completionReview ? 'Completion' : ''].filter(Boolean).join(',');
+    console.log('SPEC_POLICY: ' + item.file);
+    console.log('RISK_TIER: ' + state.riskTier);
+    console.log('REQUIRED_ARTIFACTS: Spec' + (requirements.design ? ',Design' : '') + (requirements.executeLog ? ',Execute Log' : ''));
+    console.log('REQUIRED_REVIEWS: ' + (reviews || 'none'));
+    if (state.designDigest) console.log('DESIGN_DIGEST: ' + state.designDigest);
+  });
   console.log('  Research:     ' + (warnResearch.length ? 'WARN (empty/pending in: ' + warnResearch.join(' ') + ')' : 'OK'));
   console.log('  Innovate:     ' + (warnInnovate.length ? 'WARN (empty in: ' + warnInnovate.join(' ') + ')' : 'OK'));
   console.log('  Design:       ' + (warnDesign.length ? 'WARN (empty in: ' + warnDesign.join(' ') + ')' : 'OK'));

@@ -2,9 +2,9 @@
 
 This directory contains **vendored copies** of seven skills from the upstream
 [obra/superpowers](https://github.com/obra/superpowers) project. SDD-RIPER
-provides the workflow contract layer; these vendored skills provide the
-execution-quality layer (TDD, systematic debugging, verification, etc.) plus the
-up-front design-clarification method (`brainstorming`).
+provides the workflow contract and native default methods. These copies are
+retained references, not a list of mandatory skill invocations. TDD, systematic
+debugging, and fresh verification still support the execution-quality rules.
 
 This file is the operations manual for maintainers. The integration-map for
 AI consumption is in `INTEGRATIONS.md` at the repo root.
@@ -18,18 +18,18 @@ AI consumption is in `INTEGRATIONS.md` at the repo root.
 
 ## Scope
 
-Only seven skills are vendored, matching the integration touchpoints SDD-RIPER
-declares in `SKILL.md`:
+Seven skills remain vendored. Loading is conditional on the routing table in
+`INTEGRATIONS.md`; presence on disk does not activate a skill:
 
 | Vendored skill | SDD-RIPER touchpoint |
 |:---|:---|
-| `brainstorming/` | Innovate > Design clarification |
+| `brainstorming/` | Optional broader exploration; native default: protocols/clarification.md |
 | `test-driven-development/` | Execute > TDD Rule |
 | `systematic-debugging/` | Execute > BUGFIX loop |
 | `verification-before-completion/` | Execute > Completion Verification Gate |
-| `subagent-driven-development/` | Execute > Subagent Routing |
-| `writing-plans/` | Plan > Step Granularity Rule |
-| `finishing-a-development-branch/` | Archive > Pre-Archive Git Gate |
+| `subagent-driven-development/` | Optional worker coordination; native default: protocols/subagent-dispatch.md |
+| `writing-plans/` | Optional complex dependency/file mapping; native default: SDD Plan rules |
+| `finishing-a-development-branch/` | Optional authorized merge/PR/cleanup; no default Archive invocation |
 
 The upstream repo's other skills, plugin metadata (`.claude-plugin/`,
 `.opencode/`, `.codex-plugin/`), per-skill executable components (`scripts/`),
@@ -43,7 +43,8 @@ matters for exactly one skill: only `brainstorming` ships a `scripts/` component
 (one-question-at-a-time intent, 2-3 options, sectioned design, written spec) does
 not depend on the script. Every other vendored skill has no `scripts/` or
 `hooks/` upstream, so nothing is dropped. Users who need the visualization run
-the global superpowers skill (fallback order below).
+the global superpowers skill only when requested and allowed by SDD's visual
+and browser boundaries (fallback order below).
 
 Skill-internal supporting markdown (reviewer prompts, worked examples such as
 `systematic-debugging/test-*.md`, `brainstorming/visual-companion.md`) **is**
@@ -81,8 +82,9 @@ diff history stays readable.
 
 ## Coexistence Rule
 
-When SDD-RIPER's `SKILL.md` references a superpowers skill, the AI orchestrator
-should prefer in this order:
+First check the activation conditions in `INTEGRATIONS.md`. The four optional
+references above must not load merely because a phase starts or a global skill
+is installed. For a triggered external method, when skills are allowed, prefer:
 
 1. **Global superpowers skill** — if the editor (Claude Code / OpenCode / etc.)
    has the matching skill loaded globally, invoke it directly. This gives the
@@ -93,8 +95,14 @@ should prefer in this order:
    the vendored file is unreachable.
 
 This means users who already have `obra/superpowers` installed globally are NOT
-forced to use the pinned vendored version; users without it still get the
-methodology via the vendored copy.
+forced to use the pinned vendored version. Native SDD rules and gates remain
+available when skills are unavailable or prohibited; do not require installation.
+
+External references cannot add workflow phases, artifacts, approvals, or
+authorization, or bypass existing SDD gates. The bounded clarification protocol
+borrows interview techniques from grill-me/grilling without adding an external
+skill dependency. Keep the seven upstream copies unchanged; edit SDD-owned
+routing and protocols instead.
 
 ## License Compliance
 
@@ -119,7 +127,7 @@ The byte-identical upstream copies of `writing-plans` and
 execution handoff, or cross-session routing text. SDD-RIPER intentionally does
 not use those upstream workflow transitions. Its own `SKILL.md` and
 `INTEGRATIONS.md` override them with the SDD Execute Phase,
-`subagent-driven-development`, and host-native continuous execution.
+`protocols/subagent-dispatch.md`, and host-native continuous execution.
 
 **Do not vendor `executing-plans`** merely to satisfy these upstream-only
 references, and do not patch the vendored `SKILL.md` files. After every manual

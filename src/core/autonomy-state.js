@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const labelFacts = require('./label-facts');
+const workflowPolicy = require('./workflow-policy');
 
 const START = '<!-- sdd-autonomy:start -->';
 const END = '<!-- sdd-autonomy:end -->';
@@ -31,11 +32,61 @@ function withoutControlBlock(content) {
   return start >= 0 && end >= start ? content.slice(0, start) + content.slice(end + END.length) : String(content || '');
 }
 
-function scopeSnapshot(content) { return digest(section(withoutControlBlock(content), 'Intake')); }
-function riskSnapshot(content) { return digest(section(withoutControlBlock(content), 'Intake').match(/### Risks[\s\S]*?(?=^### |$)/mi)?.[0] || ''); }
-function planSnapshot(content) { return digest(section(withoutControlBlock(content), 'Plan')); }
-function researchSnapshot(content) { return digest(section(withoutControlBlock(content), 'Research')); }
-function innovateSnapshot(content) { return digest(section(withoutControlBlock(content), 'Innovate Options')); }
+function canonical(content) {
+  return withoutControlBlock(content).replace(/<!--[\s\S]*?-->/g, '').replace(/^Research Reviewed (?:By|At):.*$/gmi, '');
+}
+
+function confirmedRequirement(content) {
+  const mode = workflowPolicy.frontmatter(content, 'mode') || 'standard';
+  if (mode === 'standard') return section(content, 'Research').match(/^### Confirmed Requirement\s*\r?\n([\s\S]*?)(?=^### |$(?![\s\S]))/m)?.[1] || '';
+  return section(content, 'Confirmed Requirement') ||
+    (mode === 'lite' ? section(content, 'Research').match(/^### Confirmed Requirement\s*\r?\n([\s\S]*?)(?=^### |$(?![\s\S]))/m)?.[1] || '' : '');
+}
+
+function risksText(content) {
+  const intake = section(content, 'Intake');
+  const lines = intake.split(/\r?\n/);
+  const start = lines.findIndex(line => line.trim() === '### Risks');
+  if (start !== -1) {
+    let end = lines.length;
+    for (let i = start + 1; i < lines.length; i++) {
+      if (/^###\s+\S/.test(lines[i])) { end = i; break; }
+    }
+    return lines.slice(start + 1, end).join('\n');
+  }
+  return workflowPolicy.label(intake, 'Risks');
+}
+
+function scopeSnapshot(content) {
+  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) return digest(section(withoutControlBlock(content), 'Intake'));
+  const body = canonical(content);
+  return workflowPolicy.digest(['streamlined-v1 scope', section(body, 'Intake'), confirmedRequirement(body)].join('\n'));
+}
+
+function riskSnapshot(content) {
+  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) {
+    return digest(section(withoutControlBlock(content), 'Intake').match(/### Risks[\s\S]*?(?=^### |$)/mi)?.[0] || '');
+  }
+  const body = canonical(content);
+  const signals = workflowPolicy.parseSignals(body).signals.slice().sort().join(',');
+  return workflowPolicy.digest(['streamlined-v1 risk', signals, risksText(body)].join('\n'));
+}
+function planSnapshot(content) {
+  const body = section(withoutControlBlock(content), 'Plan');
+  return workflowPolicy.version(content) === workflowPolicy.STREAMLINED ? workflowPolicy.digest(body) : digest(body);
+}
+function researchSnapshot(content) {
+  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) return digest(section(withoutControlBlock(content), 'Research'));
+  const body = canonical(content);
+  const pieces = [section(body, 'Intake'), section(body, 'Research')];
+  ['Requirement Review', 'Findings', 'Open Questions', 'Assumptions', 'Confirmed Requirement']
+    .forEach(name => pieces.push(section(body, name)));
+  return workflowPolicy.digest(['streamlined-v1 research'].concat(pieces).join('\n'));
+}
+function innovateSnapshot(content) {
+  const body = section(withoutControlBlock(content), 'Innovate Options');
+  return workflowPolicy.version(content) === workflowPolicy.STREAMLINED ? workflowPolicy.digest(body) : digest(body);
+}
 function riskFlagsSnapshot(flags) { return digest((flags || []).slice().sort().join('\n')); }
 function gateSnapshot(content, gate) {
   if (gate === 'Research') return researchSnapshot(content);
@@ -82,8 +133,7 @@ function appendEvent(content, event) {
 }
 
 function frontmatter(content, field) {
-  const match = String(content || '').match(new RegExp('^' + field + ':\\s*["\']?([^"\'\\r\\n]+)', 'm'));
-  return match ? match[1].trim() : '';
+  return workflowPolicy.frontmatter(content, field);
 }
 
 function resolve(content, options) {
@@ -91,7 +141,8 @@ function resolve(content, options) {
   const mode = frontmatter(content, 'autonomy-mode');
   const source = frontmatter(content, 'autonomy-mode-source');
   const scope = scopeSnapshot(content);
-  const risk = options.riskSnapshot || riskSnapshot(content);
+  const risk = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
+    ? riskSnapshot(content) : (options.riskSnapshot || riskSnapshot(content));
   const plan = planSnapshot(content);
   const events = parseEvents(content);
   const approvedGates = [];

@@ -22,7 +22,7 @@ AC Coverage:
   - AC-###: PASS | FAIL | SKIPPED
     Scenarios:
       - "scenario name": PASS | FAIL
-    Test: <test file path>
+    Test: <single project-relative test file path; full commands/test sets/narrative evidence belong in Command or Verification>
     Method: tdd | bdd | manual
     Reason: <required for SKIPPED: why E2E environment was unavailable>
     Approved By: <required for SKIPPED: human:<name>>

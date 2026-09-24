@@ -141,7 +141,6 @@ function workStateValue(spec) {
 }
 
 function gateValue(spec, key) {
-  if (key === 'design' && spec.mode === 'micro') return true;
   var workflowGate = {
     research: 'research',
     innovate: 'innovate',
@@ -165,6 +164,16 @@ function gateStats(spec) {
   return { done: done, total: total };
 }
 
+function gateNotRequired(spec, key) {
+  var artifacts = spec.artifacts || {};
+  if (key === 'design') return !!(artifacts.design && artifacts.design.notRequired);
+  if (key === 'executeLog') return !!(artifacts.executeLog && artifacts.executeLog.notRequired);
+  if (key === 'challengePass') return !!(spec.workflow && spec.workflow.policyRequirements &&
+    spec.workflow.policyRequirements.completionReview === false &&
+    spec.workflow.challengeVerdict === 'NOT_REQUIRED');
+  return false;
+}
+
 function gatePhase(key) {
   if (key === 'executeLog' || key === 'completionVerification') return 'execute';
   if (key === 'challengePass') return 'learning';
@@ -172,6 +181,9 @@ function gatePhase(key) {
 }
 
 function gateTone(spec, key) {
+  if (gateNotRequired(spec, key)) return 'not-started';
+  if (key === 'challengePass' && spec.workflow && spec.workflow.gates &&
+      spec.workflow.gates.challenge && spec.workflow.gates.challenge.state === 'failed') return 'bad';
   if (gateValue(spec, key)) return 'complete';
   var phase = gatePhase(key);
   if (spec.phase === phase) return phase === 'plan' ? 'waiting' : 'progress';
@@ -882,16 +894,26 @@ function renderGateList(spec) {
   var root = qs('gate-list');
   root.innerHTML = '';
   var stats = gateStats(spec);
-  qs('gate-score').textContent = stats.done + ' of ' + stats.total + ' gates complete';
+  qs('gate-score').textContent = stats.done + ' of ' + stats.total + ' gates resolved';
   gateDefinitions.forEach(function(gate) {
     var key = gate[0];
     var done = gateValue(spec, key);
     var tone = gateTone(spec, key);
     var row = document.createElement('div');
     row.className = 'gate';
+    var description = gate[2];
+    if (key === 'design' && spec.artifacts && spec.artifacts.design && spec.artifacts.design.notRequired) {
+      description = 'Not required by this task\'s workflow policy';
+    } else if (key === 'executeLog' && spec.artifacts && spec.artifacts.executeLog && spec.artifacts.executeLog.notRequired) {
+      description = 'Verification is recorded in Spec';
+    } else if (key === 'completionVerification' && spec.artifacts && spec.artifacts.executeLog && spec.artifacts.executeLog.notRequired) {
+      description = 'Fresh verification recorded in Spec';
+    } else if (key === 'challengePass' && gateNotRequired(spec, key)) {
+      description = 'Independent review is not required by this task\'s risk';
+    }
     row.innerHTML = [
-      '<div><strong>' + esc(gate[1]) + '</strong><small>' + esc(key === 'design' && spec.mode === 'micro' ? 'Not required for micro mode' : gate[2]) + '</small></div>',
-      '<span class="pill ' + tone + '">' + (done ? 'Done' : tone === 'waiting' ? 'Approval' : tone === 'progress' ? 'Current' : 'Not started') + '</span>'
+      '<div><strong>' + esc(gate[1]) + '</strong><small>' + esc(description) + '</small></div>',
+      '<span class="pill ' + tone + '">' + (gateNotRequired(spec, key) ? 'Not required' : done ? 'Done' : tone === 'bad' ? 'Failed' : tone === 'waiting' ? 'Approval' : tone === 'progress' ? 'Current' : 'Not started') + '</span>'
     ].join('');
     root.appendChild(row);
   });
@@ -900,8 +922,9 @@ function renderGateList(spec) {
 function artifactHtml(name, type, artifact) {
   if (artifact && artifact.notRequired) {
     var note = name === 'Design'
-      ? 'micro mode keeps design intent inside Plan'
-      : 'no learning record is required by current archive signals';
+      ? 'Design is optional for this task\'s risk and design choices'
+      : name === 'Execute Log' ? 'Verification is recorded in Spec for this task'
+      : 'No Learning Record is required by current triggers';
     return [
       '<div class="artifact">',
       '<div class="artifact-top"><strong>' + esc(name) + '</strong><span class="pill not-started">Not required</span></div>',

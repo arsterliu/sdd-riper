@@ -13,7 +13,6 @@
     "src/",
     "templates/",
     "protocols/",
-    "vendored/",
     "SKILL.md",
     "README.md",
     "GUIDE.md",

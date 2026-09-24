@@ -503,6 +503,7 @@ function validateSpec(specPath, opts) {
   var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
   var snapshot = specState.readSnapshot(projectDir, specPath);
   var gateFacts = workflowGateFacts.collectGateFacts(snapshot);
+  var streamlined = require('../core/workflow-policy').version(content) !== 'legacy-v1';
 
   validateProfileReference(projectDir, specPath, issues);
 
@@ -516,6 +517,14 @@ function validateSpec(specPath, opts) {
         issues.push('Visual evidence is not ready for Plan: ' + diagnostic.code + '.');
       });
     }
+  }
+  if (streamlined) {
+    var sharedIssues = issues.filter(function(issue) { return !/^WARNING:/i.test(issue); });
+    var sharedState = specState.evaluate(snapshot, { validationIssues: sharedIssues });
+    var resultIssues = issues.filter(function(issue) { return /^WARNING:/i.test(issue); })
+      .concat(sharedState.blockers.map(function(blocker) { return blocker.message; }));
+    resultIssues = resultIssues.filter(function(issue, index, all) { return all.indexOf(issue) === index; });
+    return { ok: sharedState.completionReady, issues: resultIssues, specPath: specPath, workflowState: sharedState };
   }
 
   if (!opts.archiveReady) {

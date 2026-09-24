@@ -3,6 +3,7 @@ var fs = require('fs');
 var path = require('path');
 var common = require('../../lib/common');
 var learning = require('../core/learning');
+var workflowPolicy = require('../core/workflow-policy');
 
 // A git revision/ref safe to pass as an argument. Rejects shell metacharacters,
 // whitespace, and leading '-' (which git would treat as an option).
@@ -122,6 +123,10 @@ function run(projectDir, opts) {
     }
   }
   var mode = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'mode') || 'standard' : 'standard';
+  var policy = specPath && fs.existsSync(specPath)
+    ? workflowPolicy.version(fs.readFileSync(specPath, 'utf8')) === workflowPolicy.STREAMLINED
+      ? workflowPolicy.evaluate(fs.readFileSync(specPath, 'utf8'), mode) : null
+    : null;
   var intakeContent = '(section not found)';
   var axis0Note = '';
   if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, SECTION.intake, 80); if (ic) intakeContent = ic; }
@@ -130,7 +135,11 @@ function run(projectDir, opts) {
   if (specPath && fs.existsSync(specPath)) {
     var designRef = common.getFrontmatterField(specPath, 'design-file');
     var designPath = designRef ? common.resolveProjectPath(projectDir, designRef) : '';
-    if (mode === 'standard') {
+    if (policy) {
+      designContent = designPath && fs.existsSync(designPath)
+        ? common.extractSection(designPath, 'Design', 120) || '(empty Design)'
+        : (policy.requiresDesign ? '(missing Design file)' : '(Design not required for this risk tier)');
+    } else if (mode === 'standard') {
       designContent = designPath && fs.existsSync(designPath)
         ? common.extractSection(designPath, SECTION.technicalDesign, 120) || '(empty Technical Design)'
         : common.extractSection(specPath, SECTION.technicalDesign, 120) || '(missing Technical Design file)';
@@ -144,7 +153,7 @@ function run(projectDir, opts) {
   }
   var acceptanceContent = '(not applicable)';
   if (specPath && fs.existsSync(specPath)) {
-    if (mode === 'standard' || mode === 'lite') {
+    if (policy || mode === 'standard' || mode === 'lite') {
       acceptanceContent = common.extractSection(specPath, SECTION.acceptanceCriteria, 120) || '(empty Acceptance Criteria)';
     } else {
       acceptanceContent = '(micro mode: verify Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification labels in Plan)';
@@ -179,6 +188,9 @@ function run(projectDir, opts) {
       ? common.extractSection(logPath, SECTION.executeLog, 100)
       : common.extractSection(specPath, SECTION.executeLog, 100);
     if (el) executeLog = el;
+    else if (policy && !policy.requiresLog) {
+      executeLog = common.extractSection(specPath, 'Completion Verification', 100) || '(empty Spec Completion Verification)';
+    }
   }
   var learningQuery = [
     (specPath && fs.existsSync(specPath)) ? (common.getFrontmatterField(specPath, 'task-name') || '') : '',
@@ -211,7 +223,9 @@ function run(projectDir, opts) {
   console.log('Finding: IN_SCOPE | OUT_OF_SCOPE_MINOR | OUT_OF_SCOPE_MAJOR');
   console.log('<!-- AXIS 2 BRIEF END -->');
   console.log('<!-- AXIS 3 BRIEF START -->');
-  console.log('### Axis 3 — Execute Log Fidelity [CONFIRMATION]');
+  console.log(policy && !policy.requiresLog
+    ? '### Axis 3 — Spec Verification Fidelity [CONFIRMATION]'
+    : '### Axis 3 — Execute Log Fidelity [CONFIRMATION]');
   console.log(executeLog);
   console.log('Finding: FAITHFUL | DISCREPANCY');
   console.log('<!-- AXIS 3 BRIEF END -->');

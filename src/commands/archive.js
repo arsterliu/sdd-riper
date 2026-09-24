@@ -3,6 +3,7 @@ var path = require('path');
 var common = require('../../lib/common');
 var validate = require('./validate');
 var labelValue = require('../core/artifact-snapshot').labelValue;
+var workflowPolicy = require('../core/workflow-policy');
 
 function firstMeaningfulLine(content) {
   return String(content || '').replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/).map(function(line) {
@@ -19,10 +20,20 @@ function sectionFromContent(content, heading) {
 }
 
 function buildArchiveSummary(sourceContent, designContent, learningContent, dateIso) {
-  var goal = firstMeaningfulLine(sectionFromContent(sourceContent, 'Summary')) || labelValue(sourceContent, 'requirement');
-  var selected = labelValue(designContent, 'Selected Option / ADR') || labelValue(sourceContent, 'Selected Option') || labelValue(sourceContent, 'Selected');
-  var constraints = labelValue(sourceContent, 'Dependencies & Constraints') || labelValue(sourceContent, 'constraints') || '无额外约束。';
-  var risks = labelValue(designContent, 'Risks / Trade-offs') || labelValue(learningContent, 'Decision Rule') || labelValue(sourceContent, 'Challenge Summary');
+  var streamlined = workflowPolicy.version(sourceContent) === workflowPolicy.STREAMLINED;
+  var intake = streamlined ? workflowPolicy.section(sourceContent, 'Intake') : '';
+  var goal = streamlined
+    ? workflowPolicy.label(intake, 'Requirement')
+    : firstMeaningfulLine(sectionFromContent(sourceContent, 'Summary')) || labelValue(sourceContent, 'requirement');
+  var selected = streamlined
+    ? (workflowPolicy.label(workflowPolicy.section(designContent, 'Design'), 'Approach') || firstMeaningfulLine(sectionFromContent(sourceContent, 'Plan')))
+    : labelValue(designContent, 'Selected Option / ADR') || labelValue(sourceContent, 'Selected Option') || labelValue(sourceContent, 'Selected');
+  var constraints = streamlined
+    ? workflowPolicy.label(intake, 'Scope')
+    : labelValue(sourceContent, 'Dependencies & Constraints') || labelValue(sourceContent, 'constraints') || '无额外约束。';
+  var risks = streamlined
+    ? workflowPolicy.label(intake, 'Risks')
+    : labelValue(designContent, 'Risks / Trade-offs') || labelValue(learningContent, 'Decision Rule') || labelValue(sourceContent, 'Challenge Summary');
   if (!goal || !selected || !constraints || !risks) return '';
   return [
     '',
@@ -162,6 +173,9 @@ function run(projectDir, specName, opts) {
   try {
     var archivedContent = fs.readFileSync(archiveFile, 'utf-8');
     var challengeVerdict = labelValue(archivedContent, 'Challenge Verdict');
+    if (!challengeVerdict && workflowPolicy.version(archivedContent) === workflowPolicy.STREAMLINED) {
+      challengeVerdict = workflowPolicy.label(workflowPolicy.section(archivedContent, 'Completion Verification'), 'Result');
+    }
     if (challengeVerdict) {
       verdictVal = challengeVerdict;
     } else {

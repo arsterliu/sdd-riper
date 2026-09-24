@@ -14,7 +14,7 @@
 | 测试失败、审查不过或任务跑偏 | [场景四：任务卡住或检查失败](#场景四任务卡住或检查失败) |
 | 结果完成，准备收尾 | [场景五：完成与归档](#场景五完成与归档) |
 
-协作方式与任务形状是两件事。`auto`、`supervised`、`human` 决定 AI 何时停下来；`micro`、`lite`、`standard` 决定任务需要多完整的研究和设计。创建任务时，Agent 会按风险推荐任务形状，并让你确认。
+协作方式与任务形状是两件事。`auto`、`supervised`、`human` 决定 AI 何时停下来；`micro`、`lite`、`standard` 在新策略中是最低门禁的严格度选择，风险信号仍可提高门禁。创建任务时，Agent 会按风险推荐任务形状，并让你确认。新 Spec 默认写入 `workflow-policy: streamlined-v1`；缺少该字段的旧 Spec 仍按下文旧门禁继续，无需迁移。
 
 `supervised` 尤其要分清两个决定：Plan Approval 表示“这个计划可以执行”，后续持续授权表示“AI 可以在这份 Plan 和风险边界内连续推进”。前者不会自动推出后者。
 
@@ -34,7 +34,7 @@
 
 ### AI 动作
 
-AI 先确认这五项，创建 Spec，并按风险推荐 `micro`、`lite` 或 `standard`。`standard` / `lite` 进入 Research，读取参考资料和工程约定，明确做什么、不做什么、影响范围与验收意图；`micro` 跳过 Research、Innovate 和独立 Design，直接进入 Plan。
+AI 先确认这五项，创建 Spec，并按风险推荐 `micro`、`lite` 或 `standard`。新策略先读取参考资料和工程约定，明确范围、风险与验收；只有阻塞未知才进入澄清，Design 与独立审查按风险触发。旧 Spec 保留原 mode 对 Research、Innovate 和 Design 的要求。
 
 接手已有工程时，AI 可以用只读的 Project Profile（工程画像）快速了解技术栈和工程单元，不会安装任何东西。
 
@@ -66,7 +66,7 @@ Spec 已绑定正确的上下文，当前任务制品能用人话说明任务边
 
 AI 根据任务形状完成必要的方案比较、Design 和验收标准，再生成逐步可验证的 Plan。跨多个工程单元时，AI 会用只读的 Quality Plan 告诉你每条验收标准该由哪类测试覆盖；AC 是唯一验收真相，这个建议不会改变它。想自己看原始建议，可运行 `sdd quality plan <项目目录>`。
 
-需要独立 Research reviewer 时，只有本次任务的新鲜授权明确包含该 reviewer actor，AI 才能启动；否则先请求当前用户授权。
+旧 Spec 需要独立 Research reviewer 时，只有本次任务的新鲜授权明确包含该 reviewer actor，AI 才能启动；新策略需要 Design 或完成独立 reviewer 时也遵守相同授权原则，否则先请求当前用户授权。
 
 ### 何时停下
 
@@ -106,7 +106,7 @@ sdd next <项目目录>
 
 ### AI 动作
 
-AI 按 Plan 修改，并把每一步结果、AC Coverage、测试路径和偏差写入 Execute Log。失败时先找根因再重试。
+AI 按 Plan 修改。新策略的低风险单步骤任务在 Spec 的 `Completion Verification` 记录结果、验证证据和时间；中高风险或多步骤任务把步骤结果、AC Coverage、测试路径和偏差写入 Execute Log。旧 Spec 仍使用独立 Execute Log。失败时先找根因再重试。
 
 端到端验证（`Verification: e2e`）需要项目里配置好的验证环境（Provider）。环境缺少依赖或浏览器时，AI 会报告并停下，不会自动安装或降级。界面任务按你提供的参考材料处理视觉部分；Figma 链接只当普通链接记录，不联网读取、不自动批准、不启动浏览器，也不做截图对比。
 
@@ -120,7 +120,7 @@ E2E 环境不可用时，AI 先尝试修复；若准备跳过 E2E 并记为 `SKI
 
 ### 完成标志
 
-每个 Plan 步骤有真实结果，每条相关 AC 有可追溯证据；E2E 结果来自声明的 Provider，视觉结论没有伪造 baseline 或截图 diff，最终四轴自查已写入 Execute Log。Visual 合同本身不新增 Archive Gate；缺少的视觉证据通过任务自身的 manual AC 与 Execute Log 暴露和补齐。
+每个必需的 Plan 步骤有真实结果，相关验收有可追溯证据；E2E 结果来自声明的 Provider，视觉结论没有伪造 baseline 或截图 diff。新策略低风险单步骤任务在 Spec 留新鲜验证，中高风险或多步骤任务在 Execute Log 留完成自查；旧任务继续用原四轴日志。Visual 合同本身不新增 Archive Gate；缺少的视觉证据通过任务自身的验收与验证记录暴露和补齐。
 
 ### 可选自查
 
@@ -168,7 +168,7 @@ sdd next <项目目录>
 
 ### AI 动作
 
-AI 先检查 Spec、Design、Execute Log、AC Coverage、Challenge 和必要的 Learning Record。检查通过只表示“已具备归档条件”。AI 不得自行构造授权参数，也不能把任何旧授权解释成本次归档许可。
+AI 先按当前 Spec 策略检查必需的 Spec、Design、Execute Log、AC Coverage、独立审查和 Learning Record。检查通过只表示“已具备归档条件”。AI 不得自行构造授权参数，也不能把任何旧授权解释成本次归档许可。
 
 ### 何时停下
 

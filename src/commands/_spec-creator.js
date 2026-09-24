@@ -31,6 +31,12 @@ function fillIntake(specContent, mode, opts) {
   var goal = opts.goal || '';
   var constraints = opts.constraints || '';
 
+  if (opts.workflowPolicy === 'streamlined-v1') {
+    specContent = specContent.replace(/^Requirement:$/m, 'Requirement: ' + req);
+    specContent = specContent.replace(/^Scope:$/m, 'Scope: ' + [goal, constraints].filter(Boolean).join('；'));
+    return specContent;
+  }
+
   if (mode === 'standard') {
     var requirementText = [];
     if (req) requirementText.push('requirement: ' + req);
@@ -61,7 +67,10 @@ function modeAdvisory(mode, explicit) {
   return lines.join('\n');
 }
 
-function workflowHint(mode) {
+function workflowHint(mode, workflowPolicy) {
+  if (workflowPolicy === 'streamlined-v1') {
+    return '### AI: Fill Risk Signals and the compact Spec contract. The risk tier determines whether independent Design, Execute Log, pre-implementation Design review, and completion Challenge are required. Plan approval, fresh verification, dedicated human stops, and archive authorization remain mandatory.';
+  }
   if (mode === 'micro') {
     return '### AI: Follow Plan -> Execute Log (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
   }
@@ -125,6 +134,12 @@ function run(projectDir, opts) {
   }
 
   var mode = common.getMode(projectDir);
+  var workflowPolicy = opts.workflowPolicy || 'streamlined-v1';
+  if (workflowPolicy !== 'streamlined-v1' && workflowPolicy !== 'legacy-v1') {
+    console.error('[ERROR] Invalid --workflow-policy (expected streamlined-v1|legacy-v1)');
+    process.exit(3);
+  }
+  opts.workflowPolicy = workflowPolicy;
   if (opts.mode) {
     if (['standard','lite','micro'].indexOf(opts.mode) === -1) {
       console.error('[ERROR] Invalid --mode value');
@@ -133,7 +148,9 @@ function run(projectDir, opts) {
     mode = opts.mode;
   }
 
-  var specTemplate = common.getSpecTemplate(projectDir, mode);
+  var specTemplate = workflowPolicy === 'streamlined-v1'
+    ? path.join(common.SCAFFOLD_ROOT, 'templates', 'spec-streamlined.md')
+    : common.getSpecTemplate(projectDir, mode);
   if (!fs.existsSync(specTemplate)) {
     console.error('[ERROR] spec template not found at: ' + specTemplate);
     process.exit(1);
@@ -164,16 +181,19 @@ function run(projectDir, opts) {
 
   var specOut = path.join(specsDir, opts.version + '-' + taskName + '.md');
   var specRel = common.relativeToProject(projectDir, specOut);
-  var designOut = mode === 'micro' ? '' : path.join(designDir, opts.version + '-' + taskName + '.design.md');
-  var designRel = designOut ? common.relativeToProject(projectDir, designOut) : '';
-  var logOut = path.join(logsDir, opts.version + '-' + taskName + '.execute.md');
-  var logRel = common.relativeToProject(projectDir, logOut);
+  var designPath = path.join(designDir, opts.version + '-' + taskName + '.design.md');
+  var logPath = path.join(logsDir, opts.version + '-' + taskName + '.execute.md');
+  var designOut = workflowPolicy === 'legacy-v1' ? (mode === 'micro' ? '' : designPath)
+    : (mode === 'standard' ? designPath : '');
+  var logOut = workflowPolicy === 'legacy-v1' || mode !== 'micro' ? logPath : '';
+  var designRel = common.relativeToProject(projectDir, designPath);
+  var logRel = common.relativeToProject(projectDir, logPath);
   [designDir, logsDir].forEach(function(dir) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
   if (designOut && fs.existsSync(designOut)) {
     console.error('[ERROR] Design artifact already exists. Choose a different version.');
     process.exit(1);
   }
-  if (fs.existsSync(logOut)) {
+  if (logOut && fs.existsSync(logOut)) {
     console.error('[ERROR] Execute Log artifact already exists. Choose a different version.');
     process.exit(1);
   }
@@ -190,11 +210,12 @@ function run(projectDir, opts) {
   specContent = specContent.replace(/task-name: "Task Name Placeholder"/g, 'task-name: "' + taskName + '"');
   specContent = specContent.replace(/date: YYYY-MM-DD/, 'date: ' + todayIso());
   specContent = specContent.replace(/^mode:.*/m, 'mode: ' + mode);
+  if (workflowPolicy === 'legacy-v1') specContent = specContent.replace(/^workflow-policy:.*\r?\n/m, '');
   specContent = specContent.replace(/^autonomy-mode:.*/m, 'autonomy-mode: "' + autonomyMode + '"');
   specContent = specContent.replace(/^autonomy-mode-source:.*/m, 'autonomy-mode-source: "' + (opts.autonomyMode ? 'discover-override' : 'project-default') + '"');
   specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(contextSource) + '"');
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
-  specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');
+  specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(workflowPolicy === 'legacy-v1' && !designOut ? '' : designRel) + '"');
   specContent = specContent.replace(/^execute-log-file:.*/gm, 'execute-log-file: "' + yamlQuote(logRel) + '"');
   specContent = specContent.replace(/^project-profile-revision:.*/m, 'project-profile-revision: "' + yamlQuote(projectProfile.revision) + '"');
   specContent = specContent.replace(/^project-profile-digest:.*/m, 'project-profile-digest: "' + yamlQuote(projectProfile.digest) + '"');
@@ -203,11 +224,15 @@ function run(projectDir, opts) {
 
   fs.writeFileSync(specOut, specContent, 'utf-8');
   if (designOut) {
-    var designTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', mode === 'lite' ? 'design-lite.md' : 'design-standard.md');
+    var designTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', workflowPolicy === 'streamlined-v1'
+      ? 'design-streamlined.md' : (mode === 'lite' ? 'design-lite.md' : 'design-standard.md'));
     fs.writeFileSync(designOut, fillArtifactTemplate(designTemplate, taskName, mode, specRel), 'utf-8');
   }
-  var logTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', 'execute-log.md');
-  fs.writeFileSync(logOut, fillArtifactTemplate(logTemplate, taskName, mode, specRel), 'utf-8');
+  if (logOut) {
+    var logTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', workflowPolicy === 'streamlined-v1'
+      ? 'execute-log-streamlined.md' : 'execute-log.md');
+    fs.writeFileSync(logOut, fillArtifactTemplate(logTemplate, taskName, mode, specRel), 'utf-8');
+  }
 
   console.log(modeAdvisory(mode, !!opts.mode));
 
@@ -220,13 +245,13 @@ function run(projectDir, opts) {
   console.log('### Spec file: ' + specOut);
   if (contextSource) console.log('### Context source: ' + contextSource);
   if (designOut) console.log('### Design file: ' + designOut);
-  console.log('### Execute Log file: ' + logOut);
+  if (logOut) console.log('### Execute Log file: ' + logOut);
   if (projectProfile.revision) {
     console.log('### Project Profile revision: ' + projectProfile.revision);
     console.log('### Affected units: ' + projectProfile.units);
   }
   console.log('');
-  console.log(workflowHint(mode));
+  console.log(workflowHint(mode, workflowPolicy));
 }
 
 module.exports = { run: run, _private: { profileContext: profileContext } };

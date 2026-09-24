@@ -12,7 +12,6 @@ var COPY_ENTRIES = [
   'node_modules',
   'templates',
   'protocols',
-  'vendored',
   'SKILL.md',
   'GUIDE.md',
   'REFERENCE.md',
@@ -70,6 +69,12 @@ function installOne(target, opts) {
     copyRecursive(source, path.join(target.dir, entry));
     copied++;
   });
+  // Older installations copied upstream SKILL.md files into the agent's skill
+  // discovery tree. Remove only that known child of this installation.
+  var staleVendored = path.resolve(target.dir, 'vendored');
+  if (path.relative(path.resolve(target.dir), staleVendored) === 'vendored' && fs.existsSync(staleVendored)) {
+    fs.rmSync(staleVendored, { recursive: true, force: true });
+  }
   var sourceFingerprint = skillIntegrity.fingerprint(PACKAGE_ROOT, COPY_ENTRIES);
   skillIntegrity.writeManifest(target.dir, {
     version: require(path.join(PACKAGE_ROOT, 'package.json')).version,
@@ -85,6 +90,7 @@ function checkOne(target) {
     return { target: target.name, dir: target.dir, ok: false, reason: 'missing-target', sourceVersion: sourceVersion, targetVersion: '', sourceFingerprint: sourceFingerprint, targetFingerprint: '' };
   }
   var targetFingerprint = skillIntegrity.fingerprint(target.dir, COPY_ENTRIES);
+  var staleVendored = fs.existsSync(path.join(target.dir, 'vendored'));
   var targetPackage = path.join(target.dir, 'package.json');
   var targetVersion = '';
   if (fs.existsSync(targetPackage)) {
@@ -93,8 +99,8 @@ function checkOne(target) {
   return {
     target: target.name,
     dir: target.dir,
-    ok: sourceVersion === targetVersion && sourceFingerprint === targetFingerprint,
-    reason: sourceVersion !== targetVersion ? 'version-drift' : (sourceFingerprint === targetFingerprint ? 'aligned' : 'content-drift'),
+    ok: !staleVendored && sourceVersion === targetVersion && sourceFingerprint === targetFingerprint,
+    reason: staleVendored ? 'legacy-vendored-entry' : (sourceVersion !== targetVersion ? 'version-drift' : (sourceFingerprint === targetFingerprint ? 'aligned' : 'content-drift')),
     sourceVersion: sourceVersion,
     targetVersion: targetVersion,
     sourceFingerprint: sourceFingerprint,

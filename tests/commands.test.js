@@ -12,6 +12,8 @@ const tmpBase = path.join(os.tmpdir(), 'sdd-cmd-test-' + Date.now());
 
 function run(args) {
   try {
+    // This suite exercises the pre-streamlining workflow; new-policy coverage lives in streamlined-policy.test.js.
+    if (/^discover\s/.test(args) && !/--workflow-policy\s/.test(args)) args += ' --workflow-policy legacy-v1';
     return execSync(CLI + ' ' + args, { encoding: 'utf-8', cwd: tmpBase });
   } catch (e) {
     return (e.stdout || '') + (e.stderr || '') + ' exit:' + (e.status || 1);
@@ -1198,6 +1200,40 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name next-task --spec-version v1.0 --requirement x --mode standard');
     var out = run('next ' + demo);
     assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/next-task') !== -1, 'next should show context-source');
+  });
+
+  it('next prints dedicated guidance for irreversible-risk stops', function() {
+    var demo = path.join(tmpBase, 'next-irreversible-guidance');
+    run('init ' + demo + ' --mode lite');
+    run('discover ' + demo + ' --task-name irreversible-guidance --spec-version v1.0 --requirement x --mode lite --autonomy-mode supervised');
+    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-irreversible-guidance.md');
+    var content = fs.readFileSync(sf, 'utf-8');
+    content = replaceSectionStart(content, 'Confirmed Requirement', [
+      'Scope Boundary: fixture',
+      'Irreversibility: irreversible and cannot be rolled back',
+      'Impact Radius: internal',
+      'Dependencies & Constraints: none',
+      'Acceptance Intent: current-user authorization remains required'
+    ].join('\n'));
+    content = replaceSectionStart(content, 'Plan', [
+      'Selected Option: fixture',
+      'Impact Scope: fixture',
+      'Data Impact: permanently delete fixture data',
+      'Interface Impact: none',
+      'Acceptance: fixture',
+      'Verification: unit',
+      'Plan Approved By: human:fixture',
+      'Approved At: 2026-01-01T00:00:00Z',
+      'Gate Evidence: fixture approval'
+    ].join('\n'));
+    fs.writeFileSync(sf, authorizeFixture(content), 'utf-8');
+
+    var out = run('next ' + demo);
+    assert.ok(out.indexOf('NEXT_ACTION: request_irreversible_authorization') !== -1, out);
+    assert.match(out, /IRREVERSIBLE_AUTHORIZATION: required/);
+    assert.match(out, /explicit current-user authorization/i);
+    assert.match(out, /must not infer.*Plan Approval.*Challenge.*prior authorization/i);
+    assert.match(out, /GUIDANCE_COMMAND: sdd autonomy authorize/);
   });
 
   it('resume and status work', function() {

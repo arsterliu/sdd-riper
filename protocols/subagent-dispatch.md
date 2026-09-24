@@ -6,6 +6,8 @@ In SDD-RIPER, subagents are not general parallel workers. They are single-use ev
 
 The primary design goal is context hygiene. Parallelism is a side benefit.
 
+This is SDD's sole dispatch contract. `subagent-driven-development` is not loaded by default; an optional external method must not add per-task workers, two-stage reviews, or authorization. Fact lookup during clarification does not automatically require a subagent.
+
 ## Phase Dispatch Map
 
 Each SDD phase has activities with a dispatch category:
@@ -246,7 +248,7 @@ Forbidden in returns:
 
 Adversarial challenge is the primary MUST_DELEGATE scenario for standard/lite. The challenge agent must be independent — it did not write the code or the design, so it can question assumptions the orchestrator may have confirmed.
 
-- **Must dispatch**: standard/lite tasks must use a challenge subagent. Micro may run inline but must keep adversarial role separate from implementation.
+- **Independent reviewer**: standard/lite require an auditable `subagent:<id>`, `external-agent:<id>`, or `human:<name>` who did not implement the work. Automated reviewers require fresh current-task/Plan authorization covering the reviewer actor or explicit current-user authorization. Micro may run inline with deliberate role separation.
 - **Read-only**: the challenge agent does not modify any file (including code). It only returns a verdict.
 - **Verdict enum**: defined by `sdd challenge` (PASS / PASS_WITH_CONCERNS / FAIL_SPEC / FAIL_DESIGN / FAIL_ACCEPTANCE / FAIL_PLAN / FAIL_CODE / FAIL_LOG / FAIL_LEARNING). Any `FAIL_*` verdict is a backtrack signal for `sdd cruise`. The challenge agent must not repair the failure.
 - **Code Challenge axis**: the challenge agent must also review code quality (duplication, dead code, naming), security (hardcoded secrets, injection risks, missing input validation), correctness (does code match Spec/Design?), and test quality (testing behavior or mocks?). This is not a style review — it verifies code aligns with SDD artifact constraints.
@@ -257,7 +259,7 @@ Adversarial challenge is the primary MUST_DELEGATE scenario for standard/lite. T
 The orchestrator must not take a subagent verdict at face value for these gates:
 
 - **Completion Verification Gate**: run tests / lint / build directly and inspect output.
-- **Plan Approval Gate**: ask and read the user's approval directly.
+- **Plan Approval Gate**: the orchestrator checks the effective autonomy mode and evidence. auto permits `agent:<id>` approval with Approved At and Gate Evidence; supervised/human require direct `human:<name>` approval. Plan approval does not grant continuous execution authorization; auto Plan activation and dedicated human stops still apply.
 - **Final Challenge Verdict**: subagents return per-axis findings; the orchestrator applies verdict precedence and writes the final verdict to Spec via `sdd challenge --record-result`.
 
 ## Post-Delegation Verification

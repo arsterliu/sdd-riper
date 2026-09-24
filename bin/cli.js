@@ -39,6 +39,7 @@ program.command('discover <project-dir>')
   .option('--context <text>', 'context')
   .option('--unit <ids...>', 'affected workspace unit ids (or project)')
   .option('--mode <mode>', 'spec mode')
+  .option('--workflow-policy <version>', 'streamlined-v1 (default) | legacy-v1')
   .option('--autonomy-mode <mode>', 'auto | supervised | human')
   .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
   .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/discover')(p, o); });

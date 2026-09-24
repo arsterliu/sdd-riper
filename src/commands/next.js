@@ -20,6 +20,19 @@ function run(projectDir, opts) {
   console.log('BACKTRACK_TARGET: ' + state.backtrackTarget);
   console.log('NEXT_ACTION: ' + state.nextAction);
   console.log('RISK_FLAGS: ' + (state.riskFlags.length ? state.riskFlags.join(',') : 'none'));
+  if (state.riskTier) {
+    console.log('RISK_TIER: ' + state.riskTier);
+    console.log('REQUIRED_ARTIFACTS: Spec' + (state.policyRequirements.design ? ',Design' : '') + (state.policyRequirements.executeLog ? ',Execute Log' : ''));
+    var reviews = [state.policyRequirements.designReview ? 'Design' : '', state.policyRequirements.completionReview ? 'Completion' : ''].filter(Boolean).join(',');
+    console.log('REQUIRED_REVIEWS: ' + (reviews || 'none'));
+    if (state.designDigest) console.log('DESIGN_DIGEST: ' + state.designDigest);
+    if (state.blockers.some(function(issue) { return /Design file is required/.test(issue); })) {
+      console.log('ARTIFACT_GUIDANCE: Create the Design at the Spec design-file path from templates/design-streamlined.md, then complete the required review before implementation.');
+    }
+    if (state.blockers.some(function(issue) { return /Execute Log is required/.test(issue); })) {
+      console.log('ARTIFACT_GUIDANCE: Create the Execute Log at the Spec execute-log-file path from templates/execute-log-streamlined.md.');
+    }
+  }
   if (state.contextSource) console.log('CONTEXT_SOURCE: ' + state.contextSource);
   if (state.visualContext) {
     console.log('UI_IMPACT: ' + state.visualContext.uiImpact);
@@ -65,6 +78,11 @@ function run(projectDir, opts) {
   if (state.nextAction === 'request_human_gate') {
     console.log('GUIDANCE: 当前任务使用 human 模式。请先确认 ' + state.requiredGate + ' 治理节点；机械测试和计划内调试不需要逐项审批。');
     console.log('GUIDANCE_COMMAND: sdd autonomy approve-gate <project-dir> --spec <spec> --gate ' + state.requiredGate + ' --expected-digest ' + state.scopeDigest + ' --authorized-by human:<name> --authorization-evidence <text>');
+  }
+  if (state.nextAction === 'request_irreversible_authorization') {
+    console.log('IRREVERSIBLE_AUTHORIZATION: required');
+    console.log('GUIDANCE: Stop and request explicit current-user authorization for the irreversible action. Agents must not infer this authorization from Plan Approval, Challenge, Ready, archive authorization, or prior authorization.');
+    console.log('GUIDANCE_COMMAND: sdd autonomy authorize <project-dir> --spec <spec> --expected-scope-digest ' + state.scopeDigest + ' --expected-plan-digest ' + state.planDigest + ' --authorized-by human:<name> --authorization-evidence <text>');
   }
   if (state.nextAction === 'activate_auto_plan') {
     console.log('GUIDANCE: 当前 auto 任务的 scope 与 risk 授权仍有效，且 Plan 已由 Agent 批准。主 Agent 应自动记录 Plan 激活，不得向用户再次请求批准 Plan 或 reviewer 授权。');
