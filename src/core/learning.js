@@ -76,10 +76,7 @@ function learningTriggers(specContent, executeLog, challengeVerdict) {
   if (/\bPASS_WITH_CONCERNS\b/i.test(challengeVerdict || '')) {
     triggers.push('PASS_WITH_CONCERNS challenge verdict');
   }
-  var reopened = String(specContent || '').match(/^reopened-from:[ \t]*"?([^"\r\n#]+)"?/m);
-  if ((reopened && reopened[1].trim()) || /Reopened from archived context/i.test(specContent || '')) {
-    triggers.push('reopened archived work');
-  }
+
   return triggers;
 }
 

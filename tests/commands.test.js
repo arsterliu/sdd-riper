@@ -12,8 +12,6 @@ const tmpBase = path.join(os.tmpdir(), 'sdd-cmd-test-' + Date.now());
 
 function run(args) {
   try {
-    // This suite exercises the pre-streamlining workflow; new-policy coverage lives in streamlined-policy.test.js.
-    if (/^discover\s/.test(args) && !/--workflow-policy\s/.test(args)) args += ' --workflow-policy legacy-v1';
     return execSync(CLI + ' ' + args, { encoding: 'utf-8', cwd: tmpBase });
   } catch (e) {
     return (e.stdout || '') + (e.stderr || '') + ' exit:' + (e.status || 1);
@@ -91,15 +89,36 @@ function artifactPath(projectDir, specFile, field) {
 }
 
 function headingNames(heading) {
-  return [heading];
+  return [heading === 'Technical Design' || heading === 'Design Note' ? 'Design' : heading];
 }
 
 function insertSectionContent(file, heading, body) {
+  if (!fs.existsSync(file) && headingNames(heading)[0] === 'Design') {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, '## Design\n');
+  }
+  heading = headingNames(heading)[0];
   var content = fs.readFileSync(file, 'utf-8');
   var marker = headingNames(heading).map(function(name) { return new RegExp('(^## ' + name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\r?\\n)', 'm'); })
     .find(function(candidate) { return candidate.test(content); });
   assert.ok(marker, file + ' missing section ' + heading);
+  if (heading === 'Execute Log' && !/Step(?: \d+)?: (?!completion-verification)/.test(body) && /Step: completion-verification/.test(body)) {
+    body = 'Step 1: implement\nStatus: DONE\nVerification: node --test\nTimestamp: 2025-12-31T23:59:30Z\n---\n' + body;
+  }
   fs.writeFileSync(file, content.replace(marker, '$1' + body + '\n'), 'utf-8');
+  if (heading === 'Design') {
+    const source = content.match(/^source-spec: "([^"]+)"/m);
+    if (source) {
+      const projectDir = path.dirname(path.dirname(path.dirname(file)));
+      const specFile = path.join(projectDir, source[1]);
+      let spec = fs.readFileSync(specFile, 'utf8');
+      spec = spec.replace(/^Design Reviewed By:.*$/m, 'Design Reviewed By: human:fixture')
+        .replace(/^Design Reviewed At:.*$/m, 'Design Reviewed At: 2025-12-31T23:59:00Z')
+        .replace(/^Design Review Digest:.*$/m, 'Design Review Digest: ' + require('../src/core/workflow-policy').designReviewDigest(spec, fs.readFileSync(file, 'utf8')))
+        .replace(/^Design Review Summary:.*$/m, 'Design Review Summary: fixture Design review');
+      fs.writeFileSync(specFile, spec);
+    }
+  }
 }
 
 function replaceSectionStart(content, heading, body) {
@@ -121,20 +140,20 @@ function fillApproval(content) {
 function authorizeFixture(content) {
   var mode = (content.match(/^autonomy-mode:\s*"?([^"\r\n]+)/m) || [])[1] || 'supervised';
   if (mode === 'human') return content;
-  var riskSnapshot = autonomyState.riskFlagsSnapshot([]);
+  var riskSnapshot = autonomyState.riskSnapshot(content);
   var authorized = autonomyState.appendEvent(content, {
     eventId: 'fixture-authorization', eventType: mode === 'auto' ? 'task_authorization' : 'plan_authorization',
     mode: mode, gate: mode === 'supervised' ? 'Plan' : '', decision: 'authorized',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot,
     planDigest: mode === 'supervised' ? autonomyState.planSnapshot(content) : '',
-    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
+    authorizedActors: 'main,worker,design-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
     authorizedAt: '2026-01-01T00:00:00Z', authorizationEvidence: 'fixture authorization'
   });
   if (mode !== 'auto') return authorized;
   return autonomyState.appendEvent(authorized, {
     eventId: 'fixture-plan-activation', eventType: 'plan_activation', mode: 'auto', gate: 'Plan', decision: 'activated',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot, planDigest: autonomyState.planSnapshot(content),
-    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
+    authorizedActors: 'main,worker,design-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
     authorizedAt: '2026-01-01T00:00:01Z', authorizationEvidence: 'fixture plan activation'
   });
 }
@@ -207,12 +226,13 @@ function fillAutoApproval(content) {
 }
 
 function fillConfirmedReq(content) {
-  return content
-    .replace(/^Scope Boundary:$/m, 'Scope Boundary: single module')
-    .replace(/^Irreversibility:$/m, 'Irreversibility: none')
-    .replace(/^Impact Radius:$/m, 'Impact Radius: internal only')
-    .replace(/^Dependencies & Constraints:$/m, 'Dependencies & Constraints: none')
-    .replace(/^Acceptance Intent:$/m, 'Acceptance Intent: behavior preserved');
+  let filled = content.replace(/^Scope:.*$/m, 'Scope: fixture only')
+    .replace(/^Risks:.*$/m, 'Risks: reversible')
+    .replace(/^Risk Signals:.*$/m, 'Risk Signals: none');
+  if (!require('../src/core/workflow-policy').section(filled, 'Plan').replace(/^Plan Approved By:.*$/gm, '').replace(/^Approved At:.*$/gm, '').replace(/^Gate Evidence:.*$/gm, '').replace(/<!--[^]*?-->/g, '').trim()) {
+    filled = filled.replace('## Plan', '## Plan\nStep: implement and verify fixture');
+  }
+  return filled;
 }
 
 function completionVerificationLog(timestamp) {
@@ -237,16 +257,9 @@ function withCompletionContract(logText) {
 }
 
 function standardDesignContent() {
-  return [
-    'Selected Option / ADR: 选择方案 A，原因是边界清晰且可回滚。',
-    'Requirement Traceability: AC-001 覆盖归档门禁和设计合同。',
-    'Impact Scope: 影响 CLI validate/archive 流程和测试夹具，不影响运行时业务逻辑。',
-    'Architecture View: validate 作为归档门禁读取 Spec、Design、Execute Log 并输出阻断项。',
-    'Data Model / Schema: 不新增持久化表结构，仅读取 markdown frontmatter 和章节字段。',
-    'Interface Contract: CLI 输入保持 sdd validate <dir> --archive-ready，输出仍为 RESULT 和 issue 列表。',
-    'Compatibility / Rollback: 新 spec 使用更严格字段；回滚方式是恢复旧模板和字段列表。',
-    'Test Strategy: node:test command suite.'
-  ].join('\n');
+  return ['Approach: 选择方案 A，原因是边界清晰且可回滚。', 'Impact: CLI validate/archive 和测试夹具。',
+    'Interface / Data: markdown 与 CLI，未改业务接口。', 'Compatibility / Rollback: 可恢复源文件。',
+    'Verification: node:test command suite.'].join('\n');
 }
 
 function requestJson(server, requestPath, method) {
@@ -442,6 +455,7 @@ function makeStandardBlockedCompletionVerification(demo, specFile) {
     'Step: 1 - implementation',
     'Status: DONE',
     'Result: 普通执行步骤完成。',
+    'Verification: node --test',
     'Timestamp: 2026-01-01T00:00:00Z',
     '---',
     '',
@@ -461,7 +475,10 @@ function makeStandardBlockedThenDoneCompletionVerification(demo, specFile) {
     '# Execute Log',
     '',
     '## Execute Log',
-    '',
+    'Step: implementation',
+    'Status: DONE',
+    'Verification: node --test',
+    'Timestamp: 2026-01-01T00:00:00Z',
     '---',
     'Step: completion-verification',
     'Status: BLOCKED',
@@ -494,6 +511,7 @@ function appendPostChallengeCompletion(logFile) {
     '',
     '---',
     'Step: 2 - post-challenge bugfix',
+    'Verification: node --test',
     'Status: BUGFIX',
     'Result: Challenge 涔嬪悗杩藉姞淇锛岄渶瑕侀噸鏂拌Е鍙?Challenge銆?',
     'Timestamp: 2026-01-01T00:02:00Z',
@@ -635,14 +653,14 @@ describe('CLI commands', function() {
     var specText = fs.readFileSync(sf, 'utf-8');
     var designText = fs.readFileSync(designFile, 'utf-8');
     var logText = fs.readFileSync(logFile, 'utf-8');
-    assert.ok(specText.indexOf('### Confirmed Requirement') !== -1);
+    assert.ok(specText.indexOf('Risk Signals:') !== -1);
     assert.ok(specText.indexOf('## Innovate Options') !== -1);
     assert.ok(specText.indexOf('## Acceptance Criteria') !== -1);
     assert.ok(specText.indexOf('Plan Approved By:') !== -1);
-    assert.ok(designText.indexOf('## Technical Design') !== -1);
-    assert.ok(designText.indexOf('Selected Option / ADR') !== -1);
-    assert.ok(designText.indexOf('Impact Scope') !== -1);
-    assert.ok(designText.indexOf('Data Model / Schema') !== -1);
+    assert.ok(designText.indexOf('## Design') !== -1);
+    assert.ok(designText.indexOf('Approach') !== -1);
+    assert.ok(designText.indexOf('Impact') !== -1);
+    assert.ok(designText.indexOf('Interface / Data') !== -1);
     assert.ok(designText.indexOf('Compatibility / Rollback') !== -1);
     assert.ok(logText.indexOf('## Execute Log') !== -1);
   });
@@ -656,7 +674,7 @@ describe('CLI commands', function() {
     var designFile = path.join(demo, 'mydocs', 'design', 'v1.0-default-micro.design.md');
     var specText = fs.readFileSync(sf, 'utf-8');
     assert.match(specText, /^mode: micro$/m);
-    assert.match(specText, /^design-file: ""$/m);
+    assert.match(specText, /^design-file: "mydocs\/design\//m);
     assert.ok(!fs.existsSync(designFile), 'micro discover should not create a standalone design artifact');
   });
 
@@ -705,8 +723,8 @@ describe('CLI commands', function() {
     assert.match(c, /^diff-base:/m);
     assert.ok(c.indexOf('## Intake') !== -1);
     assert.ok(c.indexOf('## ' + 'Invoc' + 'ation') === -1);
-    assert.match(c, /### Requirement\r?\nrequirement: login\r?\ngoal: auth/);
-    assert.match(c, /### Constraints\r?\nconstraints: none/);
+    assert.match(c, /^Requirement: login$/m);
+    assert.match(c, /^Scope: auth；none$/m);
   });
 
   it('discover auto-binds context/<task-name>/ as context-source', function() {
@@ -741,7 +759,7 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('CONTEXT_SOURCE: mydocs/context/ctx-task') !== -1, 'resume should show context-source');
   });
 
-  it('archive and reopen preserve three-part versions', function() {
+  it('archive preserves three-part versions and reopen is unavailable', function() {
     var demo = path.join(tmpBase, 'd2-version-archive');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name tri --spec-version v1.3.6 --requirement x --mode standard');
@@ -755,10 +773,8 @@ describe('CLI commands', function() {
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'archive', 'v1.3.6-tri.execute.md')));
 
     var reopened = run('reopen ' + demo + ' tri --defect regression --mode micro');
-    assert.ok(reopened.indexOf('[CREATE]') !== -1, reopened);
-    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md')));
-    var c = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
-    assert.match(c, /^reopened-from: "v1.3.6"$/m);
+    assert.match(reopened, /unknown command/);
+    assert.equal(fs.existsSync(path.join(demo, 'mydocs/specs/v1.3.6-tri.md')), false);
   });
 
   it('archive honors an explicit version when same task-name exists in multiple versions', function() {
@@ -786,11 +802,9 @@ describe('CLI commands', function() {
     run('archive ' + demo + ' v1.3.6-tri --authorized-by human:fixture --authorization-evidence "user approved this archive"');
 
     var reopened = run('reopen ' + demo + ' v1.3.6-tri --defect regression --mode micro');
-    assert.ok(reopened.indexOf('[CREATE]') !== -1, reopened);
-    assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md')));
-    assert.ok(!fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.4-tri.md')), 'v1.4 should remain archived');
-    var c = fs.readFileSync(path.join(demo, 'mydocs', 'specs', 'v1.3.6-tri.md'), 'utf-8');
-    assert.match(c, /^reopened-from: "v1.3.6"$/m);
+    assert.match(reopened, /unknown command/);
+    assert.equal(fs.existsSync(path.join(demo, 'mydocs/specs/v1.3.6-tri.md')), false);
+    assert.equal(fs.existsSync(path.join(demo, 'mydocs/specs/v1.4-tri.md')), false);
   });
 
   it('new-learning honors an explicit version when same task-name exists in multiple versions', function() {
@@ -1037,7 +1051,7 @@ describe('CLI commands', function() {
     makeStandardExecutedButUnchallenged(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('validate ' + demo + ' --archive-ready');
-    assert.ok(out.indexOf('Challenge has not been executed') !== -1, out);
+    assert.ok(out.indexOf('Challenge Verdict is empty') !== -1, out);
     assert.ok(out.indexOf('sdd challenge') !== -1, out);
     assert.ok(out.indexOf('--record-result') !== -1, out);
     assert.ok(out.indexOf('exit:') !== -1, out);
@@ -1138,7 +1152,7 @@ describe('CLI commands', function() {
     assert.ok(next.indexOf('NEXT_ACTION: run_challenge') !== -1, next);
     assert.ok(next.indexOf('--record-result') !== -1, next);
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge Executed At is empty') !== -1, blocked);
+    assert.ok(blocked.indexOf('Challenge Executed At must be a valid ISO-8601 timestamp') !== -1, blocked);
     assert.ok(blocked.indexOf('--record-result') !== -1, blocked);
   });
 
@@ -1161,7 +1175,7 @@ describe('CLI commands', function() {
     makeStandardBlockedCompletionVerification(demo, path.join(demo, 'mydocs', 'specs', 'v1.0-challenge-route.md'));
 
     var out = run('validate ' + demo + ' --archive-ready');
-    assert.ok(out.indexOf('Challenge has not been executed') === -1, out);
+    assert.ok(out.indexOf('Run independent Challenge:') === -1, out);
     assert.ok(out.indexOf('Execute Log completion-verification is not DONE') !== -1, out);
   });
 
@@ -1184,10 +1198,10 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name completion-order --spec-version v1.0 --requirement x --mode standard');
     makeStandardArchiveReady(demo, specFile);
     var logFile = artifactPath(demo, specFile, 'execute-log-file');
-    fs.appendFileSync(logFile, '\n---\nStep: repair\nStatus: BUGFIX\nResult: formal work followed completion.\nTimestamp: 2026-01-01T00:02:30Z\n', 'utf-8');
+    fs.appendFileSync(logFile, '\n---\nStep: repair\nStatus: BUGFIX\nResult: formal work followed completion.\nVerification: node --test\nTimestamp: 2026-01-01T00:02:30Z\n', 'utf-8');
 
     var validation = run('validate ' + demo + ' --archive-ready');
-    assert.ok(validation.indexOf('completion-verification must be the last formal Execute Step') !== -1, validation);
+    assert.ok(validation.indexOf('completion-verification must be the last formal step') !== -1, validation);
     var next = run('next ' + demo);
     assert.ok(next.indexOf('NEXT_ACTION: repair_execute_log') !== -1, next);
   });
@@ -1208,13 +1222,7 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name irreversible-guidance --spec-version v1.0 --requirement x --mode lite --autonomy-mode supervised');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-irreversible-guidance.md');
     var content = fs.readFileSync(sf, 'utf-8');
-    content = replaceSectionStart(content, 'Confirmed Requirement', [
-      'Scope Boundary: fixture',
-      'Irreversibility: irreversible and cannot be rolled back',
-      'Impact Radius: internal',
-      'Dependencies & Constraints: none',
-      'Acceptance Intent: current-user authorization remains required'
-    ].join('\n'));
+    content = fillConfirmedReq(content).replace('Risk Signals: none', 'Risk Signals: irreversible');
     content = replaceSectionStart(content, 'Plan', [
       'Selected Option: fixture',
       'Impact Scope: fixture',
@@ -1260,7 +1268,7 @@ describe('CLI commands', function() {
     assert.ok(out.indexOf('v1.0-incomplete-plan.md') !== -1, out);
   });
 
-  it('archive and reopen flow moves referenced artifacts', function() {
+  it('archive moves referenced artifacts and cannot reopen', function() {
     var demo = path.join(tmpBase, 'd4');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name arch --spec-version v1.0 --requirement x --mode standard');
@@ -1277,10 +1285,8 @@ describe('CLI commands', function() {
     assert.ok(archivedSpec.indexOf('design-file: "mydocs/archive/v1.0-arch.design.md"') !== -1);
     assert.ok(archivedSpec.indexOf('execute-log-file: "mydocs/archive/v1.0-arch.execute.md"') !== -1);
     var out2 = run('reopen ' + demo + ' arch --defect bug --mode micro');
-    assert.ok(out2.indexOf('[CREATE]') !== -1);
-    var patchSpec = path.join(demo, 'mydocs', 'specs', 'v1.0-arch.md');
-    assert.ok(fs.existsSync(patchSpec));
-    assert.ok(fs.existsSync(artifactPath(demo, patchSpec, 'execute-log-file')));
+    assert.match(out2, /unknown command/);
+    assert.equal(fs.existsSync(path.join(demo, 'mydocs/specs/v1.0-arch.md')), false);
   });
 
   it('archive authorization failures are fail-closed before any filesystem write', function() {
@@ -1355,7 +1361,7 @@ describe('CLI commands', function() {
     assert.match(resume, /PHASE_HINT: await_archive_authorization/);
     assert.match(resume, /AUTONOMY_MODE: supervised/);
     assert.match(resume, /AUTHORIZATION_STATE: active/);
-    assert.match(resume, /AUTHORIZED_ACTORS: main,worker,research-reviewer,challenge-reviewer/);
+    assert.match(resume, /AUTHORIZED_ACTORS: main,worker,design-reviewer,challenge-reviewer/);
     assert.match(resume, /AUTHORIZED_SCOPE_DIGEST: sha256:/);
     assert.match(resume, /AUTHORIZED_RISK_SNAPSHOT: sha256:/);
     assert.match(resume, /ACTIVE_PLAN_DIGEST: sha256:/);
@@ -1399,45 +1405,33 @@ describe('CLI commands', function() {
     assert.ok(index.indexOf('| PASS |') !== -1, index);
   });
 
-  it('compact generated micro completes without optional fields but still requires delivery facts and approval', function() {
-    const { createArchiveReadyMicro } = require('./helpers/sdd-fixtures');
-    const fixture = createArchiveReadyMicro(path.join(tmpBase, 'compact-micro'), 'compact-micro');
-    let content = fs.readFileSync(fixture.specPath, 'utf-8');
-    for (const field of ['Scope', 'Touched Files', 'Change', 'Blast Radius']) {
-      assert.doesNotMatch(content, new RegExp('^' + field + ':', 'm'));
+  it('low-risk micro completes with current Spec evidence and still requires explicit archive authorization', function() {
+    const demo = path.join(tmpBase, 'compact-micro');
+    run('init ' + demo + ' --autonomy-mode human');
+    run('discover ' + demo + ' --task-name compact-micro --spec-version v1.0 --requirement x --autonomy-mode human');
+    const specFile = path.join(demo, 'mydocs/specs/v1.0-compact-micro.md');
+    const content = fillApproval(fs.readFileSync(specFile, 'utf8'))
+      .replace(/^Acceptance:$/m, 'Acceptance: behavior preserved')
+      .replace(/^Verification:$/m, 'Verification: node --test')
+      .replace(/^(## Completion Verification\r?\nResult:)$/m, '$1 PASS').replace(/^(Verification:)$/gm, '$1 node --test').replace(/^Verified At:$/m, 'Verified At: 2026-01-01T00:01:00Z');
+    fs.writeFileSync(specFile, content);
+    assert.equal(runArgs(['validate', demo, '--archive-ready']).status, 0);
+    for (const label of ['Requirement', 'Scope', 'Risks', 'Risk Signals', 'Plan Approved By', 'Approved At', 'Result', 'Verified At']) {
+      fs.writeFileSync(specFile, content.replace(new RegExp('^' + label + ':.*$', 'm'), label + ':'));
+      assert.notEqual(runArgs(['validate', demo, '--archive-ready']).status, 0, label);
     }
-    content = content.replace(/^Selected Option:.*$/m, 'Selected Option: 保留单行真实方案');
-    content = authorizeFixture(content);
-    fs.writeFileSync(fixture.specPath, content, 'utf-8');
-    const check = () => runArgs(['validate', fixture.projectDir, '--archive-ready']);
-    assert.strictEqual(check().status, 0);
-    const archiveArgs = ['archive', fixture.projectDir, fixture.taskName, '--authorized-by', 'human:fixture', '--authorization-evidence', 'isolated fixture archive'];
-
-    for (const field of ['Impact Scope', 'Data Impact', 'Interface Impact', 'Acceptance', 'Verification', 'Plan Approved By', 'Approved At', 'Gate Evidence']) {
-      const missing = content.replace(new RegExp('^' + field + ':.*$', 'm'), field + ':');
-      fs.writeFileSync(fixture.specPath, authorizeFixture(missing), 'utf-8');
-      const denied = check();
-      assert.notStrictEqual(denied.status, 0, field + ': ' + denied.output);
-    }
-    fs.writeFileSync(fixture.specPath, authorizeFixture(content.replace(/^Selected Option:.*$/m, 'Selected Option:')), 'utf-8');
-    const noSummary = runArgs(archiveArgs);
-    assert.notStrictEqual(noSummary.status, 0, noSummary.output);
-    assert.match(noSummary.output, /Archive summary could not be generated/);
-
-    fs.writeFileSync(fixture.specPath, content, 'utf-8');
-    const denied = runArgs(['archive', fixture.projectDir, fixture.taskName]);
-    assert.match(denied.output, /SDD_ARCHIVE_AUTHORIZATION_REQUIRED/);
-    const archived = runArgs(archiveArgs);
-    assert.strictEqual(archived.status, 0, archived.output);
-    const result = fs.readFileSync(path.join(fixture.projectDir, 'mydocs/archive/v1.0-compact-micro.md'), 'utf-8');
-    assert.match(result, /## 最终方案\s+保留单行真实方案/);
+    fs.writeFileSync(specFile, content);
+    assert.match(run('archive ' + demo + ' compact-micro'), /SDD_ARCHIVE_AUTHORIZATION_REQUIRED/);
+    const result = runArgs(['archive', demo, 'compact-micro'].concat(archiveAuthorizationArgs()));
+    assert.equal(result.status, 0, result.output);
+    assert.equal(fs.existsSync(path.join(demo, 'mydocs/archive/v1.0-compact-micro.execute.md')), false);
   });
 
   it('archives an optional Learning Record after routine corrections without losing logged facts', function() {
     const { createArchiveReadyStandard, addLearningRecord } = require('./helpers/sdd-fixtures');
     const fixture = addLearningRecord(createArchiveReadyStandard(path.join(tmpBase, 'optional-learning'), 'optional-learning'));
     let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
-    log = log.replace('Step: completion-verification', 'Step: correction\nStatus: BUGFIX\nResult: verified local correction.\nTimestamp: 2026-01-01T00:00:30Z\n\n---\nStep: completion-verification');
+    log = log.replace('Step: completion-verification', 'Step: correction\nStatus: BUGFIX\nResult: verified local correction.\nVerification: node --test\nTimestamp: 2026-01-01T00:00:30Z\n\n---\nStep: completion-verification');
     fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
     const lesson = fs.readFileSync(fixture.learningPath, 'utf-8').replace('Trigger: PASS_WITH_CONCERNS challenge verdict', 'Trigger: 主动记录普通修复中的可复用规则');
     fs.writeFileSync(fixture.learningPath, lesson, 'utf-8');
@@ -1449,18 +1443,18 @@ describe('CLI commands', function() {
 
   it('important Learning triggers still block when mixed with routine corrections', function() {
     const { createArchiveReadyStandard, addLearningRecord } = require('./helpers/sdd-fixtures');
-    for (const trigger of ['BUGFIX_ESCALATED', 'DEVIATED_MAJOR', 'PASS_WITH_CONCERNS', 'reopened']) {
+    for (const trigger of ['BUGFIX_ESCALATED', 'DEVIATED_MAJOR', 'PASS_WITH_CONCERNS']) {
       const fixture = createArchiveReadyStandard(path.join(tmpBase, 'important-' + trigger), 'important-' + trigger.toLowerCase());
       let log = fs.readFileSync(fixture.executeLogPath, 'utf-8');
       const statuses = ['BUGFIX', 'DEVIATED_MINOR'].concat(/^(BUGFIX_ESCALATED|DEVIATED_MAJOR)$/.test(trigger) ? [trigger] : []);
-      log = log.replace('Step: completion-verification', statuses.map((status, i) => 'Step: correction-' + i + '\nStatus: ' + status + '\nTimestamp: 2025-12-31T23:59:00Z\n\n---\n').join('\n') + '\nStep: completion-verification');
+      log = log.replace('Step: completion-verification', statuses.map((status, i) => 'Step: correction-' + i + '\nStatus: ' + status + '\nVerification: node --test\nTimestamp: 2025-12-31T23:59:00Z\n\n---\n').join('\n') + '\nStep: completion-verification');
+      if (trigger === 'BUGFIX_ESCALATED') log = log.replace('Step: completion-verification', 'Step: repaired\nStatus: DONE\nVerification: node --test\nTimestamp: 2026-01-01T00:00:50Z\n---\nStep: completion-verification');
       fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
       let content = fs.readFileSync(fixture.specPath, 'utf-8');
       if (trigger === 'PASS_WITH_CONCERNS') content = content
         .replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: PASS_WITH_CONCERNS')
         .replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Learning Check')
         .replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: PASS_WITH_CONCERNS - independent fixture review');
-      if (trigger === 'reopened') content = content.replace(/^reopened-from:.*$/m, 'reopened-from: "mydocs/archive/previous.md"');
       fs.writeFileSync(fixture.specPath, content, 'utf-8');
       const check = () => runArgs(['validate', fixture.projectDir, '--archive-ready']);
       const missing = check();
@@ -1490,6 +1484,7 @@ describe('CLI commands', function() {
         'Status: DEVIATED_MAJOR',
         'Result: implementation deviated from the approved plan boundary.',
         'Deviation: implementation approach changed within the same archive fixture.',
+        'Verification: node --test',
         'Timestamp: 2025-12-31T23:59:00Z',
         '',
         '---',
@@ -1534,33 +1529,20 @@ describe('CLI commands', function() {
     run('discover ' + demo + ' --task-name blocked --spec-version v1.0 --requirement x --mode standard');
     var out = run('archive ' + demo + ' blocked --authorized-by human:fixture --authorization-evidence "user approved this archive"');
     assert.ok(out.indexOf('Spec is not archive-ready') !== -1);
-    assert.ok(out.indexOf('Plan Approved By is empty') !== -1);
-    assert.ok(out.indexOf('Technical Design is empty') !== -1);
+    assert.ok(out.indexOf('Plan approval is missing or invalid for the autonomy mode') !== -1);
+    assert.ok(out.indexOf('Design missing Approach') !== -1);
     assert.ok(fs.existsSync(path.join(demo, 'mydocs', 'specs', 'v1.0-blocked.md')));
   });
 
-  it('validate enforces standard technical design contract fields', function() {
-    var demo = path.join(tmpBase, 'd4s');
-    run('init ' + demo + ' --mode standard');
+  it('validate enforces the shared current Design contract', function() {
+    const demo = path.join(tmpBase, 'strict-design');
+    run('init ' + demo);
     run('discover ' + demo + ' --task-name strict-design --spec-version v1.0 --requirement x --mode standard');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-strict-design.md');
-    var artifacts = makeStandardArchiveReady(demo, sf);
-    fs.writeFileSync(artifacts.designFile, [
-      '# Technical Design',
-      '',
-      '## Technical Design',
-      '',
-      'Selected Option / ADR: 选择方案 A。',
-      'Requirement Traceability: AC-001 覆盖归档门禁。',
-      'Test Strategy: node:test command suite.'
-    ].join('\n'), 'utf-8');
-
-    var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Technical Design missing required fields') !== -1);
-    assert.ok(blocked.indexOf('Impact Scope') !== -1);
-    assert.ok(blocked.indexOf('Data Model / Schema') !== -1);
-    assert.ok(blocked.indexOf('Interface Contract') !== -1);
-    assert.ok(blocked.indexOf('Compatibility / Rollback') !== -1);
+    const sf = path.join(demo, 'mydocs/specs/v1.0-strict-design.md');
+    const artifacts = makeStandardArchiveReady(demo, sf);
+    fs.writeFileSync(artifacts.designFile, '## Design\nApproach: option A');
+    const blocked = run('validate ' + demo + ' --archive-ready');
+    for (const label of ['Impact', 'Interface / Data', 'Compatibility / Rollback', 'Verification']) assert.ok(blocked.includes('Design missing ' + label), blocked);
   });
 
   it('validate rejects legacy auto-gate plan approval', function() {
@@ -1575,7 +1557,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, content, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Plan Approved By must be agent:<id> or human:<name>') !== -1, blocked);
+    assert.ok(blocked.indexOf('Plan approval is missing or invalid for the autonomy mode') !== -1, blocked);
   });
 
   it('validate blocks archive when adversarial challenge failed', function() {
@@ -1607,7 +1589,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge Executed By is empty') !== -1, 'missing Executed By');
+    assert.ok(blocked.indexOf('Challenge Executed By must be an auditable independent reviewer') !== -1, 'missing Executed By');
   });
 
   it('validate requires Challenge Executed At when Executed By is present', function() {
@@ -1622,7 +1604,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge Executed At is empty') !== -1, 'missing Executed At');
+    assert.ok(blocked.indexOf('Challenge Executed At must be a valid ISO-8601 timestamp') !== -1, 'missing Executed At');
   });
 
   it('validate requires Challenge Evidence when Executed By and At are present', function() {
@@ -1657,7 +1639,7 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1);
+    assert.ok(blocked.indexOf('Challenge Executed By must be an auditable independent reviewer') !== -1);
   });
 
   it('validate passes when challenge evidence is complete (AC-002)', function() {
@@ -1698,7 +1680,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Supervised and human autonomy modes require Plan Approved By: human:<name>') !== -1, blocked);
+    assert.ok(blocked.indexOf('Plan approval is missing or invalid for the autonomy mode') !== -1, blocked);
   });
 
   it('validate rejects agent fixture approval in supervised mode', function() {
@@ -1709,7 +1691,7 @@ describe('CLI commands', function() {
     makeStandardArchiveReady(demo, sf);
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Supervised and human autonomy modes require Plan Approved By: human:<name>') === -1, blocked);
+    assert.ok(blocked.indexOf('Plan approval is missing or invalid for the autonomy mode') === -1, blocked);
   });
 
   it('validate accepts auditable independent reviewers for standard challenge', function() {
@@ -1726,42 +1708,31 @@ describe('CLI commands', function() {
     assert.ok(result.indexOf('independent reviewer') === -1, 'external reviewer should pass: ' + result);
   });
 
-  it('validate rejects ambiguous independent reviewers for standard challenge and research gate', function() {
+  it('validate rejects ambiguous independent reviewers for standard challenge and Design review', function() {
     var demo = path.join(tmpBase, 'reviewer-evidence-invalid');
     run('init ' + demo + ' --mode standard');
     run('discover ' + demo + ' --task-name reviewer-invalid --spec-version v1.0 --requirement x --mode standard');
     var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-reviewer-invalid.md');
     makeStandardArchiveReady(demo, sf);
     var c = fs.readFileSync(sf, 'utf-8')
-      .replace(/^Research Reviewed By:.*$/m, 'Research Reviewed By: auto-gate')
+      .replace(/^Design Reviewed By:.*$/m, 'Design Reviewed By: auto-gate')
       .replace(/^Challenge Executed By:.*$/m, 'Challenge Executed By: reviewer');
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Research Gate requires independent reviewer evidence') !== -1, blocked);
-    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1, blocked);
+    assert.ok(blocked.indexOf('High-risk Design needs an independent Design Reviewed By') !== -1, blocked);
+    assert.ok(blocked.indexOf('Challenge Executed By must be an auditable independent reviewer') !== -1, blocked);
   });
 
-  it('validate and next surface reviewer guidance when research reviewer is missing', function() {
-    var demo = path.join(tmpBase, 'research-reviewer-missing-guidance');
-    run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name research-missing --spec-version v1.0 --requirement x --mode standard');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-research-missing.md');
-    var c = fs.readFileSync(sf, 'utf-8');
-    c = fillConfirmedReq(c)
-      .replace(/^Research Reviewed By:.*$/m, 'Research Reviewed By:')
-      .replace(/^Research Reviewed At:.*$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z');
-    fs.writeFileSync(sf, c, 'utf-8');
-
-    var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Research Reviewed By is empty') !== -1, blocked);
-    assert.ok(blocked.indexOf('Auditable reviewer types: subagent:<id>, external-agent:<id>, human:<name>') !== -1, blocked);
-    assert.ok(blocked.indexOf('explicit current-user authorization') !== -1, blocked);
-    assert.ok(blocked.indexOf('Do not skip the gate or fabricate reviewer evidence') !== -1, blocked);
-
-    var next = run('next ' + demo);
-    assert.ok(next.indexOf('REVIEWER_GUIDANCE:') !== -1, next);
-    assert.ok(next.indexOf('explicit current-user authorization') !== -1, next);
+  it('validate and next block missing independent high-risk Design review', function() {
+    const demo = path.join(tmpBase, 'design-reviewer-guidance');
+    run('init ' + demo);
+    run('discover ' + demo + ' --task-name design-missing --spec-version v1.0 --requirement x --mode standard');
+    const sf = path.join(demo, 'mydocs/specs/v1.0-design-missing.md');
+    makeStandardArchiveReady(demo, sf);
+    fs.writeFileSync(sf, fs.readFileSync(sf, 'utf8').replace(/^Design Reviewed By:.*$/m, 'Design Reviewed By:'));
+    assert.match(run('validate ' + demo + ' --archive-ready'), /High-risk Design needs an independent Design Reviewed By/);
+    assert.match(run('next ' + demo), /BACKTRACK_TARGET: Design/);
   });
 
   it('validate rejects legacy auto-gate challenge evidence (AC-003)', function() {
@@ -1775,7 +1746,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1, blocked);
+    assert.ok(blocked.indexOf('Challenge Executed By must be an auditable independent reviewer') !== -1, blocked);
   });
 
   it('validate rejects inline challenge for standard/lite modes (AC-004)', function() {
@@ -1789,7 +1760,7 @@ describe('CLI commands', function() {
     fs.writeFileSync(sf, c, 'utf-8');
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Challenge requires independent reviewer evidence') !== -1);
+    assert.ok(blocked.indexOf('Challenge Executed By must be an auditable independent reviewer') !== -1);
   });
 
   it('validate allows inline challenge for micro mode (AC-005)', function() {
@@ -1823,58 +1794,28 @@ describe('CLI commands', function() {
     assert.ok(blocked.indexOf('Challenge Executed At must be after the last Execute Log step timestamp') !== -1);
   });
 
-  it('validate rejects legacy auto-gate Research review', function() {
-    var demo = path.join(tmpBase, 'd4rg');
-    run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name rg-evidence --spec-version v1.0 --requirement x --mode standard');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-rg-evidence.md');
-    var c = fs.readFileSync(sf, 'utf-8');
-    c = fillConfirmedReq(c);
-    c = c
-      .replace(/^Research Reviewed By:$/m, 'Research Reviewed By: auto-gate')
-      .replace(/^Research Reviewed At:$/m, 'Research Reviewed At: 2026-01-01T00:00:00Z');
-    fs.writeFileSync(sf, c, 'utf-8');
-    var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Research Gate requires independent reviewer evidence') !== -1, blocked);
+  it('validate rejects auto-gate as an independent Design reviewer', function() {
+    const demo = path.join(tmpBase, 'design-actor-invalid');
+    run('init ' + demo);
+    run('discover ' + demo + ' --task-name actor-invalid --spec-version v1.0 --requirement x --mode standard');
+    const sf = path.join(demo, 'mydocs/specs/v1.0-actor-invalid.md');
+    makeStandardArchiveReady(demo, sf);
+    fs.writeFileSync(sf, fs.readFileSync(sf, 'utf8').replace(/^Design Reviewed By:.*$/m, 'Design Reviewed By: auto-gate'));
+    assert.match(run('validate ' + demo + ' --archive-ready'), /independent Design Reviewed By/);
   });
 
-  it('validate warns but does not block on missing CR fields when not archive-ready', function() {
-    var demo = path.join(tmpBase, 'd4crw');
-    run('init ' + demo + ' --mode standard');
-    run('discover ' + demo + ' --task-name cr-warn --spec-version v1.0 --requirement x --mode standard');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-cr-warn.md');
-    var c = fs.readFileSync(sf, 'utf-8');
-    // Fill only Scope Boundary, leave other CR fields empty
-    c = c.replace(/^Scope Boundary:$/m, 'Scope Boundary: single module');
-    fs.writeFileSync(sf, c, 'utf-8');
-    // Non archive-ready: CR missing fields should produce WARNING, not hard failure
-    var validate = require('../src/commands/validate');
-    var result = validate.validateSpec(sf, { archiveReady: false, projectDir: demo });
-    var crIssues = result.issues.filter(function(i) { return i.indexOf('Confirmed Requirement') !== -1; });
-    // Should have WARNING (not hard error) for missing CR fields
-    assert.ok(crIssues.some(function(i) { return i.indexOf('WARNING') !== -1; }), 'expected WARNING for missing CR fields: ' + crIssues.join('; '));
+  it('current validation has no legacy Confirmed Requirement field gate', function() {
+    const fixture = require('./helpers/sdd-fixtures').createArchiveReadyLite(path.join(tmpBase, 'current-no-cr'));
+    const result = require('../src/commands/validate').validateSpec(fixture.specPath, { projectDir: fixture.projectDir });
+    assert.equal(result.ok, true, result.issues.join('\n'));
+    assert.doesNotMatch(result.issues.join('\n'), /Confirmed Requirement/);
   });
 
-  it('validate enforces lite design note and acceptance criteria', function() {
-    var demo = path.join(tmpBase, 'd4c');
-    run('init ' + demo + ' --mode lite');
-    run('discover ' + demo + ' --task-name lite-task --spec-version v1.0 --requirement x --mode lite');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-lite-task.md');
-    var designFile = artifactPath(demo, sf, 'design-file');
-    var logFile = artifactPath(demo, sf, 'execute-log-file');
-    var c = fs.readFileSync(sf, 'utf-8');
-    c = replaceSectionStart(c, 'Confirmed Requirement', 'Lite task must enforce design and acceptance before archive.');
-    c = replaceSectionStart(c, 'Innovate Options', 'Innovate: Skipped, Reason: 复用现有 validate/archive pattern.');
-    c = fillApproval(c);
-    c = fillChallenge(c, 'PASS');
-    fs.writeFileSync(sf, c, 'utf-8');
-
-    c = replaceSectionStart(fs.readFileSync(sf, 'utf-8'), 'Acceptance Criteria', '### AC-001: validate archive-ready gates\nRequirement: lite validation\nType: functional\nVerification: unit\nAutomated: yes\nTest: tests/commands.test.js\n\nScenario: Lite archive readiness\n  Given lite design, acceptance, approval, execute log, and PASS review are present\n  When validate --archive-ready runs\n  Then validation reports OK');
-    fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(designFile, 'Design Note', 'Approach: 复用 standard validate path.\nImpact Scope: CLI validation only.\nInterface / Data Impact: 不改变外部接口和持久化数据。\nCompatibility: no format break.\nRisks: missing AC would block archive.\nTest Strategy: node test validates this behavior.');
-    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
-    var ok = run('validate ' + demo + ' --archive-ready');
-    assert.ok(ok.indexOf('RESULT: OK') !== -1);
+  it('lite with design-latitude enforces current Design and Acceptance', function() {
+    const fixture = require('./helpers/sdd-fixtures').createArchiveReadyLite(path.join(tmpBase, 'lite-current'));
+    assert.equal(runArgs(['validate', fixture.projectDir, '--archive-ready']).status, 0);
+    fs.writeFileSync(fixture.designPath, '## Design\nApproach: known option');
+    assert.match(run('validate ' + fixture.projectDir + ' --archive-ready'), /Design missing Impact/);
   });
 
   it('validate requires acceptance verification metadata', function() {
@@ -1895,19 +1836,19 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Standard Acceptance Criteria missing Verification for: AC-001') !== -1);
+    assert.ok(blocked.indexOf('Acceptance Criteria missing Verification for: AC-001') !== -1);
 
     c = fs.readFileSync(sf, 'utf-8')
       .replace('Automated: yes\nTest: tests/commands.test.js\n', 'Verification: e2e\nAutomated: yes\n');
     fs.writeFileSync(sf, c, 'utf-8');
     var e2eBlocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(e2eBlocked.indexOf('Standard E2E Acceptance Criteria require Test or Manual Evidence for: AC-001') !== -1);
+    assert.ok(e2eBlocked.indexOf('E2E Acceptance Criteria require Test or Manual Evidence for: AC-001') !== -1);
 
     c = fs.readFileSync(sf, 'utf-8')
       .replace('Verification: e2e', 'Verification: unit');
     fs.writeFileSync(sf, c, 'utf-8');
     var automatedBlocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(automatedBlocked.indexOf('Standard Automated Acceptance Criteria require Test for: AC-001') !== -1);
+    assert.ok(automatedBlocked.indexOf('Automated Acceptance Criteria require Test for: AC-001') !== -1);
   });
 
   it('validate reports missing Provider for an active e2e AC even when Test is present', function() {
@@ -1935,36 +1876,16 @@ describe('CLI commands', function() {
     assert.ok(specText.indexOf('## Acceptance Criteria') !== -1);
     assert.ok(specText.indexOf('Plan Approved By:') !== -1);
     assert.strictEqual(specText.indexOf('Gate Policy:'), -1);
-    assert.ok(designText.indexOf('Selected Option / ADR:') !== -1);
+    assert.ok(designText.indexOf('Approach:') !== -1);
     assert.ok(logText.indexOf('Status: DONE') !== -1);
     assert.ok(specText.indexOf('write') !== -1 || specText.indexOf('Chinese') !== -1);
   });
 
-  it('validate enforces micro plan acceptance and verification labels', function() {
-    var demo = path.join(tmpBase, 'd4d');
-    run('init ' + demo + ' --mode micro');
-    run('discover ' + demo + ' --task-name micro-task --spec-version v1.0 --requirement x --mode micro');
-    var sf = path.join(demo, 'mydocs', 'specs', 'v1.0-micro-task.md');
-    var logFile = artifactPath(demo, sf, 'execute-log-file');
-    var c = fs.readFileSync(sf, 'utf-8');
-    c = fillApproval(c);
-    c = fillChallenge(c, 'PASS', { executedBy: 'inline' });
-    fs.writeFileSync(sf, c, 'utf-8');
-
-    var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Micro Plan must include Impact Scope') !== -1);
-    assert.ok(blocked.indexOf('Micro Plan must include Data Impact') !== -1);
-    assert.ok(blocked.indexOf('Micro Plan must include Interface Impact') !== -1);
-    assert.ok(blocked.indexOf('Micro Plan must include Acceptance') !== -1);
-    assert.ok(blocked.indexOf('Micro Plan must include Verification') !== -1);
-    assert.ok(blocked.indexOf('Execute Log is empty') !== -1);
-
-    c = fs.readFileSync(sf, 'utf-8')
-      .replace(/^Approved At: 2026-01-01T00:00:00Z$/m, 'Approved At: 2026-01-01T00:00:00Z\n\nScope: single-file test fixture\nTouched Files: none\nChange: validate micro gates\nImpact Scope: micro validation only\nData Impact: none\nInterface Impact: none\nAcceptance: validate reports OK\nVerification: node --test tests/*.test.js\nBlast Radius: micro only');
-    fs.writeFileSync(sf, c, 'utf-8');
-    insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
-    var ok = run('validate ' + demo + ' --archive-ready');
-    assert.ok(ok.indexOf('RESULT: OK') !== -1);
+  it('micro keeps Acceptance and Verification in the current Acceptance Criteria section', function() {
+    const fixture = require('./helpers/sdd-fixtures').createArchiveReadyMicro(path.join(tmpBase, 'micro-current'));
+    const spec = fs.readFileSync(fixture.specPath, 'utf8').replace(/## Acceptance Criteria[^]*?(?=## Plan)/, '## Acceptance Criteria\n');
+    fs.writeFileSync(fixture.specPath, spec);
+    assert.match(run('validate ' + fixture.projectDir + ' --archive-ready'), /Acceptance is required/);
   });
 
   it('uses Node CLI only and ships no shell entrypoints', function() {
@@ -2224,7 +2145,7 @@ describe('CLI commands', function() {
     // Challenge verdict is independent — explicit PASS stays PASS
     assert.ok(out.indexOf('CHALLENGE_VERDICT: PASS') !== -1);
     // But validation blockers still appear and nextAction is not archive_ready
-    assert.ok(out.indexOf('Confirmed Requirement is empty.') !== -1);
+    assert.ok(out.indexOf('Intake missing Scope.') !== -1);
     assert.ok(out.indexOf('NEXT_ACTION: repair_research') !== -1);
   });
 
@@ -2316,7 +2237,7 @@ describe('CLI commands', function() {
     assert.equal(entry.engine, undefined);
     assert.equal(entry.nextAction, 'repair_research');
     assert.equal(entry.backtrackTarget, 'Research');
-    assert.equal(entry.challengeVerdict, 'FAIL_SPEC');
+    assert.equal(entry.challengeVerdict, 'FAIL_LOG');
     assert.equal(entry.stopReason, 'task_authorization_required');
   });
 
@@ -2361,7 +2282,7 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', completionVerificationLog());
 
     var out = run('next ' + demo);
-    assert.ok(out.indexOf('CHALLENGE_VERDICT: FAIL_ACCEPTANCE') !== -1);
+    assert.ok(out.indexOf('Acceptance Criteria missing Verification') !== -1, out);
     assert.ok(out.indexOf('BACKTRACK_TARGET: Acceptance') !== -1);
   });
 
@@ -2497,7 +2418,7 @@ describe('CLI commands', function() {
       assert.equal(detail.body.workflow.maxIterations, 5);
       assert.equal(detail.body.workflow.nextAction, 'repair_research');
       assert.equal(detail.body.workflow.backtrackTarget, 'Research');
-      assert.equal(detail.body.workflow.challengeVerdict, 'FAIL_SPEC');
+      assert.equal(detail.body.workflow.challengeVerdict, 'FAIL_LOG');
       assert.ok(detail.body.artifacts.design.ref.endsWith('v1.0-console-task.design.md'));
       assert.ok(detail.body.artifacts.executeLog.ref.endsWith('v1.0-console-task.execute.md'));
       assert.ok(detail.body.artifacts.learning.ref.endsWith('v1.0-console-task.learning.md'));
@@ -2521,7 +2442,7 @@ describe('CLI commands', function() {
 
       var previewPage = await requestText(server, '/preview.html');
       assert.equal(previewPage.statusCode, 200);
-      assert.ok(previewPage.body.indexOf('SDD Artifact Preview') !== -1);
+      assert.ok(previewPage.body.indexOf('制品阅读') !== -1);
 
       var openSpec = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'spec' });
       var openDesign = await requestJsonBody(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/open', 'POST', { artifact: 'design' });
@@ -2539,7 +2460,7 @@ describe('CLI commands', function() {
       var validation = await requestJson(server, '/api/specs/' + encodeURIComponent(list.body.specs[0].id) + '/validate', 'POST');
       assert.equal(validation.statusCode, 200);
       assert.equal(validation.body.ok, false);
-      assert.ok(validation.body.issues.some(function(issue) { return issue.indexOf('Plan Approved By is empty') !== -1; }));
+      assert.ok(validation.body.issues.some(function(issue) { return issue.indexOf('Plan approval is missing or invalid for the autonomy mode') !== -1; }));
     } finally {
       await new Promise(function(resolve) { server.close(resolve); });
     }
@@ -2621,7 +2542,7 @@ describe('CLI commands', function() {
 
   it('console hidden utility overrides detail empty-state display', function() {
     var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
-    assert.match(css, /\.hidden\s*{\s*display:\s*none\s*!important;\s*}/);
+    assert.match(css, /\.hidden(?:,\[hidden\])?\s*{\s*display:\s*none\s*!important;?\s*}/);
   });
 
   it('console copy matches gate and cruise control-plane semantics', function() {
@@ -2629,17 +2550,17 @@ describe('CLI commands', function() {
     assert.ok(js.indexOf('Configured approval gate') !== -1);
     assert.ok(js.indexOf('agent approval needs Gate Evidence') !== -1);
     assert.equal(js.indexOf('auto-gate'), -1);
-    assert.ok(js.indexOf('next: ') !== -1);
-    assert.ok(js.indexOf('gate evidence: ') !== -1);
+    assert.ok(js.indexOf('gateEvidence') !== -1);
+    assert.ok(js.indexOf('等待归档授权') !== -1);
     assert.equal(js.indexOf('Human approval recorded'), -1);
   });
 
-  it('console phase tabs wrap instead of forcing horizontal scroll', function() {
+  it('console task scopes stay in three columns without horizontal page scroll', function() {
     var css = fs.readFileSync(path.resolve('src', 'web', 'console.css'), 'utf-8');
-    var match = css.match(/\.phase-tabs\s*{([^}]*)}/);
+    var match = css.match(/\.scope-tabs\s*{([^}]*)}/);
     assert.ok(match, 'phase tabs styles are missing');
     assert.match(match[1], /display:\s*grid;/);
-    assert.match(match[1], /grid-template-columns:\s*repeat\(auto-fit,\s*minmax\(94px,\s*1fr\)\);/);
+    assert.match(match[1], /grid-template-columns:\s*repeat\(3,\s*1fr\)/);
     assert.doesNotMatch(match[1], /overflow-x:\s*auto;/);
   });
 
@@ -2695,7 +2616,7 @@ describe('CLI commands', function() {
     assert.ok(html.indexOf('blockers') !== -1, 'blockers container in HTML');
   });
 
-  it('console renders challenge summary in blocker card (AC-005)', function() {
+  it('console retains recorded challenge summary in technical details (AC-005)', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
     assert.ok(js.indexOf('challengeSummary') !== -1, 'reads challengeSummary from workflow');
     assert.ok(js.indexOf('challenge-summary') !== -1, 'challenge summary CSS class used');
@@ -2703,8 +2624,8 @@ describe('CLI commands', function() {
 
   it('console detail page has Status Overview and Methodology sections in HTML', function() {
     var html = fs.readFileSync(path.resolve('src', 'web', 'index.html'), 'utf-8');
-    assert.ok(html.indexOf('Status Overview') !== -1, 'Status Overview section exists');
-    assert.ok(html.indexOf('Methodology') !== -1, 'Methodology section exists');
+    assert.ok(html.indexOf('工作流条件') !== -1, 'status section exists');
+    assert.ok(html.indexOf('方法与学习') !== -1, 'methodology section exists');
     assert.ok(html.indexOf('risk-flags') !== -1, 'risk-flags container exists');
     assert.ok(html.indexOf('blockers') !== -1, 'blockers container exists');
     assert.ok(html.indexOf('design-method') !== -1, 'design-method container exists');
@@ -2766,9 +2687,9 @@ describe('CLI commands', function() {
 
   it('console blocker card no longer contains challenge and backtrack text (AC-005)', function() {
     var js = fs.readFileSync(path.resolve('src', 'web', 'console.js'), 'utf-8');
-    var blockerMatch = js.match(/function renderBlocker\(spec\)[\s\S]*?\.join\(''\);/);
+    var blockerMatch = js.match(/function renderBlocker\(spec\)[\s\S]*?(?=var RISK_FLAG_TONES)/);
     assert.ok(blockerMatch, 'renderBlocker function found');
-    assert.doesNotMatch(blockerMatch[0], /challenge: /, 'challenge text removed from blocker card');
+    assert.doesNotMatch(blockerMatch[0], /challengeSummary|Challenge: /, 'recorded review details stay separate from the next-action card');
     assert.doesNotMatch(blockerMatch[0], /backtrack: /, 'backtrack text removed from blocker card');
   });
 
@@ -2972,7 +2893,7 @@ describe('CLI commands', function() {
       ['Verification Provider', 2],
       ['Visual(?: Context Guidance)?', 3],
       ['AUTONOMY_MODE', 3],
-      ['Archive \\/ Reopen', 3]
+      ['Archive', 3]
     ].forEach(function(entry) {
       var capability = entry[0];
       var section = markdownSection(reference, capability, entry[1]);
@@ -3077,7 +2998,7 @@ describe('CLI commands', function() {
   it('ADR method doc exists and is wired into SKILL.md', function() {
     assert.ok(fs.existsSync(path.resolve('protocols', 'adr.md')));
     var adr = fs.readFileSync(path.resolve('protocols', 'adr.md'), 'utf-8');
-    assert.ok(adr.indexOf('Selected Option / ADR') !== -1);
+    assert.ok(adr.indexOf('Approach') !== -1);
     assert.ok(adr.indexOf('Alternatives') !== -1);
     var skill = fs.readFileSync(path.resolve('SKILL.md'), 'utf-8');
     assert.ok(skill.indexOf('protocols/adr.md') !== -1);
@@ -3241,7 +3162,7 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('SKIPPED but missing Approved By') !== -1, 'should report missing Approved By: ' + blocked);
+    assert.ok(blocked.indexOf('SKIPPED needs human approval') !== -1, 'should report missing Approved By: ' + blocked);
   });
 
   it('validate blocks archive when SKIPPED AC has agent approval (AC-003)', function() {
@@ -3262,7 +3183,7 @@ describe('CLI commands', function() {
     insertSectionContent(logFile, 'Execute Log', withCompletionContract('Step 1: implement\nStatus: DONE\nAC Coverage:\n  - AC-001: SKIPPED\n    Reason: E2E environment unavailable\n    Approved By: agent:codex\n    Approved At: 2026-01-01T00:00:00Z\nDeviation: none\nTimestamp: 2026-01-01T00:00:00Z'));
 
     var blocked = run('validate ' + demo + ' --archive-ready');
-    assert.ok(blocked.indexOf('Approved By must be human:<name>') !== -1, 'should reject agent approval for SKIPPED: ' + blocked);
+    assert.ok(blocked.indexOf('SKIPPED needs human approval') !== -1, 'should reject agent approval for SKIPPED: ' + blocked);
   });
 
   it('validate accepts SKIPPED AC with proper human approval (AC-003)', function() {
@@ -3347,7 +3268,7 @@ describe('CLI commands', function() {
 
   it('classifyIssue maps challenge-not-executed to FAIL_LOG not FAIL_CODE', function() {
     var workflow = require(path.resolve('src/core/workflow'));
-    var issues = ['Challenge has not been executed: Challenge Executed By is empty.'];
+    var issues = ['Challenge Verdict is empty: Challenge Executed By must be an auditable independent reviewer.'];
     assert.strictEqual(workflow.challengeVerdictFromIssues(issues), 'FAIL_LOG');
   });
 
@@ -3360,9 +3281,9 @@ describe('CLI commands', function() {
   });
 
   it('templates document Provider for e2e AC without exposing transport or command', function() {
-    ['spec-standard.md', 'spec-lite.md', 'spec-micro.md'].forEach(function(file) {
+    ['spec-streamlined.md'].forEach(function(file) {
       var content = fs.readFileSync(path.resolve('templates', file), 'utf-8');
-      assert.ok(content.indexOf('Provider: <required for e2e') !== -1, file);
+      assert.ok(content.indexOf('Provider:') !== -1, file);
       assert.ok(content.indexOf('Provider: <transport') === -1, file);
       assert.ok(content.indexOf('Provider: <command') === -1, file);
     });
@@ -3431,7 +3352,7 @@ describe('CLI commands', function() {
     assert.ok(js.indexOf('attachment.path') !== -1);
     assert.ok(css.indexOf('.verification-scroll') !== -1);
     assert.match(css, /\.verification-scroll\s*\{[^}]*overflow-x:\s*auto/s);
-    assert.match(css, /@media\s*\(max-width:\s*820px\)[\s\S]*\.verification-provider-grid/s);
+    assert.match(css, /@media\s*\(max-width:\s*700px\)[\s\S]*\.verification-provider-grid/s);
     assert.doesNotMatch(html + js, /verify-run-button|verify-init-button/);
   });
 
@@ -3490,8 +3411,9 @@ describe('gate integrity fixes (v4.12)', function() {
     var specState = require('../src/core/spec-state');
     var content = [
       '---', 'date: 2026-08-23', 'task-name: "t"', 'mode: micro', 'status: draft',
+      'workflow-policy: streamlined-v1', 'autonomy-mode: human',
       'design-file: ""', 'execute-log-file: ""', '---', '',
-      '## Intake', 'requirement: r', '',
+      '## Intake', 'Requirement: r', 'Scope: fixture', 'Risks: reversible', 'Risk Signals: multi-step', '',
       '## Acceptance Criteria', '- AC-42 does the thing.', '  Verification: unit', ''
     ].join('\n');
     var facts = workflowGateFacts.collectGateFacts({

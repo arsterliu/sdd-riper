@@ -178,7 +178,7 @@ function runnableProject(approved = true, acIds = ['AC-001']) {
     `### ${id}: web works`, 'Verification: e2e', 'Provider: web-e2e', `Test: tests/${id.toLowerCase()}.test.js`
   ]);
   fs.writeFileSync(spec, [
-    '---', 'mode: standard', 'autonomy-mode: "auto"', 'autonomy-mode-source: "fixture"', 'task-name: fixture-e2e', 'design-file: design.md', '---',
+    '---', 'workflow-policy: streamlined-v1', 'mode: standard', 'autonomy-mode: "auto"', 'autonomy-mode-source: "fixture"', 'task-name: fixture-e2e', 'design-file: design.md', '---',
     '## Acceptance Criteria', ...acceptance,
     '## Plan', 'Step: sdd verify init --provider web-e2e',
     'Plan Approved By:' + (approved ? ' agent:test' : ''),

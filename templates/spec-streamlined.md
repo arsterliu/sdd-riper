@@ -6,7 +6,6 @@ workflow-policy: streamlined-v1
 autonomy-mode: ""
 autonomy-mode-source: ""
 status: draft
-reopened-from: ""
 context-source: ""
 ui-impact: ""
 visual-context-intent: ""

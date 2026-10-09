@@ -3,10 +3,8 @@ var path = require('path');
 var common = require('../../lib/common');
 var validate = require('../commands/validate');
 var specState = require('./spec-state');
-var risk = require('./risk');
 var visualEvidenceContract = require('../visual-evidence/contract');
 var autonomyState = require('./autonomy-state');
-var workflowGateFacts = require('./workflow-gate-facts');
 var workflowPolicy = require('./workflow-policy');
 
 var VERDICT_TO_TARGET = specState.VERDICT_TO_TARGET;
@@ -28,95 +26,6 @@ function challengeVerdictFromIssues(issues) {
   return specState.verdictFromIssues(issues);
 }
 
-// Strip a leading "Label:" prefix from each line so keyword scanning sees the
-// filled values, not the template field names (the standard design template's
-// own labels — "Security / Permission", "Data Migration / Backfill",
-// "Data Model / Schema" — otherwise flag every standard spec).
-function stripLeadingLabels(text) {
-  return String(text || '').split(/\r?\n/).map(function(line) {
-    return line.replace(/^\s*[A-Za-z][A-Za-z0-9 /&_-]*:\s*/, '');
-  }).join('\n');
-}
-
-// The "action region" of a spec: what the work will actually do (Plan + the
-// Design contract), with field labels stripped. Risk is judged from intended
-// actions, not from narrative that merely discusses risk in Research/Findings.
-function actionText(projectDir, specPath) {
-  var parts = [];
-  var plan = common.extractSection(specPath, 'Plan', 400);
-  if (plan) parts.push(plan);
-  var designRef = common.getFrontmatterField(specPath, 'design-file');
-  var designContent = '';
-  if (designRef) {
-    var dp = common.resolveProjectPath(projectDir, designRef);
-    if (dp && fs.existsSync(dp)) {
-      designContent = common.extractSection(dp, 'Technical Design', 400) || common.extractSection(dp, 'Design Note', 400) || '';
-    }
-  }
-  if (!designContent) {
-    designContent = common.extractSection(specPath, 'Technical Design', 400) || common.extractSection(specPath, 'Design Note', 400) || '';
-  }
-  if (designContent) parts.push(designContent);
-  return stripLeadingLabels(parts.join('\n'));
-}
-
-function riskFlags(content, crSection) {
-  // Phase 1: extract signals from Confirmed Requirement structured fields
-  // (more precise than full-text keyword scanning).
-  var flags = [];
-  var crText = String(crSection || '').replace(/<!--[\s\S]*?-->/g, '');
-  var hasStructuredFields = crText && /Scope Boundary:|Irreversibility:|Impact Radius:|Dependencies & Constraints:|Acceptance Intent:/i.test(crText);
-
-  if (hasStructuredFields) {
-    var irreversibility = labelValue(crText, 'Irreversibility');
-    var impactRadius = labelValue(crText, 'Impact Radius');
-    var depsConstraints = labelValue(crText, 'Dependencies & Constraints');
-    var scopeBoundary = labelValue(crText, 'Scope Boundary');
-
-    // Irreversibility → irreversible flag
-    if (risk.classifyIrreversibility(irreversibility) === 'irreversible') {
-      flags.push('irreversible');
-    }
-    // Impact Radius → public-api flag (CJK alternatives live outside \b —
-    // word boundaries never match against CJK characters)
-    if (impactRadius && (/\b(public|external|api)\b/i.test(impactRadius) || /公开|外部/.test(impactRadius))) {
-      flags.push('public-api');
-    }
-    // Dependencies & Constraints → security / billing / migration flags
-    if (depsConstraints) {
-      var dcLower = depsConstraints.toLowerCase();
-      if (/\b(security|auth|permission|credential|secret)\b/i.test(depsConstraints) || /权限|认证|授权|密钥|凭证/.test(depsConstraints)) flags.push('security');
-      if (/\b(billing|payment|invoice|charge)\b/i.test(depsConstraints) || /计费|支付|账单|扣费|收费/.test(depsConstraints)) flags.push('billing');
-      if (/\b(migration|migrate|backfill|schema)\b/i.test(depsConstraints) || /迁移|数据迁移|回填/.test(depsConstraints)) flags.push('migration');
-    }
-    // Scope Boundary → migration flag (if mentions schema/migration)
-    if (scopeBoundary && flags.indexOf('migration') === -1) {
-      if (/\b(schema|migration|migrate)\b/i.test(scopeBoundary) || /迁移|schema/.test(scopeBoundary)) flags.push('migration');
-    }
-  }
-
-  // Phase 2: fallback to full-text keyword scanning when no structured fields
-  // or to catch signals not present in Confirmed Requirement.
-  var text = String(content || '').replace(/<!--[\s\S]*?-->/g, '').toLowerCase();
-  [
-    ['security', /\b(security|auth|permission|credential|secret)\b/],
-    ['billing', /\b(billing|payment|invoice|charge)\b/],
-    ['migration', /\b(migration|migrate|backfill|schema)\b/],
-    ['public-api', /\b(public api|api contract|external api)\b/],
-    // Chinese keyword counterparts — no word-boundary anchors (CJK has no \b)
-    ['security', /权限|认证|授权|密钥|凭证/],
-    ['billing', /计费|支付|账单|扣费|收费/],
-    ['migration', /迁移|数据迁移|回填|schema/],
-    ['public-api', /公开接口|外部接口|api契约/]
-  ].forEach(function(item) {
-    if (flags.indexOf(item[0]) === -1 && item[1].test(text)) flags.push(item[0]);
-  });
-  if (!hasStructuredFields && flags.indexOf('irreversible') === -1 && risk.classifyIrreversibility(text) === 'irreversible') {
-    flags.push('irreversible');
-  }
-  return flags;
-}
-
 // Advisory method router: maps mode + riskFlags to the Design fields worth
 // emphasizing and the techniques worth applying. Advisory only — the
 // orchestrator decides. Deterministic so cruise/console/challenge can consume it.
@@ -128,19 +37,19 @@ var DESIGN_RISK_MAP = {
   irreversible: { fields: ['Compatibility / Rollback', 'Failure Modes'], note: 'irreversible risk: require an explicit rollback/abort plan before Execute.' }
 };
 
-function designMethodHint(mode, flags) {
+function designMethodHint(mode, flags, policy) {
   mode = mode || 'standard';
   flags = flags || [];
-  if (mode === 'micro') {
-    return { applies: false, adr: false, methods: [], focusFields: [], notes: ['micro mode keeps design intent inside Plan; no standalone design methodology.'] };
+  if ((policy && !policy.requiresDesign) || (!policy && mode === 'micro' && !flags.length)) {
+    return { applies: false, adr: false, methods: [], focusFields: [], notes: ['current risk policy does not require standalone Design; record substantive decisions in the Spec.'] };
   }
   var hint = { applies: true, adr: true, methods: [], focusFields: [], notes: [] };
   if (mode === 'lite') {
     hint.methods = ['ADR (lightweight option record)'];
-    hint.notes.push('lite: record the selected option as an ADR; keep the Design Note focused on Approach and Impact.');
+    hint.notes.push('ADR is an optional method for explaining Approach and Impact; artifact requirements come from risk policy.');
   } else {
     hint.methods = ['ADR', 'arc42 field structure', 'C4 context/container for Architecture View'];
-    hint.notes.push('standard: anchor the Technical Design on its required fields; use C4 context/container views for Architecture View and an ADR for the selected option.');
+    hint.notes.push('Complete Design Approach, Impact, Interface / Data, Compatibility / Rollback and Verification; use ADR or C4 when they clarify the decision.');
   }
   flags.forEach(function(flag) {
     var r = DESIGN_RISK_MAP[flag];
@@ -160,25 +69,14 @@ function formatDesignMethodLines(dm) {
   }
   var lines = [
     'DESIGN_METHOD: ' + (dm.methods.join('; ') || 'baseline'),
-    'DESIGN_FOCUS_FIELDS: ' + (dm.focusFields.length ? dm.focusFields.join('; ') : 'required Technical Design fields (no extra emphasis)')
+    'DESIGN_FOCUS_FIELDS: ' + (dm.focusFields.length ? dm.focusFields.join('; ') : 'current Design fields (no extra emphasis)')
   ];
   dm.notes.forEach(function(n) { lines.push('- ' + n); });
   return lines;
 }
 
-function confirmedRequirement(content, mode) {
-  return workflowGateFacts.confirmedRequirementText(content, mode);
-}
-
 function computeRiskFlags(projectDir, specPath, content) {
-  var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
-  if (workflowPolicy.version(content) === workflowPolicy.STREAMLINED) {
-    return workflowPolicy.evaluate(content, mode).flags;
-  }
-  var action = actionText(projectDir, specPath);
-  var requirement = confirmedRequirement(content, mode);
-  var fallback = workflowGateFacts.hasSubstantiveContent(requirement) ? requirement : content;
-  return riskFlags(action && action.trim() ? action : fallback, requirement);
+  return workflowPolicy.evaluate(content, common.getFrontmatterField(specPath, 'mode') || 'standard').flags;
 }
 
 function requiredHumanGate(evaluated) {
@@ -197,7 +95,7 @@ function dedicatedStopReason(blockers, executeLogContent, options) {
   var joined = (blockers || []).filter(function(issue) { return !/^WARNING:/i.test(issue); }).join('\n');
   if (options.platformPermissionRequired || /platform permission|平台权限/i.test(joined)) return 'platform_permission_required';
   if (/Project Profile/i.test(joined)) return 'profile_digest_required';
-  if (/AC Coverage:.*SKIPPED.*(?:Approved By|Approved At|Reason)/i.test(joined)) return 'e2e_skip_authorization_required';
+  if (/AC Coverage:.*SKIPPED.*(?:Approved By|Approved At|Reason|human approval)/i.test(joined)) return 'e2e_skip_authorization_required';
   var log = String(executeLogContent || '');
   var majorAt = '';
   log.split(/^---\s*$/m).forEach(function(block) {
@@ -245,9 +143,8 @@ function analyzeSpec(projectDir, specPath, opts) {
   var profileRevision = common.getFrontmatterField(specPath, 'project-profile-revision') || '';
   var profileDigest = common.getFrontmatterField(specPath, 'project-profile-digest') || '';
   var affectedUnits = (common.getFrontmatterField(specPath, 'affected-units') || '').split(',').map(function(value) { return value.trim(); }).filter(Boolean);
-  var action = actionText(projectDir, specPath);
   var flags = computeRiskFlags(projectDir, specPath, content);
-  var autonomy = autonomyState.resolve(content, { riskSnapshot: autonomyState.riskFlagsSnapshot(flags) });
+  var autonomy = autonomyState.resolve(content);
   var validation = opts.validation || validate.validateSpec(specPath, { archiveReady: true, projectDir: projectDir });
   var visualContextIssue = validate.visualContextSelectionIssue(visualContext);
   if (!opts.archiveReady && visualContextIssue && (validation.issues || []).indexOf(visualContextIssue) === -1) {
@@ -312,6 +209,10 @@ function analyzeSpec(projectDir, specPath, opts) {
   var dedicatedStop = dedicatedStopReason(blockers, executeLogContent, stopOptions);
   if (dedicatedStop) stopReason = dedicatedStop;
   if (nextAction === 'request_archive_authorization') stopReason = 'archive_authorization';
+  if (workflowPolicy.formatIssue(content)) {
+    nextAction = 'unsupported_spec_format';
+    stopReason = 'unsupported_spec_format';
+  }
   return {
     autonomyMode: autonomy.mode,
     autonomyModeSource: autonomy.modeSource,
@@ -345,7 +246,7 @@ function analyzeSpec(projectDir, specPath, opts) {
     } : null,
     designDigest: evaluated.policy && evaluated.policy.requiresDesign && evaluated.policy.requiresDesignReview && snapshot.design.exists
       ? workflowPolicy.designReviewDigest(content, snapshot.design.content) : '',
-    designMethod: designMethodHint(mode, flags),
+    designMethod: designMethodHint(mode, flags, evaluated.policy),
     gateEvidence: labelValue(content, 'Gate Evidence'),
     challengeSummary: labelValue(content, 'Challenge Summary'),
     specPath: specPath,
@@ -360,7 +261,7 @@ function analyzeSpec(projectDir, specPath, opts) {
       focusFields: ['Interface Contract', 'Compatibility / Rollback'],
       note: 'Cross-unit scope: explicitly review interface contracts and compatibility; mode remains unchanged.'
     } : undefined,
-    reviewBrief: sectionContent(specPath, 'Review (Verdict|Summary)')
+    reviewBrief: sectionContent(specPath, 'Completion Verification')
   };
 }
 
@@ -379,9 +280,7 @@ module.exports = {
   challengeVerdictFromIssues: challengeVerdictFromIssues,
   designMethodHint: designMethodHint,
   formatDesignMethodLines: formatDesignMethodLines,
-  riskFlags: riskFlags,
   computeRiskFlags: computeRiskFlags,
   dedicatedStopReason: dedicatedStopReason,
-  actionText: actionText
-  ,requiredHumanGate: requiredHumanGate
+  requiredHumanGate: requiredHumanGate
 };

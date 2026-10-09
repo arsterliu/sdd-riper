@@ -20,6 +20,7 @@ function activeSpec(projectDir, requested) {
   if (!latest || path.resolve(latest) !== file || common.getFrontmatterField(file, 'status') === 'archived') {
     fail('SDD_AUTONOMY_SPEC_NOT_ACTIVE', 'autonomy writes require the current active Spec');
   }
+  require('./workflow-policy').assertActive(root, file);
   return file;
 }
 

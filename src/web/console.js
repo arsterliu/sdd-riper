@@ -2,6 +2,13 @@ var state = {
   specs: [],
   counts: {},
   selectedId: '',
+  scope: 'all',
+  detailRequest: 0,
+  projectRequest: 0,
+  specsRequest: 0,
+  artifactRequest: 0,
+  reader: null,
+  projectSwitch: Promise.resolve(),
   phase: 'all',
   search: '',
   sort: 'updated',
@@ -26,6 +33,8 @@ var phases = [
   ['archive_authorization', 'Awaiting Archive Authorization'],
   ['archived', 'Archived']
 ];
+
+var narrowScreen = window.matchMedia ? window.matchMedia('(max-width: 700px)') : { matches: false };
 
 var gateDefinitions = [
   ['research', 'Research', 'Confirmed requirement or intake baseline'],
@@ -195,22 +204,8 @@ function previewUrl(specId, artifact) {
 }
 
 function filteredSpecs() {
-  var query = state.search.trim().toLowerCase();
-  var specs = state.specs.filter(function(spec) {
-    var phaseMatch = state.phase === 'all' || spec.phase === state.phase;
-    if (!phaseMatch) return false;
-    if (!query) return true;
-    return [
-      spec.taskName,
-      spec.slug,
-      spec.mode,
-      spec.status,
-      spec.phase,
-      spec.workState && spec.workState.id,
-      spec.workState && spec.workState.label,
-      spec.relativePath,
-      spec.reviewVerdict
-    ].join(' ').toLowerCase().indexOf(query) !== -1;
+  var specs = ConsoleView.filterTasks(state.specs, state.search, state.scope).filter(function(spec) {
+    return state.phase === 'all' || spec.phase === state.phase;
   });
 
   specs.sort(function(a, b) {
@@ -253,7 +248,7 @@ function projectSpark(summary) {
 function renderProjectBoard() {
   var root = qs('project-board-list');
   root.innerHTML = '';
-  qs('project-board-summary').textContent = state.projectDirs.length + ' project' + (state.projectDirs.length === 1 ? '' : 's') + ' tracked';
+  qs('project-board-summary').textContent = '(' + state.projectDirs.length + ')';
   if (!state.projectDirs.length) {
     root.innerHTML = '<div class="empty-list"><strong>No projects tracked</strong><span>Choose a folder to add an SDD project to this board.</span></div>';
     return;
@@ -266,7 +261,7 @@ function renderProjectBoard() {
     card.innerHTML = [
       '<div class="project-card-head">',
       '<h3>' + esc(summary.name || summary.projectDir) + '</h3>',
-      '<button type="button" data-remove="' + esc(summary.projectDir) + '">Remove</button>',
+      '<button type="button" data-remove="' + esc(summary.projectDir) + '">移除</button>',
       '</div>',
       '<div class="project-card-path">' + esc(summary.projectDir) + '</div>',
       summary.state === 'indexing' ? '<div class="project-card-path">Indexing...</div>' : '',
@@ -277,7 +272,8 @@ function renderProjectBoard() {
       '<div><span>Gates</span><strong>' + esc(summary.issueCountLightweight ? 'Open' : (summary.issueCount || 0)) + '</strong></div>',
       '</div>',
       '<div class="phase-spark">' + projectSpark(summary) + '</div>',
-      summary.error ? '<div class="project-card-path">' + esc(summary.error) + '</div>' : ''
+      summary.error ? '<div class="project-card-path">' + esc(summary.error) + '</div>' : '',
+      '<button type="button" class="project-load"' + (summary.configured ? '' : ' disabled') + '>载入 ' + esc(summary.name || summary.projectDir) + '</button>'
     ].join('');
     card.addEventListener('click', function(event) {
       var remove = event.target.getAttribute('data-remove');
@@ -319,15 +315,21 @@ function refreshProjectBoard(force) {
 }
 
 function resetProjectView(message) {
+  state.detailRequest++;
+  state.specsRequest++;
+  state.artifactRequest++;
+  state.reader = null;
+  qs('artifact-reader').hidden = true;
+  qs('task-overview').hidden = false;
   state.specs = [];
   state.counts = {};
   state.selectedId = '';
   state.detail = null;
   qs('project-path').textContent = message || 'Select a project directory';
-  qs('last-sync').textContent = 'Not synced';
+  qs('last-sync').textContent = '尚未同步';
   qs('spec-detail').classList.add('hidden');
   qs('empty-detail').classList.remove('hidden');
-  qs('empty-detail').innerHTML = '<strong>No project loaded</strong><span>Enter a project directory to inspect specs.</span>';
+  qs('empty-detail').innerHTML = '<strong>' + esc(message || '尚未载入项目') + '</strong><span>选择项目后查看任务。</span>';
   renderProjectProfile(null);
   render();
 }
@@ -335,20 +337,26 @@ function resetProjectView(message) {
 function renderPhaseTabs() {
   var root = qs('phase-tabs');
   root.innerHTML = '';
-  phases.forEach(function(item) {
-    var phase = item[0];
-    var label = item[1];
-    var count = phase === 'all' ? state.specs.length : (state.counts[phase] || 0);
+  [['all', '全部'], ['active', '活动'], ['archived', '归档']].forEach(function(item) {
     var button = document.createElement('button');
     button.type = 'button';
-    button.className = 'phase-tab' + (state.phase === phase ? ' active' : '');
-    button.innerHTML = '<span>' + esc(label) + '</span><strong>' + esc(count) + '</strong>';
+    button.className = 'phase-tab' + (state.scope === item[0] ? ' active' : '');
+    button.textContent = item[1];
+    button.setAttribute('aria-pressed', String(state.scope === item[0]));
     button.addEventListener('click', function() {
-      state.phase = phase;
+      state.scope = item[0];
       render();
+      if (narrowScreen.matches) qs('task-navigation-panel').open = true;
+      var replacement = root.querySelectorAll('button')[['all', 'active', 'archived'].indexOf(item[0])];
+      if (replacement) replacement.focus();
     });
     root.appendChild(button);
   });
+  var filter = qs('phase-filter');
+  if (!filter.options.length) filter.innerHTML = phases.map(function(item) {
+    return '<option value="' + esc(item[0]) + '">' + esc(item[0] === 'all' ? '全部阶段' : ConsoleView.phaseLabel(item[0])) + '</option>';
+  }).join('');
+  filter.value = state.phase;
 }
 
 function renderMiniGates(spec) {
@@ -364,25 +372,28 @@ function renderSpecList() {
   if (!specs.length) {
     var empty = document.createElement('div');
     empty.className = 'empty-list';
-    empty.innerHTML = '<strong>No matching specs</strong><span>Try another phase or search term.</span>';
+    empty.innerHTML = '<strong>' + (state.specs.length ? '没有匹配的任务' : '当前项目暂无任务') + '</strong><span>可搜索任务名、版本或状态。</span>' +
+      (state.search || state.scope !== 'all' || state.phase !== 'all' ? '<button type="button" id="empty-clear">清除筛选</button>' : '');
     root.appendChild(empty);
+    if (qs('empty-clear')) qs('empty-clear').onclick = clearFilters;
     return;
   }
   specs.forEach(function(spec) {
-    var workState = workStateValue(spec);
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'spec-item' + (state.selectedId === spec.id ? ' active' : '');
+    button.setAttribute('aria-current', String(state.selectedId === spec.id));
     button.innerHTML = [
-      '<span class="spec-board-task"><strong>' + esc(spec.taskName) + '</strong>',
-      '<small>' + esc(spec.version) + ' / ' + esc(spec.mode) + '</small></span>',
-      '<span class="spec-board-cell"><span class="pill ' + (spec.status === 'archived' ? 'complete' : 'neutral') + '">' + esc(readable(spec.status)) + '</span></span>',
-      '<span class="spec-board-cell"><span class="pill ' + phaseTone(spec.phase) + '">' + esc(readable(spec.phase)) + '</span></span>',
-      '<span class="spec-board-cell"><span class="pill ' + esc(workState.tone) + '">' + esc(workState.label) + '</span></span>',
-      '<span class="spec-board-updated">' + esc(formatDate(spec.updatedAt)) + '</span>'
+      '<strong>' + esc(spec.taskName) + '</strong>',
+      '<small>' + esc(spec.version) + ' · ' + esc(ConsoleView.workLabel(spec)) + '</small>',
+      ConsoleView.isArchived(spec) ? '' : '<small>' + esc(ConsoleView.statusLabel(spec.status)) + ' · ' + esc(ConsoleView.phaseLabel(spec.phase)) + '</small>'
     ].join('');
     button.addEventListener('click', function() {
       loadDetail(spec.id, spec);
+      if (narrowScreen.matches) {
+        qs('task-navigation-panel').open = false;
+        qs('detail-title').focus();
+      }
     });
     root.appendChild(button);
   });
@@ -400,34 +411,35 @@ function gateEvidenceState(workflow) {
 }
 
 function renderBlocker(spec) {
-  var phase = nextBlocker(spec);
-  var tone = phaseTone(phase);
   var workflow = spec.workflow || {};
-  var run = spec.cruiseRun || {};
-  var latestRun = run.latest || {};
-  var runText = run.count
-    ? ' / run: #' + esc(latestRun.iteration || '-') +
-      ' ' + esc(latestRun.driver || '-') +
-      ' ' + esc(latestRun.stopReason || '-')
-    : ' / run: none';
-  var controlText = 'autonomy: ' + esc(workflow.autonomyMode || '-') +
-    ' / authorization: ' + esc(workflow.authorizationState || '-') +
-    ' / next: ' + esc(workflow.nextAction || '-') +
-    ' / gate evidence: ' + esc(gateEvidenceState(workflow)) +
-    runText;
-  var summaryHtml = '';
-  if (workflow.challengeSummary) {
-    summaryHtml = '<span class="challenge-summary">Challenge Summary: ' + esc(workflow.challengeSummary) + '</span>';
+  var archived = ConsoleView.isArchived(spec);
+  var phase = spec.phase || 'research';
+  var instructions = {
+    research: ['确认目标与范围', '在 Spec 中明确需求、范围和风险。'],
+    innovate: ['选择实现方案', '比较可行方案，记录选择与权衡。'],
+    design: ['完善设计方案', '补全技术设计，使实现路径与验收要求一致。'],
+    acceptance: ['明确验收标准', '记录可以观察和验证的完成条件。'],
+    plan: ['确认实施计划', '阅读 Plan，并按当前协作方式取得批准。'],
+    execute: ['记录实施结果', '按批准的计划实施，保存步骤结果和验证证据。'],
+    challenge: ['完成独立审查', '请获授权的独立 reviewer 核查实现与验收证据。'],
+    learning: ['完成学习检查', '记录本次任务需要保留的可复用规则。'],
+    archive_authorization: ['等待归档授权', '完成条件已满足；归档仍需当前用户单独授权。']
+  };
+  var instruction = archived ? ['已归档 · 只读', '阅读历史制品；本记录不按当前规则重新评估门禁。'] : instructions[phase] || ['查看任务状态', '阅读 Spec 了解当前任务要求。'];
+  if (!archived && workflow.stopReason && workflow.stopReason !== 'none' && workflow.stopReason !== 'archive_authorization') {
+    instruction = ['处理推进条件', '当前流程已暂停。请阅读 Spec 与下方当前条件，按提示处理后继续。'];
   }
-  qs('next-blocker').innerHTML = [
-    '<div class="blocker-card">',
-    '<span class="pill ' + tone + '">' + esc(phase) + '</span>',
-    '<div><strong>' + (phase === 'archive_authorization' ? 'Awaiting Archive Authorization' : phase === 'archived' ? 'Archived' : 'Next blocker') + '</strong>',
-    '<span>' + esc(blockerText[phase] || 'Review this spec before moving forward.') + '</span>',
-    '<span>' + controlText + '</span>',
-    summaryHtml,
-    '</div></div>'
-  ].join('');
+  var gate = workflow.gates && workflow.gates[phase];
+  if (phase === 'execute' && gate && gate.state === 'pass') gate = workflow.gates.completion;
+  var blockers = !archived && gate && Array.isArray(gate.blockers) ? gate.blockers : [];
+  qs('next-blocker').classList.toggle('archived', archived);
+  qs('next-blocker').innerHTML = '<div class="blocker-card"><div><span class="next-label">' + (archived ? '历史记录' : '下一步') + '</span>' +
+    '<strong>' + esc(instruction[0]) + '</strong><p>' + esc(instruction[1]) + '</p></div>' +
+    '<button id="read-next" class="primary-action" type="button"><img class="ui-icon rail-icon" src="/icons/file-text.png" alt="" width="20" height="20">' + (archived ? '阅读 Spec' : phase === 'plan' ? '阅读计划' : '阅读任务') + '</button></div>' +
+    (blockers.length ? '<details class="current-requirements"><summary>当前条件 · ' + blockers.length + ' 项</summary><ul class="current-blockers">' + blockers.map(function(item) {
+      return '<li>' + esc(item.message || item) + '</li>';
+    }).join('') + '</ul></details>' : '');
+  qs('read-next').onclick = function() { previewArtifact('spec', phase === 'plan' ? 'Plan' : 'Intake'); };
 }
 
 var RISK_FLAG_TONES = {
@@ -764,18 +776,19 @@ function challengeVerdictTone(verdict) {
 
 function renderChallengeVerdict(spec) {
   var workflow = spec.workflow || {};
-  var verdict = workflow.challengeVerdict || '';
+  var verdict = workflow.facts && workflow.facts.challenge && workflow.facts.challenge.verdict || '';
   var backtrack = workflow.backtrackTarget || '';
   var root = qs('challenge-verdict');
   root.innerHTML = '';
   var tone = challengeVerdictTone(verdict);
   var html = '<div class="challenge-verdict-row">';
   html += '<strong>Challenge</strong> ';
-  html += '<span class="pill ' + tone + '">' + esc(verdict || 'Not run') + '</span>';
+  html += '<span class="pill ' + tone + '">' + esc(verdict || (ConsoleView.isArchived(spec) ? '历史记录' : '尚未记录独立审查结果')) + '</span>';
   if (verdict.indexOf('FAIL_') === 0 && backtrack) {
     html += ' <span class="backtrack-target">Backtrack: ' + esc(backtrack) + '</span>';
   }
   html += '</div>';
+  if (verdict && workflow.challengeSummary) html += '<p class="challenge-summary">' + esc(workflow.challengeSummary) + '</p>';
   root.innerHTML = html;
 }
 
@@ -889,6 +902,11 @@ function renderAcCoverage(spec) {
 }
 
 function renderGateList(spec) {
+  if (spec.status === 'archived' || spec.phase === 'archived') {
+    qs('gate-score').textContent = '历史记录';
+    qs('gate-list').innerHTML = '<p>归档记录不按当前规则重新评估门禁。</p>';
+    return;
+  }
   spec = spec || {};
   spec.completion = spec.completion || {};
   var root = qs('gate-list');
@@ -919,19 +937,20 @@ function renderGateList(spec) {
   });
 }
 
-function artifactHtml(name, type, artifact) {
-  if (artifact && artifact.notRequired) {
+function artifactHtml(name, type, artifact, readOnly) {
+  var icon = type === 'design' ? 'edit-3' : type === 'learning' ? 'book-open' : 'file-text';
+  var title = '<strong><img class="ui-icon artifact-icon" src="/icons/' + icon + '.png" alt="" width="24" height="24">' + esc(name) + '</strong>';
+  if (artifact && artifact.notRequired && !artifact.exists) {
     var note = name === 'Design'
-      ? 'Design is optional for this task\'s risk and design choices'
-      : name === 'Execute Log' ? 'Verification is recorded in Spec for this task'
-      : 'No Learning Record is required by current triggers';
+      ? '根据任务风险与设计选择，按需创建'
+      : name === 'Execute Log' ? '验证记录保存在 Spec'
+      : '当前无需 Learning Record';
     return [
       '<div class="artifact">',
-      '<div class="artifact-top"><strong>' + esc(name) + '</strong><span class="pill not-started">Not required</span></div>',
+      '<div class="artifact-top">' + title + '<span class="pill not-started">按需</span></div>',
       '<div class="path">' + esc(note) + '</div>',
       '<div class="artifact-actions">',
-      '<button type="button" disabled>Preview</button>',
-      '<button type="button" disabled>Edit</button>',
+      '<button type="button" disabled>阅读</button>',
       '</div>',
       '</div>'
     ].join('');
@@ -939,15 +958,14 @@ function artifactHtml(name, type, artifact) {
   var exists = artifact && artifact.exists;
   var hasContent = artifact && artifact.hasContent;
   var tone = hasContent ? 'complete' : exists ? 'progress' : 'not-started';
-  var label = hasContent ? 'OK' : exists ? 'Empty' : 'Missing';
+  var label = hasContent ? '可阅读' : exists ? '草稿' : '未创建';
   return [
     '<div class="artifact">',
-    '<div class="artifact-top"><strong>' + esc(name) + '</strong><span class="pill ' + tone + '">' + esc(label) + '</span></div>',
-    '<div class="path">ref: ' + esc(artifact && artifact.ref ? artifact.ref : '-') + '</div>',
-    '<div class="path">path: ' + esc(artifact && artifact.relativePath ? artifact.relativePath : '-') + '</div>',
+    '<div class="artifact-top">' + title + '<span class="pill ' + tone + '">' + esc(label) + '</span></div>',
+    '<div class="path">' + esc(artifact && (artifact.relativePath || artifact.ref) || '尚未创建制品') + '</div>',
     '<div class="artifact-actions">',
-    '<button data-preview-artifact="' + esc(type) + '" type="button"' + (exists ? '' : ' disabled') + '>Preview</button>',
-    '<button data-open-artifact="' + esc(type) + '" type="button"' + (exists ? '' : ' disabled') + '>Edit</button>',
+    '<button data-preview-artifact="' + esc(type) + '" type="button"' + (exists ? '' : ' disabled') + '>阅读</button>',
+    readOnly ? '' : '<button data-open-artifact="' + esc(type) + '" type="button"' + (exists ? '' : ' disabled') + '>打开文件</button>',
     '</div>',
     '</div>'
   ].join('');
@@ -955,16 +973,17 @@ function artifactHtml(name, type, artifact) {
 
 function renderArtifacts(spec) {
   var artifacts = spec.artifacts || {};
+  var readOnly = ConsoleView.isArchived(spec);
   qs('artifact-list').innerHTML = [
     artifactHtml('Spec', 'spec', {
       exists: !!spec.relativePath,
       hasContent: !!spec.relativePath,
       ref: spec.fileName,
       relativePath: spec.relativePath
-    }),
-    artifactHtml('Design', 'design', artifacts.design || {}),
-    artifactHtml('Execute Log', 'executeLog', artifacts.executeLog || {}),
-    artifactHtml('Learning', 'learning', artifacts.learning || {})
+    }, readOnly),
+    artifactHtml('Design', 'design', artifacts.design || {}, readOnly),
+    artifactHtml('Execute Log', 'executeLog', artifacts.executeLog || {}, readOnly),
+    artifactHtml('Learning', 'learning', artifacts.learning || {}, readOnly)
   ].join('');
   Array.prototype.forEach.call(document.querySelectorAll('[data-preview-artifact]'), function(button) {
     button.addEventListener('click', function() {
@@ -1008,10 +1027,17 @@ function renderDetail(spec) {
     qs('detail-title').textContent = text(spec.taskName || spec.fileName || spec.id);
     qs('detail-path').textContent = text(spec.relativePath);
     qs('detail-mode').textContent = text(spec.mode);
-    qs('detail-status').textContent = text(spec.status);
-    qs('detail-phase').textContent = text(spec.phase);
-    qs('detail-work-state').textContent = workStateValue(spec).label;
+    qs('detail-status').textContent = ConsoleView.statusLabel(spec.status);
+    qs('detail-phase').textContent = ConsoleView.phaseLabel(spec.phase);
+    qs('detail-work-state').textContent = ConsoleView.workLabel(spec);
     qs('detail-updated').textContent = formatDate(spec.updatedAt);
+    var archived = ConsoleView.isArchived(spec);
+    qs('validate').hidden = archived;
+    qs('validate').disabled = false;
+    qs('gate-section').hidden = archived;
+    qs('validation-section').hidden = archived;
+    qs('phase-progress').hidden = archived;
+    renderProgress(spec);
     renderBlocker(spec);
     renderRiskFlags(spec);
     renderChallengeVerdict(spec);
@@ -1029,6 +1055,7 @@ function renderDetail(spec) {
     qs('validate').onclick = function() {
       runValidate(spec.id);
     };
+    updateSelectionNotice();
   } catch (e) {
     showDetailError(e);
   }
@@ -1053,13 +1080,44 @@ function showDetailError(err) {
 }
 
 function render() {
-  qs('spec-total').textContent = filteredSpecs().length + ' shown / ' + state.specs.length + ' total';
+  qs('spec-total').textContent = filteredSpecs().length + ' / ' + state.specs.length + ' 项';
+  qs('clear-search').hidden = !state.search;
   renderMetrics();
   renderPhaseTabs();
   renderSpecList();
+  updateSelectionNotice();
+}
+
+function updateSelectionNotice() {
+  qs('selection-notice').hidden = !state.selectedId || filteredSpecs().some(function(spec) { return spec.id === state.selectedId; });
+}
+
+function clearFilters() {
+  state.search = ''; state.scope = 'all'; state.phase = 'all';
+  qs('search').value = '';
+  render();
+  if (narrowScreen.matches) qs('task-navigation-panel').open = false;
+  qs('search').focus();
+}
+
+function renderProgress(spec) {
+  var steps = ['research', 'innovate', 'design', 'acceptance', 'plan', 'execute', 'challenge', 'learning', 'archive_authorization'];
+  qs('phase-progress').innerHTML = steps.map(function(phase) {
+    var gate = spec.workflow && spec.workflow.gates && spec.workflow.gates[phase === 'archive_authorization' ? 'completion' : phase];
+    return '<li class="' + (phase === spec.phase ? 'current' : gate && gate.state === 'pass' ? 'complete' : '') + '"' +
+      (phase === spec.phase ? ' aria-current="step"' : '') + '>' + esc(phase === 'archive_authorization' ? '归档' : ConsoleView.phaseLabel(phase)) + '</li>';
+  }).join('');
 }
 
 function loadDetail(id, fallbackSpec) {
+  var request = ++state.detailRequest;
+  var projectDir = state.project && state.project.projectDir;
+  function current() { return request === state.detailRequest && id === state.selectedId && projectDir === (state.project && state.project.projectDir); }
+  if (state.selectedId !== id) {
+    closeReader(false);
+    qs('task-goal').textContent = '正在读取目标…';
+    qs('technical-details').open = false;
+  }
   state.selectedId = id;
   if (fallbackSpec) {
     render();
@@ -1078,11 +1136,13 @@ function loadDetail(id, fallbackSpec) {
       return result.body;
     })
     .then(function(spec) {
-      state.selectedId = id;
+      if (!current()) return;
       render();
       renderDetail(spec);
+      loadGoal(id, current);
     })
     .catch(function(err) {
+      if (!current()) return;
       if (fallbackSpec) {
         renderValidation({ ok: false, issues: [err.message || String(err)] });
         return;
@@ -1094,20 +1154,26 @@ function loadDetail(id, fallbackSpec) {
 }
 
 function runValidate(id) {
+  if (!state.detail || ConsoleView.isArchived(state.detail)) return;
+  var projectDir = state.project && state.project.projectDir;
+  function current() { return state.selectedId === id && projectDir === (state.project && state.project.projectDir); }
   var button = qs('validate');
   button.disabled = true;
-  button.textContent = 'Validating';
+  button.textContent = '检查中';
   fetch('/api/specs/' + encodeURIComponent(id) + '/validate', { method: 'POST' })
     .then(function(res) { return res.json(); })
     .then(function(result) {
+      if (!current()) return;
       renderValidation(result);
     })
     .catch(function(err) {
+      if (!current()) return;
       renderValidation({ ok: false, issues: [err.message || String(err)] });
     })
     .finally(function() {
+      if (!current()) return;
       button.disabled = false;
-      button.textContent = 'Validate';
+      button.textContent = '检查归档条件';
     });
 }
 
@@ -1119,15 +1185,25 @@ function selectInitialSpec() {
   }
   var first = state.specs.find(function(spec) { return spec.phase !== 'archived'; }) || state.specs[0];
   if (first) loadDetail(first.id, first);
+  else {
+    state.selectedId = ''; state.detail = null; state.detailRequest++;
+    closeReader(false);
+    qs('empty-detail').classList.remove('hidden');
+    qs('spec-detail').classList.add('hidden');
+    qs('empty-detail').innerHTML = '<strong>当前项目暂无任务</strong><span>创建 Spec 后可在这里阅读。</span>';
+  }
 }
 
 function openArtifact(artifact, button) {
   var spec = state.detail;
-  if (!spec || !spec.id) return;
+  if (!spec || !spec.id || ConsoleView.isArchived(spec)) return;
+  var projectDir = state.project && state.project.projectDir;
+  var request = state.detailRequest;
+  function current() { return state.selectedId === spec.id && request === state.detailRequest && projectDir === (state.project && state.project.projectDir); }
   var original = button ? button.textContent : '';
   if (button) {
     button.disabled = true;
-    button.textContent = 'Opening';
+    button.textContent = '正在打开';
   }
   fetch('/api/specs/' + encodeURIComponent(spec.id) + '/open', {
     method: 'POST',
@@ -1140,13 +1216,16 @@ function openArtifact(artifact, button) {
       });
     })
     .then(function(result) {
+      if (!current()) return;
       if (!result.ok || result.body.error) throw new Error(result.body.error || 'Unable to open artifact.');
-      qs('validation-summary').textContent = 'Opened ' + text(result.body.target && result.body.target.relativePath);
+      qs('validation-summary').textContent = '已打开 ' + text(result.body.target && result.body.target.relativePath);
     })
     .catch(function(err) {
+      if (!current()) return;
       renderValidation({ ok: false, issues: [err.message || String(err)] });
     })
     .finally(function() {
+      if (!current()) return;
       if (button) {
         button.disabled = false;
         button.textContent = original || 'Open';
@@ -1154,10 +1233,71 @@ function openArtifact(artifact, button) {
     });
 }
 
-function previewArtifact(artifact) {
+function loadGoal(id, current) {
+  fetch('/api/specs/' + encodeURIComponent(id) + '/artifact?artifact=spec').then(function(res) {
+    if (!res.ok) throw new Error('目标读取失败');
+    return res.json();
+  }).then(function(body) {
+    if (!current()) return;
+    qs('task-goal').textContent = ConsoleView.goalFromSpec(body.content) || '未填写目标 · 可阅读 Spec 查看任务上下文';
+  }).catch(function() {
+    if (current()) qs('task-goal').textContent = '目标暂不可用 · 请刷新或阅读 Spec';
+  });
+}
+
+function closeReader(focus) {
+  state.artifactRequest++;
+  state.reader = null;
+  qs('artifact-reader').hidden = true;
+  qs('task-overview').hidden = false;
+  if (focus) {
+    var button = qs('artifact-list').querySelector('[data-preview-artifact="spec"]');
+    if (button) button.focus();
+  }
+}
+
+function setReaderMode(raw) {
+  qs('reader-content').hidden = raw;
+  qs('reader-raw').hidden = !raw;
+  qs('reader-formatted').setAttribute('aria-pressed', String(!raw));
+  qs('reader-source').setAttribute('aria-pressed', String(raw));
+}
+
+function previewArtifact(artifact, section) {
   var spec = state.detail;
   if (!spec || !spec.id) return;
-  window.open(previewUrl(spec.id, artifact), '_blank', 'noopener');
+  var request = ++state.artifactRequest;
+  var projectDir = state.project && state.project.projectDir;
+  function current() { return request === state.artifactRequest && spec.id === state.selectedId && projectDir === (state.project && state.project.projectDir); }
+  state.reader = { artifact: artifact, specId: spec.id };
+  qs('artifact-reader').hidden = false;
+  qs('task-overview').hidden = true;
+  qs('reader-title').textContent = '正在读取…';
+  qs('reader-label').textContent = ConsoleView.isArchived(spec) ? '历史制品 · 只读' : '任务制品';
+  qs('reader-content').innerHTML = '';
+  qs('reader-raw').textContent = '';
+  qs('reader-status').textContent = '正在读取制品';
+  qs('reader-open').hidden = true;
+  qs('reader-window').href = previewUrl(spec.id, artifact);
+  setReaderMode(false);
+  fetch('/api/specs/' + encodeURIComponent(spec.id) + '/artifact?artifact=' + encodeURIComponent(artifact)).then(function(res) {
+    return res.json().then(function(body) { if (!res.ok || body.error) throw new Error(body.error || '无法读取制品'); return body; });
+  }).then(function(body) {
+    if (!current()) return;
+    qs('reader-title').textContent = body.label + ' · ' + body.relativePath;
+    qs('reader-status').textContent = '';
+    qs('reader-content').innerHTML = ConsoleView.documentHtml(body.content);
+    qs('reader-raw').textContent = body.content || '';
+    qs('reader-open').hidden = ConsoleView.isArchived(spec);
+    qs('reader-open').onclick = function() { openArtifact(artifact, qs('reader-open')); };
+    var target = Array.prototype.find.call(qs('reader-content').querySelectorAll('[data-section]'), function(node) { return node.getAttribute('data-section') === section; });
+    (target || qs('reader-title')).focus();
+  }).catch(function(err) {
+    if (!current()) return;
+    qs('reader-title').textContent = '无法读取制品';
+    qs('reader-status').textContent = err.message || String(err);
+    qs('reader-title').focus();
+  });
 }
 
 function loadSpecs(force) {
@@ -1166,17 +1306,21 @@ function loadSpecs(force) {
     resetProjectView('Select a project directory');
     return;
   }
-  qs('last-sync').textContent = force ? 'Refreshing index...' : 'Syncing...';
+  var request = ++state.specsRequest;
+  var projectDir = state.project.projectDir;
+  function current() { return request === state.specsRequest && projectDir === (state.project && state.project.projectDir); }
+  qs('last-sync').textContent = force ? '正在刷新…' : '正在同步…';
   fetch('/api/specs' + (force ? '?refresh=1' : ''))
     .then(function(res) { return res.json(); })
     .then(function(data) {
+      if (!current()) return;
       if (data.error) throw new Error(data.error);
-      state.specs = data.specs || [];
+      state.specs = (data.specs || []).filter(ConsoleView.isTaskRecord);
       state.counts = data.counts || {};
-      qs('project-path').textContent = data.projectDir + ' / ' + data.docsDir;
+      qs('project-path').textContent = data.projectDir;
       qs('last-sync').textContent = data.state === 'indexing'
-        ? 'Indexing...'
-        : (data.stale ? 'Refreshing...' : 'Synced ' + new Date().toLocaleTimeString());
+        ? '正在建立索引…'
+        : (data.stale ? '正在刷新…' : '已同步 ' + new Date().toLocaleTimeString());
       render();
       if (data.state === 'indexing' || data.stale) {
         clearTimeout(state.specsPollTimer);
@@ -1186,20 +1330,28 @@ function loadSpecs(force) {
       }
     })
     .catch(function(err) {
-      qs('last-sync').textContent = 'Sync failed';
-      qs('spec-list').innerHTML = '<div class="empty-list"><strong>Unable to load specs</strong><span>' + esc(err.message || err) + '</span></div>';
+      if (!current()) return;
+      qs('last-sync').textContent = '同步失败，可重试';
+      qs('spec-list').innerHTML = '<div class="empty-list"><strong>无法载入任务</strong><span>' + esc(err.message || err) + '</span></div>';
     });
 }
 
 function renderProject(info) {
+  var previous = state.project && state.project.projectDir;
+  if (previous !== (info && info.projectDir)) {
+    resetProjectView('正在切换项目…');
+    state.search = ''; state.scope = 'all'; state.phase = 'all';
+    qs('search').value = '';
+  }
   state.project = info;
   qs('project-error').textContent = '';
   qs('project-input').value = info && info.projectDir ? info.projectDir : '';
-  qs('project-state').textContent = info && info.configured ? 'Loaded' : 'Not loaded';
+  qs('project-state').textContent = info && info.configured ? '已载入' : '未载入';
+  qs('project-name').textContent = info && info.configured ? info.projectDir.split(/[\\/]/).filter(Boolean).pop() : '选择项目';
   renderProjectProfile(info);
   if (info && info.configured) {
     addProjectDir(info.projectDir);
-    qs('project-path').textContent = info.projectDir + ' / ' + info.docsDir;
+    qs('project-path').textContent = info.projectDir;
     refreshProjectBoard();
   } else {
     resetProjectView('Select a project directory');
@@ -1207,10 +1359,12 @@ function renderProject(info) {
 }
 
 function loadProjectInfo() {
+  var request = state.projectRequest;
   state.projectDirs = storageProjectDirs();
   fetch('/api/project')
     .then(function(res) { return res.json(); })
     .then(function(info) {
+      if (request !== state.projectRequest) return;
       var remembered = localStorage.getItem('sdd-console-project');
       if (remembered) addProjectDir(remembered);
       if (!info.configured && remembered) {
@@ -1223,22 +1377,32 @@ function loadProjectInfo() {
       if (info.configured) loadSpecs(false);
     })
     .catch(function(err) {
+      if (request !== state.projectRequest) return;
       qs('project-error').textContent = err.message || String(err);
       resetProjectView('Unable to read project state');
     });
 }
 
 function setProject(projectDir) {
+  var request = ++state.projectRequest;
+  clearTimeout(state.specsPollTimer);
+  resetProjectView('正在切换项目…');
+  state.search = ''; state.scope = 'all'; state.phase = 'all';
+  qs('search').value = '';
+  if (state.project) state.project.configured = false;
   qs('project-error').textContent = '';
-  return fetch('/api/project', {
+  state.projectSwitch = state.projectSwitch.catch(function() {}).then(function() {
+    return fetch('/api/project', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ projectDir: projectDir })
+    });
   })
     .then(function(res) {
       return res.json().then(function(body) { return { ok: res.ok, body: body }; });
     })
     .then(function(result) {
+      if (request !== state.projectRequest) return;
       if (!result.ok) throw new Error(result.body.error || 'Unable to load project.');
       localStorage.setItem('sdd-console-project', result.body.projectDir);
       addProjectDir(result.body.projectDir);
@@ -1246,21 +1410,30 @@ function setProject(projectDir) {
       loadSpecs(false);
     })
     .catch(function(err) {
+      if (request !== state.projectRequest) return;
       qs('project-error').textContent = err.message || String(err);
-      resetProjectView('Select a project directory');
+      resetProjectView('项目载入失败，请重新选择');
     });
+  return state.projectSwitch;
 }
 
 function chooseProjectFolder() {
+  var request = ++state.projectRequest;
   qs('project-error').textContent = '';
   qs('choose-folder').disabled = true;
-  qs('choose-folder').textContent = 'Choosing';
-  return fetch('/api/project/browse', { method: 'POST' })
+  qs('choose-folder').textContent = '选择中';
+  state.projectSwitch = state.projectSwitch.catch(function() {}).then(function() {
+    return fetch('/api/project/browse', { method: 'POST' });
+  })
     .then(function(res) {
       return res.json().then(function(body) { return { ok: res.ok, body: body }; });
     })
     .then(function(result) {
-      if (result.body && result.body.cancelled) return;
+      if (request !== state.projectRequest) return;
+      if (result.body && result.body.cancelled) {
+        if (!state.project || !state.project.configured) loadProjectInfo();
+        return;
+      }
       if (!result.ok) throw new Error(result.body.error || 'Unable to choose project folder.');
       localStorage.setItem('sdd-console-project', result.body.projectDir);
       addProjectDir(result.body.projectDir);
@@ -1268,20 +1441,21 @@ function chooseProjectFolder() {
       loadSpecs(false);
     })
     .catch(function(err) {
+      if (request !== state.projectRequest) return;
       qs('project-error').textContent = err.message || String(err);
     })
     .finally(function() {
       qs('choose-folder').disabled = false;
-      qs('choose-folder').textContent = 'Choose Folder';
+      qs('choose-folder').textContent = '切换项目';
     });
+  return state.projectSwitch;
 }
 
 qs('refresh').addEventListener('click', function() { loadSpecs(true); });
 qs('refresh-project-board').addEventListener('click', function() { refreshProjectBoard(true); });
 qs('choose-folder').addEventListener('click', chooseProjectFolder);
 qs('project-picker').addEventListener('click', function(event) {
-  if (event.target.id === 'use-current' || event.target.id === 'choose-folder') return;
-  chooseProjectFolder();
+  if (event.target.id === 'project-input' || event.target.id === 'project-name') chooseProjectFolder();
 });
 qs('use-current').addEventListener('click', function() {
   var cwd = state.project && state.project.cwd ? state.project.cwd : '';
@@ -1291,10 +1465,23 @@ qs('use-current').addEventListener('click', function() {
 qs('search').addEventListener('input', function(event) {
   state.search = event.target.value;
   render();
+  if (narrowScreen.matches) qs('task-navigation-panel').open = true;
 });
+qs('clear-search').addEventListener('click', function() {
+  state.search = ''; qs('search').value = ''; render(); qs('search').focus();
+});
+qs('reset-filters').addEventListener('click', clearFilters);
+qs('phase-filter').addEventListener('change', function(event) { state.phase = event.target.value; render(); });
+qs('reader-close').addEventListener('click', function() { closeReader(true); });
+qs('reader-formatted').addEventListener('click', function() { setReaderMode(false); });
+qs('reader-source').addEventListener('click', function() { setReaderMode(true); });
 qs('sort-order').addEventListener('change', function(event) {
   state.sort = event.target.value;
   render();
 });
+
+function adjustNavigation() { qs('task-navigation-panel').open = !narrowScreen.matches || !!state.search; }
+if (narrowScreen.addEventListener) narrowScreen.addEventListener('change', adjustNavigation);
+adjustNavigation();
 
 loadProjectInfo();

@@ -39,7 +39,6 @@ program.command('discover <project-dir>')
   .option('--context <text>', 'context')
   .option('--unit <ids...>', 'affected workspace unit ids (or project)')
   .option('--mode <mode>', 'spec mode')
-  .option('--workflow-policy <version>', 'streamlined-v1 (default) | legacy-v1')
   .option('--autonomy-mode <mode>', 'auto | supervised | human')
   .addHelpText('after', '\nAlias: --version <ver> is accepted as --spec-version <ver>.')
   .action(function(p, o) { o.version = o.specVersion || o.version; require('../src/commands/discover')(p, o); });
@@ -163,14 +162,8 @@ program.command('archive <project-dir> <spec-name>')
   .description('Archive completed Spec')
   .option('--authorized-by <identity>', 'required one-shot human:<name> authorization')
   .option('--authorization-evidence <text>', 'required single-line evidence of current user authorization')
-  .option('--force', 'overwrite')
+  .option('--force', 'does not allow overwriting read-only archives')
   .action(function(p, n, o) { require('../src/commands/archive')(p, n, o); });
-
-program.command('reopen <project-dir> <task-slug>')
-  .description('Reopen an archived spec as a new patch spec')
-  .requiredOption('--defect <text>', 'defect description')
-  .option('--mode <mode>', 'patch mode', 'micro')
-  .action(function(p, s, o) { require('../src/commands/reopen')(p, s, o); });
 
 program.command('new-learning <project-dir> [spec-name]')
   .description('Create and bind a Learning Record for a spec')

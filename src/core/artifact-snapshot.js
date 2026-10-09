@@ -63,13 +63,16 @@ function read(projectDir, specPath) {
     };
   }
   var content = fs.readFileSync(specPath, 'utf-8');
-  var autonomy = autonomyState.resolve(content);
+  var location = specLocation(projectDir, specPath);
+  var autonomy = location === 'archive'
+    ? { mode: '', modeSource: 'historical', authorizationState: 'historical', authorizedActors: [] }
+    : autonomyState.resolve(content);
   return {
     projectDir: projectDir,
     specPath: specPath,
     exists: true,
     isGitRepo: isInsideGitRepo(projectDir),
-    location: specLocation(projectDir, specPath),
+    location: location,
     content: content,
     mode: common.getFrontmatterField(specPath, 'mode') || 'standard',
     status: common.getFrontmatterField(specPath, 'status') || 'draft',

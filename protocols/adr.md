@@ -1,17 +1,17 @@
 # ADR — Architecture Decision Record (SDD-RIPER method)
 
 A lightweight record of *why* a design decision was made, using Michael Nygard's
-format. In SDD-RIPER an ADR is how the `Selected Option / ADR` field gets filled
+format. In SDD-RIPER an optional ADR explains the chosen `Approach`
 — it is not a separate ceremony or a separate file.
 
 ## When to write one
 
-- Every `standard` / `lite` task: record the selected option as an ADR.
+- When a substantive technical choice benefits from explicit alternatives and consequences.
 - Any significant choice: framework, library, pattern, datastore, API style,
   data model, or a cross-module boundary.
 - The method router surfaces this — `sdd next` / `sdd cruise` list it under
   `DESIGN_METHOD`.
-- `micro` tasks do not need an ADR; design intent stays inside Plan.
+- Artifact requirements follow risk signals and the mode floor; this advisory method adds no gate.
 
 ## Format (keep it short)
 
@@ -27,9 +27,7 @@ language rule).
 
 ## Where it lives
 
-- `standard`: inside the Design `Selected Option / ADR` field of the Technical
-  Design artifact.
-- `lite`: inside the Design Note's selected-option section.
+- Inside the referenced Design artifact's `Approach` field or a short subsection.
 - Do **not** create a standalone file unless the project already maintains a
   `docs/adr/` log; SDD keeps the decision next to the design artifact it
   justifies.

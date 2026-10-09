@@ -3,40 +3,7 @@ var path = require('path');
 var common = require('../../lib/common');
 var reviewerGuidance = require('../core/reviewer-guidance');
 var specState = require('../core/spec-state');
-var governanceContract = require('../core/governance-contract');
-var workflowGateFacts = require('../core/workflow-gate-facts');
 var visualEvidence = require('../visual-evidence/contract');
-
-var SECTION = {
-  confirmedRequirement: 'Confirmed Requirement',
-  innovateOptions: 'Innovate Options',
-  technicalDesign: 'Technical Design',
-  designNote: 'Design Note',
-  acceptanceCriteria: 'Acceptance Criteria',
-  plan: 'Plan',
-  executeLog: 'Execute Log',
-  review: 'Review (Verdict|Summary)'
-};
-
-var STANDARD_DESIGN_REQUIRED = [
-  'Selected Option / ADR',
-  'Requirement Traceability',
-  'Impact Scope',
-  'Architecture View',
-  'Data Model / Schema',
-  'Interface Contract',
-  'Compatibility / Rollback',
-  'Test Strategy'
-];
-
-var LITE_DESIGN_REQUIRED = [
-  'Approach',
-  'Impact Scope',
-  'Interface / Data Impact',
-  'Compatibility',
-  'Risks',
-  'Test Strategy'
-];
 
 function frontmatterFieldPresent(content, field) {
   var match = String(content || '').match(/^---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/);
@@ -103,309 +70,6 @@ function visualContextSelectionIssue(status) {
   return '';
 }
 
-var CONFIRMED_REQ_REQUIRED = [
-  'Scope Boundary',
-  'Irreversibility',
-  'Impact Radius',
-  'Dependencies & Constraints',
-  'Acceptance Intent'
-];
-
-function firstRealLine(section) {
-  var visible = section.replace(/<!--[\s\S]*?-->/g, '');
-  return visible.split(/\r?\n/).map(function(line) { return line.trim(); }).find(function(line) {
-    return line &&
-      !line.startsWith('|') &&
-      !/^#+\s/.test(line) &&
-      !/^[A-Za-z][A-Za-z0-9 /&_-]*:\s*$/.test(line) &&
-      !/^[-:]+$/.test(line);
-  }) || '';
-}
-
-function sectionContent(specPath, pattern) {
-  return common.extractSection(specPath, pattern, 400);
-}
-
-function artifactSection(projectDir, specPath, field, pattern, issues, label, required) {
-  var ref = common.getFrontmatterField(specPath, field);
-  if (!ref) {
-    if (required) issues.push('Missing ' + field + ' frontmatter.');
-    return { ref: '', path: '', content: '' };
-  }
-  var artifactPath = common.resolveProjectPath(projectDir, ref);
-  if (!fs.existsSync(artifactPath)) {
-    issues.push(label + ' file not found: ' + ref);
-    return { ref: ref, path: artifactPath, content: '' };
-  }
-  return { ref: ref, path: artifactPath, content: common.extractSection(artifactPath, pattern, 500) };
-}
-
-function sectionHasContent(specPath, pattern) {
-  return !!firstRealLine(sectionContent(specPath, pattern));
-}
-
-function escapeRegExp(text) {
-  return String(text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function labelHasContent(section, label) {
-  var lines = section.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var labelRegex = new RegExp('^' + escapeRegExp(label) + ':[ \\t]*(.*)$', 'i');
-  for (var i = 0; i < lines.length; i++) {
-    var line = lines[i].trim();
-    var m = line.match(labelRegex);
-    if (!m) continue;
-    if (m[1] && m[1].trim()) return true;
-    for (var j = i + 1; j < lines.length; j++) {
-      var next = lines[j].trim();
-      if (!next || next.startsWith('<!--') || next.startsWith('|') || /^#+\s/.test(next)) continue;
-      if (/^[A-Za-z][A-Za-z0-9 /&_-]*:[ \t]*/.test(next)) break;
-      return true;
-    }
-    continue;
-  }
-  return false;
-}
-
-function missingLabels(section, labels) {
-  return labels.filter(function(label) { return !labelHasContent(section, label); });
-}
-
-var labelValue = require('../core/artifact-snapshot').labelValue;
-
-function isAgentApproval(value) {
-  return /^agent:[^:\s]+$/i.test(value || '');
-}
-
-function isHumanApproval(value) {
-  return /^human:[^:\s]+$/i.test(value || '');
-}
-
-function isPlanApproval(value) {
-  return isAgentApproval(value) || isHumanApproval(value);
-}
-
-function isAuditableReviewer(value, mode) {
-  var reviewer = String(value || '').trim();
-  return governanceContract.isAuditableReviewer(mode, reviewer);
-}
-
-function independentReviewerMessage(label) {
-  return label + ' requires independent reviewer evidence (use subagent:<id>, external-agent:<id>, or human:<name>). ' + reviewerGuidance.inlineGuidance();
-}
-
-function acceptanceBlocks(section) {
-  var lines = section.replace(/<!--[\s\S]*?-->/g, '').split(/\r?\n/);
-  var blocks = [];
-  var current = null;
-  var acHeader = /^(?:#{2,6}\s+|[-*]\s*)?(AC-\d+)\b/i;
-  lines.forEach(function(rawLine) {
-    var line = rawLine.trim();
-    var m = line.match(acHeader);
-    if (m) {
-      current = { id: m[1].toUpperCase(), lines: [rawLine] };
-      blocks.push(current);
-      return;
-    }
-    if (current) current.lines.push(rawLine);
-  });
-  return blocks;
-}
-
-function validateAcceptanceCriteria(section, modeLabel, issues, facts) {
-  if (facts) {
-    if (!facts.present) {
-      issues.push('Acceptance Criteria is empty.');
-      return;
-    }
-    if (!facts.blocks.length) {
-      issues.push(modeLabel + ' Acceptance Criteria should include at least one AC-### item.');
-      return;
-    }
-    facts.blocks.forEach(function(block) {
-      if (!block.verification) {
-        issues.push(modeLabel + ' Acceptance Criteria missing Verification for: ' + block.id + '.');
-        return;
-      }
-      if (/^yes$/i.test(block.automated) && !block.test) {
-        issues.push(modeLabel + ' Automated Acceptance Criteria require Test for: ' + block.id + '.');
-      }
-      if (governanceContract.requiresProvider(block.verification) && !block.test && !block.manualEvidence) {
-        issues.push(modeLabel + ' E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
-      }
-      if (/\bmanual\b/i.test(block.verification) && !block.manualEvidence) {
-        issues.push(modeLabel + ' Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
-      }
-    });
-    return;
-  }
-  if (!firstRealLine(section)) {
-    issues.push('Acceptance Criteria is empty.');
-    return;
-  }
-  var blocks = acceptanceBlocks(section);
-  if (!blocks.length) {
-    issues.push(modeLabel + ' Acceptance Criteria should include at least one AC-### item.');
-    return;
-  }
-  blocks.forEach(function(block) {
-    var text = block.lines.join('\n');
-    if (!labelHasContent(text, 'Verification')) {
-      issues.push(modeLabel + ' Acceptance Criteria missing Verification for: ' + block.id + '.');
-      return;
-    }
-    var verification = labelValue(text, 'Verification');
-    var automated = labelValue(text, 'Automated');
-    if (/^yes$/i.test(automated) && !labelHasContent(text, 'Test')) {
-      issues.push(modeLabel + ' Automated Acceptance Criteria require Test for: ' + block.id + '.');
-    }
-    if (governanceContract.requiresProvider(verification) && !labelHasContent(text, 'Test') && !labelHasContent(text, 'Manual Evidence')) {
-      issues.push(modeLabel + ' E2E Acceptance Criteria require Test or Manual Evidence for: ' + block.id + '.');
-    }
-    if (/\bmanual\b/i.test(verification) && !labelHasContent(text, 'Manual Evidence')) {
-      issues.push(modeLabel + ' Manual Acceptance Criteria require Manual Evidence for: ' + block.id + '.');
-    }
-  });
-}
-
-function validatePlanGate(content, autonomyMode, archiveReady, issues, gateFacts) {
-  var approval = gateFacts && gateFacts.planApproval;
-  var approvedBy = approval ? approval.approvedBy : labelValue(content, 'Plan Approved By');
-  var approvedAt = approval ? approval.approvedAt : labelValue(content, 'Approved At');
-  var gateEvidence = approval ? approval.evidence : labelValue(content, 'Gate Evidence');
-  if (!approvedBy) {
-    issues.push('Plan Approved By is empty.');
-    return;
-  }
-  if (!approvedAt) {
-    issues.push('Approved At is empty.');
-  }
-  if (approval ? !approval.agent && !approval.human : !isPlanApproval(approvedBy)) {
-    issues.push('Plan Approved By must be agent:<id> or human:<name>.');
-    return;
-  }
-  if (autonomyMode !== 'auto' && !(approval ? approval.human : isHumanApproval(approvedBy))) {
-    issues.push('Supervised and human autonomy modes require Plan Approved By: human:<name>.');
-  }
-  if ((approval ? approval.agent : isAgentApproval(approvedBy)) && !gateEvidence) {
-    issues.push('Gate Evidence is required for agent approval.');
-  }
-}
-
-function validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts) {
-  if (mode === 'micro') return; // micro skips Research entirely
-  var confirmed = gateFacts && gateFacts.research && gateFacts.research.confirmedRequirement;
-  if (!confirmed) {
-    var crSection = workflowGateFacts.confirmedRequirementText(fs.readFileSync(specPath, 'utf-8'), mode);
-    confirmed = {
-      present: !!firstRealLine(crSection),
-      missingLabels: missingLabels(crSection, CONFIRMED_REQ_REQUIRED)
-    };
-  }
-  if (!confirmed.present) {
-    issues.push('Confirmed Requirement is empty.');
-    return;
-  }
-  var missing = confirmed.missingLabels;
-  if (missing.length) {
-    if (archiveReady) {
-      issues.push('Confirmed Requirement missing required fields: ' + missing.join(', ') + '.');
-    } else {
-      issues.push('WARNING: Confirmed Requirement missing recommended fields: ' + missing.join(', ') + '.');
-    }
-  }
-}
-
-function validateResearchGate(content, mode, archiveReady, issues, gateFacts) {
-  if (mode === 'micro') return; // micro skips Research entirely
-  var reviewer = gateFacts && gateFacts.research && gateFacts.research.reviewer;
-  var reviewedBy = reviewer ? reviewer.reviewedBy : labelValue(content, 'Research Reviewed By');
-  var reviewedAt = reviewer ? reviewer.reviewedAt : labelValue(content, 'Research Reviewed At');
-  if (!reviewedBy) {
-    issues.push('Research Reviewed By is empty. ' + reviewerGuidance.inlineGuidance());
-    return;
-  }
-  if (!reviewedAt) {
-    issues.push('Research Reviewed At is empty.');
-  }
-  if (reviewer ? !reviewer.auditable : !isAuditableReviewer(reviewedBy, mode)) {
-    issues.push(independentReviewerMessage('Research Gate'));
-  }
-}
-
-function validateChallengeVerdict(content, issues) {
-  var facts = specState.challengeFacts(content);
-  var verdict = facts.verdict;
-  if (verdict && !facts.allowed) {
-    issues.push('Challenge Verdict is invalid; allowed values: ' + specState.VERDICTS.join(', ') + '.');
-    return;
-  }
-  if (verdict && facts.allowed && !facts.passed) {
-    issues.push('Adversarial Challenge failed: ' + verdict.toUpperCase() + '.');
-  }
-}
-
-function validateModeArtifacts(projectDir, specPath, mode, archiveReady, issues, gateFacts) {
-  if (mode === 'standard') {
-    validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts);
-    var innovateFacts = gateFacts && gateFacts.innovate;
-    var innovate = innovateFacts ? '' : sectionContent(specPath, SECTION.innovateOptions);
-    if (innovateFacts ? !innovateFacts.present : !firstRealLine(innovate)) {
-      issues.push('Innovate Options is empty.');
-    } else if (innovateFacts ? innovateFacts.skipped : /Innovate:\s*Skipped/i.test(innovate)) {
-      issues.push('Standard mode cannot skip Innovate Options.');
-    }
-    var standardDesignArtifact = artifactSection(projectDir, specPath, 'design-file', SECTION.technicalDesign, issues, 'Design', true);
-    var standardDesign = standardDesignArtifact.content;
-    var standardDesignFacts = gateFacts && gateFacts.design;
-    if (standardDesignFacts ? !standardDesignFacts.present : !firstRealLine(standardDesign)) {
-      issues.push('Technical Design is empty.');
-    } else {
-      var missingStandardDesign = standardDesignFacts ? standardDesignFacts.missingLabels : missingLabels(standardDesign, STANDARD_DESIGN_REQUIRED);
-      if (missingStandardDesign.length) {
-        issues.push('Technical Design missing required fields: ' + missingStandardDesign.join(', ') + '.');
-      }
-    }
-    var standardAc = sectionContent(specPath, SECTION.acceptanceCriteria);
-    validateAcceptanceCriteria(standardAc, 'Standard', issues, gateFacts && gateFacts.acceptance);
-    return;
-  }
-
-  if (mode === 'lite') {
-    validateConfirmedRequirement(specPath, mode, archiveReady, issues, gateFacts);
-    var liteInnovateFacts = gateFacts && gateFacts.innovate;
-    var liteInnovate = liteInnovateFacts ? '' : sectionContent(specPath, SECTION.innovateOptions);
-    if (liteInnovateFacts ? !liteInnovateFacts.present : !firstRealLine(liteInnovate)) {
-      issues.push('Innovate Options must contain options or an explicit skip reason.');
-    } else if (liteInnovateFacts ? liteInnovateFacts.skipped && !liteInnovateFacts.skipReasonPresent : /Innovate:\s*Skipped/i.test(liteInnovate) && !/Reason:\s*\S/i.test(liteInnovate)) {
-      issues.push('Skipped Innovate Options must include Reason.');
-    }
-    var liteDesignArtifact = artifactSection(projectDir, specPath, 'design-file', SECTION.designNote, issues, 'Design', true);
-    var liteDesign = liteDesignArtifact.content;
-    var liteDesignFacts = gateFacts && gateFacts.design;
-    if (liteDesignFacts ? !liteDesignFacts.present : !firstRealLine(liteDesign)) {
-      issues.push('Design Note is empty.');
-    } else {
-      var missingLiteDesign = liteDesignFacts ? liteDesignFacts.missingLabels : missingLabels(liteDesign, LITE_DESIGN_REQUIRED);
-      if (missingLiteDesign.length) {
-        issues.push('Design Note missing required fields: ' + missingLiteDesign.join(', ') + '.');
-      }
-    }
-    validateAcceptanceCriteria(sectionContent(specPath, SECTION.acceptanceCriteria), 'Lite', issues, gateFacts && gateFacts.acceptance);
-    return;
-  }
-
-  if (mode === 'micro') {
-    var plan = sectionContent(specPath, SECTION.plan);
-    var missingMicroPlan = gateFacts && gateFacts.microPlan ? gateFacts.microPlan.missingLabels : governanceContract.modeFields(mode).required.filter(function(label) {
-      return !labelHasContent(plan, label);
-    });
-    missingMicroPlan.forEach(function(label) {
-        issues.push('Micro Plan must include ' + label + '.');
-    });
-  }
-}
-
 function resolveSpec(projectDir, opts) {
   opts = opts || {};
   if (opts.spec) return path.resolve(projectDir, opts.spec);
@@ -423,170 +87,29 @@ function resolveSpec(projectDir, opts) {
 // L2: all Coverage results are PASS (SKIPPED with approval is OK)
 // L3: Test path existence is owned by the central spec-state evaluator
 // L4 (limited): Scenario names in Coverage appear in Spec (warning only)
-function validateAcCoverage(projectDir, archiveReady, issues, gateFacts) {
-  if (!archiveReady) return;
-  var declarations = gateFacts.acCoverage.declarations;
-  if (!declarations.length) return;
-  var coverageRecords = gateFacts.acCoverage.records;
-  if (!coverageRecords.length) {
-    declarations.forEach(function(decl) {
-      issues.push('AC Coverage: ' + decl.id + ' has no execution evidence in Execute Log.');
-    });
-    return;
-  }
-  // The latest decision is authoritative while earlier Test/Method/Scenario
-  // evidence remains part of the same AC contract.
-  var coverageMap = workflowGateFacts.coverageRecordMap(coverageRecords);
-  // Non-three-digit record ids can never match a declaration; diagnose instead
-  // of silently leaving both sides without evidence.
-  coverageRecords.forEach(function(record) {
-    if (record.malformedId) {
-      issues.push('AC Coverage: ' + record.id + ' must be zero-padded three digits (AC-###); it will never match a declared AC id.');
-    }
-  });
-  // L1 + L2: check each declaration has coverage and result is PASS/SKIPPED-with-approval
-  declarations.forEach(function(decl) {
-    var cov = coverageMap[decl.id];
-    if (!cov) {
-      issues.push('AC Coverage: ' + decl.id + ' has no execution evidence in Execute Log.');
-      return;
-    }
-    if (cov.result === 'FAIL') {
-      issues.push('AC Coverage: ' + decl.id + ' verification failed.');
-      return;
-    }
-    if (cov.result === 'SKIPPED') {
-      // SKIPPED requires human approval three-element gate
-      if (!cov.approvedBy) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved By.');
-      } else if (!isHumanApproval(cov.approvedBy)) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED; Approved By must be human:<name>.');
-      }
-      if (!cov.approvedAt) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Approved At.');
-      } else if (!workflowGateFacts.isValidIsoTimestamp(cov.approvedAt)) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but Approved At must be valid ISO-8601.');
-      }
-      if (!cov.reason) {
-        issues.push('AC Coverage: ' + decl.id + ' is SKIPPED but missing Reason.');
-      }
-      return;
-    }
-  });
-  // L4 (limited): check scenario names in coverage appear in spec declarations (warning only)
-  // Warnings use a "WARNING:" prefix so they don't block archive readiness
-  declarations.forEach(function(decl) {
-    var cov = coverageMap[decl.id];
-    if (!cov || !cov.scenarios.length || !decl.scenarios.length) return;
-    cov.scenarios.forEach(function(covScenario) {
-      var found = decl.scenarios.some(function(declScenario) {
-        return declScenario.toLowerCase().indexOf(covScenario.name.toLowerCase()) !== -1 ||
-               covScenario.name.toLowerCase().indexOf(declScenario.toLowerCase()) !== -1;
-      });
-      if (!found) {
-        issues.push('WARNING: AC Coverage: ' + decl.id + ' scenario "' + covScenario.name + '" not found in Spec acceptance criteria (may need review).');
-      }
-    });
-  });
-}
-
 function validateSpec(specPath, opts) {
   opts = opts || {};
-  var issues = [];
-  if (!specPath || !fs.existsSync(specPath)) {
-    return { ok: false, issues: ['Spec file not found.'], specPath: specPath || '' };
-  }
-
-  var content = fs.readFileSync(specPath, 'utf-8');
-  var mode = common.getFrontmatterField(specPath, 'mode') || 'standard';
+  if (!specPath || !fs.existsSync(specPath)) return { ok: false, issues: ['Spec file not found.'], specPath: specPath || '' };
   var projectDir = opts.projectDir || path.dirname(path.dirname(path.dirname(specPath)));
-  var isGitRepo = require('../core/artifact-snapshot').isInsideGitRepo(projectDir);
   var snapshot = specState.readSnapshot(projectDir, specPath);
-  var gateFacts = workflowGateFacts.collectGateFacts(snapshot);
-  var streamlined = require('../core/workflow-policy').version(content) !== 'legacy-v1';
-
-  validateProfileReference(projectDir, specPath, issues);
-
-  if (!opts.archiveReady) {
-    var visualContext = visualContextStatus(specPath, projectDir);
-    var selectionIssue = visualContextSelectionIssue(visualContext);
-    if (selectionIssue) issues.push(selectionIssue);
-    var visual = visualEvidence.inspect(specPath, projectDir);
-    if (visual.planReadiness === 'blocked') {
-      visual.diagnostics.forEach(function(diagnostic) {
+  if (snapshot.location === 'archive') return { ok: false, issues: ['Archived documents are read-only; historical gates are not revalidated.'], specPath: specPath };
+  var issues = [];
+  var formatIssue = require('../core/workflow-policy').formatIssue(snapshot.content);
+  if (!formatIssue) {
+    validateProfileReference(projectDir, specPath, issues);
+    if (!opts.archiveReady) {
+      var visualContext = visualContextStatus(specPath, projectDir);
+      var selectionIssue = visualContextSelectionIssue(visualContext);
+      if (selectionIssue) issues.push(selectionIssue);
+      var visual = visualEvidence.inspect(specPath, projectDir);
+      if (visual.planReadiness === 'blocked') visual.diagnostics.forEach(function(diagnostic) {
         issues.push('Visual evidence is not ready for Plan: ' + diagnostic.code + '.');
       });
     }
   }
-  if (streamlined) {
-    var sharedIssues = issues.filter(function(issue) { return !/^WARNING:/i.test(issue); });
-    var sharedState = specState.evaluate(snapshot, { validationIssues: sharedIssues });
-    var resultIssues = issues.filter(function(issue) { return /^WARNING:/i.test(issue); })
-      .concat(sharedState.blockers.map(function(blocker) { return blocker.message; }));
-    resultIssues = resultIssues.filter(function(issue, index, all) { return all.indexOf(issue) === index; });
-    return { ok: sharedState.completionReady, issues: resultIssues, specPath: specPath, workflowState: sharedState };
-  }
-
-  if (!opts.archiveReady) {
-    if (isGitRepo && !/^diff-base:[ \t]*"[^"]+"/m.test(content)) {
-      issues.push('Missing diff-base frontmatter; Review cannot reliably know the task diff range.');
-    }
-    if (/<!-- \(not filled\) -->|\[TBD\]/.test(content)) {
-      issues.push('Spec still contains unresolved placeholders.');
-    }
-  }
-  if (!opts.archiveReady) {
-    validatePlanGate(content, snapshot.autonomyMode || 'supervised', false, issues, gateFacts);
-    validateResearchGate(content, mode, false, issues, gateFacts);
-    validateChallengeVerdict(content, issues);
-  }
-
-  if (opts.archiveReady) {
-    validateModeArtifacts(projectDir, specPath, mode, !!opts.archiveReady, issues, gateFacts);
-  } else {
-    // Non archive-ready: check CR structured fields as WARNING only
-    validateConfirmedRequirement(specPath, mode, false, issues, gateFacts);
-  }
-
-  if (snapshot.location === 'active') {
-    gateFacts.providerReadiness.issues.filter(function(issue) {
-      return /^E2E Acceptance Criteria require Provider/.test(issue);
-    }).forEach(function(issue) { issues.push(issue); });
-  }
-
-  var logArtifact = artifactSection(projectDir, specPath, 'execute-log-file', SECTION.executeLog, issues, 'Execute Log', opts.archiveReady);
-  var executeLog = logArtifact.content;
-  if (!opts.archiveReady && !firstRealLine(executeLog)) {
-    issues.push('Execute Log is empty.');
-  }
-
-  var fullExecuteLog = '';
-  if (opts.archiveReady && logArtifact.path && fs.existsSync(logArtifact.path)) {
-    fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
-  }
-
-  // AC Coverage cross-check (L1-L4) — only when archiveReady and Execute Log has coverage records
-  if (opts.archiveReady && logArtifact.path && common.completionVerificationDone(fullExecuteLog)) {
-    if (!fullExecuteLog) fullExecuteLog = fs.readFileSync(logArtifact.path, 'utf-8');
-    validateAcCoverage(projectDir, true, issues, gateFacts);
-  }
-
-  var blockingIssues = issues.filter(function(i) { return !/^WARNING:/i.test(i); });
-  var workflowState = specState.evaluate(snapshot, {
-    validationIssues: blockingIssues,
-    gateFacts: gateFacts
-  });
-  if (opts.archiveReady) {
-    var warnings = issues.filter(function(i) { return /^WARNING:/i.test(i); });
-    issues = warnings.concat(workflowState.blockers.map(function(blocker) { return blocker.message; }));
-    issues = issues.filter(function(issue, index, all) { return all.indexOf(issue) === index; });
-  }
-  return {
-    ok: opts.archiveReady ? workflowState.completionReady : blockingIssues.length === 0,
-    issues: issues,
-    specPath: specPath,
-    workflowState: workflowState
-  };
+  var sharedState = specState.evaluate(snapshot, { validationIssues: issues.filter(issue => !/^WARNING:/i.test(issue)) });
+  var resultIssues = issues.filter(issue => /^WARNING:/i.test(issue)).concat(sharedState.blockers.map(blocker => blocker.message));
+  return { ok: sharedState.completionReady, issues: [...new Set(resultIssues)], specPath: specPath, workflowState: sharedState };
 }
 
 function validateProfileReference(projectDir, specPath, issues) {
@@ -638,6 +161,11 @@ function run(projectDir, opts) {
   }
   console.log('RESULT: FAIL');
   result.issues.forEach(function(issue) { console.log('- ' + issue); });
+  if (result.workflowState && result.workflowState.nextAction === 'run_challenge') {
+    console.log('Run independent Challenge: sdd challenge "' + projectDir + '" --spec "' + result.specPath + '"');
+    console.log('Record the reviewer result with --record-result, --summary and --executed-by.');
+    reviewerGuidance.guidanceLines().forEach(function(line) { console.log('- ' + line); });
+  }
   process.exit(1);
 }
 

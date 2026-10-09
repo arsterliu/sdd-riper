@@ -20,20 +20,13 @@ function sectionFromContent(content, heading) {
 }
 
 function buildArchiveSummary(sourceContent, designContent, learningContent, dateIso) {
-  var streamlined = workflowPolicy.version(sourceContent) === workflowPolicy.STREAMLINED;
-  var intake = streamlined ? workflowPolicy.section(sourceContent, 'Intake') : '';
-  var goal = streamlined
-    ? workflowPolicy.label(intake, 'Requirement')
-    : firstMeaningfulLine(sectionFromContent(sourceContent, 'Summary')) || labelValue(sourceContent, 'requirement');
-  var selected = streamlined
-    ? (workflowPolicy.label(workflowPolicy.section(designContent, 'Design'), 'Approach') || firstMeaningfulLine(sectionFromContent(sourceContent, 'Plan')))
-    : labelValue(designContent, 'Selected Option / ADR') || labelValue(sourceContent, 'Selected Option') || labelValue(sourceContent, 'Selected');
-  var constraints = streamlined
-    ? workflowPolicy.label(intake, 'Scope')
-    : labelValue(sourceContent, 'Dependencies & Constraints') || labelValue(sourceContent, 'constraints') || '无额外约束。';
-  var risks = streamlined
-    ? workflowPolicy.label(intake, 'Risks')
-    : labelValue(designContent, 'Risks / Trade-offs') || labelValue(learningContent, 'Decision Rule') || labelValue(sourceContent, 'Challenge Summary');
+  workflowPolicy.assertSupported(sourceContent);
+  var intake = workflowPolicy.section(sourceContent, 'Intake');
+  var goal = workflowPolicy.label(intake, 'Requirement');
+  var selected = workflowPolicy.label(workflowPolicy.section(designContent, 'Design'), 'Approach') ||
+    firstMeaningfulLine(sectionFromContent(sourceContent, 'Plan'));
+  var constraints = workflowPolicy.label(intake, 'Scope');
+  var risks = workflowPolicy.label(intake, 'Risks');
   if (!goal || !selected || !constraints || !risks) return '';
   return [
     '',
@@ -60,9 +53,23 @@ function prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSp
   if (!ref) return null;
   var src = common.resolveProjectPath(projectDir, ref);
   if (!fs.existsSync(src)) return null;
+  var projectRelative = path.relative(fs.realpathSync(projectDir), fs.realpathSync(src));
+  if (!projectRelative || projectRelative === '..' || projectRelative.startsWith('..' + path.sep) || path.isAbsolute(projectRelative)) {
+    console.error('[ERROR] Archive artifacts must stay inside the project: ' + ref);
+    process.exit(1);
+  }
+  var archiveRoot = fs.existsSync(archiveDir) ? fs.realpathSync(archiveDir) : path.resolve(archiveDir);
+  var relative = path.relative(archiveRoot, fs.realpathSync(src));
+  var lexical = path.relative(path.resolve(archiveDir), path.resolve(src));
+  if (!relative || (!relative.startsWith('..' + path.sep) && relative !== '..' && !path.isAbsolute(relative)) ||
+      !lexical || (!lexical.startsWith('..' + path.sep) && lexical !== '..' && !path.isAbsolute(lexical)) ||
+      common.getFrontmatterField(src, 'status') === 'archived') {
+    console.error('[ERROR] Archived artifacts are read-only and cannot be moved or overwritten: ' + ref);
+    process.exit(1);
+  }
   var dst = path.join(archiveDir, path.basename(src));
-  if (fs.existsSync(dst) && !force) {
-    console.error('[ERROR] Archive artifact already exists: ' + dst + '. Use --force.');
+  if (fs.lstatSync(dst, { throwIfNoEntry: false })) {
+    console.error('[ERROR] Archived artifacts are read-only; destination already exists: ' + dst);
     process.exit(1);
   }
   var content = fs.readFileSync(src, 'utf-8');
@@ -109,6 +116,8 @@ function run(projectDir, specName, opts) {
     console.error('[ERROR] No versioned spec matching ' + specSlug + ' found.');
     process.exit(1);
   }
+  try { workflowPolicy.assertActive(projectDir, sourceSpec); }
+  catch (error) { console.error(error.message); process.exitCode = 3; return; }
   var validation = validate.validateSpec(sourceSpec, { archiveReady: true, projectDir: projectDir });
   if (!validation.workflowState || !validation.workflowState.completionReady) {
     console.error('[ERROR] Spec is not archive-ready. Run: sdd validate "' + projectDir + '" --spec "' + sourceSpec + '" --archive-ready');
@@ -123,7 +132,19 @@ function run(projectDir, specName, opts) {
     specSlug = parsed.slug;
   }
   var archiveFile = path.join(archiveDir, specVersion + '-' + specSlug + '.md');
-  if (fs.existsSync(archiveFile) && !force) { console.error('[ERROR] Archive already exists. Use --force.'); process.exit(1); }
+  var indexFile = path.join(archiveDir, 'index.md');
+  var indexStat = fs.lstatSync(indexFile, { throwIfNoEntry: false });
+  if (indexStat && (!indexStat.isFile() || indexStat.isSymbolicLink())) {
+    console.error('[ERROR] Archive requires a regular non-linked index; historical artifacts are read-only.');
+    process.exit(1);
+  }
+  if (fs.existsSync(archiveDir)) {
+    var archiveRelative = path.relative(fs.realpathSync(projectDir), fs.realpathSync(archiveDir));
+    if (!archiveRelative || archiveRelative === '..' || archiveRelative.startsWith('..' + path.sep) || path.isAbsolute(archiveRelative)) {
+      console.error('[ERROR] Archive directory must stay inside the project.'); process.exit(1);
+    }
+  }
+  if (fs.lstatSync(archiveFile, { throwIfNoEntry: false })) { console.error('[ERROR] Archive already exists and is read-only.'); process.exit(1); }
   var dateIso = new Date().toISOString().slice(0, 10);
   var archiveSpecRel = common.relativeToProject(projectDir, archiveFile);
   var designArtifact = prepareArchiveArtifact(projectDir, archiveDir, archiveSpecRel, sourceSpec, 'design-file', force);
@@ -153,7 +174,7 @@ function run(projectDir, specName, opts) {
     dateIso
   );
   if (!summary) {
-    console.error('[ERROR] Archive summary could not be generated from Summary/Requirement, Selected Option / ADR, constraints, and risks/challenge evidence.');
+    console.error('[ERROR] Archive summary requires Intake Requirement, Scope, Risks and Design Approach or Plan.');
     process.exit(1);
   }
   if (!fs.existsSync(archiveDir)) fs.mkdirSync(archiveDir, { recursive: true });
@@ -164,7 +185,6 @@ function run(projectDir, specName, opts) {
     if (path.resolve(artifact.src) !== path.resolve(artifact.dst)) fs.unlinkSync(artifact.src);
   });
   fs.unlinkSync(sourceSpec);
-  var indexFile = path.join(archiveDir, 'index.md');
   if (!fs.existsSync(indexFile)) {
     fs.writeFileSync(indexFile, '# Archive Index\n| File | Date | Task | Verdict |\n|---|---|---|---|\n');
   }
@@ -173,14 +193,11 @@ function run(projectDir, specName, opts) {
   try {
     var archivedContent = fs.readFileSync(archiveFile, 'utf-8');
     var challengeVerdict = labelValue(archivedContent, 'Challenge Verdict');
-    if (!challengeVerdict && workflowPolicy.version(archivedContent) === workflowPolicy.STREAMLINED) {
+    if (!challengeVerdict) {
       challengeVerdict = workflowPolicy.label(workflowPolicy.section(archivedContent, 'Completion Verification'), 'Result');
     }
     if (challengeVerdict) {
       verdictVal = challengeVerdict;
-    } else {
-      var vc = common.extractSection(archiveFile, 'Review (Verdict|Summary)', 5);
-      if (vc) { var vlines = vc.split(/\r?\n/); for (var i = 0; i < vlines.length; i++) { var t = vlines[i].trim(); if (t && !t.startsWith('<!--')) { verdictVal = t; break; } } }
     }
   } catch (e) {}
   fs.appendFileSync(indexFile, '| ' + path.basename(archiveFile) + ' | ' + dateIso + ' | ' + taskNameVal + ' | ' + verdictVal + ' |\n');

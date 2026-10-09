@@ -11,7 +11,7 @@ function spec(projectDir) {
   return [
     '---',
     'task-name: "checkout-ui"',
-    'mode: micro',
+    'workflow-policy: streamlined-v1', 'mode: micro',
     'autonomy-mode: "auto"',
     'autonomy-mode-source: "fixture"',
     'status: draft',

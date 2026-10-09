@@ -12,7 +12,7 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 
 | Autonomy | Plan Approval | 后续推进 | 适用判断 |
 | :--- | :--- | :--- | :--- |
-| `auto` | 必须记录 `Plan Approved By: agent:<id>`、`Approved At` 和明确可验证的 `Gate Evidence` | 用户首次确认 Scope / 风险后记录主 Agent 与 reviewer 授权；Plan 摘要仍匹配时由 Agent 自动 activation，不重复询问 Plan 或 reviewer | 边界清楚、可逆、验证充分且风险较低的任务 |
+| `auto` | 必须记录 `Plan Approved By: agent:<id>`、`Approved At` 和明确可验证的 `Gate Evidence` | 当前任务请求＋本任务显式 auto 选择授权普通范围内推进；Agent 评估并记录 Scope/Risk 后记录真实证据及必要 reviewer，自动 activation，不重复确认普通范围、低风险、Plan 或 reviewer | 边界清楚、可逆、验证充分且风险较低的任务 |
 | `supervised` | 必须记录 `Plan Approved By: human:<name>` 和 `Approved At` | Plan Approval 与持续自动推进授权是两件独立事件；前者不能推出后者 | 团队常规任务和渐进采用 |
 | `human` | 必须记录 `Plan Approved By: human:<name>` 和 `Approved At` | 在治理节点暂停，由人逐次决定是否继续；Plan Approval 不能推出后续授权 | 高风险、不确定或需要紧密控制的任务 |
 
@@ -24,12 +24,14 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 
 - 范围扩大、目标改变或出现新的下游影响；
 - 新风险出现，尤其是安全、权限、计费、数据迁移、公共 API 或不可逆性；
-- Plan 内容变化，导致已有 Plan digest 或 activation 不再匹配；
+- Plan 内容变化，导致已有 Plan digest 或 activation 不再匹配；auto 在 Scope/Risk 未变时由 Agent 重新批准并自动 activation，不因此再次请人批准；
 - effective autonomy mode、执行角色或 reviewer 角色需要变化；
 - 验证策略降低、关键 AC 无法覆盖，或需要跳过原定验证；
 - 平台权限、外部写入或不可恢复操作超出当前授权。
 
 风险升级不是“把文档补齐后继续”的形式动作。main agent 必须读取 `STOP_REASON`，判断应回到 Research、Design、Acceptance、Plan、Execute / Debug、Execute Log 或 Learning Check，并在对应阶段的写入边界内处理。
+
+高风险须有当前用户明确知悉风险影响及授权边界的实际证据，泛化任务请求或选择 auto 不能替代；缺失时先说明风险并暂停。已有同范围同风险充分证据直接复用。项目默认、历史授权或 Agent 自签不能授权；普通 auto 的真实请求/模式选择证据齐全时，由 Agent 记录授权，不增加范围或低风险确认。
 
 ## 3. 角色分离与责任
 
@@ -38,11 +40,12 @@ SDD-RIPER 的工作流是：Research -> Innovate -> Design/Acceptance -> Plan ->
 - 当前用户：确认 Spec 的关键输入，办理需要人工决定的 Plan、持续推进、跳过验证、不可逆操作和归档授权。
 - main agent：维护活动 Spec 的一致性，聚合证据，执行门禁决策，写入最终制品，并进行最终验证。
 - worker：只在授权的 Plan 步骤和文件边界内执行；发现边界变化时报告偏差，不自行扩张范围。
-- Research reviewer：核对需求、假设和证据；`standard` / `lite` 使用可审计的独立角色。
+- Research 协作者：按需要收集需求、假设和证据。
+- Design reviewer：高风险实施前只读审查设计，使用可审计的独立角色。
 - Challenge reviewer：只读审查，不修改代码、Plan、Design 或 SDD 制品，只返回 verdict、回退目标和证据。
 - 团队负责人：设定项目默认值和本地责任分工，观察风险与停机原因；不替代当前 Spec 的审批记录。
 
-`standard` / `lite` 的 Challenge 必须由独立、可审计的 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>` 执行，并保持 read-only。`micro` 可以使用 `inline`，但实现角色与对抗审查角色仍要明确分开，不能把实现者的自我确认包装成独立审查。
+中高风险任务的 Challenge 必须由独立、可审计的 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>` 执行，并保持 read-only。低风险任务依靠新鲜验证；可选的 micro Challenge 可以使用 `inline`，不能把实现者的自我确认包装成独立审查。mode 仅设置风险下限；活动任务只支持 streamlined-v1。
 
 自动 reviewer 只有在当前 Spec 存在新鲜、明确包含该 reviewer actor 的任务或 Plan 授权时才能启动。项目配置和 Plan Approval 本身都不足以推出 reviewer 授权。
 

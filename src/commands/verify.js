@@ -109,7 +109,7 @@ function isInside(parentPath, childPath) {
 function resolveSpec(root, reference) {
   var candidate = path.isAbsolute(reference) ? reference : path.resolve(root, reference);
   if (!fs.existsSync(candidate)) errors.fail('SPEC_NOT_FOUND', 'Spec does not exist', { path: reference });
-  return fs.realpathSync(candidate);
+  return require('../core/workflow-policy').assertActive(root, fs.realpathSync(candidate));
 }
 
 function readEvents(file, nonce, manifest, capability) {

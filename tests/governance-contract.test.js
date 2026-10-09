@@ -8,7 +8,7 @@ const governanceContract = require('../src/core/governance-contract');
 
 function withInjectedGovernanceContract(overrides, consumerModules, callback) {
   const contractPath = require.resolve('../src/core/governance-contract');
-  const consumerPaths = consumerModules.map(function(modulePath) { return require.resolve(modulePath); });
+  const consumerPaths = consumerModules.concat(['../src/core/streamlined-state']).map(function(modulePath) { return require.resolve(modulePath); });
   const savedContract = require.cache[contractPath];
   const savedConsumers = consumerPaths.map(function(consumerPath) { return require.cache[consumerPath]; });
   const injected = Object.assign({}, governanceContract, overrides);
@@ -51,45 +51,9 @@ test('keeps governance defaults from being rebound by consumers', function() {
   });
 });
 
-test('defines the micro Plan required and recommended fields', function() {
-  const fields = governanceContract.modeFields('micro');
 
-  assert.deepEqual(fields.required, [
-    'Impact Scope',
-    'Data Impact',
-    'Interface Impact',
-    'Acceptance',
-    'Verification'
-  ]);
-  assert.deepEqual(fields.recommended, [
-    'Scope',
-    'Touched Files',
-    'Change',
-    'Blast Radius'
-  ]);
-  assert.ok(!fields.required.includes('Provider'));
-});
 
-test('returns isolated micro Plan field arrays', function() {
-  const first = governanceContract.modeFields('micro');
-  first.required.push('Provider');
-  first.recommended.pop();
 
-  const second = governanceContract.modeFields('micro');
-  assert.deepEqual(second.required, [
-    'Impact Scope',
-    'Data Impact',
-    'Interface Impact',
-    'Acceptance',
-    'Verification'
-  ]);
-  assert.deepEqual(second.recommended, [
-    'Scope',
-    'Touched Files',
-    'Change',
-    'Blast Radius'
-  ]);
-});
 
 test('requires a Provider only for e2e verification', function() {
   assert.equal(governanceContract.requiresProvider('e2e'), true);
@@ -189,7 +153,7 @@ test('Challenge command delegates verdict, reviewer, and backtrack rules to the 
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-'));
   const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
   fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, '---\nmode: standard\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
+  fs.writeFileSync(specPath, '---\nworkflow-policy: streamlined-v1\nmode: standard\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
 
   withInjectedGovernanceContract({
     isKnownVerdict: function(verdict) { return verdict === 'REGISTRY_ONLY'; },
@@ -226,7 +190,7 @@ test('Challenge command takes prompt and invalid-verdict lists from injected Con
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-list-'));
   const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
   fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, '---\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
+  fs.writeFileSync(specPath, '---\nworkflow-policy: streamlined-v1\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
   withInjectedGovernanceContract({
     verdicts: Object.freeze(['REGISTRY_PASS', 'REGISTRY_FAIL']),
     isKnownVerdict: function(verdict) { return verdict === 'REGISTRY_PASS' || verdict === 'REGISTRY_FAIL'; }
@@ -258,7 +222,7 @@ test('Challenge derives every inline reviewer hint from the governance Contract'
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-challenge-inline-'));
   const specPath = path.join(root, 'mydocs', 'specs', 'v1.0-spec.md');
   fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, '---\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
+  fs.writeFileSync(specPath, '---\nworkflow-policy: streamlined-v1\nmode: micro\n---\nChallenge Verdict:\nBacktrack Target:\nChallenge Summary:\nChallenge Executed By:\nChallenge Executed At:\nChallenge Evidence:\n', 'utf-8');
 
   withInjectedGovernanceContract({
     verdicts: Object.freeze(['PASS']),
@@ -291,27 +255,13 @@ test('Challenge derives every inline reviewer hint from the governance Contract'
   });
 });
 
-test('validate delegates micro Plan fields to the governance Contract', function() {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-validate-'));
-  const specPath = path.join(root, 'mydocs', 'specs', 'micro.md');
-  fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, '---\nmode: micro\n---\n## Acceptance Criteria\n### AC-001: registry fields\nVerification: unit\nTest: tests/example.test.js\n\n## Plan\nImpact Scope: one file\nData Impact: none\nInterface Impact: none\nAcceptance: preserved\nVerification: unit\n', 'utf-8');
 
-  withInjectedGovernanceContract({
-    modeFields: function(mode) {
-      return mode === 'micro' ? { required: ['Registry-only'], recommended: [] } : { required: [], recommended: [] };
-    }
-  }, ['../src/commands/validate'], function(validate) {
-    const result = validate.validateSpec(specPath, { archiveReady: true, projectDir: root });
-    assert.ok(result.issues.includes('Micro Plan must include Registry-only.'), result.issues.join('\n'));
-  });
-});
 
 test('validate treats every legal nonpassing Contract verdict as an adversarial failure', function() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-governance-validate-verdict-'));
   const specPath = path.join(root, 'mydocs', 'specs', 'contract-verdict.md');
   fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, '---\nmode: micro\n---\n## Intake\ncontract verdict\n\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\n\nPlan Approved By: agent:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\nChallenge Verdict: BLOCKED_BY_CONTRACT\nBacktrack Target: Plan\nChallenge Summary: contract blocked\nChallenge Evidence: BLOCKED_BY_CONTRACT - contract blocked\n', 'utf-8');
+  fs.writeFileSync(specPath, '---\nworkflow-policy: streamlined-v1\nmode: micro\n---\n## Intake\nRequirement: contract verdict\nScope: fixture\nRisks: none\nRisk Signals: none\n\n## Acceptance Criteria\nAcceptance: fixture\nVerification: unit\n## Plan\nStep: fixture\n\nPlan Approved By: agent:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\n## Completion Verification\nChallenge Verdict: BLOCKED_BY_CONTRACT\nBacktrack Target: Plan\nChallenge Summary: contract blocked\nChallenge Evidence: BLOCKED_BY_CONTRACT - contract blocked\n', 'utf-8');
 
   withInjectedGovernanceContract({
     verdicts: Object.freeze(['PASS', 'BLOCKED_BY_CONTRACT']),
@@ -353,8 +303,8 @@ test('spec-state derives verdict exports, passing state, and failed routing from
       exists: true,
       status: 'draft',
       mode: 'micro',
-      autonomyMode: 'auto',
-      content: '## Intake\nregistry fixture\n\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\n\nPlan Approved By: agent:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\nChallenge Verdict: REGISTRY_FAIL\nBacktrack Target: Registry Repair\nChallenge Summary: registry failure\nChallenge Evidence: REGISTRY_FAIL - registry failure\nChallenge Executed By: subagent:fixture\nChallenge Executed At: 2026-01-01T00:02:00Z',
+      autonomyMode: 'human',
+      content: '---\nworkflow-policy: streamlined-v1\nmode: micro\nautonomy-mode: human\n---\n## Intake\nRequirement: registry fixture\nScope: fixture\nRisks: none\nRisk Signals: none\n\n## Acceptance Criteria\nAcceptance: fixture\nVerification: unit\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\n\nPlan Approved By: human:fixture\nApproved At: 2026-01-01T00:00:00Z\nGate Evidence: fixture\n\n## Completion Verification\nResult: PASS\nVerification: node --test\nVerified At: 2026-01-01T00:01:00Z\nChallenge Verdict: REGISTRY_FAIL\nBacktrack Target: Registry Repair\nChallenge Summary: registry failure\nChallenge Evidence: REGISTRY_FAIL - registry failure\nChallenge Executed By: subagent:fixture\nChallenge Executed At: 2026-01-01T00:02:00Z',
       executeLog: {
         exists: true,
         content: '## Execute Log\n---\nStep: completion-verification\nStatus: DONE\nResult: fixture complete\nAC Coverage:\n  - AC-001: PASS\n    Test: tests/governance-contract.test.js\n    Method: unit\nFour-Axis Checklist:\n  - Axis 0 (Intake): aligned\n  - Axis 1 (Design/Acceptance/Plan): complete\n  - Axis 2 (Code Diff): within boundary\n  - Axis 3 (Execute Log): faithful\nVerification: node --test\nTimestamp: 2026-01-01T00:01:00Z\n---'
@@ -389,41 +339,13 @@ function countOccurrences(text, value) {
   return text.split(value).length - 1;
 }
 
-test('Spec templates make the Contract mode fields and conditional E2E Provider rule visible', function() {
-  const standard = readProjection('templates/spec-standard.md');
-  const lite = readProjection('templates/spec-lite.md');
-  const micro = readProjection('templates/spec-micro.md');
-  const microFields = governanceContract.modeFields('micro');
-
-  [
-    ['standard', standard],
-    ['lite', lite],
-    ['micro', micro]
-  ].forEach(function(entry) {
-    const mode = entry[0];
-    const template = entry[1];
-    assert.match(template, new RegExp('^mode: ' + mode + '$', 'm'), mode + ' template must declare its mode');
-    assert.match(template, /Provider:\s*<required for e2e; named provider id>/, mode + ' template must make Provider conditional on e2e');
-  });
-
-  const requiredStart = micro.indexOf('Required fields:');
-  const conditionalStart = micro.indexOf('Conditional field:', requiredStart);
-  const summaryStart = micro.indexOf('Delivery summary:');
-  const approvalStart = micro.indexOf('Plan Approved By:', summaryStart);
-  assert.ok(requiredStart >= 0 && conditionalStart > requiredStart, 'micro template must delimit Required fields');
-  assert.ok(summaryStart > conditionalStart && approvalStart > summaryStart, 'micro template must keep the delivery summary');
-
-  const requiredSection = micro.slice(requiredStart, conditionalStart);
-  const summarySection = micro.slice(summaryStart, approvalStart);
-  assert.match(summarySection, /^Selected Option:/m, 'archive needs the actual selected option');
-  assert.match(summarySection, /archive summary/i);
-  microFields.required.forEach(function(field) {
-    assert.match(requiredSection, new RegExp('^' + field + ':', 'm'), 'Required fields must contain ' + field + ' before the next section');
-    assert.doesNotMatch(summarySection, new RegExp('^' + field + ':', 'm'), 'delivery summary must not repeat ' + field);
-  });
-  microFields.recommended.forEach(function(field) {
-    assert.doesNotMatch(micro, new RegExp('^' + field + ':', 'm'), 'optional field must not become default paperwork: ' + field);
-  });
+test('one current Spec template serves every mode floor and requires an explicit Provider for e2e', function() {
+  const template = readProjection('templates/spec-streamlined.md');
+  assert.match(template, /^workflow-policy: streamlined-v1$/m);
+  for (const label of ['Requirement', 'Scope', 'Risks', 'Risk Signals', 'Acceptance', 'Verification', 'Provider', 'Plan Approved By']) {
+    assert.match(template, new RegExp('^' + label + ':', 'm'));
+  }
+  for (const mode of ['standard', 'lite', 'micro']) assert.equal(fs.existsSync(path.resolve('templates/spec-' + mode + '.md')), false);
 });
 
 function paragraphContainingTerms(text, terms) {
@@ -668,11 +590,13 @@ test('Completion documentation separates execution Coverage from the completion 
   assert.match(guideExample[0], /^Timestamp: .+\r?$/m, 'GUIDE completion example must record Timestamp');
   assert.doesNotMatch(guideExample[0].slice(guideExample[0].indexOf('Step: completion-verification')), /^AC Coverage:\r?$/m, 'GUIDE completion Step must not contain Coverage records');
 
-  ['templates/spec-standard.md', 'templates/spec-lite.md', 'templates/spec-micro.md'].forEach(function(file) {
+  ['templates/execute-log-streamlined.md'].forEach(function(file) {
     const text = readProjection(file);
     assert.doesNotMatch(text, /AC Coverage summary/i, file + ' must not describe Coverage as a completion summary');
-    assert.match(text, /AC Coverage records belong to a formal execution Step's `AC Coverage:` section/, file + ' must place Coverage in an execution Step');
-    assert.match(text, /`completion-verification` records only the four-axis self-check, result, and verification; Summary is not evidence/, file + ' must limit completion evidence to the completion contract');
+    assert.match(text, /^AC Coverage:$/m, file + ' must place Coverage in a formal execution Step');
+    assert.match(text, /^Step: completion-verification$/m);
+    assert.match(text, /^Result:$/m);
+    assert.match(text, /^Verification:$/m);
   });
 });
 

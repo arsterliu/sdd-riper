@@ -21,38 +21,13 @@ function getCurrentCommit(projectDir) {
   }
 }
 
-function replaceFirst(content, needle, replacement) {
-  if (!replacement) return content;
-  return content.replace(needle, replacement);
-}
-
 function fillIntake(specContent, mode, opts) {
   var req = opts.requirement || '';
   var goal = opts.goal || '';
   var constraints = opts.constraints || '';
 
-  if (opts.workflowPolicy === 'streamlined-v1') {
-    specContent = specContent.replace(/^Requirement:$/m, 'Requirement: ' + req);
-    specContent = specContent.replace(/^Scope:$/m, 'Scope: ' + [goal, constraints].filter(Boolean).join('；'));
-    return specContent;
-  }
-
-  if (mode === 'standard') {
-    var requirementText = [];
-    if (req) requirementText.push('requirement: ' + req);
-    if (goal) requirementText.push('goal: ' + goal);
-    specContent = replaceFirst(specContent, '<!-- SDD_REQUIREMENT -->', requirementText.join('\n'));
-    specContent = replaceFirst(specContent, '<!-- SDD_CONSTRAINTS -->', constraints ? 'constraints: ' + constraints : '');
-    return specContent;
-  }
-
-  var lines = [];
-  if (req) lines.push('requirement: ' + req);
-  if (goal) lines.push('goal: ' + goal);
-  if (constraints) lines.push('constraints: ' + constraints);
-  var intakeContent = lines.join('\n');
-  if (!intakeContent) return specContent;
-  return specContent.replace('<!-- SDD_INTAKE -->', intakeContent);
+  specContent = specContent.replace(/^Requirement:$/m, 'Requirement: ' + req);
+  return specContent.replace(/^Scope:$/m, 'Scope: ' + [goal, constraints].filter(Boolean).join('；'));
 }
 
 // Advisory nudge toward the mode-selection rubric. Does not change --mode
@@ -67,17 +42,8 @@ function modeAdvisory(mode, explicit) {
   return lines.join('\n');
 }
 
-function workflowHint(mode, workflowPolicy) {
-  if (workflowPolicy === 'streamlined-v1') {
-    return '### AI: Fill Risk Signals and the compact Spec contract. The risk tier determines whether independent Design, Execute Log, pre-implementation Design review, and completion Challenge are required. Plan approval, fresh verification, dedicated human stops, and archive authorization remain mandatory.';
-  }
-  if (mode === 'micro') {
-    return '### AI: Follow Plan -> Execute Log (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Micro Plan must include Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
-  }
-  if (mode === 'lite') {
-    return '### AI: Follow Research -> Innovate/Skip -> Design Note -> Acceptance Criteria -> Plan -> Execute (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Confirmed Requirement must fill all five structured fields: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent. Research Gate requires Research Reviewed By and Research Reviewed At before Innovate. Lite Design Note must cover Approach, Impact Scope, Interface / Data Impact, Compatibility, Risks, and Test Strategy. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
-  }
-  return '### AI: Follow Research -> Innovate -> Technical Design -> Acceptance Criteria -> Plan -> Execute (with AC Coverage) -> Completion Verification -> Challenge -> Learning Check. Confirmed Requirement must fill all five structured fields: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent. Research Gate requires Research Reviewed By and Research Reviewed At before Innovate. Standard Technical Design is a design contract: fill Impact Scope, Architecture View, Data Model / Schema, Interface Contract, Compatibility / Rollback, and Test Strategy before Plan. Keep template headings/labels in English, but write filled narrative content in Chinese. Do not enter Execute before Plan approval.';
+function workflowHint() {
+  return '### AI: Fill Risk Signals and the current Spec contract. The risk tier determines whether Design, Execute Log and independent reviews are required. Plan approval, fresh verification, dedicated human stops and archive authorization remain mandatory.';
 }
 
 function fillArtifactTemplate(templatePath, taskName, mode, specRelPath) {
@@ -134,12 +100,6 @@ function run(projectDir, opts) {
   }
 
   var mode = common.getMode(projectDir);
-  var workflowPolicy = opts.workflowPolicy || 'streamlined-v1';
-  if (workflowPolicy !== 'streamlined-v1' && workflowPolicy !== 'legacy-v1') {
-    console.error('[ERROR] Invalid --workflow-policy (expected streamlined-v1|legacy-v1)');
-    process.exit(3);
-  }
-  opts.workflowPolicy = workflowPolicy;
   if (opts.mode) {
     if (['standard','lite','micro'].indexOf(opts.mode) === -1) {
       console.error('[ERROR] Invalid --mode value');
@@ -148,9 +108,7 @@ function run(projectDir, opts) {
     mode = opts.mode;
   }
 
-  var specTemplate = workflowPolicy === 'streamlined-v1'
-    ? path.join(common.SCAFFOLD_ROOT, 'templates', 'spec-streamlined.md')
-    : common.getSpecTemplate(projectDir, mode);
+  var specTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', 'spec-streamlined.md');
   if (!fs.existsSync(specTemplate)) {
     console.error('[ERROR] spec template not found at: ' + specTemplate);
     process.exit(1);
@@ -168,6 +126,10 @@ function run(projectDir, opts) {
     console.error('[ERROR] Spec already exists: task-name must be unique within version ' + opts.version + '.');
     process.exit(1);
   }
+  if (common.versionExists(path.join(docsRoot, 'archive'), taskName, opts.version)) {
+    console.error('[ERROR] Archived tasks are read-only. Choose a new version/task identity.');
+    process.exit(1);
+  }
 
   var projectProfile;
   try { projectProfile = profileContext(projectDir, opts.unit); }
@@ -183,11 +145,15 @@ function run(projectDir, opts) {
   var specRel = common.relativeToProject(projectDir, specOut);
   var designPath = path.join(designDir, opts.version + '-' + taskName + '.design.md');
   var logPath = path.join(logsDir, opts.version + '-' + taskName + '.execute.md');
-  var designOut = workflowPolicy === 'legacy-v1' ? (mode === 'micro' ? '' : designPath)
-    : (mode === 'standard' ? designPath : '');
-  var logOut = workflowPolicy === 'legacy-v1' || mode !== 'micro' ? logPath : '';
+  var designOut = mode === 'standard' ? designPath : '';
+  var logOut = mode !== 'micro' ? logPath : '';
   var designRel = common.relativeToProject(projectDir, designPath);
   var logRel = common.relativeToProject(projectDir, logPath);
+  try {
+    [specOut, designOut, logOut].filter(Boolean).forEach(function(file) {
+      require('../core/workflow-policy').assertWritableArtifact(projectDir, file);
+    });
+  } catch (error) { console.error('[' + error.code + '] ' + error.message); process.exit(3); }
   [designDir, logsDir].forEach(function(dir) { if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true }); });
   if (designOut && fs.existsSync(designOut)) {
     console.error('[ERROR] Design artifact already exists. Choose a different version.');
@@ -210,12 +176,11 @@ function run(projectDir, opts) {
   specContent = specContent.replace(/task-name: "Task Name Placeholder"/g, 'task-name: "' + taskName + '"');
   specContent = specContent.replace(/date: YYYY-MM-DD/, 'date: ' + todayIso());
   specContent = specContent.replace(/^mode:.*/m, 'mode: ' + mode);
-  if (workflowPolicy === 'legacy-v1') specContent = specContent.replace(/^workflow-policy:.*\r?\n/m, '');
   specContent = specContent.replace(/^autonomy-mode:.*/m, 'autonomy-mode: "' + autonomyMode + '"');
   specContent = specContent.replace(/^autonomy-mode-source:.*/m, 'autonomy-mode-source: "' + (opts.autonomyMode ? 'discover-override' : 'project-default') + '"');
   specContent = specContent.replace(/^context-source:.*/m, 'context-source: "' + yamlQuote(contextSource) + '"');
   specContent = specContent.replace(/^diff-base:.*/m, 'diff-base: "' + yamlQuote(getCurrentCommit(projectDir)) + '"');
-  specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(workflowPolicy === 'legacy-v1' && !designOut ? '' : designRel) + '"');
+  specContent = specContent.replace(/^design-file:.*/gm, 'design-file: "' + yamlQuote(designRel) + '"');
   specContent = specContent.replace(/^execute-log-file:.*/gm, 'execute-log-file: "' + yamlQuote(logRel) + '"');
   specContent = specContent.replace(/^project-profile-revision:.*/m, 'project-profile-revision: "' + yamlQuote(projectProfile.revision) + '"');
   specContent = specContent.replace(/^project-profile-digest:.*/m, 'project-profile-digest: "' + yamlQuote(projectProfile.digest) + '"');
@@ -224,13 +189,11 @@ function run(projectDir, opts) {
 
   fs.writeFileSync(specOut, specContent, 'utf-8');
   if (designOut) {
-    var designTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', workflowPolicy === 'streamlined-v1'
-      ? 'design-streamlined.md' : (mode === 'lite' ? 'design-lite.md' : 'design-standard.md'));
+    var designTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', 'design-streamlined.md');
     fs.writeFileSync(designOut, fillArtifactTemplate(designTemplate, taskName, mode, specRel), 'utf-8');
   }
   if (logOut) {
-    var logTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', workflowPolicy === 'streamlined-v1'
-      ? 'execute-log-streamlined.md' : 'execute-log.md');
+    var logTemplate = path.join(common.SCAFFOLD_ROOT, 'templates', 'execute-log-streamlined.md');
     fs.writeFileSync(logOut, fillArtifactTemplate(logTemplate, taskName, mode, specRel), 'utf-8');
   }
 
@@ -251,7 +214,7 @@ function run(projectDir, opts) {
     console.log('### Affected units: ' + projectProfile.units);
   }
   console.log('');
-  console.log(workflowHint(mode, workflowPolicy));
+  console.log(workflowHint());
 }
 
 module.exports = { run: run, _private: { profileContext: profileContext } };

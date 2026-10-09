@@ -121,6 +121,8 @@ function resolveSpec(projectDir, opts) {
   if (!stat.isFile() || !isWithin(realRoot, realSpecsDir) || !isWithin(realSpecsDir, realSpecPath) || common.getFrontmatterField(specPath, 'status') === 'archived') {
     return failTarget('Selected target is not an active project Spec.');
   }
+  try { require('../core/workflow-policy').assertActive(root, specPath); }
+  catch (error) { return failTarget(error.message); }
   return specPath;
 }
 
@@ -244,14 +246,8 @@ function run(projectDir, opts) {
   });
   console.log('');
   console.log('### Research Challenge');
-  if (state.riskTier) {
-    console.log('- Challenge whether Intake Requirement, Scope, Risks, and Risk Signals match the actual task and whether blocking unknowns remain.');
-    console.log('- Confirm the risk tier and required artifacts/reviews match the named risk signals.');
-  } else {
-    console.log('- Challenge whether the confirmed requirement matches the original goal and whether hidden assumptions remain.');
-    console.log('- Challenge whether all five structured elements (Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent) are accurately captured.');
-    console.log('- Challenge whether Research Reviewed By and Research Reviewed At are properly recorded.');
-  }
+  console.log('- Challenge whether Intake Requirement, Scope, Risks, and Risk Signals match the actual task and whether blocking unknowns remain.');
+  console.log('- Confirm the risk tier and required artifacts/reviews match the named risk signals.');
   console.log('');
   console.log('### Design Challenge');
   if (state.riskTier && !state.policyRequirements.design) console.log('- Design artifact is optional at this risk tier; assess whether the Plan captures the chosen approach.');

@@ -1,25 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SDD Artifact Preview</title>
+  <title>SDD · 制品阅读</title>
   <link rel="stylesheet" href="/console.css">
 </head>
 <body class="preview-body">
   <header class="preview-topbar">
-    <div>
-      <div id="preview-eyebrow" class="eyebrow">Artifact Preview</div>
-      <h1 id="preview-title">Loading</h1>
-      <p id="preview-path"></p>
-    </div>
-    <button id="edit-artifact" class="primary-action" type="button">Edit</button>
+    <div><div id="preview-eyebrow" class="eyebrow">制品阅读</div><h1 id="preview-title">正在读取…</h1><p id="preview-path"></p><span id="preview-access" class="pill neutral"></span></div>
+    <div class="preview-controls"><button id="preview-formatted" type="button" aria-pressed="true">阅读</button><button id="preview-source" type="button" aria-pressed="false">原文</button><button id="edit-artifact" type="button" hidden>打开本地文件</button><a href="/">返回工作台</a></div>
   </header>
-
-  <main class="preview-shell">
-    <pre id="preview-content" class="preview-content">Loading...</pre>
-  </main>
-
+  <main class="preview-shell"><div id="preview-content" class="document-content"></div><pre id="preview-raw" class="document-raw" hidden></pre><p id="preview-error" role="status"></p></main>
+  <script src="/console-view.js"></script>
   <script src="/preview.js"></script>
 </body>
 </html>

@@ -50,6 +50,10 @@ function printDriverAdapter(driver, projectDir, state) {
 function run(projectDir, opts) {
   opts = opts || {};
   var state = workflow.analyzeProject(projectDir, opts);
+  if (opts.recordRun && state.specPath) {
+    try { require('../core/workflow-policy').assertActive(projectDir, state.specPath); }
+    catch (error) { console.error('[' + error.code + '] ' + error.message); process.exitCode = 3; return; }
+  }
   var iteration = parseInt(opts.iteration || 0, 10);
   if (Number.isFinite(iteration) && iteration >= state.maxIterations && state.nextAction !== 'request_archive_authorization') {
     state.stopReason = 'budget_exhausted';
@@ -162,7 +166,9 @@ function run(projectDir, opts) {
     }
   }
   if (opts.recordRun) {
-    var recorded = cruiseRun.appendRun(projectDir, state, { driver: driver, iteration: opts.iteration });
+    var recorded;
+    try { recorded = cruiseRun.appendRun(projectDir, state, { driver: driver, iteration: opts.iteration }); }
+    catch (error) { console.error(error.message); process.exitCode = 3; return; }
     console.log('');
     console.log('[RUN_LEDGER] ' + recorded.relativePath);
     console.log('[RUN_LEDGER_STOP] ' + recorded.entry.stopReason);

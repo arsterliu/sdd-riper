@@ -78,16 +78,16 @@ harness（Claude Code、Codex CLI 等）是承载 agent 运行的运行时外壳
 
 > 本章回答：Spec、Design、Execute Log、Learning Record 和 Cruise Run 分别存在哪里、谁拥有哪一类事实。
 
-当前版本采用 **Spec 控制面 + 条件独立 Design + 条件独立 Execute Log + 条件 Learning Record**。新建 Spec 默认标记 `workflow-policy: streamlined-v1`；本文后续按 standard/lite/micro 固定制品和审查的详细流程适用于缺少该字段的旧 Spec，旧制品保持原样、无需迁移。新策略仍保留相同 CLI、阶段名称和制品引用，由显式 `Risk Signals` 与所选 mode 的较严格门禁共同决定必填项。
+当前版本采用 **Spec 控制面 + 条件独立 Design + 条件独立 Execute Log + 条件 Learning Record**。活动 Spec 必须显式标记 `workflow-policy: streamlined-v1`，由 `Risk Signals` 与 mode 风险下限共同决定制品和审查要求。缺失、旧版或未知格式不能继续执行；历史归档保持原样只读，不重算门禁，不支持 reopen。
 
 新策略的低风险任务只强制 Spec 和新鲜验证；中风险强制独立 Execute Log 与完成后的独立 Challenge，存在实质方案取舍时另需 Design；高风险还强制 Design 与实施前的独立 Design 审查。`multi-step` 单独触发 Execute Log。不可逆、迁移、安全、隐私、计费、认证、合规、公共接口与持久化 Schema 属于高风险；跨模块、方案取舍和多场景验证属于中风险信号。Plan Approval、专门人工停机和归档授权仍独立有效。低风险单步骤验证写在 Spec 的 `Completion Verification`，历史任务继续使用原 Execute Log 门禁。
 
 | 产物 | 存放位置 | 职责 |
 | :--- | :--- | :--- |
 | Spec | `<docs-root>/specs/` | 需求、Research、Innovate、Acceptance Criteria、Plan、审批、Completion Verification / Challenge verdict，以及 `design-file` / `execute-log-file` / `learning-file` 引用。 |
-| Design | `<docs-root>/design/` | standard 的 `Technical Design` 或 lite 的 `Design Note`。micro 不创建独立 Design。 |
+| Design | `<docs-root>/design/` | 高风险或 design-latitude 的独立 Design。 |
 | Execute Log | `<docs-root>/logs/` | 执行步骤、偏差、验证结果，append-only。 |
-| Learning Record | `<docs-root>/learnings/` | 偏差、BUGFIX、concern、reopen 暴露出的可复用决策规则。 |
+| Learning Record | `<docs-root>/learnings/` | 升级修复、重大偏差、concern 与重复失败暴露出的可复用决策规则。 |
 | Cruise Run | `<docs-root>/runs/` | 巡航 iteration、driver、verdict、回跳目标和停止原因，属于可观测性账本，不替代核心产物。 |
 
 Spec 是控制面，不再承载完整技术设计、执行日志和经验库。这样 Challenge 和 Archive 可以分别审查规范、设计、执行事实和可复用经验。
@@ -126,7 +126,7 @@ SDD-RIPER 按三层职责运行：
 │  生成：debug / review-execute / challenge / cruise   │
 │    → 输出 prompt，不调用模型 API                      │
 │                                                      │
-│  操作：init / discover / validate / archive / reopen │
+│  操作：init / discover / validate / archive          │
 │    → 创建 / 检查 / 归档产物                          │
 │                                                      │
 │  视图：codemap / learnings / doctor / console        │
@@ -160,217 +160,17 @@ Execute 内含 Completion Verification Gate（四轴自查清单 + 前序执行 
 
 ### 全链路流转图
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  sdd init <dir> --mode standard|lite|micro                                │
-│  → 创建目录结构 + .sdd-config + AI 配置文件                               │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  sdd discover <dir> --task-name <name> --version <vN.M|vN.M.P> --requirement "..." │
-│  → 创建 Spec + Design（micro 除外）+ Execute Log                           │
-│  → Spec frontmatter 写入 design-file / execute-log-file / learning-file    │
-│  → 自动绑定 mydocs/context/<task-name>/ 为 context-source                  │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Research                                                                  │
-│  ┌─ 读取项目规范宪章（eslint/tsconfig/CI gates 等）→ 写入 Findings          │
-│  ├─ Requirement Review：歧义、风险、外部依赖                               │
-│  ├─ Findings：代码事实 + 项目约束 + 架构概览（sdd codemap 按需）           │
-│  ├─ Open Questions → AskUserQuestion 交互澄清                              │
-│  ├─ Assumptions：暂未确认的约束                                           │
-│  ├─ Research Gate: Research Reviewed By + Research Reviewed At              │
-│  └─ Confirmed Requirement：校准后的需求边界（5 要素）                      │
-│     Scope Boundary / Irreversibility / Impact Radius                       │
-│     / Dependencies & Constraints / Acceptance Intent                       │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Innovate  （micro 跳过；lite 可跳过但写 Reason）                         │
-│  ┌─ 至少两个方案比较                                                       │
-│  ├─ 优缺点 / 技术风险 / 需求匹配度                                        │
-│  ├─ 被拒绝方案的原因                                                       │
-│  └─ 选中方案                                                               │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Design / Acceptance                                                       │
-│  ┌─ standard: 独立 Technical Design（8 个必填字段）                        │
-│  │            + Acceptance Criteria（AC-### + Verification 元数据）         │
-│  ├─ lite:    独立 Design Note（6 个必填字段）+ 轻量 AC                     │
-│  └─ micro:   Plan 内含 Acceptance + Verification + Impact                  │
-│                                                                             │
-│  sdd next → 输出 DESIGN_METHOD / DESIGN_FOCUS_FIELDS（advisory）           │
-│  风险标记 → 点亮对应 Design 字段（security→安全审查, billing→状态模型...）  │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Plan                                                                      │
-│  ┌─ 从 Design + AC 拆成原子步骤                                            │
-│  ├─ 每步：文件路径 / 具体改动 / 对应 AC / 验证方式                         │
-│  └─ Plan Approval ─┬─ agent: agent:<id> + Approved At + Evidence          │
-│                    └─ human: human:<name> + Approved At                    │
-│                                                                             │
-│  ★ Plan 未批准 → 禁止进入 Execute                                         │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Execute*                                                                  │
-│  ┌─ 严格按 Plan 执行，每个 Step 追加到 Execute Log                         │
-│  │                                                                         │
-│  │  Step 格式:                                                             │
-│  │  ┌─ Step / Status / Files / Result / Verification                      │
-│  │  ├─ AC Coverage: AC-###: PASS|FAIL|SKIPPED                             │
-│  │  │    ├─ Scenarios: "场景名": PASS|FAIL                                 │
-│  │  │    ├─ Test: <single project-relative test file path>                │
-│  │  │    ├─ Method: tdd|bdd|manual                                        │
-│  │  │    └─ SKIPPED 专属: Reason + Approved By: human:<name> + Approved At│
-│  │  ├─ Deviation: none | DEVIATED_MINOR | DEVIATED_MAJOR                  │
-│  │  └─ Timestamp: ISO-8601                                                │
-│  │                                                                         │
-│  │  偏差规则:                                                              │
-│  │  ┌─ DEVIATED_MINOR: 同目标不同实现 → 记录继续                           │
-│  │  ├─ DEVIATED_MAJOR: 目标/边界变化 → 停止，回退到 Plan/Design            │
-│  │  └─ BUGFIX / BUGFIX_ESCALATED: 缺陷修复                                │
-│  │                                                                         │
-│  │  失败时: sdd debug → 根因分析 → 再试                                   │
-│  │                                                                         │
-│  └─ 最后一步: Completion Verification（替代原 Review 阶段）               │
-│     ┌─ Step: completion-verification                                       │
-│     ├─ Earlier execution Steps contain formal AC Coverage records         │
-│     └─ Four-Axis Checklist:                                               │
-│        Axis 0 (Intake): aligned | misaligned                              │
-│        Axis 1 (Design/Acceptance/Plan): complete | incomplete              │
-│        Axis 2 (Code Diff): within boundary | out of boundary              │
-│        Axis 3 (Execute Log): faithful | unfaithful                        │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Challenge（唯一独立质量门禁）                                             │
-│                                                                             │
-│  sdd challenge <dir> [--spec <project-relative-path> | --name <slug|versioned-slug>] │
-│                                                                             │
-│  ┌─ standard/lite: 必须派子 agent 执行（核心: 不是自己审自己）             │
-│  └─ micro: 可内联但必须角色分离                                            │
-│                                                                             │
-│  子 agent 只读不写，返回:                                                  │
-│  ┌─ Challenge Verdict: PASS | PASS_WITH_CONCERNS | FAIL_SPEC              │
-│  │                      | FAIL_DESIGN | FAIL_ACCEPTANCE | FAIL_PLAN       │
-│  │                      | FAIL_CODE | FAIL_LOG | FAIL_LEARNING            │
-│  ├─ Backtrack Target: Research | Design | Acceptance | Plan               │
-│  │                    | Execute / Debug | Execute Log | Learning Check     │
-│  └─ Challenge Summary: <evidence, ≤200 words>                             │
-│                                                                             │
-│  结果必须通过命令写入（禁止手动填写）:                                     │
-│  sdd challenge <dir> --spec <project-relative-path>                        │
-│                    --record-result "VERDICT" --summary "..."              │
-│                    --executed-by "subagent:<id>"                           │
-│  → 自动写入: Challenge Verdict / Backtrack Target / Challenge Summary     │
-│             Challenge Executed By / Challenge Executed At（当前时间戳）    │
-│             Challenge Evidence                                             │
-│                                                                             │
-│  判决路由:                                                                  │
-│  ┌─ PASS               → Learning Check → Archive                        │
-│  ├─ PASS_WITH_CONCERNS → Learning Check（必须创建 Learning）→ Archive     │
-│  └─ FAIL_*             → Cruise 修复循环                                 │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │ FAIL_*
-                               ▼
-`sdd challenge` 可以用 `--spec <path>` 或 `--name <slug|versioned-slug>` 显式选择目标；两者互斥。显式目标和默认目标都必须是当前项目 docs root 的 `specs/` 下、文件名符合 Spec 版本命名且未归档的活动 Spec；docs root / `specs/` 目录本身与目标文件均须通过词法路径和 `realpath` 项目内包含检查，缺失、目录、非 Spec 文件、项目外或经符号链接逃逸的路径一律失败且零写入。版本化 `--name` 精确定位；裸 `--name` 保持兼容，选择同 slug 的最新活动版本；无 selector 时仍选择最新活动 Spec，没有活动 Spec 时失败。
+Research -> Innovate -> Design / Acceptance -> Plan -> Execute* -> Challenge -> (Cruise) -> Learning Check -> Archive
 
-生成的 reviewer prompt 必须输出携带规范化项目相对 `--spec` 的 `--record-result` 命令。审查结果必须用该命令写回，避免生成和记录阶段在多个活动 Spec 中重新选择不同目标。
+任务只执行 `workflow-policy: streamlined-v1`。缺失、旧版或未知格式的活动 Spec 输出 `SDD_WORKFLOW_POLICY_UNSUPPORTED` 并停止；用原工具版本完成旧任务，或创建独立新任务。历史归档保持只读，不重算门禁。
 
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Cruise（自主巡航）                                                        │
-│                                                                             │
-│  sdd cruise <dir> [--driver auto|prompt|local-loop|claude-code|codex]      │
-│              [--emit-claude-prompt] [--record-run] [--iteration N]         │
-│                                                                             │
-│  每轮循环:                                                                  │
-│  ┌─ 按 Backtrack Target 回到对应阶段修复                                   │
-│  ├─ sdd validate → 检查门禁                                               │
-│  └─ sdd challenge → 重新评审                                              │
-│                                                                             │
-│  终止条件:                                                                  │
-│  ┌─ Challenge PASS / PASS_WITH_CONCERNS → 退出循环                         │
-│  ├─ 达到 CRUISE_MAX_ITERATIONS（默认 5） → 人工介入                       │
-│  └─ 安全/权限/计费/迁移/公共 API/不可逆 → 立即停止，人工介入              │
-│                                                                             │
-│  AUTONOMY_MODE 决定自动、监督或人工推进；迭代预算始终生效                 │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │ PASS / PASS_WITH_CONCERNS
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Learning Check                                                            │
-│                                                                             │
-│  必须创建 Learning Record 的触发条件:                                      │
-│  ┌─ Execute Log 含 BUGFIX_ESCALATED / DEVIATED_MAJOR                    │
-│  ├─ Challenge verdict = PASS_WITH_CONCERNS                                │
-│  ├─ 任务从归档 reopen                                                     │
-│  ├─ AC 本身不充分                                                          │
-│  └─ 同类失败模式重复出现                                                  │
-│                                                                             │
-│  sdd new-learning <dir> [spec-name]                                        │
-│  → 创建 learning-file，8 个必填字段:                                      │
-│    Source Spec / Trigger / Observed Problem / Root Cause                   │
-│    Decision Rule / Applies When / Recommended Action / Evidence            │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  Archive                                                                   │
-│                                                                             │
-│  sdd validate <dir> --archive-ready                                        │
-│  ┌─────────────────────────────────────────────────────────────────────┐    │
-│  │  归档门禁清单:                                                       │    │
-│  │  ┌─ Research Gate: Research Reviewed By + Research Reviewed At（standard/lite 必填）│    │
-│  │  │   └─ Confirmed Requirement 5 要素非空（Scope Boundary / Irreversibility / Impact Radius / Dependencies & Constraints / Acceptance Intent）│    │
-│  │  ├─ Plan Gate: Approved By + Approved At + Gate Evidence（agent 批准时）│    │
-│  │  ├─ Challenge Verdict: 非 FAIL_*                                    │    │
-│  │  ├─ Challenge Evidence: Executed By + Executed At + Evidence        │    │
-│  │  │   ├─ standard/lite: Executed By 为可审计独立 reviewer             │    │
-│  │  │   ├─ micro: 可 inline                                            │    │
-│  │  │   └─ Executed At 晚于 Execute Log 最后 step Timestamp            │    │
-│  │  ├─ Mode Artifacts: Design 必填字段 / AC Verification 元数据       │    │
-│  │  ├─ Execute Log: 非空                                               │    │
-│  │  ├─ AC Coverage L1-L4:                                              │    │
-│  │  │   ├─ L1: 每个 AC 有 Coverage 记录                                │    │
-│  │  │   ├─ L2: 所有 Coverage 结果 PASS（SKIPPED 需人工批准）           │    │
-│  │  │   ├─ L3: Test 路径文件存在                                       │    │
-│  │  │   └─ L4: Scenario 名称匹配（WARNING，不阻断）                    │    │
-│  │  ├─ Learning Record: 触发条件满足时必填且 8 字段齐全                │    │
-│  │  └─ diff-base frontmatter（git 仓库时）                             │    │
-│  └─────────────────────────────────────────────────────────────────────┘    │
-│                                                                             │
-│  sdd archive <dir> <spec-name> --authorized-by human:<name>                │
-│    --authorization-evidence <text>                                          │
-│  → 移动 Spec + Design + Execute Log + Learning 到 archive/                 │
-│  → 更新归档 Spec 内的引用路径                                              │
-└──────────────────────────────┬──────────────────────────────────────────────┘
-                               │
-                               ▼
-                    ┌──── 已归档 ────┐
-                    │                 │
-                    │  发现缺陷?      │
-                    └────┬────────────┘
-                         │ 是
-                         ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│  sdd reopen <dir> <slug> --defect "缺陷描述" [--mode standard|lite|micro] │
-│  → 基于归档 Spec 创建新 Spec + 新 Execute Log（+ 新 Design if 非micro）  │
-│  → 不要重新 discover（切断历史上下文）                                     │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+| 风险 | 最小制品 | 独立审查 |
+| :--- | :--- | :--- |
+| low | Spec 中的 Intake、Acceptance、Plan、新鲜 Completion Verification | 无默认审查 |
+| medium | Spec + Execute Log；design-latitude 另加 Design | 完成 Challenge |
+| high | Spec + Design + Execute Log | 实施前 Design review + 完成 Challenge |
 
-`discover` 前置门禁：agent 复用当前任务已明确提供或确认且仍有效的 `version`、`task-name` 与参考资料 / context；只询问缺失、冲突或有歧义的项，不得静默推导。`version` 是迭代 / 交付批次聚合键，支持 `vN.M` 和 `vN.M.P`；同一个 `version` 下允许多个并行 Spec，但 `task-name` 必须唯一。
+micro、lite、standard 分别提供 low、medium、high 下限，Risk Signals 可提高要求。multi-step 即使 low 也必须有 Execute Log。失败先 debug，FAIL_* 按裁定回退；范围扩大、新风险、不可逆动作、平台权限单独停机请求人工授权。`request_archive_authorization` 始终等待当前用户。`CRUISE_MAX_ITERATIONS` 限制循环预算。
 
 ### 状态引擎
 
@@ -410,14 +210,9 @@ Challenge 和 Cruise 是 Execute 之后的质量闭环。它们不改变 RIPER �
 
 ### Research
 
-目标是把”原始要求”变成可执行的 Confirmed Requirement。应产出：
+在 Intake 写清 Requirement、Scope、Risks、Risk Signals；只调查阻塞决策的未知事实。Research 按需记录 Findings、Open Questions、Assumptions，无强制独立 Research review。已确认信息直接复用；事实由 Agent 查证，真正需要用户决策时才询问。
 
-- Requirement Review：歧义、隐含假设、风险、外部依赖。
-- Findings：从代码、文档、历史 Spec 得到的事实。**应包含项目本身的编码惯例和约束**（如 `eslint` / `tsconfig` / `.editorconfig` 的关键规则、测试框架和覆盖率阈值、CI 流水线的阻断条件等），确保后续 Design 和 Execute 不违背项目既有规范。架构概览可按需运行 `sdd codemap <dir>`。外部材料（PRD、UI 稿、原型等）放入 `mydocs/context/<task-name>/`，`sdd discover` 自动绑定 `context-source`。
-- Open Questions：必须澄清的问题。**Agent 应主动用 `AskUserQuestion` 交互式提问，而非仅列出问题等用户自行编辑。** 提问时给出 2-4 个具体选项，每个选项应是 **AI 基于上下文推理出的建议答案**，而非空占位符。不必穷举所有可能——用户始终可通过”其他”选项输入自定义答案。用户确认、微调或另给答案后，写入 spec 的 Assumptions 或 Confirmed Requirement，并从 Open Questions 中移除。
-- Assumptions：暂时接受但需要追踪的假设。
-- Research Gate：`Research Reviewed By` + `Research Reviewed At`，确认 Research 产出的独立审查。standard/lite 要求可审计 reviewer（`subagent:<id>`、`external-agent:<id>` 或 `human:<name>`）；micro 跳过。自动 reviewer 只有在当前 Spec 的新鲜授权明确包含 reviewer actor 时才能直接启动；否则必须暂停并请求当前用户明确授权。不得跳过门禁或伪造证据。
-- Confirmed Requirement：校准后的需求边界，包含五个结构化要素：Scope Boundary（范围边界）、Irreversibility（不可逆性）、Impact Radius（影响半径）、Dependencies & Constraints（依赖与约束）、Acceptance Intent（验收意图）。
+参考材料通过 context-source 绑定；历史 Spec、Design、Execute Log 与 Learning 仅作证据，不继承审批。需要架构事实时只读运行 codemap，工程事实不足时只读 profile detect。
 
 ### Visual Context Guidance（按需）
 
@@ -446,59 +241,13 @@ Agent 必须说明推荐理由，并按以下五项精确路由视觉意图：
 
 ### Innovate
 
-目标是定义方案，而不是写一句“使用现有实现”。standard 至少比较两个方案：
-
-- 方案描述。
-- 优点、缺点。
-- 技术风险。
-- 与需求的匹配度。
-- 被拒绝方案的原因。
-- 选中方案。
-
-lite 可以跳过 Innovate，但必须写 `Innovate: Skipped, Reason: ...`。
-
-方案探索与设计澄清默认使用 `protocols/clarification.md`：复用已确认答案、自己查事实，只追问当前阶段阻塞决策并给出推荐，达到停止条件即返回 SDD 阶段流程。它借鉴 grill-me 的提问方法，但不依赖外部 skill，不新增逐段设计批准或访谈完成批准。产物落到 Spec 的 `Innovate Options` 和外部 `design-file`；standard 的方案比较及既有 Design / AC / Plan 门禁保留。仅在明确要求或确需更广方案探索时参考 `brainstorming` 的相关方法。
+有实质方案选择时比较可行路径，记录选定方案、原因与代价。例行修改不要求固定方案数量，也不要求跳过仪式。使用 protocols/clarification.md 查明阻塞问题；brainstorming 只在明确要求或具体探索需要时引用。决策写入 Spec，技术设计写入必需的独立 Design。
 
 ### Design / Acceptance
 
-Design 在 Innovate 之后、Plan 之前完成。
+Design 在 Plan 前完成。高风险与 design-latitude 创建独立 `## Design`，字段为 Approach、Impact、Interface / Data、Compatibility / Rollback、Verification；内容使用中文。高风险实施前必须有独立 reviewer、时间、摘要与 Design Review Digest；输入或设计变化使审查失效。Plan 不能替代必需 Design。ADR、C4、arc42 等方法按具体决策使用，不增加模式专属必填章节。
 
-设计方法论按 `mode` + 风险**路由**，不是把所有方法论铺到每个任务。`sdd next` / `sdd cruise` 会输出 `DESIGN_METHOD` 和 `DESIGN_FOCUS_FIELDS` 作为 advisory 建议：micro 无独立设计；lite 用 ADR；standard 用 ADR + arc42 字段结构 + C4 视图；命中 `migration` / `public-api` / `security` / `billing` / `irreversible` 风险时点亮对应的 Design 重点字段；领域复杂时建议考虑 DDD。建议是 advisory，最终由 orchestrator 判断（机制见第六节）。
-
-standard 写独立 `Technical Design`。它不是方案说明，而是技术设计合同。归档门禁强制检查核心字段：
-
-- Selected Option / ADR。
-- Requirement Traceability。
-- Impact Scope。
-- Architecture View，必要时用 C4。
-- Data Model / Schema。
-- Interface Contract。
-- Compatibility / Rollback。
-- Test Strategy。
-
-以下字段按需填写，但涉及对应风险时不应省略：
-
-- Context / Boundary。
-- Domain Model。
-- Data Migration / Backfill。
-- API Protocol。
-- State / Concurrency。
-- Failure Modes。
-- Security / Permission。
-- Observability。
-- Performance / Capacity。
-- Risks / Trade-offs。
-
-lite 写独立 `Design Note`，至少覆盖：
-
-- Approach。
-- Impact Scope。
-- Interface / Data Impact。
-- Compatibility。
-- Risks。
-- Test Strategy。
-
-micro 不写独立 Design，Plan 的五个必填验证字段是 Impact Scope、Data Impact、Interface Impact、Acceptance、Verification。另用 `Selected Option` 单行记录真实最终方案，供既有归档摘要使用。Scope、Touched Files、Change、Blast Radius 按需添加，无须重复已有信息；批准、执行证据和条件 Provider 要求保持不变。
+低风险单步骤使用 Spec 的 Completion Verification：Result、Verification、Verified At；时间必须晚于 Plan Approval。中高风险或 multi-step 使用独立 Execute Log，记录正式步骤、结果、验证与时间；末步 completion-verification 汇总验收证据。
 
 Acceptance Criteria 留在 Spec。推荐使用 AC 编号和 BDD 场景：
 
@@ -507,6 +256,7 @@ Acceptance Criteria 留在 Spec。推荐使用 AC 编号和 BDD 场景：
 Requirement: login
 Type: functional
 Verification: e2e
+Provider: web-e2e
 Automated: yes
 Test: tests/auth/login.test.ts
 
@@ -520,7 +270,7 @@ Scenario: 有效登录
 
 ### 测试策略：TDD / BDD / E2E
 
-SDD 不规定具体测试框架，但要求每个 AC 都有明确的验证方式（`Verification:`），并在 Execute 阶段用对应的 `Method` 执行。测试策略在 Design 阶段的 `Test Strategy` 字段中声明，在 Acceptance 的每个 AC 中落地，在 Execute 中执行和记录。
+SDD 不规定具体测试框架，但要求每个 AC 都有明确的验证方式（`Verification:`），并在 Execute 阶段用对应的 `Method` 执行。测试策略在 Design 的 `Verification` 字段中声明，在 Acceptance 的每个 AC 中落地，在 Execute 中执行和记录。
 
 **验证层级与适用场景：**
 
@@ -574,7 +324,7 @@ E2E 测试验证完整的用户路径，从入口到持久化。SDD 对 E2E 的�
 
 **Design 中 `Test Strategy` 字段的写法：**
 
-standard 的 `Technical Design` 和 lite 的 `Design Note` 都有 `Test Strategy` 字段。它应说明：
+必需的 Design 使用 `Verification` 字段记录测试策略。它应说明：
 
 - 测试框架和运行命令。
 - 哪些 AC 用 unit / integration / e2e / manual 验证。
@@ -661,7 +411,7 @@ Verification: node --test tests/auth/login.test.ts
 Timestamp: 2026-01-01T00:01:00Z
 ```
 
-`validate --archive-ready` 对有 AC Coverage 的 Execute Log 做交叉检查（L1-L4）：每个 AC 有 Coverage 记录、结果 PASS、Test 路径文件存在、Scenario 名称匹配（warning）。旧 Execute Log 无 Coverage 记录时不报错（渐进式门禁）。
+`validate --archive-ready` 对必需 Execute Log 做交叉检查：每个声明 AC 有正式 Coverage 记录，结果 PASS（合法人工 SKIPPED 另留原因与批准证据），Test 为单个项目相对文件路径且存在。Scenarios 可以记录细节，不替代验证证据。历史归档不进入这些当前门禁。
 
 ### Challenge（对抗评审）
 
@@ -702,7 +452,7 @@ Challenge Evidence: <verdict + summary from independent agent>
 
 | 轴 | 审查什么 | FAIL verdict | 回跳目标 |
 | :--- | :--- | :--- | :--- |
-| Research Challenge | 确认需求是否匹配原始目标，隐含假设是否暴露，5 个结构化要素是否准确捕获，Research Gate 是否正确记录 | FAIL_SPEC | Research |
+| Research Challenge | 确认 Intake 与原始目标一致，风险信号准确，阻塞未知项已解决 | FAIL_SPEC | Research |
 | Design Challenge | 架构、数据模型、接口契约、影响范围、兼容性、回滚、失败模式 | FAIL_DESIGN | Design |
 | Acceptance Challenge | AC 是否可观察、可验证、可追踪到需求 | FAIL_ACCEPTANCE | Acceptance |
 | Plan Challenge | Plan 步骤是否可执行、有边界、从 Design 和 AC 推导 | FAIL_PLAN | Plan |
@@ -779,7 +529,6 @@ Learning Check 在 Challenge 通过后、Archive 之前执行。它不是复盘�
 
 - Execute Log 出现 `BUGFIX_ESCALATED` 或 `DEVIATED_MAJOR`。普通 `BUGFIX` / `DEVIATED_MINOR` 单独出现不强制 Learning，仍需保留日志事实，可按实际复用价值创建 Learning；不会抵消其他触发条件或 `FAIL_LEARNING`。
 - Challenge verdict 是 `PASS_WITH_CONCERNS`。
-- 任务来自 archived spec 的 reopen。
 - Execute 或 Challenge 发现验收标准本身不充分。
 - 同类失败模式重复出现。
 
@@ -791,28 +540,16 @@ sdd new-learning <project-dir> [spec-name]
 
 生成的 `learning-file` 必须填充 `Source Spec`、`Trigger`、`Observed Problem`、`Root Cause`、`Decision Rule`、`Applies When`、`Recommended Action` 和 `Evidence`。字段值和规则正文使用中文。`validate --archive-ready` 会在需要 Learning Record 时检查这些字段。
 
-### Archive / Reopen
+### Archive
 
-- **触发事实：** Challenge 已通过、Learning Check 已完成且 `validate --archive-ready` 满足完成条件；或归档任务后来发现缺陷。（Trigger Fact: an active task is ready to archive, or an archived task has a defect.）
-- **Agent 动作：** 先只读校验并在 `request_archive_authorization` 停机；归档后发现缺陷时创建有历史关联的新修复 Spec，而不改写历史产物。（Agent Action: validate, stop for authorization, and reopen defects through a new active Spec.）
-- **人工门禁：** 每次 Archive 都必须取得当前用户针对本次归档的明确授权；Ready、PASS、Plan Approval、Challenge 或旧授权均不能替代。（Human Gate: every archive requires fresh, explicit current-user authorization.）
-- **相关 CLI：** `sdd validate <project-dir> --archive-ready`、`sdd archive ... --authorized-by ... --authorization-evidence ...`、`sdd reopen ... --defect ...`。（CLI: validate, archive with evidence, or reopen a defect.）
+- **触发事实：** 当前任务完成证据、必需审查与 Learning 均满足；validate --archive-ready 通过。
+- **Agent 动作：** 只读校验、检查与报告分支和任务工作区，在 request_archive_authorization 停机。归档无需自动提交或清理。
+- **人工门禁：** 每次归档取得当前用户的明确授权；不得自行构造授权参数。human:<name> 是审计声明，不是身份认证。Ready、PASS、Plan Approval、Challenge 和旧授权不能替代。
+- **相关 CLI：** `sdd validate <project-dir> --archive-ready`；取得授权后 `sdd archive <project-dir> <spec-name> --authorized-by "human:<name>" --authorization-evidence "<text>"`。
 
-归档前运行：
+归档移动任务及已绑定的 Design、Execute Log、Learning，并更新引用。历史归档永久只读，仍可浏览、作为 Context 和用于 Learning 召回，不迁移、不改写、不重新验证历史门禁。reopen 已移除。后续缺陷用普通 discover 创建新版本 / 新任务身份，引用旧归档为 Context，并重新建立风险、验收、审批和授权。
 
-```text
-sdd validate <project-dir> --archive-ready
-```
-
-`validate --archive-ready` 只证明完成条件满足；此时 `next` 输出 `request_archive_authorization`，`resume` 输出 `await_archive_authorization`。Agent 必须停止并取得当前用户明确授权。随后 `archive` 携带 `--authorized-by "human:<name>" --authorization-evidence "<text>"` 再次执行同一套完成校验，通过后把 Spec、Design、Execute Log，以及已绑定的 Learning Record 一起移动到 `<docs-root>/archive/`，更新归档 Spec 内的引用并记录授权审计字段。
-
-修复已归档任务时使用：
-
-```text
-sdd reopen <project-dir> <task-slug> --defect "缺陷描述"
-```
-
-不要重新 `discover`，否则会切断历史上下文。
+`sdd discover <project-dir> --task-name <new-task> --spec-version <new-version> --requirement "缺陷修复" --context <archive-path> --autonomy-mode supervised`
 
 ## 四、任务形状与自治模式
 
@@ -830,25 +567,13 @@ SDD 用更少配置表达任务治理：
 
 ### Mode
 
-| 门禁 / 产物 | standard | lite | micro |
-| :--- | :---: | :---: | :---: |
-| Research | 完整 | 保留 | 跳过 |
-| Innovate | 至少两个方案 | 可跳过但写 Reason | 跳过 |
-| Design | 独立 Technical Design | 独立 Design Note | 不单独创建 |
-| Acceptance | AC-###，推荐 BDD | 轻量 AC | Plan 中的 Acceptance |
-| Plan Approval | 必须 | 必须 | 必须 |
-| Execute Log | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage | 独立文件，必填，含 AC Coverage |
-| Completion Verification | 四轴自查；AC Coverage 记录位于前序执行 Step | 四轴自查；AC Coverage 记录位于前序执行 Step | 四轴自查；AC Coverage 记录位于前序执行 Step |
-| Learning | 条件必填 | 条件必填 | 条件必填 |
-| Subagent | 推荐 | 可选 | 默认不用 |
+| 模式下限 | 最低风险 | 基础要求 |
+| :--- | :--- | :--- |
+| micro | low | Spec 验证；风险信号可提高要求 |
+| lite | medium | Execute Log、独立完成 Challenge |
+| standard | high | Design、Execute Log、实施前 Design review、完成 Challenge |
 
-模式选择建议：
-
-- 新功能、重构、跨模块、外部契约、安全/权限/计费/数据迁移：用 standard。
-- 中小改动、需求明确、影响面有限：用 lite。
-- 单文件、低风险、可逆、无公共接口影响：用 micro。
-
-当任务涉及安全、权限、计费、数据迁移、公共接口、跨模块副作用或不可逆变更，即使只改一个文件，也应升级到 lite 或 standard。
+Risk Signals 目录：none；cross-module、design-latitude、multi-scenario；irreversible、data-migration、security、privacy、billing、auth、compliance、public-api、persistent-schema；multi-step 单独要求日志。none 只能单独使用，未知或重复声明阻断。默认 micro，具体风险决定升级；不从自然语言关键词猜测风险。
 
 ### AUTONOMY_MODE
 
@@ -866,7 +591,7 @@ CRUISE_MAX_ITERATIONS="5"
 
 | 模式 | Plan Gate | 连续推进授权 | 正常停止点 |
 | :--- | :--- | :--- | :--- |
-| `auto` | 可由 `agent:<id>` 批准，但必须有 `Approved At` 与 `Gate Evidence` | Intake/Scope 后由当前用户按 scope/risk digest 授权一次 | 最终归档授权 |
+| `auto` | 可由 `agent:<id>` 批准，但必须有 `Approved At` 与 `Gate Evidence` | 明确当前任务请求＋本任务显式 auto 选择授权普通范围内推进；Agent 评估并记录 Scope/Risk 后绑定真实证据，不重复询问普通范围或低风险 | 最终归档授权及风险专用停机 |
 | `supervised` | 必须由 `human:<name>` 批准 | 与 Plan Approval 同次交互记录，但作为独立授权事实 | 最终归档授权 |
 | `human` | 必须由 `human:<name>` 批准 | 不授予持续推进权；关键治理转换逐次记录 | 每个待确认治理节点 |
 
@@ -881,7 +606,7 @@ sdd autonomy activate-plan <dir> --spec <active-spec> --expected-scope-digest <d
 sdd autonomy approve-gate <dir> --spec <active-spec> --gate <gate> --expected-digest <digest> ...
 ```
 
-`supervised` 的 `authorize` 必须同时匹配用户实际审阅的 Plan digest。`auto` 在当前用户确认 Scope / 风险后记录 main、worker、research-reviewer、challenge-reviewer 的任务授权；当 Agent 批准 Plan 且当前 Scope、风险快照和 Plan digest 均未改变时，主 Agent 自动追加 `plan_activation`，不得因此再次请求用户批准 Plan 或 reviewer。Plan 修订时以同一命令 rebind；新增风险返回 `risk_changed`，范围变化返回 `scope_changed`。Cruise 在任一 `STOP_REASON` 下都不得复用原生循环，账本分别记录 `budget_exhausted` 与 `archive_authorization`。
+`supervised` 的 `authorize` 必须同时匹配用户实际审阅的 Plan digest。`auto` 用当前用户的明确任务请求和本任务显式 auto 选择作为普通授权证据，Agent 评估并记录 Scope/Risk 后自动记录 main、worker 与风险要求的 design-reviewer、challenge-reviewer，不额外索要普通范围或低风险确认。高风险必须有用户明确知悉风险影响并授权边界的实际证据，泛化任务请求或选择 auto 不能替代；已有同范围同风险充分证据直接复用。项目默认、历史授权或 Agent 自签都不足以授权。CLI 的 `--authorized-by human:<name>` 仅声明真实用户证据的来源，不是身份认证，也不证明用户已知悉风险，宿主必须如实记录。当 Agent 批准 Plan 且当前 Scope、风险快照和 Plan digest 均未改变时，主 Agent 自动追加 `plan_activation`，不得因此再次请求用户批准 Plan 或 reviewer。Plan 修订时以同一命令 rebind；新增风险返回 `risk_changed`，范围变化返回 `scope_changed`。Cruise 在任一 `STOP_REASON` 下都不得复用原生循环；普通任务的请求和显式 auto 证据齐全时，缺少任务记录由 Agent 自动办理，不要求新一轮用户确认。账本分别记录 `budget_exhausted` 与 `archive_authorization`。
 
 三档都不允许旁路这些门禁：最终归档、Project Profile 精确 digest、E2E `SKIPPED`、不可逆动作、范围扩大、新风险和平台权限。自动 reviewer 仍须保持只读、独立和可审计。
 
@@ -898,7 +623,7 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 | 类别 | 含义 | 示例 |
 | :--- | :--- | :--- |
 | **KEEP** | orchestrator 必须自己做。涉及门禁决策、用户交互或跨产物判断。 | Plan 审批、Confirmed Requirement 终审、Challenge verdict 聚合 |
-| **MUST_DELEGATE** | 必须委托独立角色。角色分离是硬约束——实现者不能审查自己的工作。 | Challenge 对抗评审、Research Gate 审查 |
+| **MUST_DELEGATE** | 风险策略要求的独立审查必须由不同角色执行。 | 高风险 Design 审查、中高风险完成 Challenge |
 | **DELEGATABLE** | orchestrator 可自行决定。取决于上下文负载、任务规模和角色分离收益。 | Design 编写、代码实现、Findings 证据收集 |
 
 三类分法的设计意图：SDD 定义**原则**（什么必须委托、什么必须保留、什么灵活可选），宿主环境决定**策略**（subagent、不同对话、人工审核等具体执行方式）。
@@ -910,17 +635,17 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 | Research | Requirement Review | KEEP | 需要用户交互（Open Questions、Assumptions） |
 | Research | Findings 证据收集 | DELEGATABLE | 代码/文档阅读量大时委托，子 agent 返回压缩证据 |
 | Research | Confirmed Requirement | KEEP | 门禁决策——orchestrator 终审 |
-| Research | Research Gate 审查 | MUST_DELEGATE | 角色分离——产出 Research 的人不能审查它 |
+| Research | 需求证据复核 | DELEGATABLE | 按阻塞未知项和证据需要选择 |
 | Innovate | 方案探索 | DELEGATABLE | 子 agent 可以头脑风暴，但小任务内联也自然 |
 | Innovate | 方案选择 | KEEP | 门禁决策 |
 | Design / Acceptance | Design 编写 | DELEGATABLE | Brief 成本高；小任务内联，大任务按模块委托 |
 | Design / Acceptance | AC 编写 | DELEGATABLE | 同 Design 的取舍 |
-| Design / Acceptance | Design 审查 | MUST_DELEGATE | 通过 Challenge 阶段实现，不是独立派发 |
+| Design / Acceptance | 高风险 Design 审查 | MUST_DELEGATE | 实施前由独立 reviewer 审查新鲜设计 |
 | Plan | Plan 编写 | KEEP | 需要完整的上游上下文（Design + AC） |
 | Plan | Plan 审批 | KEEP | 门禁决策 |
 | Execute | 代码实现 | DELEGATABLE | Plan 定义边界；按任务边界、上下文成本和独立证据价值选择内联或委托 |
 | Execute | 结果验证 | KEEP | orchestrator 重读文件、跑测试——验证不可委托 |
-| Challenge | 对抗评审 | MUST_DELEGATE | 角色分离——实现者不能审查自己的工作 |
+| Challenge | 中高风险完成审查 | MUST_DELEGATE | 角色分离——实现者不能审查自己的工作 |
 | Challenge | Verdict 聚合 | KEEP | orchestrator 应用 verdict 优先级并记录 |
 | Learning Check | Learning Record 创建 | KEEP | orchestrator 决定是否存在可复用经验 |
 | Learning Check | 证据收集 | DELEGATABLE | 子 agent 可收集证据，orchestrator 写规则 |
@@ -936,7 +661,7 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 | **任务边界** | 紧密相关、共享假设 → 倾向内联 | 可独立描述和验证的工作包 → 考虑委托 |
 | **独立证据价值** | 已有事实充分 → 内联即可 | 独立视角能验证假设或接口 → 考虑委托 |
 
-文件数、行数和 mode 本身不要求派发。主 Agent 可以内联实现，再由不同 reviewer 完成独立审查；委托实现也不能替代独立 Research / Challenge。自动 reviewer 仍须当前新鲜任务 / Plan 授权覆盖其 actor，或当前用户明确授权；角色允许 `subagent:<id>`、`external-agent:<id>`、`human:<name>`，micro Challenge 可 inline。
+文件数、行数本身不要求派发。主 Agent 可以内联实现，再由不同 reviewer 完成风险要求的独立 Design / Challenge；委托实现不能代替审查。自动 reviewer 仍须当前新鲜任务 / Plan 授权覆盖其 actor，或当前用户明确授权；角色允许 `subagent:<id>`、`external-agent:<id>`、`human:<name>`。低风险可选 micro Challenge 可 inline，中高风险必须独立。
 
 ### 子 agent 的三个约束
 
@@ -958,9 +683,9 @@ SDD-RIPER 的编排模型回答一个核心问题：**每个阶段内，哪些�
 
 | 模式 | MUST_DELEGATE | DELEGATABLE |
 | :--- | :--- | :--- |
-| standard | 强制 | 按任务边界、上下文成本与独立证据价值判断，不因 mode 自动派发 |
-| lite | 强制 | 可选（上下文量大或角色分离需要时委托） |
-| micro | 不适用（跳过 Research Gate，内联 Challenge） | 默认内联 |
+| standard | 高风险下限：实施前 Design、完成后 Challenge | 按任务边界、上下文成本与独立证据价值判断 |
+| lite | 中风险下限：完成后 Challenge；风险升级可要求 Design 审查 | 按需要选择 |
+| micro | 根据风险信号；低风险无强制独立审查 | 默认内联，可按需要选择 |
 
 完整的协议细节和 Brief Schema 模式见 `protocols/subagent-dispatch.md`。
 
@@ -1009,7 +734,7 @@ Plan 每步保留修改位置、具体变更、关联 AC 和验证方式；不�
 
 ### 方法论路由
 
-不要把所有方法论铺到每个任务。SDD 复用已有的 `mode` + `riskFlags` 信号路由设计方法：`sdd next` / `sdd cruise` / `sdd challenge` 输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议（micro 无 / lite→ADR / standard→ADR + arc42 + C4 / 各 risk 点亮对应 Design 字段 / 复杂领域提示 DDD）。路由是建议性的，信号确定、可被 cruise 和 Console 消费，最终由 orchestrator 拍板。
+不要把所有方法论铺到每个任务。SDD 复用已有的 `mode` + `riskFlags` 信号路由设计方法：`sdd next` / `sdd cruise` / `sdd challenge` 输出 `DESIGN_METHOD` / `DESIGN_FOCUS_FIELDS` 作为 advisory 建议（mode 风险下限与显式 Risk Signals 决定制品，具体风险决定方法建议）。路由是建议性的，信号确定、可被 cruise 和 Console 消费，最终由 orchestrator 拍板。
 
 ## 七、CLI 命令
 
@@ -1019,7 +744,7 @@ Plan 每步保留修改位置、具体变更、关联 AC 和验证方式；不�
 | :--- | :--- |
 | `sdd init` | 初始化目录、配置和 AI 指令。 |
 | `sdd uninstall` | 移除 SDD 框架配置和受控指令块，保留 `mydocs/` 与用户自定义内容。 |
-| `sdd discover` | 创建 Spec 与 Execute Log；standard/lite 另建独立 Design，micro 不创建独立 Design。 |
+| `sdd discover` | 只创建当前格式 Spec；按模式下限准备制品，风险升级后补齐必需制品。 |
 | `sdd autonomy` | 检查或受控变更任务自治模式、授权、Plan activation 与 Gate 记录；完整子命令见 [AUTONOMY_MODE](#autonomy_mode)。 |
 | `sdd resume` | 输出当前任务和阶段提示。 |
 | `sdd status` | 检查目录结构、Spec、Design、Execute Log 健康度。 |
@@ -1032,7 +757,6 @@ Plan 每步保留修改位置、具体变更、关联 AC 和验证方式；不�
 | `sdd install-skill` | 把当前包内的完整 Skill（含 `templates` / `protocols` / `vendored`）注册到 agent 环境（`--target codex\|cc-switch\|claude\|opencode\|all [--clean]`）。 |
 | `sdd validate` | 机器校验活动任务门禁与归档就绪条件。 |
 | `sdd archive` | 经本次明确人工授权后归档 Spec 及引用产物。 |
-| `sdd reopen` | 基于归档任务的缺陷创建新修复 Spec 和 Execute Log。 |
 | `sdd new-learning` | 创建并绑定 Learning Record。 |
 | `sdd review-execute` | 生成四轴 Execute 自查 Prompt。 |
 | `sdd learnings` | 查看项目 Learning，或按 Spec 召回相关规则。 |
@@ -1064,7 +788,7 @@ Web Console 是文件系统产物的 projection，不是新的 source of truth�
 - 详情页展示最新 cruise run 的 iteration、driver 和 stop reason。
 - 完整归档校验只在详情页和 Validate 操作中按需执行，避免看板和列表加载被全量校验阻塞。
 - 当前版本只读展示和校验，不直接编辑 Spec、Design、Execute Log 或 Learning；Edit 按钮只调用本机默认程序打开文件。
-- 后续如加入 archive / reopen / discover 操作，也应调用现有命令，而不是在 Web 层直接改文件。
+- 后续如加入 archive / discover 操作，也应调用现有命令，而不是在 Web 层直接改文件。
 
 ## 九、FAQ
 

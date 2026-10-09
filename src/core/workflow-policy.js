@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const STREAMLINED = 'streamlined-v1';
-const LEGACY = 'legacy-v1';
+const UNSUPPORTED = 'SDD_WORKFLOW_POLICY_UNSUPPORTED';
 const HIGH = new Set([
   'irreversible', 'data-migration', 'security', 'privacy', 'billing', 'auth',
   'compliance', 'public-api', 'persistent-schema'
@@ -39,7 +39,71 @@ function frontmatter(content, name) {
 }
 
 function version(content) {
-  return frontmatter(content, 'workflow-policy') || LEGACY;
+  return frontmatter(content, 'workflow-policy');
+}
+
+function formatIssue(content) {
+  const actual = version(content);
+  return actual === STREAMLINED ? '' : '[' + UNSUPPORTED + '] Unsupported workflow-policy: ' +
+    (actual || '(missing)') + '. Current tasks require ' + STREAMLINED +
+    '; archived documents remain read-only. Create a new task or finish existing work with its original tool version.';
+}
+
+function assertSupported(content) {
+  const issue = formatIssue(content);
+  if (!issue) return;
+  const error = new Error(issue);
+  error.code = UNSUPPORTED;
+  throw error;
+}
+
+function assertActive(projectDir, file) {
+  const fs = require('fs');
+  const path = require('path');
+  const common = require('../../lib/common');
+  const root = path.resolve(projectDir);
+  const specs = path.resolve(common.getDocsRoot(root), 'specs');
+  const candidate = path.resolve(file);
+  function within(parent, child) {
+    const relative = path.relative(parent, child);
+    return !!relative && relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative);
+  }
+  if (!within(specs, candidate) || !fs.existsSync(candidate) || !fs.statSync(candidate).isFile() ||
+      !within(fs.realpathSync(root), fs.realpathSync(specs)) ||
+      !within(fs.realpathSync(specs), fs.realpathSync(candidate)) ||
+      frontmatter(fs.readFileSync(candidate, 'utf8'), 'status') === 'archived') {
+    const error = new Error('Archived documents are read-only; execution and evidence writes require an active Spec.');
+    error.code = 'SDD_SPEC_NOT_ACTIVE';
+    throw error;
+  }
+  assertWritableArtifact(root, candidate);
+  assertSupported(fs.readFileSync(candidate, 'utf8'));
+  return candidate;
+}
+
+function assertWritableArtifact(projectDir, file) {
+  const fs = require('fs');
+  const path = require('path');
+  const common = require('../../lib/common');
+  const root = path.resolve(projectDir);
+  const archive = path.resolve(common.getDocsRoot(root), 'archive');
+  const candidate = path.resolve(file);
+  const within = (parent, child) => {
+    const relative = path.relative(parent, child);
+    return relative === '' || (relative !== '..' && !relative.startsWith('..' + path.sep) && !path.isAbsolute(relative));
+  };
+  let ancestor = candidate;
+  while (!fs.existsSync(ancestor) && !fs.lstatSync(ancestor, { throwIfNoEntry: false })) ancestor = path.dirname(ancestor);
+  const resolved = fs.realpathSync(ancestor);
+  const realArchive = fs.existsSync(archive) ? fs.realpathSync(archive) : archive;
+  if (!within(root, candidate) || !within(fs.realpathSync(root), resolved) ||
+      within(archive, candidate) || within(realArchive, resolved) ||
+      (fs.existsSync(candidate) && fs.statSync(candidate).isFile() && frontmatter(fs.readFileSync(candidate, 'utf8'), 'status') === 'archived')) {
+    const error = new Error('Archived artifacts are read-only; artifact writes require a project-local active destination.');
+    error.code = 'SDD_ARTIFACT_READ_ONLY';
+    throw error;
+  }
+  return candidate;
 }
 
 function normalize(content) {
@@ -74,7 +138,7 @@ function evaluate(content, mode) {
   const policy = version(content);
   const parsed = parseSignals(content);
   const issues = parsed.issues.slice();
-  if (policy !== STREAMLINED) issues.unshift('Unknown workflow-policy: ' + policy + '.');
+  if (policy !== STREAMLINED) issues.unshift(formatIssue(content));
   if (!Object.hasOwn(MODE_FLOOR, mode)) issues.push('Unknown Spec mode: ' + mode + '.');
   const hasHigh = parsed.signals.some(value => HIGH.has(value));
   const hasMedium = parsed.signals.some(value => MEDIUM.has(value));
@@ -107,5 +171,5 @@ function designReviewDigest(specContent, designContent) {
   return digest(['streamlined-v1 design-review', ...inputs, designDigest(designContent)].join('\n'));
 }
 
-module.exports = { STREAMLINED, LEGACY, HIGH, MEDIUM, ALLOWED, section, label, frontmatter,
-  version, normalize, digest, parseSignals, evaluate, designDigest, designReviewDigest };
+module.exports = { STREAMLINED, UNSUPPORTED, HIGH, MEDIUM, ALLOWED, section, label, frontmatter,
+  version, formatIssue, assertSupported, assertActive, assertWritableArtifact, normalize, digest, parseSignals, evaluate, designDigest, designReviewDigest };

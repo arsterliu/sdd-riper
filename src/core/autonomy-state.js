@@ -58,25 +58,20 @@ function risksText(content) {
 }
 
 function scopeSnapshot(content) {
-  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) return digest(section(withoutControlBlock(content), 'Intake'));
   const body = canonical(content);
   return workflowPolicy.digest(['streamlined-v1 scope', section(body, 'Intake'), confirmedRequirement(body)].join('\n'));
 }
 
 function riskSnapshot(content) {
-  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) {
-    return digest(section(withoutControlBlock(content), 'Intake').match(/### Risks[\s\S]*?(?=^### |$)/mi)?.[0] || '');
-  }
   const body = canonical(content);
   const signals = workflowPolicy.parseSignals(body).signals.slice().sort().join(',');
   return workflowPolicy.digest(['streamlined-v1 risk', signals, risksText(body)].join('\n'));
 }
 function planSnapshot(content) {
   const body = section(withoutControlBlock(content), 'Plan');
-  return workflowPolicy.version(content) === workflowPolicy.STREAMLINED ? workflowPolicy.digest(body) : digest(body);
+  return workflowPolicy.digest(body);
 }
 function researchSnapshot(content) {
-  if (workflowPolicy.version(content) !== workflowPolicy.STREAMLINED) return digest(section(withoutControlBlock(content), 'Research'));
   const body = canonical(content);
   const pieces = [section(body, 'Intake'), section(body, 'Research')];
   ['Requirement Review', 'Findings', 'Open Questions', 'Assumptions', 'Confirmed Requirement']
@@ -85,7 +80,7 @@ function researchSnapshot(content) {
 }
 function innovateSnapshot(content) {
   const body = section(withoutControlBlock(content), 'Innovate Options');
-  return workflowPolicy.version(content) === workflowPolicy.STREAMLINED ? workflowPolicy.digest(body) : digest(body);
+  return workflowPolicy.digest(body);
 }
 function riskFlagsSnapshot(flags) { return digest((flags || []).slice().sort().join('\n')); }
 function gateSnapshot(content, gate) {
@@ -141,8 +136,7 @@ function resolve(content, options) {
   const mode = frontmatter(content, 'autonomy-mode');
   const source = frontmatter(content, 'autonomy-mode-source');
   const scope = scopeSnapshot(content);
-  const risk = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
-    ? riskSnapshot(content) : (options.riskSnapshot || riskSnapshot(content));
+  const risk = riskSnapshot(content);
   const plan = planSnapshot(content);
   const events = parseEvents(content);
   const approvedGates = [];

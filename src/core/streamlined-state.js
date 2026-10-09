@@ -80,6 +80,8 @@ function logIssues(snapshot, facts, blockers) {
     if (!validTime(completedAt)) addBlocker(blockers, 'completion', 'Execute Log completion-verification missing valid Timestamp.');
   }
   const coverage = facts.acCoverage;
+  coverage.records.filter(record => record.malformedId).forEach(record =>
+    addBlocker(blockers, 'completion', 'AC Coverage id must be zero-padded three digits (AC-###): ' + record.id + '.'));
   const records = gateFacts.coverageRecordMap(coverage.records);
   coverage.declarations.forEach(declaration => {
     const record = records[declaration.id];
@@ -91,7 +93,7 @@ function logIssues(snapshot, facts, blockers) {
       }
     } else if (record.result !== 'PASS') addBlocker(blockers, 'completion', 'AC Coverage: ' + declaration.id + ' requires PASS evidence.');
     if (record.testIssue) addBlocker(blockers, 'completion', 'AC Coverage: ' + declaration.id + ' Test must be one project-relative file path.');
-    if (record.test && snapshot.projectDir) {
+    if (record.test && !record.testIssue && snapshot.projectDir) {
       const path = common.resolveProjectPath(snapshot.projectDir, record.test);
       if (!path || !fs.existsSync(path)) addBlocker(blockers, 'completion', 'AC Coverage: ' + declaration.id + ' Test file not found: ' + record.test);
     }
@@ -148,7 +150,7 @@ function evaluate(snapshot, options) {
   }
 
   const acceptance = policyContract.section(content, 'Acceptance Criteria');
-  const acceptanceFacts = gateFacts.collectGateFacts(snapshot);
+  const acceptanceFacts = options.gateFacts || gateFacts.collectGateFacts(snapshot);
   if (!policyContract.label(acceptance, 'Acceptance') && !acceptanceFacts.acceptance.blocks.length) add('acceptance', 'Acceptance is required.');
   if (!policyContract.label(acceptance, 'Verification') &&
       (!acceptanceFacts.acceptance.blocks.length || !acceptanceFacts.acceptance.blocks.every(block => !!block.verification))) {
@@ -159,11 +161,20 @@ function evaluate(snapshot, options) {
   ).forEach(issue => add('acceptance', issue));
   acceptanceFacts.providerReadiness.issues.filter(issue => /^E2E Acceptance Criteria require Provider/.test(issue)).forEach(issue => add('acceptance', issue));
   if (/\be2e\b/i.test(policyContract.label(acceptance, 'Verification')) && !policyContract.label(acceptance, 'Provider')) add('acceptance', 'E2E Acceptance Criteria require Provider.');
+  acceptanceFacts.providerReadiness.issues.filter(issue => !/^E2E Acceptance Criteria require Provider/.test(issue)).forEach(issue => {
+    if (/Verification Provider is not configured:/.test(issue)) {
+      const provider = issue.match(/not configured: ([^.]+)\./)[1];
+      const planText = policyContract.section(content, 'Plan');
+      if (!planText.includes('verify init') || !planText.includes(provider)) {
+        add('plan', issue + ' Plan has no explicit init step: ' + provider + '.');
+      }
+    } else add('completion', issue);
+  });
 
   const plan = policyContract.section(content, 'Plan');
   const planBody = plan.replace(/^Plan Approved By:.*$/gm, '').replace(/^Approved At:.*$/gm, '').replace(/^Gate Evidence:.*$/gm, '');
   if (!firstRealLine(planBody)) add('plan', 'Plan is empty.');
-  const approval = gateFacts.planApprovalFacts(content, snapshot.autonomyMode || 'supervised');
+  const approval = acceptanceFacts.planApproval;
   if (!['auto', 'supervised', 'human'].includes(snapshot.autonomyMode)) add('plan', 'Autonomy mode is missing or invalid.');
   if (!approval.satisfied) add('plan', 'Plan approval is missing or invalid for the autonomy mode.');
   if (approval.approvedAt && !validTime(approval.approvedAt)) add('plan', 'Approved At must be valid ISO-8601.');
@@ -186,15 +197,12 @@ function evaluate(snapshot, options) {
     const completion = policyContract.section(content, 'Completion Verification');
     const reviewer = policyContract.label(completion, 'Challenge Executed By');
     const reviewedAt = policyContract.label(completion, 'Challenge Executed At');
-    const summary = policyContract.label(completion, 'Challenge Summary');
-    const evidence = policyContract.label(completion, 'Challenge Evidence');
-    if (!governance.isKnownVerdict(reviewVerdict)) add('challenge', 'Completion independent review requires a Challenge Verdict.');
-    if (!governance.isAuditableReviewer(mode, reviewer) || reviewer.toLowerCase() === 'inline') add('challenge', 'Completion independent review needs an auditable reviewer.');
-    if (!validTime(reviewedAt)) add('challenge', 'Completion independent review needs a valid Challenge Executed At.');
-    if (!summary || evidence !== reviewVerdict + ' - ' + summary) add('challenge', 'Completion independent review evidence is incomplete.');
+    require('./spec-state').challengeContractIssues(completion).forEach(issue => add('challenge', issue));
+    if (!governance.isAuditableReviewer(mode, reviewer) || reviewer.toLowerCase() === 'inline') add('challenge', 'Challenge Executed By must be an auditable independent reviewer.');
+    if (!validTime(reviewedAt)) add('challenge', 'Challenge Executed At must be a valid ISO-8601 timestamp.');
     if (policy.requiresLog && reviewedAt && snapshot.executeLog && snapshot.executeLog.content) {
       const last = common.extractLastStepTimestamp(snapshot.executeLog.content);
-      if (last && Date.parse(reviewedAt) <= last.getTime()) add('challenge', 'Completion review must follow the last Execute Log step.');
+      if (last && Date.parse(reviewedAt) <= last.getTime()) add('challenge', 'Challenge Executed At must be after the last Execute Log step timestamp.');
     }
     if (reviewer && !/^human:/i.test(reviewer) && snapshot.autonomy &&
         (snapshot.autonomy.authorizationState !== 'active' || !snapshot.autonomy.authorizedActors.includes('challenge-reviewer'))) {
@@ -216,20 +224,25 @@ function evaluate(snapshot, options) {
   else if (triggers.length) learning.validateLearningContent(policyContract.section(snapshot.learning.content, 'Learning Record')).forEach(issue => add('learning', issue));
 
   (options.validationIssues || []).forEach(issue => {
-    if (!blockers.some(blocker => blocker.message === issue)) add('research', issue);
+    if (!blockers.some(blocker => blocker.message === issue)) {
+      const gate = /Visual evidence|Provider|Project Profile/i.test(issue) ? 'plan' : 'research';
+      add(gate, issue);
+    }
   });
   const gates = {};
   ORDER.forEach(gate => {
     const matching = blockers.filter(blocker => blocker.gate === gate);
     gates[gate] = { state: matching.length ? 'blocked' : 'pass', blockers: matching, required: gate === 'challenge' ? policy.requiresCompletionReview : true };
   });
-  if (governance.isKnownVerdict(reviewVerdict) && !governance.isPassingVerdict(reviewVerdict)) gates.challenge.state = 'failed';
+  const reviewIncomplete = blockers.some(blocker => blocker.gate === 'challenge' &&
+    !/^Adversarial Challenge failed:/.test(blocker.message));
+  if (!reviewIncomplete && governance.isKnownVerdict(reviewVerdict) && !governance.isPassingVerdict(reviewVerdict)) gates.challenge.state = 'failed';
   const first = ORDER.find(gate => gates[gate].state !== 'pass');
   const firstBlocker = first && gates[first].blockers[0];
-  const target = firstBlocker ? firstBlocker.target : 'Ready';
-  const action = firstBlocker ? (first === 'challenge' && !reviewVerdict ? 'run_challenge' :
+  const target = first === 'challenge' && reviewIncomplete ? 'Challenge' : firstBlocker ? firstBlocker.target : 'Ready';
+  const action = firstBlocker ? (first === 'challenge' && (reviewIncomplete || !reviewVerdict) ? 'run_challenge' :
     'repair_' + target.toLowerCase().replace(/ \/ /g, '_').replace(/\s+/g, '_')) : 'request_archive_authorization';
-  const phase = snapshot.status === 'archived' ? 'archived' :
+  const phase = snapshot.location === 'archive' ? 'archived' :
     action === 'request_archive_authorization' ? 'archive_authorization' :
     action === 'run_challenge' ? 'challenge' : (first === 'completion' ? 'execute' : first || 'research');
   return {

@@ -13,192 +13,19 @@ function writeSpec(name, body, mode) {
   if (!fs.existsSync(specsDir)) fs.mkdirSync(specsDir, { recursive: true });
   fs.writeFileSync(path.join(projectDir, '.sdd-config'), 'DOCS_DIR="mydocs"\nMODE="lite"\n', 'utf-8');
   var p = path.join(specsDir, name);
-  fs.writeFileSync(p, '---\ndate: 2026-06-01\nmode: ' + (mode || 'lite') + '\nstatus: draft\ndesign-file: ""\n---\n\n' + body, 'utf-8');
+  fs.writeFileSync(p, '---\nworkflow-policy: streamlined-v1\ndate: 2026-06-01\nmode: ' + (mode || 'lite') + '\nstatus: draft\ndesign-file: ""\n---\n\n' + body, 'utf-8');
   return p;
 }
 
-describe('riskFlags action-region scanning', function() {
-  afterEach(function() {
-    if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true });
-  });
-
-  it('does not flag risk words that appear only in narrative (AC-004)', function() {
-    var spec = writeSpec('v1.0-meta.md',
-      '## Intake\n讨论 security 和 migration 的分类。\n\n## Findings\nsecurity migration schema 都是关键词。\n\n' +
-      '## Plan\n1. 新建一份文档说明。\n2. 打印一行提示。\n\n## Design Note\nApproach: 仅文档改动，无任何风险动作。\n');
-    var action = workflow.actionText(projectDir, spec);
-    assert.deepEqual(workflow.riskFlags(action), [], 'action region should be clean: ' + action);
-    assert.ok(workflow.riskFlags(fs.readFileSync(spec, 'utf-8')).length > 0, 'full content should still flag');
-  });
-
-  it('flags genuine risk actions in Plan/Design (AC-005)', function() {
-    var spec = writeSpec('v1.0-real.md',
-      '## Intake\n做点事。\n\n## Plan\n1. run data migration on the user table.\n2. permanently delete data no longer needed.\n\n' +
-      '## Design Note\nApproach: backfill then delete data (irreversible).\n');
-    var flags = workflow.riskFlags(workflow.actionText(projectDir, spec));
-    assert.ok(flags.indexOf('migration') !== -1, 'expected migration: ' + flags);
-    assert.ok(flags.indexOf('irreversible') !== -1, 'expected irreversible: ' + flags);
-  });
-
-  it('security regex respects word boundaries (AC-006)', function() {
-    assert.deepEqual(workflow.riskFlags('the author refactored the authentication-free helper'), []);
-    assert.deepEqual(workflow.riskFlags('we add an auth check'), ['security']);
-  });
-
-  it('falls back to full content when there is no action region (AC-007)', function() {
-    var spec = writeSpec('v1.0-early.md',
-      '## Intake\nwe will delete data permanently as the core action.\n\n## Plan\n\n## Design Note\n');
-    assert.equal(workflow.actionText(projectDir, spec).trim(), '', 'action region should be empty');
-    var state = workflow.analyzeSpec(projectDir, spec, {});
-    assert.ok(state.riskFlags.indexOf('irreversible') !== -1, 'fallback should flag from full content: ' + state.riskFlags);
-  });
-
-  it('flags Chinese risk keywords in action region (AC-008)', function() {
-    var spec = writeSpec('v1.0-cn.md',
-      '## Intake\n讨论数据迁移方案。\n\n## Plan\n1. 对用户表执行数据迁移。\n2. 清空数据不再需要的旧日志。\n\n## Design Note\nApproach: 迁移后删除数据（不可逆）。\n');
-    var action = workflow.actionText(projectDir, spec);
-    var flags = workflow.riskFlags(action);
-    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from 数据迁移: ' + flags);
-    assert.ok(flags.indexOf('irreversible') !== -1, 'expected irreversible from 不可逆/清空数据: ' + flags);
-  });
-
-  it('does not flag Chinese risk words in narrative (AC-009)', function() {
-    var spec = writeSpec('v1.0-cn-meta.md',
-      '## Intake\n本次任务讨论权限和计费的设计。\n\n## Findings\n数据迁移和支付都是关键领域。\n\n' +
-      '## Plan\n1. 新增一个配置项。\n2. 输出日志提示。\n\n## Design Note\nApproach: 纯配置变更，无风险动作。\n');
-    var action = workflow.actionText(projectDir, spec);
-    assert.deepEqual(workflow.riskFlags(action), [], 'action region should be clean: ' + action);
-    assert.ok(workflow.riskFlags(fs.readFileSync(spec, 'utf-8')).length > 0, 'full content should still flag');
-  });
-
-  it('Chinese security and billing keywords work directly (AC-010)', function() {
-    assert.ok(workflow.riskFlags('增加权限校验').indexOf('security') !== -1);
-    assert.ok(workflow.riskFlags('接入支付网关').indexOf('billing') !== -1);
-    assert.ok(workflow.riskFlags('公开接口变更').indexOf('public-api') !== -1);
-  });
-
-  it('reads risk fields from a historical nested Lite Confirmed Requirement', function() {
-    var spec = writeSpec('v1.0-legacy-lite.md', [
-      '## Research',
-      '### Confirmed Requirement',
-      'Scope Boundary: fixture',
-      'Irreversibility: none',
-      'Impact Radius: public',
-      'Dependencies & Constraints: none',
-      'Acceptance Intent: compatibility',
-      '## Plan',
-      'Change: fixture'
-    ].join('\n'));
-
-    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('public-api'));
-  });
-
-  it('retains micro top-level Confirmed Requirement risks for authorization', function() {
-    var spec = writeSpec('v1.0-micro-risk.md', [
-      '## Confirmed Requirement',
-      'Scope Boundary: fixture',
-      'Irreversibility: irreversible and cannot be rolled back',
-      'Impact Radius: internal',
-      'Dependencies & Constraints: none',
-      'Acceptance Intent: authorization must remain required',
-      '## Plan',
-      'Change: fixture'
-    ].join('\n'), 'micro');
-
-    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('irreversible'));
-  });
-
-  it('does not inherit Confirmed Requirement risks from an unselected layout without actions', function() {
-    var labelsWithoutRisk = [
-      'Scope Boundary: fixture',
-      'Irreversibility: none',
-      'Impact Radius: internal',
-      'Dependencies & Constraints: none',
-      'Acceptance Intent: compatibility'
-    ];
-    var labelsWithSecurity = [
-      'Scope Boundary: fixture',
-      'Irreversibility: none',
-      'Impact Radius: internal',
-      'Dependencies & Constraints: security authentication',
-      'Acceptance Intent: compatibility'
-    ];
-    var lite = writeSpec('v1.0-lite-layout-risk.md', [
-      '## Confirmed Requirement',
-      ...labelsWithoutRisk,
-      '## Research',
-      '### Confirmed Requirement',
-      ...labelsWithSecurity
-    ].join('\n'), 'lite');
-    var standard = writeSpec('v1.0-standard-layout-risk.md', [
-      '## Research',
-      '### Confirmed Requirement',
-      ...labelsWithoutRisk,
-      '## Confirmed Requirement',
-      ...labelsWithSecurity
-    ].join('\n'), 'standard');
-
-    assert.deepEqual(workflow.computeRiskFlags(projectDir, lite, fs.readFileSync(lite, 'utf-8')), []);
-    assert.deepEqual(workflow.computeRiskFlags(projectDir, standard, fs.readFileSync(standard, 'utf-8')), []);
-  });
-
-  it('falls back to full Spec risk scanning when the selected Requirement is comment-only', function() {
-    var spec = writeSpec('v1.0-standard-comment-only.md', [
-      '## Intake',
-      'permanently delete user data',
-      '## Research',
-      '### Confirmed Requirement',
-      '<!-- placeholder only -->'
-    ].join('\n'), 'standard');
-
-    assert.ok(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf-8')).includes('irreversible'));
-  });
-
-  it('extracts irreversible flag from Irreversibility label (AC-011)', function() {
-    var crSection = 'Scope Boundary: single module\nIrreversibility: 数据库 schema 变更，不可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('irreversible') !== -1, 'expected irreversible from Irreversibility label: ' + flags);
-  });
-
-  it('extracts public-api flag from Impact Radius label (AC-012)', function() {
-    var crSection = 'Scope Boundary: API layer\nIrreversibility: none\nImpact Radius: 涉及公开 API 接口\nDependencies & Constraints: none\nAcceptance Intent: API compatibility';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('public-api') !== -1, 'expected public-api from Impact Radius label: ' + flags);
-  });
-
-  it('extracts security/billing/migration from Dependencies & Constraints label (AC-013)', function() {
-    var crSection = 'Scope Boundary: auth module\nIrreversibility: none\nImpact Radius: internal\nDependencies & Constraints: 依赖认证服务和计费系统，涉及数据迁移\nAcceptance Intent: auth preserved';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('security') !== -1, 'expected security from Dependencies label: ' + flags);
-    assert.ok(flags.indexOf('billing') !== -1, 'expected billing from Dependencies label: ' + flags);
-    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from Dependencies label: ' + flags);
-  });
-
-  it('extracts migration from Scope Boundary label when not already flagged (AC-014)', function() {
-    var crSection = 'Scope Boundary: 涉及 schema 变更\nIrreversibility: none\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: schema preserved';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from Scope Boundary label: ' + flags);
-  });
-
-  it('falls back to full-text scanning when no structured fields (AC-015)', function() {
-    var crSection = '这是一个自由文本的 Confirmed Requirement，提到了 security 和 migration';
-    var flags = workflow.riskFlags('提到了 security 和 migration 的内容', crSection);
-    assert.ok(flags.indexOf('security') !== -1, 'expected security from full-text fallback: ' + flags);
-    assert.ok(flags.indexOf('migration') !== -1, 'expected migration from full-text fallback: ' + flags);
-  });
-
-  it('Irreversibility none/reversible does not flag irreversible (AC-016)', function() {
-    var crSection = 'Scope Boundary: single module\nIrreversibility: none, fully reversible\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('irreversible') === -1, 'should not flag irreversible when none/reversible: ' + flags);
-  });
-
-  it('Chinese reversible wording suppresses irreversible while destructive wording still flags it', function() {
-    var reversible = 'Scope Boundary: single module\nIrreversibility: 无不可逆数据迁移，变更全部可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: behavior preserved';
-    var destructive = 'Scope Boundary: data cleanup\nIrreversibility: 数据永久删除且不可回滚\nImpact Radius: internal\nDependencies & Constraints: none\nAcceptance Intent: old data removed';
-    assert.ok(workflow.riskFlags('no destructive action', reversible).indexOf('irreversible') === -1);
-    assert.ok(workflow.riskFlags('delete data permanently', destructive).indexOf('irreversible') !== -1);
-  });
+describe('explicit current risk routing', function() {
+  afterEach(function() { if (fs.existsSync(tmpBase)) fs.rmSync(tmpBase, { recursive: true, force: true }); });
+  for (const [signals, flags] of [['none', []], ['security,billing,data-migration,public-api,irreversible',
+    ['security', 'billing', 'migration', 'public-api', 'irreversible']]]) {
+    it('uses declared Risk Signals: ' + signals, function() {
+      const spec = writeSpec('v1.0-current.md', '## Intake\nRequirement: task\nScope: local\nRisks: assessed\nRisk Signals: ' + signals + '\n## Plan\nStep: explain security migration and irreversible safeguards.');
+      assert.deepEqual(workflow.computeRiskFlags(projectDir, spec, fs.readFileSync(spec, 'utf8')), flags);
+    });
+  }
 });
 
 describe('analyzeSpec no-spec early return shape (v4.11)', function() {
@@ -252,24 +79,5 @@ describe('analyzeSpec no-spec early return shape (v4.11)', function() {
     assert.ok(out.indexOf('AUTHORIZED_RISK_SNAPSHOT:') !== -1, out);
     assert.ok(out.indexOf('ACTIVE_PLAN_DIGEST:') !== -1, out);
     assert.ok(out.indexOf('NEXT_ACTION:') !== -1, out);
-  });
-});
-
-describe('CJK risk keyword matching (v4.13)', function() {
-  it('Phase 2 full-text Chinese keywords produce flags without structured fields (AC-001)', function() {
-    var flags = workflow.riskFlags('我们要对用户表执行数据迁移，并需要支付通道对接。');
-    assert.ok(flags.indexOf('migration') !== -1, 'migration expected: ' + flags);
-    assert.ok(flags.indexOf('billing') !== -1, 'billing expected: ' + flags);
-  });
-
-  it('Phase 1 Impact Radius CJK alternatives match outside word boundaries (AC-001)', function() {
-    var crSection = 'Scope Boundary: internal\nIrreversibility: none\nImpact Radius: 对外部系统暴露接口\nDependencies & Constraints: none\nAcceptance Intent: x';
-    var flags = workflow.riskFlags('no risk here', crSection);
-    assert.ok(flags.indexOf('public-api') !== -1, 'public-api expected from 外部: ' + flags);
-  });
-
-  it('English keyword behavior unchanged (AC-002 regression)', function() {
-    assert.deepEqual(workflow.riskFlags('we will run data migration and touch billing'), ['billing', 'migration']);
-    assert.deepEqual(workflow.riskFlags('the author refactored the authentication-free helper'), []);
   });
 });

@@ -5,7 +5,7 @@ const gateFacts = require('../src/core/workflow-gate-facts');
 const workflow = require('../src/core/workflow');
 
 function spec(mode, approval, event) {
-  let content = '---\nautonomy-mode: "' + mode + '"\nautonomy-mode-source: "project-default"\n---\n## Intake\n### Scope\n- project\n### Risks\n- none\n## Plan\n' + approval + '\n';
+  let content = '---\nworkflow-policy: streamlined-v1\nmode: micro\nautonomy-mode: "' + mode + '"\nautonomy-mode-source: "project-default"\n---\n## Intake\nRequirement: task\nScope: project\nRisks: reversible\nRisk Signals: none\n## Plan\n' + approval + '\n';
   if (event) content = autonomyState.appendEvent(content, event);
   return content;
 }
@@ -29,12 +29,12 @@ test('authorization resolver distinguishes active and stale scope', function() {
   };
   content = autonomyState.appendEvent(content, event);
   assert.equal(autonomyState.resolve(content).authorizationState, 'active');
-  assert.equal(autonomyState.resolve(content.replace('- project', '- project,api')).stopReason, 'scope_changed');
+  assert.equal(autonomyState.resolve(content.replace('Scope: project', 'Scope: project,api')).stopReason, 'scope_changed');
 });
 
 test('empty auto Plan approval fields do not trigger Plan activation', function() {
   let content = spec('auto', 'Plan Approved By:\nApproved At:\nGate Evidence:');
-  const risk = autonomyState.riskFlagsSnapshot([]);
+  const risk = autonomyState.riskSnapshot(content);
   content = autonomyState.appendEvent(content, {
     eventId: 'task', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: risk, planDigest: '',
@@ -48,7 +48,7 @@ test('empty auto Plan approval fields do not trigger Plan activation', function(
 
 test('empty auto approval timestamp does not consume a following narrative line', function() {
   let content = spec('auto', 'Plan Approved By: agent:root\nApproved At:\n审批说明：等待人工填写时间\nGate Evidence: complete');
-  const risk = autonomyState.riskFlagsSnapshot([]);
+  const risk = autonomyState.riskSnapshot(content);
   content = autonomyState.appendEvent(content, {
     eventId: 'task', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: risk, planDigest: '',
@@ -88,12 +88,12 @@ test('structured reversible declaration is not overridden by narrative safety wo
     'Dependencies & Constraints: preserve irreversible-action safeguards',
     'Acceptance Intent: safeguards remain explicit'
   ].join('\n');
-  assert.equal(workflow.riskFlags('Plan: document irreversible safeguards', confirmed).includes('irreversible'), false);
+  assert.equal(require('../src/core/workflow-policy').evaluate(spec('human', '') + '\n## Notes\n' + confirmed, 'micro').flags.includes('irreversible'), false);
 });
 
 test('auto Plan changes require a matching plan activation and runtime risk changes invalidate authority', function() {
   let content = spec('auto', 'Plan Approved By: agent:root\nApproved At: 2026-08-11T00:00:00Z\nGate Evidence: ok');
-  const risk = autonomyState.riskFlagsSnapshot([]);
+  const risk = autonomyState.riskSnapshot(content);
   content = autonomyState.appendEvent(content, {
     eventId: 'task', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: risk, planDigest: '',
@@ -107,7 +107,7 @@ test('auto Plan changes require a matching plan activation and runtime risk chan
   });
   assert.equal(autonomyState.resolve(content, { riskSnapshot: risk }).authorizationState, 'active');
   assert.equal(autonomyState.resolve(content.replace('Gate Evidence: ok', 'Gate Evidence: changed'), { riskSnapshot: risk }).authorizationState, 'required');
-  assert.equal(autonomyState.resolve(content, { riskSnapshot: autonomyState.riskFlagsSnapshot(['security']) }).stopReason, 'risk_changed');
+  assert.equal(autonomyState.resolve(content.replace('Risk Signals: none', 'Risk Signals: security')).stopReason, 'scope_changed');
 });
 
 test('Cruise native loop is disabled by any explicit stop reason', function() {
@@ -125,7 +125,7 @@ test('Cruise ledger uses precise archive and budget stop reasons', function() {
 test('invalidation starts a new authority generation and cannot reuse an older Plan activation', function() {
   let content = spec('auto', 'Plan Approved By: agent:root\nApproved At: 2026-08-11T00:00:00Z\nGate Evidence: ok');
   const scope = autonomyState.scopeSnapshot(content);
-  const risk = autonomyState.riskFlagsSnapshot([]);
+  const risk = autonomyState.riskSnapshot(content);
   const plan = autonomyState.planSnapshot(content);
   content = autonomyState.appendEvent(content, { eventId: 'task-old', eventType: 'task_authorization', mode: 'auto', decision: 'authorized', scopeDigest: scope, riskSnapshot: risk, authorizedActors: 'main,worker', authorizedBy: 'human:liuy' });
   content = autonomyState.appendEvent(content, { eventId: 'activation-old', eventType: 'plan_activation', mode: 'auto', decision: 'activated', scopeDigest: scope, riskSnapshot: risk, planDigest: plan, authorizedBy: 'agent:root' });
@@ -137,7 +137,7 @@ test('invalidation starts a new authority generation and cannot reuse an older P
 test('a new auto task authorization cannot reuse an older Plan activation', function() {
   let content = spec('auto', 'Plan Approved By: agent:root\nApproved At: 2026-08-11T00:00:00Z\nGate Evidence: ok');
   const scope = autonomyState.scopeSnapshot(content);
-  const risk = autonomyState.riskFlagsSnapshot([]);
+  const risk = autonomyState.riskSnapshot(content);
   const plan = autonomyState.planSnapshot(content);
   content = autonomyState.appendEvent(content, { eventId: 'task-old', eventType: 'task_authorization', mode: 'auto', decision: 'authorized', scopeDigest: scope, riskSnapshot: risk, authorizedActors: 'main,worker', authorizedBy: 'human:liuy', authorizedAt: '2026-08-11T00:00:00Z' });
   content = autonomyState.appendEvent(content, { eventId: 'activation-old', eventType: 'plan_activation', mode: 'auto', decision: 'activated', scopeDigest: scope, riskSnapshot: risk, planDigest: plan, authorizedBy: 'agent:root', authorizedAt: '2026-08-11T00:01:00Z' });

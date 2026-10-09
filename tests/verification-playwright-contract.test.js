@@ -14,6 +14,10 @@ test('playwright-test adapter completes a real Chromium smoke contract', { timeo
   const env = { ...process.env, GIT_CONFIG_GLOBAL: process.platform === 'win32' ? 'NUL' : '/dev/null',
     XDG_CONFIG_HOME: path.join(root, '.xdg'), PLAYWRIGHT_BROWSERS_PATH: path.join(source, '.playwright-browsers') };
   fs.mkdirSync(env.XDG_CONFIG_HOME, { recursive: true });
+  const spec = path.join(root, 'mydocs/specs/v1.0-browser-contract.md');
+  fs.mkdirSync(path.dirname(spec), { recursive: true });
+  fs.writeFileSync(spec, fs.readFileSync(path.join(root, 'spec.md'), 'utf8')
+    .replace(/^---\r?\n/, '---\nworkflow-policy: streamlined-v1\nmode: micro\nstatus: draft\n'));
   const previous = process.env.PLAYWRIGHT_BROWSERS_PATH;
   process.env.PLAYWRIGHT_BROWSERS_PATH = env.PLAYWRIGHT_BROWSERS_PATH;
   try {
@@ -26,7 +30,7 @@ test('playwright-test adapter completes a real Chromium smoke contract', { timeo
     const initialized = runCli(['verify', 'init', root, '--provider', 'web-e2e', '--adapter', 'playwright-test',
       '--workspace-root', '.', '--package-root', '.', '--config', 'playwright.config.js', '--project', 'chromium'], root);
     assert.equal(initialized.status, 0, initialized.output);
-    const result = runCli(['verify', 'run', root, '--spec', path.join(root, 'spec.md')], root);
+    const result = runCli(['verify', 'run', root, '--spec', spec], root);
     assert.equal(result.status, 0, result.output);
     assert.match(result.output, /gate=PASS/);
   } finally {

@@ -4,9 +4,7 @@ const { runSddCli } = require('./test-cli');
 const autonomyState = require('../../src/core/autonomy-state');
 
 function runCli(args, cwd) {
-  const legacyArgs = args[0] === 'discover' && !args.includes('--workflow-policy')
-    ? args.concat(['--workflow-policy', 'legacy-v1']) : args;
-  return runSddCli(legacyArgs, { cwd: cwd, env: process.env });
+  return runSddCli(args, { cwd: cwd, env: process.env });
 }
 
 function artifactPath(projectDir, specPath, field) {
@@ -41,18 +39,18 @@ function fillPlanGate(content) {
 }
 
 function authorizeAutoFixture(content) {
-  const riskSnapshot = autonomyState.riskFlagsSnapshot([]);
+  const riskSnapshot = autonomyState.riskSnapshot(content);
   let authorized = autonomyState.appendEvent(content, {
     eventId: 'fixture-task-authorization', eventType: 'task_authorization', mode: 'auto', decision: 'authorized',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot,
-    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer',
+    authorizedActors: 'main,worker,design-reviewer,challenge-reviewer',
     authorizedBy: 'human:fixture', authorizedAt: '2026-01-01T00:00:00Z',
     authorizationEvidence: 'fixture task authorization'
   });
   return autonomyState.appendEvent(authorized, {
     eventId: 'fixture-plan-activation', eventType: 'plan_activation', mode: 'auto', gate: 'Plan', decision: 'activated',
     scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: riskSnapshot, planDigest: autonomyState.planSnapshot(content),
-    authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
+    authorizedActors: 'main,worker,design-reviewer,challenge-reviewer', authorizedBy: 'agent:fixture',
     authorizedAt: '2026-01-01T00:00:01Z', authorizationEvidence: 'fixture plan activation'
   });
 }
@@ -93,6 +91,11 @@ function completionLog() {
     '## Execute Log',
     '',
     '---',
+    'Step 1:',
+    'Status: DONE',
+    'Verification: node --test tests/state-matrix.test.js',
+    'Timestamp: 2026-01-01T00:00:30Z',
+    '---',
     'Step: completion-verification',
     'Status: DONE',
     'Result: fixture verification complete.',
@@ -110,134 +113,54 @@ function completionLog() {
   ].join('\n');
 }
 
-function createArchiveReadyStandard(projectDir, taskName) {
+function createArchiveReady(projectDir, taskName, mode) {
   taskName = taskName || 'state-matrix';
   fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'standard', '--autonomy-mode', 'auto'], projectDir);
-  const discover = runCli([
-    'discover', projectDir,
-    '--task-name', taskName,
-    '--spec-version', 'v1.0',
-    '--requirement', 'state matrix fixture',
-    '--mode', 'standard',
-    '--autonomy-mode', 'auto'
-  ], projectDir);
-  if (discover.status !== 0) throw new Error(discover.output);
-
+  runCli(['init', projectDir, '--mode', mode, '--autonomy-mode', 'auto'], projectDir);
+  const created = runCli(['discover', projectDir, '--task-name', taskName, '--spec-version', 'v1.0',
+    '--requirement', 'state matrix fixture', '--mode', mode, '--autonomy-mode', 'auto'], projectDir);
+  if (created.status !== 0) throw new Error(created.output);
+  const specPath = path.join(projectDir, 'mydocs/specs/v1.0-' + taskName + '.md');
+  const designRel = 'mydocs/design/v1.0-' + taskName + '.design.md';
+  const logRel = 'mydocs/logs/v1.0-' + taskName + '.execute.md';
+  const designPath = path.join(projectDir, designRel);
+  const executeLogPath = path.join(projectDir, logRel);
   fs.mkdirSync(path.join(projectDir, 'tests'), { recursive: true });
-  fs.writeFileSync(path.join(projectDir, 'tests', 'state-matrix.test.js'), 'test fixture\n', 'utf-8');
-
-  const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-' + taskName + '.md');
-  const designPath = artifactPath(projectDir, specPath, 'design-file');
-  const executeLogPath = artifactPath(projectDir, specPath, 'execute-log-file');
-  let content = fs.readFileSync(specPath, 'utf-8');
+  fs.writeFileSync(path.join(projectDir, 'tests/state-matrix.test.js'), 'test fixture\n');
+  let content = fs.readFileSync(specPath, 'utf8')
+    .replace(/^Scope:.*$/m, 'Scope: fixture only')
+    .replace(/^Risks:.*$/m, 'Risks: reversible')
+    .replace(/^Risk Signals:.*$/m, 'Risk Signals: ' + (mode === 'micro' ? 'multi-step' : 'design-latitude'))
+    .replace(/^design-file:.*$/m, 'design-file: "' + designRel + '"')
+    .replace(/^execute-log-file:.*$/m, 'execute-log-file: "' + logRel + '"');
   content = fillPlanGate(content);
-  content = insertAfterHeading(content, 'Innovate Options', [
-    'Option A: fixture option. Pros: deterministic. Cons: test only.',
-    'Option B: no change. Pros: none. Cons: gates remain inconsistent.',
-    'Selected Option: Option A.'
-  ].join('\n'));
+  content = insertAfterHeading(content, 'Plan', 'Step: implement and verify fixture');
   content = insertAfterHeading(content, 'Acceptance Criteria', [
-    '### AC-001: fixture is archive ready',
-    'Requirement: state matrix fixture',
-    'Type: functional',
-    'Verification: unit',
-    'Automated: yes',
-    'Test: tests/state-matrix.test.js',
-    '',
-    'Scenario: fixture passes',
-    '  Given complete artifacts',
-    '  When validation runs',
-    '  Then archive readiness is true'
+    '### AC-001: fixture is archive ready', 'Requirement: state matrix fixture', 'Type: functional',
+    'Verification: unit', 'Automated: yes', 'Test: tests/state-matrix.test.js', '',
+    'Scenario: fixture passes', '  Given complete artifacts', '  When validation runs', '  Then archive readiness is true'
   ].join('\n'));
-  content = fillChallenge(content, 'PASS');
-  content = authorizeAutoFixture(content);
-  fs.writeFileSync(specPath, content, 'utf-8');
-
-  let design = fs.readFileSync(designPath, 'utf-8');
-  design = insertAfterHeading(design, 'Technical Design', designBody());
-  fs.writeFileSync(designPath, design, 'utf-8');
-  fs.writeFileSync(executeLogPath, completionLog(), 'utf-8');
-
+  const design = ['## Design', 'Approach: fixture option.', 'Impact: fixture only.',
+    'Interface / Data: markdown only.', 'Compatibility / Rollback: reversible fixture.', 'Verification: node:test.'].join('\n');
+  fs.mkdirSync(path.dirname(designPath), { recursive: true });
+  fs.mkdirSync(path.dirname(executeLogPath), { recursive: true });
+  fs.writeFileSync(designPath, design);
+  if (mode === 'standard') {
+    const digest = require('../../src/core/workflow-policy').designReviewDigest(content, design);
+    content = content.replace(/^Design Reviewed By:$/m, 'Design Reviewed By: subagent:design-fixture')
+      .replace(/^Design Reviewed At:$/m, 'Design Reviewed At: 2026-01-01T00:00:02Z')
+      .replace(/^Design Review Digest:$/m, 'Design Review Digest: ' + digest)
+      .replace(/^Design Review Summary:$/m, 'Design Review Summary: independent fixture review');
+  }
+  content = authorizeAutoFixture(fillChallenge(content, 'PASS'));
+  fs.writeFileSync(specPath, content);
+  fs.writeFileSync(executeLogPath, completionLog());
   return { projectDir, specPath, designPath, executeLogPath, taskName };
 }
 
-function createArchiveReadyLite(projectDir, taskName) {
-  taskName = taskName || 'state-matrix-lite';
-  fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'lite', '--autonomy-mode', 'auto'], projectDir);
-  const discover = runCli([
-    'discover', projectDir,
-    '--task-name', taskName,
-    '--spec-version', 'v1.0',
-    '--requirement', 'state matrix lite fixture',
-    '--mode', 'lite',
-    '--autonomy-mode', 'auto'
-  ], projectDir);
-  if (discover.status !== 0) throw new Error(discover.output);
-
-  const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-' + taskName + '.md');
-  const designPath = artifactPath(projectDir, specPath, 'design-file');
-  const executeLogPath = artifactPath(projectDir, specPath, 'execute-log-file');
-  let content = fs.readFileSync(specPath, 'utf-8');
-  content = fillPlanGate(content);
-  content = insertAfterHeading(content, 'Innovate Options', 'Option A: lite fixture option.');
-  content = insertAfterHeading(content, 'Acceptance Criteria', [
-    '### AC-001: lite fixture is archive ready',
-    'Requirement: lite state matrix fixture',
-    'Type: functional',
-    'Verification: unit',
-    'Automated: yes',
-    'Test: tests/state-matrix.test.js'
-  ].join('\n'));
-  content = fillChallenge(content, 'PASS');
-  content = authorizeAutoFixture(content);
-  fs.writeFileSync(specPath, content, 'utf-8');
-
-  let design = fs.readFileSync(designPath, 'utf-8');
-  design = insertAfterHeading(design, 'Design Note', [
-    'Approach: fixture approach.',
-    'Impact Scope: fixture only.',
-    'Interface / Data Impact: none.',
-    'Compatibility: compatible.',
-    'Risks: none.',
-    'Test Strategy: node:test.'
-  ].join('\n'));
-  fs.writeFileSync(designPath, design, 'utf-8');
-  fs.writeFileSync(executeLogPath, completionLog(), 'utf-8');
-  return { projectDir, specPath, designPath, executeLogPath, taskName };
-}
-
-function createArchiveReadyMicro(projectDir, taskName) {
-  taskName = taskName || 'state-matrix-micro';
-  fs.mkdirSync(projectDir, { recursive: true });
-  runCli(['init', projectDir, '--mode', 'micro', '--autonomy-mode', 'auto'], projectDir);
-  const discover = runCli([
-    'discover', projectDir,
-    '--task-name', taskName,
-    '--spec-version', 'v1.0',
-    '--requirement', 'state matrix micro fixture',
-    '--mode', 'micro',
-    '--autonomy-mode', 'auto'
-  ], projectDir);
-  if (discover.status !== 0) throw new Error(discover.output);
-
-  const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-' + taskName + '.md');
-  const executeLogPath = artifactPath(projectDir, specPath, 'execute-log-file');
-  let content = fs.readFileSync(specPath, 'utf-8');
-  content = fillPlanGate(content)
-    .replace(/^Selected Option:$/m, 'Selected Option: fixture option')
-    .replace(/^Impact Scope:$/m, 'Impact Scope: fixture only')
-    .replace(/^Data Impact:$/m, 'Data Impact: none')
-    .replace(/^Interface Impact:$/m, 'Interface Impact: none')
-    .replace(/^Acceptance:$/m, 'Acceptance: fixture passes')
-    .replace(/^Verification:$/m, 'Verification: node --test tests/state-matrix.test.js');
-  content = fillChallenge(content, 'PASS');
-  content = authorizeAutoFixture(content);
-  fs.writeFileSync(specPath, content, 'utf-8');
-  fs.writeFileSync(executeLogPath, completionLog(), 'utf-8');
-  return { projectDir, specPath, executeLogPath, taskName };
-}
+function createArchiveReadyStandard(projectDir, taskName) { return createArchiveReady(projectDir, taskName, 'standard'); }
+function createArchiveReadyLite(projectDir, taskName) { return createArchiveReady(projectDir, taskName || 'state-matrix-lite', 'lite'); }
+function createArchiveReadyMicro(projectDir, taskName) { return createArchiveReady(projectDir, taskName || 'state-matrix-micro', 'micro'); }
 
 function addLearningRecord(fixture) {
   const learningRel = 'mydocs/learnings/v1.0-' + fixture.taskName + '.learning.md';

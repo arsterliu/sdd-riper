@@ -1,35 +1,6 @@
 const providerReadiness = require('../verification/readiness');
 const artifactSnapshot = require('./artifact-snapshot');
 const common = require('../../lib/common');
-const learning = require('./learning');
-
-const CONFIRMED_REQUIREMENT_LABELS = [
-  'Scope Boundary',
-  'Irreversibility',
-  'Impact Radius',
-  'Dependencies & Constraints',
-  'Acceptance Intent'
-];
-
-const STANDARD_DESIGN_LABELS = [
-  'Selected Option / ADR',
-  'Requirement Traceability',
-  'Impact Scope',
-  'Architecture View',
-  'Data Model / Schema',
-  'Interface Contract',
-  'Compatibility / Rollback',
-  'Test Strategy'
-];
-
-const LITE_DESIGN_LABELS = [
-  'Approach',
-  'Impact Scope',
-  'Interface / Data Impact',
-  'Compatibility',
-  'Risks',
-  'Test Strategy'
-];
 
 function governanceContract() {
   return require('./governance-contract');
@@ -38,12 +9,6 @@ function governanceContract() {
 function sectionText(content, heading) {
   const escaped = String(heading).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const match = String(content || '').match(new RegExp('^## ' + escaped + '\\s*\\r?\\n([\\s\\S]*?)(?=^## |$(?![\\s\\S]))', 'm'));
-  return match ? match[1] : '';
-}
-
-function subsectionText(content, heading) {
-  const escaped = String(heading).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const match = String(content || '').match(new RegExp('^### ' + escaped + '\\s*\\r?\\n([\\s\\S]*?)(?=^### |^## |$(?![\\s\\S]))', 'm'));
   return match ? match[1] : '';
 }
 
@@ -70,71 +35,6 @@ function planApprovalFacts(content, autonomyMode) {
     satisfied: !!approvedAt && (autonomyMode === 'auto'
       ? (human || (agent && !!evidence))
       : human)
-  };
-}
-
-function confirmedRequirementText(content, mode) {
-  if (mode === 'standard') {
-    return subsectionText(sectionText(content, 'Research'), 'Confirmed Requirement');
-  }
-  if (mode === 'micro') {
-    return sectionText(content, 'Confirmed Requirement');
-  }
-  if (mode === 'lite') {
-    const current = sectionText(content, 'Confirmed Requirement');
-    return firstRealLine(current)
-      ? current
-      : subsectionText(sectionText(content, 'Research'), 'Confirmed Requirement');
-  }
-  return '';
-}
-
-function researchFacts(content, mode) {
-  const confirmedRequirement = confirmedRequirementText(content, mode);
-  const reviewedBy = artifactSnapshot.labelValue(content, 'Research Reviewed By');
-  const reviewedAt = artifactSnapshot.labelValue(content, 'Research Reviewed At');
-  return {
-    intakePresent: !!firstRealLine(sectionText(content, 'Intake')),
-    confirmedRequirement: {
-      present: !!firstRealLine(confirmedRequirement),
-      missingLabels: CONFIRMED_REQUIREMENT_LABELS.filter(function(label) {
-        return !artifactSnapshot.labelValue(confirmedRequirement, label);
-      }),
-      gateMissingLabels: CONFIRMED_REQUIREMENT_LABELS.filter(function(label) {
-        return !artifactSnapshot.labelValue(confirmedRequirement, label);
-      })
-    },
-    reviewer: {
-      reviewedBy: reviewedBy,
-      reviewedAt: reviewedAt,
-      auditable: governanceContract().isAuditableReviewer(mode, reviewedBy),
-      timestampValid: !!reviewedAt && !Number.isNaN(Date.parse(reviewedAt))
-    }
-  };
-}
-
-function innovateFacts(content, mode) {
-  const innovate = sectionText(content, 'Innovate Options');
-  const skipped = /Innovate:\s*Skipped/i.test(innovate);
-  return {
-    present: !!firstRealLine(innovate),
-    skipped: skipped,
-    skipReasonPresent: /Reason:\s*\S/i.test(innovate),
-    required: mode !== 'micro'
-  };
-}
-
-function designFacts(snapshot, mode) {
-  const labels = mode === 'lite' ? LITE_DESIGN_LABELS : STANDARD_DESIGN_LABELS;
-  const design = snapshot.design || {};
-  const content = sectionText(design.content || '', mode === 'lite' ? 'Design Note' : 'Technical Design');
-  return {
-    required: mode !== 'micro',
-    exists: !!design.exists,
-    present: !!firstRealLine(content),
-    missingLabels: labels.filter(function(label) {
-      return !artifactSnapshot.labelValue(content, label);
-    })
   };
 }
 
@@ -191,36 +91,6 @@ function acceptanceFacts(content, mode) {
     };
   });
   return { present: !!firstRealLine(section), blocks: normalizedBlocks, issues: issues };
-}
-
-function microPlanFacts(content) {
-  const plan = sectionText(content, 'Plan');
-  return {
-    missingLabels: governanceContract().modeFields('micro').required.filter(function(label) {
-      return !artifactSnapshot.labelValue(plan, label);
-    })
-  };
-}
-
-function executionFacts(snapshot) {
-  const executeLog = snapshot.executeLog || {};
-  const content = executeLog.content || '';
-  return {
-    exists: !!executeLog.exists,
-    present: !!firstRealLine(sectionText(content, 'Execute Log'))
-  };
-}
-
-function completionFacts(snapshot) {
-  const content = snapshot.executeLog && snapshot.executeLog.content || '';
-  return { done: common.completionVerificationDone(content) };
-}
-
-function learningFacts(snapshot) {
-  const content = snapshot.content || '';
-  const executeLog = snapshot.executeLog && snapshot.executeLog.content || '';
-  const verdict = artifactSnapshot.labelValue(content, 'Challenge Verdict').toUpperCase();
-  return { triggers: learning.learningTriggers(content, executeLog, verdict) };
 }
 
 function normalizeCoverageTestValue(value) {
@@ -417,15 +287,8 @@ function collectGateFacts(snapshot, options) {
   return freezeDeep({
     location: snapshot.location,
     mode: snapshot.mode || 'standard',
-    research: researchFacts(snapshot.content || '', snapshot.mode || 'standard'),
-    innovate: innovateFacts(snapshot.content || '', snapshot.mode || 'standard'),
-    design: designFacts(snapshot, snapshot.mode || 'standard'),
     acceptance: acceptance,
     planApproval: planApprovalFacts(snapshot.content || '', snapshot.autonomyMode || 'supervised'),
-    microPlan: microPlanFacts(snapshot.content || ''),
-    execution: executionFacts(snapshot),
-    completion: completionFacts(snapshot),
-    learning: learningFacts(snapshot),
     acCoverage: acCoverageFacts(snapshot, acceptance),
     providerReadiness: providerFacts
   });
@@ -433,7 +296,6 @@ function collectGateFacts(snapshot, options) {
 
 module.exports = {
   collectGateFacts,
-  confirmedRequirementText: confirmedRequirementText,
   hasSubstantiveContent: function(content) { return !!firstRealLine(content); },
   planApprovalFacts: planApprovalFacts,
   acCoverageRecords: acCoverageRecords,

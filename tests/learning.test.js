@@ -26,11 +26,11 @@ describe('learning trigger policy', function() {
     });
   }
 
-  it('preserves concerns and reopened work even with routine corrections', function() {
+  it('preserves concerns while retired reopen metadata cannot trigger Learning', function() {
     for (const log of ['', routine]) {
       assert.deepStrictEqual(learningTriggers('', log, 'PASS_WITH_CONCERNS'), ['PASS_WITH_CONCERNS challenge verdict']);
-      assert.deepStrictEqual(learningTriggers('reopened-from: "mydocs/archive/previous.md"', log, 'PASS'), ['reopened archived work']);
-      assert.deepStrictEqual(learningTriggers('Reopened from archived context', log, 'PASS'), ['reopened archived work']);
+      assert.deepStrictEqual(learningTriggers('reopened-from: "mydocs/archive/previous.md"', log, 'PASS'), []);
+      assert.deepStrictEqual(learningTriggers('Reopened from archived context', log, 'PASS'), []);
     }
   });
 });

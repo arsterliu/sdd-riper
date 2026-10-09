@@ -26,7 +26,7 @@ function assertCommandRejectsWithoutWriting(projectDir, args, specPath, errorPat
 }
 
 test('三种 Spec 模板包含空的视觉 Context 选择字段', function() {
-  ['spec-standard.md', 'spec-lite.md', 'spec-micro.md'].forEach(function(name) {
+  ['spec-streamlined.md'].forEach(function(name) {
     const template = fs.readFileSync(path.join(__dirname, '..', 'templates', name), 'utf-8');
     assert.match(template, /^ui-impact: ""$/m);
     assert.match(template, /^visual-context-intent: ""$/m);

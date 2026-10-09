@@ -46,9 +46,11 @@ function runEntry(projectDir, state, opts) {
 
 function appendRun(projectDir, state, opts) {
   if (!state.specPath) throw new Error('Cannot record cruise run without an active spec.');
+  require('./workflow-policy').assertActive(projectDir, state.specPath);
   var dir = runsDir(projectDir);
-  fs.mkdirSync(dir, { recursive: true });
   var file = ledgerPath(projectDir, state.specPath);
+  require('./workflow-policy').assertWritableArtifact(projectDir, file);
+  fs.mkdirSync(dir, { recursive: true });
   var entry = runEntry(projectDir, state, opts);
   fs.appendFileSync(file, JSON.stringify(entry) + '\n', 'utf-8');
   return {

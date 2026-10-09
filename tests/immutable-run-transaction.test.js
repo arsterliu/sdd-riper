@@ -16,6 +16,23 @@ function collision(code) {
   };
 }
 
+test('verification and visual transactions reject run directories aliased into archive before writing', t => {
+  const transaction = require('../src/verification/immutable-run-transaction');
+  for (const namespace of ['verification', 'visual']) {
+    const project = root();
+    t.after(() => fs.rmSync(project, { recursive: true, force: true }));
+    const archive = path.join(project, 'mydocs/archive');
+    fs.mkdirSync(archive, { recursive: true });
+    fs.writeFileSync(path.join(archive, 'historical.md'), '历史原文');
+    fs.symlinkSync(archive, path.join(project, 'mydocs/runs'), process.platform === 'win32' ? 'junction' : 'dir');
+    const commit = transaction.createImmutableRunCommitter(namespace, collision('RUN_ALREADY_EXISTS'));
+    assert.throws(() => commit(project, 'mydocs', { runId: 'blocked', attachments: [] }, project, []),
+      error => error.code === 'SDD_ARTIFACT_READ_ONLY');
+    assert.deepEqual(fs.readdirSync(archive), ['historical.md']);
+    assert.equal(fs.readFileSync(path.join(archive, 'historical.md'), 'utf8'), '历史原文');
+  }
+});
+
 test('共享 immutable transaction 保持 staging、wx、附件、collision 与清理顺序', () => {
   const transaction = require('../src/verification/immutable-run-transaction');
   assert.equal(typeof transaction.createImmutableRunCommitter, 'function');

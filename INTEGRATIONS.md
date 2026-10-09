@@ -42,7 +42,7 @@ SDD 自有协议不走外部方法 fallback 链。技能不可用或用户禁止
 
 SDD-RIPER 的子 agent 接收有界证据调查或工作包，返回压缩结论；主 agent 始终掌握控制面决策。
 
-**独立审查按 Spec 策略触发**：无 `workflow-policy` 的旧任务保留 standard/lite Research / Challenge 独立审查及 micro 的 inline Challenge。`streamlined-v1` 的低风险任务依靠新鲜验证，中风险完成后独立 Challenge，高风险另在实施前独立 Design 审查。独立 reviewer 使用可审计的 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；自动 reviewer 仅在当前新鲜任务 / Plan 授权包含对应 actor，或当前用户明确授权时启动。
+**独立审查按风险触发**：活动任务只支持 `streamlined-v1`；缺失、旧版或未知格式明确停止执行。低风险任务依靠新鲜验证，中风险完成后独立 Challenge，高风险另在实施前独立 Design 审查。独立 reviewer 使用可审计的 `subagent:<id>`、`external-agent:<id>` 或 `human:<name>`；自动 reviewer 仅在当前新鲜任务 / Plan 授权包含对应 actor，或当前用户明确授权时启动。历史归档永久只读，后续修复用普通 discover 新建独立任务并引用历史 Context，不继承审批和授权。
 
 **普通工作是否派发**：依据任务边界、上下文成本与独立证据价值判断；文件数、行数与 mode 本身都不是派发门槛。内联实现与另派独立 reviewer 可以同时成立。
 

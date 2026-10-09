@@ -189,16 +189,12 @@ test('high-risk Design review is required and becomes stale when Design changes'
   assert.match(specState.evaluate(snapshot(late, additions)).blockers.map(b => b.message).join('\n'), /review must precede implementation/);
 });
 
-test('legacy content keeps the prior digest and gate behavior', () => {
+test('missing policy is rejected and a body mention cannot spoof current format', () => {
   const old = spec('micro', 'none').replace('workflow-policy: streamlined-v1\n', '');
-  assert.equal(policy.version(old), 'legacy-v1');
-  assert.equal(autonomy.scopeSnapshot(old), autonomy.scopeSnapshot(old.replace('## Intake', '## Intake').replace('Scope: 局部修改', 'Scope: 局部修改')));
-  const result = specState.evaluate(snapshot(old));
-  assert.equal(result.policy, undefined);
-  assert.match(result.blockers.map(b => b.message).join('\n'), /Execute Log/);
-  const bodyMention = old + '\n## Research\n引用：workflow-policy: streamlined-v1\n';
-  assert.equal(policy.version(bodyMention), 'legacy-v1');
-  assert.equal(specState.evaluate(snapshot(bodyMention)).policy, undefined);
+  for (const content of [old, old + '\n## Research\n引用：workflow-policy: streamlined-v1\n']) {
+    assert.equal(policy.version(content), '');
+    assert.match(specState.evaluate(snapshot(content)).blockers.map(b => b.message).join('\n'), /SDD_WORKFLOW_POLICY_UNSUPPORTED/);
+  }
   const spoofMode = spec('micro', 'none').replace('autonomy-mode: human\n', '') + '\n## Notes\nautonomy-mode: human\n';
   assert.equal(autonomy.resolve(spoofMode).mode, '');
 });
@@ -264,7 +260,7 @@ test('status, index, inspection and execution review follow policy rather than l
   assert.equal(codeFiles && codeFiles[1], 'src/example.js');
 });
 
-test('discover defaults to the compact policy and can explicitly create legacy Specs', t => {
+test('discover creates only current Specs and rejects a legacy policy switch', t => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-streamlined-discover-'));
   t.after(() => fs.rmSync(root, { recursive: true, force: true }));
   const cli = path.resolve(__dirname, '../bin/cli.js');
@@ -278,9 +274,8 @@ test('discover defaults to the compact policy and can explicitly create legacy S
   assert.equal(fs.existsSync(path.join(root, 'mydocs/logs/v1.0-fresh.execute.md')), false);
   const legacy = run(['discover', root, '--task-name', 'old', '--spec-version', 'v1.1',
     '--requirement', '旧任务', '--context', 'none', '--workflow-policy', 'legacy-v1']);
-  assert.equal(legacy.status, 0, legacy.stdout + legacy.stderr);
-  assert.doesNotMatch(fs.readFileSync(path.join(root, 'mydocs/specs/v1.1-old.md'), 'utf8'), /^workflow-policy:/m);
-  assert.equal(fs.existsSync(path.join(root, 'mydocs/logs/v1.1-old.execute.md')), true);
+  assert.notEqual(legacy.status, 0);
+  assert.equal(fs.existsSync(path.join(root, 'mydocs/specs/v1.1-old.md')), false);
 });
 
 test('auto authorization grants only reviewers required by the new risk tier', t => {
@@ -337,7 +332,7 @@ test('low-risk task archives without optional Design, Execute Log, or Challenge'
   assert.match(fs.readFileSync(path.join(root, 'mydocs', 'archive', 'index.md'), 'utf8'), /\| PASS \|/);
   const reopened = spawnSync(process.execPath, [cli, 'reopen', root, 'low', '--defect', '回归缺陷'],
     { cwd: root, encoding: 'utf8' });
-  assert.equal(reopened.status, 0, reopened.stdout + reopened.stderr);
-  assert.match(fs.readFileSync(path.join(specsDir, 'v1.0-low.md'), 'utf8'), /^workflow-policy: streamlined-v1$/m);
+  assert.notEqual(reopened.status, 0);
+  assert.equal(fs.existsSync(path.join(specsDir, 'v1.0-low.md')), false);
   assert.equal(fs.existsSync(path.join(root, 'mydocs/logs/v1.0-low.execute.md')), false);
 });

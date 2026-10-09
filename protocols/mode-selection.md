@@ -10,7 +10,7 @@ human or agent who chooses the mode at `init` / `discover` time.
 New Specs default to `workflow-policy: streamlined-v1`. Record actual signals
 in `Intake` as `Risk Signals`; the CLI uses them to raise the minimum gate tier
 even when `--mode micro` was chosen. `lite` and `standard` can only increase
-the required gates. Unmarked legacy Specs keep their old mode gates.
+the required gates. Missing, legacy and unknown workflow policies are rejected for active execution; historical archives remain read-only.
 
 Use `none` alone for a localized, reversible, single-concern task. Medium
 signals are `cross-module`, `design-latitude`, and `multi-scenario`; add
@@ -22,7 +22,7 @@ signals are `cross-module`, `design-latitude`, and `multi-scenario`; add
 
 Start every task at `micro` unless a signal below pushes it up. Micro keeps the
 plan, acceptance, and verification embedded in one spec and skips the external
-Technical Design / Design Note — appropriate for localized, reversible, single
+Design — appropriate for localized, reversible, single
 -concern changes.
 
 ## Escalation signals
@@ -43,11 +43,11 @@ Count the signals that genuinely apply to the task in front of you:
 - **micro** — zero or essentially one weak signal. Localized, reversible,
   obvious approach. (e.g. fix a guard, adjust a message, delete dead code.)
 - **lite** — one or two signals, especially *blast radius* or *design latitude*,
-  but the design fits in a short Design Note. (e.g. refactor one command's
+  but the design fits in a short Design. (e.g. refactor one command's
   behavior with a recorded approach + acceptance criteria.)
 - **standard** — escalate **only when it is genuinely earned**: an interface
   contract or reversibility/risk signal is present, *or* three or more signals
-  stack up so an external Technical Design (architecture view, data model,
+  stack up so an external Design (architecture view, data model,
   rollback plan) actually adds value. If you cannot name *which* signal earns
   `standard`, it is not a `standard` task.
 
@@ -57,7 +57,7 @@ Count the signals that genuinely apply to the task in front of you:
   irreversibility, risk, or stacked signals.
 - Choosing `micro` for a public-API or migration change to avoid the design work.
 - Treating the mode as fixed: if the work reveals a stronger signal mid-flight,
-  reopen at a higher mode rather than stretching a thin spec.
+  reassess Risk Signals and obtain fresh authorization before continuing; archived tasks require a new discover task.
 
 Passing a mode's gates proves the *artifacts are present*, not that the work is
 rigorous. Match the mode to the risk, not the other way around.

@@ -48,8 +48,7 @@ function resolveSpec(projectDir, spec) {
 }
 
 function runtimeRiskSnapshot(projectDir, spec, content) {
-  if (workflowPolicy.version(content) === workflowPolicy.STREAMLINED) return state.riskSnapshot(content);
-  return state.riskFlagsSnapshot(workflow.computeRiskFlags(path.resolve(projectDir), spec, content));
+  return state.riskSnapshot(content);
 }
 
 function writeFailure(error) {
@@ -62,7 +61,9 @@ function inspect(projectDir, opts) {
   console.log('AUTONOMY_CONFIG_STATE: ' + (configState.ok ? 'ready' : 'migration_required'));
   if (configState.ok) console.log('AUTONOMY_MODE: ' + configState.mode);
   if (opts.spec) {
-    const spec = resolveSpec(projectDir, opts.spec);
+    let spec;
+    try { spec = workflowPolicy.assertActive(projectDir, resolveSpec(projectDir, opts.spec)); }
+    catch (error) { writeFailure(error); return; }
     const content = fs.readFileSync(spec, 'utf-8');
     const resolved = state.resolve(content, { riskSnapshot: runtimeRiskSnapshot(projectDir, spec, content) });
     console.log('SPEC_AUTONOMY_MODE: ' + resolved.mode);
@@ -144,13 +145,9 @@ function authorize(projectDir, opts) {
       if (mode === 'supervised' && !workflowGateFacts.planApprovalFacts(content, mode).human) { const e = new Error('supervised automation requires a human-approved Plan'); e.code = 'SDD_AUTONOMY_PLAN_APPROVAL_REQUIRED'; throw e; }
       if (mode === 'supervised' && opts.expectedPlanDigest !== plan) { const e = new Error('expected Plan digest does not match'); e.code = 'SDD_AUTONOMY_AUTHORIZATION_STALE'; throw e; }
       const now = new Date().toISOString();
-      const reviewerActors = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
-        ? (() => {
-          const policy = workflowPolicy.evaluate(content, workflowPolicy.frontmatter(content, 'mode') || 'micro');
-          return ['main', 'worker', ...(policy.requiresDesignReview ? ['design-reviewer'] : []),
-            ...(policy.requiresCompletionReview ? ['challenge-reviewer'] : [])].join(',');
-        })()
-        : 'main,worker,research-reviewer,challenge-reviewer';
+      const policy = workflowPolicy.evaluate(content, workflowPolicy.frontmatter(content, 'mode') || 'micro');
+      const reviewerActors = ['main', 'worker', ...(policy.requiresDesignReview ? ['design-reviewer'] : []),
+        ...(policy.requiresCompletionReview ? ['challenge-reviewer'] : [])].join(',');
       return state.appendEvent(content, {
         eventId: 'evt-' + now.replace(/[^0-9]/g, ''), eventType: mode === 'auto' ? 'task_authorization' : 'plan_authorization',
         mode, gate: mode === 'supervised' ? 'Plan' : '', decision: 'authorized', scopeDigest: actual,

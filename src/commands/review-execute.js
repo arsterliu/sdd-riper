@@ -20,8 +20,6 @@ function git(projectDir, args, capture) {
 
 var SECTION = {
   intake: 'Intake',
-  technicalDesign: 'Technical Design',
-  designNote: 'Design Note',
   acceptanceCriteria: 'Acceptance Criteria',
   plan: 'Plan',
   executeLog: 'Execute Log'
@@ -123,10 +121,11 @@ function run(projectDir, opts) {
     }
   }
   var mode = specPath && fs.existsSync(specPath) ? common.getFrontmatterField(specPath, 'mode') || 'standard' : 'standard';
-  var policy = specPath && fs.existsSync(specPath)
-    ? workflowPolicy.version(fs.readFileSync(specPath, 'utf8')) === workflowPolicy.STREAMLINED
-      ? workflowPolicy.evaluate(fs.readFileSync(specPath, 'utf8'), mode) : null
-    : null;
+  if (specPath) {
+    try { specPath = workflowPolicy.assertActive(projectDir, path.resolve(projectDir, specPath)); }
+    catch (error) { console.error(error.message); process.exitCode = 3; return; }
+  }
+  var policy = specPath ? workflowPolicy.evaluate(fs.readFileSync(specPath, 'utf8'), mode) : null;
   var intakeContent = '(section not found)';
   var axis0Note = '';
   if (specPath && fs.existsSync(specPath)) { var ic = common.extractSection(specPath, SECTION.intake, 80); if (ic) intakeContent = ic; }
@@ -139,26 +138,10 @@ function run(projectDir, opts) {
       designContent = designPath && fs.existsSync(designPath)
         ? common.extractSection(designPath, 'Design', 120) || '(empty Design)'
         : (policy.requiresDesign ? '(missing Design file)' : '(Design not required for this risk tier)');
-    } else if (mode === 'standard') {
-      designContent = designPath && fs.existsSync(designPath)
-        ? common.extractSection(designPath, SECTION.technicalDesign, 120) || '(empty Technical Design)'
-        : common.extractSection(specPath, SECTION.technicalDesign, 120) || '(missing Technical Design file)';
-    } else if (mode === 'lite') {
-      designContent = designPath && fs.existsSync(designPath)
-        ? common.extractSection(designPath, SECTION.designNote, 80) || '(empty Design Note)'
-        : common.extractSection(specPath, SECTION.designNote, 80) || '(missing Design Note file)';
-    } else {
-      designContent = '(micro mode: design and acceptance are embedded in Plan)';
     }
   }
-  var acceptanceContent = '(not applicable)';
-  if (specPath && fs.existsSync(specPath)) {
-    if (policy || mode === 'standard' || mode === 'lite') {
-      acceptanceContent = common.extractSection(specPath, SECTION.acceptanceCriteria, 120) || '(empty Acceptance Criteria)';
-    } else {
-      acceptanceContent = '(micro mode: verify Impact Scope, Data Impact, Interface Impact, Acceptance, and Verification labels in Plan)';
-    }
-  }
+  var acceptanceContent = specPath ? common.extractSection(specPath, SECTION.acceptanceCriteria, 120) || '(empty Acceptance Criteria)' : '(not applicable)';
+
   var planContent = '(no spec)';
   if (specPath && fs.existsSync(specPath)) { var pc = common.extractSection(specPath, SECTION.plan, 100); planContent = pc || '(empty)'; }
   var diffContent = '(no git diff)';

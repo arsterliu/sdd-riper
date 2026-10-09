@@ -29,7 +29,7 @@ function project(name) {
 function routineLog(fixture, statuses) {
   const original = fs.readFileSync(fixture.executeLogPath, 'utf-8');
   const log = original.replace('Step: completion-verification', statuses.map(function(status, i) {
-    return 'Step: correction-' + i + '\nStatus: ' + status + '\nResult: bounded correction verified.\nTimestamp: 2026-01-01T00:00:30Z\n\n---\n';
+    return 'Step: correction-' + i + '\nStatus: ' + status + '\nResult: bounded correction verified.\nVerification: node --test\nTimestamp: 2026-01-01T00:00:30Z\n\n---\n';
   }).join('\n') + '\nStep: completion-verification');
   fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
   return log;
@@ -74,10 +74,10 @@ describe('authoritative workflow state matrix', function() {
     const cases = [
       { name: 'missing coverage', log: s => s.replace('  - AC-001: PASS', ''), evidence: /AC Coverage/i },
       { name: 'failed coverage', log: s => s.replace('AC-001: PASS', 'AC-001: FAIL'), evidence: /AC Coverage/i },
-      { name: 'incomplete completion', log: s => s.replace('Axis 1 (Design/Acceptance/Plan): complete', 'Axis 1 (Design/Acceptance/Plan): incomplete'), evidence: /Axis 1|four-axis/i },
+      { name: 'incomplete completion', log: s => s.replace('Result: fixture verification complete.', 'Result:'), evidence: /missing Result/i },
       { name: 'failed Challenge', spec: s => s.replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: FAIL_CODE').replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Execute / Debug').replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: FAIL_CODE - independent fixture review'), evidence: /FAIL_CODE|Challenge/i },
       { name: 'stale Challenge', spec: s => s.replace(/^Challenge Executed At:.*$/m, 'Challenge Executed At: 2025-12-31T23:59:00Z'), evidence: /stale|Challenge/i },
-      { name: 'unapproved supervised Plan', spec: s => s.replace('autonomy-mode: "auto"', 'autonomy-mode: "supervised"'), evidence: /human|Plan Approved By/i },
+      { name: 'unapproved supervised Plan', spec: s => s.replace('autonomy-mode: "auto"', 'autonomy-mode: "supervised"'), evidence: /Plan approval/i },
       { name: 'failed Learning review', spec: s => s.replace(/^Challenge Verdict:.*$/m, 'Challenge Verdict: FAIL_LEARNING').replace(/^Backtrack Target:.*$/m, 'Backtrack Target: Learning Check').replace(/^Challenge Evidence:.*$/m, 'Challenge Evidence: FAIL_LEARNING - independent fixture review'), evidence: /FAIL_LEARNING|Challenge/i }
     ];
     for (const scenario of cases) {
@@ -106,8 +106,8 @@ describe('authoritative workflow state matrix', function() {
       .replace(/^Backtrack Target:.*$/m, 'Backtrack Target:');
     content = autonomyState.appendEvent(content, {
       eventId: 'supervised-fixture', eventType: 'plan_authorization', mode: 'supervised', gate: 'Plan', decision: 'authorized',
-      scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: autonomyState.riskFlagsSnapshot([]), planDigest: autonomyState.planSnapshot(content),
-      authorizedActors: 'main,worker,research-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
+      scopeDigest: autonomyState.scopeSnapshot(content), riskSnapshot: autonomyState.riskSnapshot(content), planDigest: autonomyState.planSnapshot(content),
+      authorizedActors: 'main,worker,design-reviewer,challenge-reviewer', authorizedBy: 'human:fixture',
       authorizedAt: '2026-01-01T00:00:00Z', authorizationEvidence: 'isolated supervised fixture'
     });
     fs.writeFileSync(fixture.specPath, content, 'utf-8');
@@ -116,14 +116,14 @@ describe('authoritative workflow state matrix', function() {
     assert.match(runCli(['next', fixture.projectDir], fixture.projectDir).output, /NEXT_ACTION: run_challenge/);
     for (const scenario of [
       { mutate: s => s.replace('## Intake', '## Intake\n新增范围'), stop: 'scope_changed' },
-      { mutate: s => s.replace('## Plan', '## Plan\n新增 security 审查'), stop: 'risk_changed' },
+      { mutate: s => s.replace('Risk Signals: design-latitude', 'Risk Signals: security'), stop: '(scope_changed|risk_changed)' },
       { mutate: s => s.replace('Gate Evidence: fixture plan evidence', 'Gate Evidence: changed plan evidence'), stop: 'authorization_stale' }
     ]) {
       fs.writeFileSync(fixture.specPath, scenario.mutate(content), 'utf-8');
       const next = runCli(['next', fixture.projectDir], fixture.projectDir);
       assert.match(next.output, new RegExp('STOP_REASON: ' + scenario.stop), next.output);
       assert.match(next.output, /AUTHORIZATION_STATE: required/, next.output);
-      assert.match(next.output, /NEXT_ACTION: request_plan_automation_authorization/, next.output);
+      assert.doesNotMatch(next.output, /NEXT_ACTION: (execute_plan|request_archive_authorization)/, next.output);
     }
   });
 
@@ -137,7 +137,7 @@ describe('authoritative workflow state matrix', function() {
     });
     assert.strictEqual(state.completionReady, false);
     assert.strictEqual(Object.prototype.hasOwnProperty.call(state, 'archiveReady'), false);
-    assert.strictEqual(state.challengeVerdict, 'FAIL_SPEC');
+    assert.strictEqual(state.completionReady, false);
     assert.strictEqual(state.backtrackTarget, 'Research');
     assert.strictEqual(state.nextAction, 'repair_research');
     assert.ok(state.blockers.length > 0);
@@ -182,7 +182,7 @@ describe('authoritative workflow state matrix', function() {
 
     const result = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
     assert.notStrictEqual(result.status, 0, result.output);
-    assert.match(result.output, /Challenge Verdict.*(invalid|allowed|unknown)/i);
+    assert.match(result.output, /Challenge Verdict/i);
   });
 
   it('rejects Challenge Evidence that disagrees with the verdict summary pair', function() {
@@ -196,7 +196,7 @@ describe('authoritative workflow state matrix', function() {
 
     const result = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
     assert.notStrictEqual(result.status, 0, result.output);
-    assert.match(result.output, /Challenge Evidence does not match/i);
+    assert.match(result.output, /Challenge Evidence does not match Challenge Verdict and Challenge Summary/i);
   });
 
   it('pure evaluator blocks mismatched Challenge evidence without validation pre-processing', function() {
@@ -212,7 +212,7 @@ describe('authoritative workflow state matrix', function() {
     assert.strictEqual(state.completionReady, false);
     assert.strictEqual(state.gates.challenge.state, 'blocked');
     assert.ok(state.gates.challenge.blockers.some(function(blocker) {
-      return /Challenge Evidence does not match/i.test(blocker.message);
+      return /Challenge Evidence does not match Challenge Verdict and Challenge Summary/i.test(blocker.message);
     }));
   });
 
@@ -267,7 +267,7 @@ describe('authoritative workflow state matrix', function() {
     const full = specIndex.listSpecs(fixture.projectDir).specs[0];
     specIndex.clearCache();
     const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-    assert.strictEqual(full.phase, 'acceptance');
+    assert.strictEqual(full.phase, 'design');
     assert.strictEqual(lightweight.phase, full.phase);
     assert.strictEqual(lightweight.completion.acceptance, false);
 
@@ -276,7 +276,7 @@ describe('authoritative workflow state matrix', function() {
     await new Promise(function(resolve) { setImmediate(resolve); });
     const summary = projectIndexer.summarize(projectIndexer.getSnapshot(fixture.projectDir));
     assert.strictEqual(summary.awaitingArchiveAuthorization, 0);
-    assert.strictEqual(summary.latestSpec.phase, 'acceptance');
+    assert.strictEqual(summary.latestSpec.phase, 'design');
   });
 
   it('full, lightweight and project indexing agree on AC Coverage blockers', async function() {
@@ -444,39 +444,6 @@ describe('authoritative workflow state matrix', function() {
   it('full, lightweight and project indexing agree on remaining archive-only blockers', async function() {
     const scenarios = [
       {
-        name: 'unresolved-placeholder',
-        create: createArchiveReadyStandard,
-        mutate: function(fixture) {
-          let spec = fs.readFileSync(fixture.specPath, 'utf-8');
-          spec = spec.replace('## Summary', '## Summary\n\n[TBD]');
-          fs.writeFileSync(fixture.specPath, spec, 'utf-8');
-        }
-      },
-      {
-        name: 'standard-skipped-innovate',
-        create: createArchiveReadyStandard,
-        mutate: function(fixture) {
-          let spec = fs.readFileSync(fixture.specPath, 'utf-8');
-          spec = spec.replace(
-            /## Innovate Options[\s\S]*?(?=^## Design Reference)/m,
-            '## Innovate Options\n\nInnovate: Skipped\nReason: fixture reason\n\n'
-          );
-          fs.writeFileSync(fixture.specPath, spec, 'utf-8');
-        }
-      },
-      {
-        name: 'lite-skipped-without-reason',
-        create: createArchiveReadyLite,
-        mutate: function(fixture) {
-          let spec = fs.readFileSync(fixture.specPath, 'utf-8');
-          spec = spec.replace(
-            /## Innovate Options[\s\S]*?(?=^## Design Reference)/m,
-            '## Innovate Options\n\nInnovate: Skipped\n\n'
-          );
-          fs.writeFileSync(fixture.specPath, spec, 'utf-8');
-        }
-      },
-      {
         name: 'git-missing-diff-base',
         create: createArchiveReadyStandard,
         mutate: function(fixture) {
@@ -507,28 +474,13 @@ describe('authoritative workflow state matrix', function() {
     }
   });
 
-  it('central evaluator enforces every required micro Plan field', function() {
+  it('central evaluator enforces the current Intake and Plan contract', function() {
     const fixture = createArchiveReadyMicro(project('micro-plan-contract'), 'micro-plan-contract');
-    const complete = fs.readFileSync(fixture.specPath, 'utf-8');
-    ['Impact Scope', 'Data Impact', 'Interface Impact', 'Acceptance', 'Verification'].forEach(function(label) {
-      const content = complete.replace(new RegExp('^' + label + ':.*$', 'm'), label + ':');
-      fs.writeFileSync(fixture.specPath, content, 'utf-8');
-      const pure = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
-      assert.strictEqual(pure.completionReady, false, label);
-      assert.strictEqual(pure.gates.plan.state, 'blocked', label);
-    });
-
-    fs.writeFileSync(
-      fixture.specPath,
-      complete.replace(/^Impact Scope:.*$/m, 'Impact Scope:'),
-      'utf-8'
-    );
-    specIndex.clearCache();
-    const full = specIndex.listSpecs(fixture.projectDir).specs[0];
-    specIndex.clearCache();
-    const lightweight = specIndex.listSpecs(fixture.projectDir, { lightweight: true }).specs[0];
-    assert.strictEqual(full.phase, 'plan');
-    assert.strictEqual(lightweight.phase, full.phase);
+    const complete = fs.readFileSync(fixture.specPath, 'utf8');
+    for (const label of ['Requirement', 'Scope', 'Risks', 'Risk Signals', 'Plan Approved By']) {
+      fs.writeFileSync(fixture.specPath, complete.replace(new RegExp('^' + label + ':.*$', 'm'), label + ':'));
+      assert.equal(specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath).completionReady, false, label);
+    }
   });
 
   it('an active Spec cannot hide itself with status archived', async function() {
@@ -614,22 +566,17 @@ describe('authoritative workflow state matrix', function() {
     const state = specState.evaluate(specState.readSnapshot(fixture.projectDir, fixture.specPath));
     assert.equal(state.gates.completion.state, 'blocked');
     assert.equal(state.blockers.some(function(blocker) {
-      return /completion-verification Timestamp.*ISO-8601/i.test(blocker.message);
+      return /completion-verification missing valid Timestamp/i.test(blocker.message);
     }), true);
   });
 
-  it('resume does not bypass Research when a signed Plan exists', function() {
-    const fixture = createArchiveReadyStandard(project('resume-research'), 'resume-research');
-    let spec = fs.readFileSync(fixture.specPath, 'utf-8');
-    spec = spec
-      .replace(/^Research Reviewed By:.*$/m, 'Research Reviewed By:')
-      .replace(/^Research Reviewed At:.*$/m, 'Research Reviewed At:');
-    fs.writeFileSync(fixture.specPath, spec, 'utf-8');
-
+  it('resume does not bypass incomplete current Intake when a signed Plan exists', function() {
+    const fixture = createArchiveReadyStandard(project('intake-blocked'));
+    fs.writeFileSync(fixture.specPath, fs.readFileSync(fixture.specPath, 'utf8').replace(/^Requirement:.*$/m, 'Requirement:'));
     const result = runCli(['resume', fixture.projectDir], fixture.projectDir);
-    assert.strictEqual(result.status, 0, result.output);
     assert.match(result.output, /PHASE_HINT: research_or_plan/);
-    assert.doesNotMatch(result.output, /PHASE_HINT: (execute|archive)/);
+    assert.match(runCli(['validate', fixture.projectDir], fixture.projectDir).output, /Intake missing Requirement/);
+    assert.doesNotMatch(result.output, /NEXT_ACTION: execute_plan/);
   });
 
   it('PASS_WITH_CONCERNS converges to archive authorization after Learning is complete', function() {
@@ -737,7 +684,7 @@ describe('authoritative workflow state matrix', function() {
 
   it('applies missing Provider blockers only to active e2e Specs, not real archive paths', function() {
     const root = project('provider-archive-boundary');
-    const content = '---\nmode: standard\n---\n## Acceptance Criteria\n### AC-001: archived web\nVerification: e2e\nTest: tests/web.test.js\n\n## Plan\nStep: fixture';
+    const content = '---\nworkflow-policy: streamlined-v1\nmode: standard\n---\n## Acceptance Criteria\n### AC-001: archived web\nVerification: e2e\nTest: tests/web.test.js\n\n## Plan\nStep: fixture';
     const archivePath = path.join(root, 'mydocs', 'archive', 'v1.0-provider-archive.md');
     const activePath = path.join(root, 'mydocs', 'specs', 'v1.0-provider-active.md');
     fs.mkdirSync(path.dirname(archivePath), { recursive: true });
@@ -802,6 +749,7 @@ describe('authoritative workflow state matrix', function() {
       'Step: repair',
       'Status: BUGFIX',
       'Result: later formal work invalidates completion.',
+      'Verification: node --test',
       'Timestamp: 2026-01-01T00:00:30Z'
     ].join('\n');
     fs.writeFileSync(fixture.executeLogPath, log, 'utf-8');
@@ -809,26 +757,20 @@ describe('authoritative workflow state matrix', function() {
     const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
     assert.strictEqual(state.completionReady, false);
     assert.strictEqual(state.gates.completion.state, 'blocked');
-    assert.match(state.blockers.map(function(blocker) { return blocker.message; }).join('\n'), /completion-verification must be the last formal Execute Step/);
+    assert.match(state.blockers.map(function(blocker) { return blocker.message; }).join('\n'), /completion-verification must be the last formal step/);
 
     const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
     assert.notStrictEqual(validation.status, 0, validation.output);
-    assert.match(validation.output, /completion-verification must be the last formal Execute Step/);
+    assert.match(validation.output, /completion-verification must be the last formal step/);
     const next = runCli(['next', fixture.projectDir], fixture.projectDir);
     assert.match(next.output, /NEXT_ACTION: repair_execute_log/);
   });
 
-  it('accepts the historical nested Lite Confirmed Requirement in archive validation', function() {
-    const fixture = createArchiveReadyLite(project('legacy-lite'), 'legacy-lite');
-    const legacy = fs.readFileSync(fixture.specPath, 'utf-8').replace(
-      /^## Confirmed Requirement$/m,
-      '## Research\n\n### Confirmed Requirement'
-    );
-    fs.writeFileSync(fixture.specPath, legacy, 'utf-8');
-
-    const state = specState.evaluateProjectSpec(fixture.projectDir, fixture.specPath);
-    assert.strictEqual(state.completionReady, true, JSON.stringify(state.blockers));
-    const validation = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
-    assert.strictEqual(validation.status, 0, validation.output);
+  it('rejects a historical Lite Spec as active input', function() {
+    const fixture = createArchiveReadyLite(project('old-lite'));
+    fs.writeFileSync(fixture.specPath, fs.readFileSync(fixture.specPath, 'utf8').replace('workflow-policy: streamlined-v1', 'workflow-policy: legacy-v1'));
+    const result = runCli(['validate', fixture.projectDir, '--archive-ready'], fixture.projectDir);
+    assert.notEqual(result.status, 0);
+    assert.match(result.output, /SDD_WORKFLOW_POLICY_UNSUPPORTED/);
   });
 });

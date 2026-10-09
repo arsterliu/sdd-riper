@@ -45,6 +45,7 @@ function init(projectDir, opts) {
   if (!taskName || !isInside(docsRoot, contextPath)) throw new Error('VISUAL_EVIDENCE_CONTEXT_INVALID: Context must be inside the project docs directory');
 
   var manifestPath = path.join(contextPath, 'visual-evidence.json');
+  require('../core/workflow-policy').assertWritableArtifact(root, manifestPath);
   if (fs.existsSync(manifestPath)) throw new Error('VISUAL_EVIDENCE_FILE_EXISTS: visual-evidence.json already exists');
   fs.mkdirSync(contextPath, { recursive: true });
   if (!isRealpathInside(docsRoot, contextPath)) throw new Error('VISUAL_EVIDENCE_CONTEXT_INVALID: Context realpath must be inside the project docs directory');
@@ -70,6 +71,7 @@ function activeSpecPath(projectDir, spec, errorCode) {
   if (!specPath || !fs.existsSync(specPath) || !isRealpathInside(specsRoot, specPath) || common.getFrontmatterField(specPath, 'status') === 'archived') {
     throw new Error(code + ': --spec must resolve to an active Spec');
   }
+  require('../core/workflow-policy').assertActive(root, specPath);
   return specPath;
 }
 

@@ -27,6 +27,7 @@ function createImmutableRunCommitter(namespace, onCollision) {
       throw new Error('immutable transaction requires a trusted project root and docs directory');
     }
     var finalDir = path.join(runsRoot, run.runId);
+    require('../core/workflow-policy').assertWritableArtifact(trustedProjectRoot, finalDir);
     fs.mkdirSync(runsRoot, { recursive: true });
     if (fs.existsSync(finalDir)) onCollision(run.runId);
     var staging = path.join(runsRoot, '.staging-' + run.runId + '-' + process.pid + '-' + Date.now());

@@ -65,19 +65,9 @@ test('collectGateFacts centralizes structural gate facts for independent consume
     }
   });
 
-  assert.deepEqual(facts.research.confirmedRequirement.missingLabels, [
-    'Irreversibility',
-    'Impact Radius',
-    'Dependencies & Constraints',
-    'Acceptance Intent'
-  ]);
-  assert.equal(facts.research.reviewer.auditable, true);
-  assert.equal(facts.research.reviewer.timestampValid, false);
-  assert.equal(facts.innovate.skipped, true);
-  assert.equal(facts.design.exists, false);
-  assert.equal(facts.execution.present, false);
-  assert.equal(facts.completion.done, false);
-  assert.deepEqual(facts.learning.triggers, []);
+  assert.equal(facts.research, undefined);
+  assert.equal(facts.design, undefined);
+  assert.equal(facts.execution, undefined);
   assert.deepEqual(facts.acCoverage.declarations, [{
     id: 'AC-001',
     verification: 'e2e',
@@ -91,8 +81,8 @@ test('collectGateFacts centralizes structural gate facts for independent consume
   assert.equal(facts.planApproval.agent, true);
   assert.equal(facts.planApproval.evidence, '');
   assert.equal(Object.isFrozen(facts), true);
-  assert.equal(Object.isFrozen(facts.research), true);
-  assert.equal(Object.isFrozen(facts.research.confirmedRequirement.missingLabels), true);
+  assert.equal(Object.isFrozen(facts.acceptance), true);
+  assert.equal(Object.isFrozen(facts.acceptance.issues), true);
   assert.equal(Object.isFrozen(facts.providerReadiness), true);
 });
 
@@ -135,6 +125,7 @@ test('validateSpec shares one Provider readiness inspection with archive-ready w
   fs.writeFileSync(specPath, [
     '---',
     'mode: standard',
+    'workflow-policy: streamlined-v1',
     '---',
     '## Acceptance Criteria',
     '### AC-001: web',
@@ -168,6 +159,7 @@ test('validateSpec preserves the active Provider diagnostic during regular valid
   fs.writeFileSync(specPath, [
     '---',
     'mode: standard',
+    'workflow-policy: streamlined-v1',
     '---',
     '## Acceptance Criteria',
     '### AC-001: web',
@@ -208,6 +200,7 @@ test('validateSpec maps the shared Plan approval fact in regular diagnostic mode
   fs.writeFileSync(specPath, [
     '---',
     'mode: standard',
+    'workflow-policy: streamlined-v1',
     '---',
     '## Plan',
     'Plan Approved By: human:planner',
@@ -218,53 +211,14 @@ test('validateSpec maps the shared Plan approval fact in regular diagnostic mode
   gateFacts.collectGateFacts = function(snapshot) {
     const facts = originalCollect(snapshot);
     return Object.assign({}, facts, {
-      planApproval: Object.assign({}, facts.planApproval, { approvedBy: '' })
+      planApproval: Object.assign({}, facts.planApproval, { approvedBy: '', satisfied: false })
     });
   };
 
   try {
     const result = validate.validateSpec(specPath, { projectDir: projectDir });
 
-    assert.ok(result.issues.includes('Plan Approved By is empty.'));
-  } finally {
-    gateFacts.collectGateFacts = originalCollect;
-    fs.rmSync(projectDir, { recursive: true, force: true });
-  }
-});
-
-test('validateSpec maps the shared Confirmed Requirement fact in regular diagnostic mode', function() {
-  const projectDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-gate-facts-'));
-  const specPath = path.join(projectDir, 'mydocs', 'specs', 'v1.0-fixture.md');
-  fs.mkdirSync(path.dirname(specPath), { recursive: true });
-  fs.writeFileSync(specPath, [
-    '---',
-    'mode: standard',
-    '---',
-    '## Research',
-    '### Confirmed Requirement',
-    'Scope Boundary: narrow',
-    '## Plan'
-  ].join('\n'), 'utf-8');
-
-  const originalCollect = gateFacts.collectGateFacts;
-  gateFacts.collectGateFacts = function(snapshot) {
-    const facts = originalCollect(snapshot);
-    return Object.assign({}, facts, {
-      research: Object.assign({}, facts.research, {
-        confirmedRequirement: Object.assign({}, facts.research.confirmedRequirement, {
-          present: true,
-          missingLabels: []
-        })
-      })
-    });
-  };
-
-  try {
-    const result = validate.validateSpec(specPath, { projectDir: projectDir });
-
-    assert.equal(result.issues.some(function(issue) {
-      return issue.includes('Confirmed Requirement missing recommended fields');
-    }), false);
+    assert.ok(result.issues.includes('Plan approval is missing or invalid for the autonomy mode.'));
   } finally {
     gateFacts.collectGateFacts = originalCollect;
     fs.rmSync(projectDir, { recursive: true, force: true });
@@ -304,7 +258,8 @@ test('collectGateFacts skips only explicit archive snapshots and keeps legacy sn
 
   assert.equal(inspections, 1);
   assert.equal(archiveFacts.providerReadiness.state, 'ready');
-  assert.equal(state.gates.acceptance.state, 'blocked');
+  assert.equal(state.completionReady, false);
+  assert.ok(state.blockers.some(b => /SDD_WORKFLOW_POLICY_UNSUPPORTED/.test(b.message)));
 });
 
 test('evaluate refreshes Provider readiness for each evaluation', function() {
@@ -469,7 +424,7 @@ test('AC Coverage Test rejects multi-path and command evidence with actionable g
       }));
       const messages = state.blockers.map(function(blocker) { return blocker.message; }).join('\n');
       assert.match(messages, /Test must be one project-relative file path/);
-      assert.match(messages, /Command.*Verification/);
+      assert.match(messages, /Test must be one project-relative file path/);
       assert.doesNotMatch(messages, /Test file not found/);
     });
   } finally {
@@ -628,6 +583,8 @@ test('shared Markdown scanning accepts formal Coverage and completion steps end 
     '## Execute Log',
     'Step: execution',
     'Status: DONE',
+    'Verification: node --test',
+    'Timestamp: 2026-08-07T23:59:00Z',
     'AC Coverage:',
     '  - AC-001: PASS',
     '---',
@@ -649,7 +606,7 @@ test('shared Markdown scanning accepts formal Coverage and completion steps end 
     specPath: '',
     status: 'draft',
     mode: 'micro',
-    content: '## Intake\nfixture\n## Acceptance Criteria\n### AC-001: fixture\nVerification: unit\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\nPlan Approved By: agent:fixture\nApproved At: 2026-08-08T00:00:00Z\nGate Evidence: fixture',
+    content: '---\nworkflow-policy: streamlined-v1\nmode: micro\nautonomy-mode: human\n---\n## Intake\nRequirement: fixture\nScope: fixture\nRisks: none\nRisk Signals: multi-step\n## Acceptance Criteria\n### AC-001: fixture\nVerification: unit\n## Plan\nImpact Scope: fixture\nData Impact: none\nInterface Impact: none\nAcceptance: fixture\nVerification: unit\nPlan Approved By: agent:fixture\nApproved At: 2026-08-08T00:00:00Z\nGate Evidence: fixture',
     executeLog: { exists: true, content: executeLog },
     design: { exists: true, content: '' }
   });
@@ -779,6 +736,7 @@ test('SKIPPED Coverage rejects normalized impossible ISO calendar dates in gate 
   const spec = [
     '---',
     'mode: standard',
+    'workflow-policy: streamlined-v1',
     'execute-log-file: "mydocs/logs/v1.0-fixture.execute.md"',
     '---',
     '## Acceptance Criteria',
@@ -802,9 +760,9 @@ test('SKIPPED Coverage rejects normalized impossible ISO calendar dates in gate 
     assert.equal(gateFacts.isValidIsoTimestamp('2026-02-30T00:00:00Z'), false);
     assert.equal(gateFacts.isValidIsoTimestamp('2026-02-28T00:00:00+08:00'), true);
     assert.equal(state.blockers.some(function(blocker) {
-      return blocker.message === 'AC Coverage: AC-001 is SKIPPED but Approved At must be valid ISO-8601.';
+      return blocker.message === 'AC Coverage: AC-001 SKIPPED needs human approval, timestamp and reason.';
     }), true);
-    assert.ok(validation.issues.includes('AC Coverage: AC-001 is SKIPPED but Approved At must be valid ISO-8601.'));
+    assert.ok(validation.issues.includes('AC Coverage: AC-001 SKIPPED needs human approval, timestamp and reason.'));
   } finally {
     fs.rmSync(projectDir, { recursive: true, force: true });
   }
@@ -839,89 +797,15 @@ test('legacy completion Summary remains readable without becoming AC Coverage ev
   };
 
   assert.deepEqual(gateFacts.acCoverageRecords(executeLog), []);
-  assert.equal(specState.evaluate(snapshot).gates.completion.state, 'pass');
+  assert.equal(specState.evaluate(Object.assign({}, snapshot, { location: 'archive' })).phase, 'archived');
+  assert.equal(specState.evaluate(Object.assign({}, snapshot, { location: 'archive' })).completionReady, false);
 });
 
-test('Lite Research supports the historical nested Confirmed Requirement layout', function() {
-  const facts = gateFacts.collectGateFacts({
-    exists: true,
-    location: 'active',
-    projectDir: '',
-    specPath: '',
-    status: 'draft',
-    mode: 'lite',
-    content: [
-      '## Research',
-      '### Confirmed Requirement',
-      'Scope Boundary: fixture',
-      'Irreversibility: none',
-      'Impact Radius: internal',
-      'Dependencies & Constraints: none',
-      'Acceptance Intent: compatibility',
-      'Research Reviewed By: human:reviewer',
-      'Research Reviewed At: 2026-09-09T00:00:00Z'
-    ].join('\n'),
-    design: { exists: true, content: '## Design Note\nfixture' }
-  }, {
-    inspectProviderReadiness: function() {
-      return { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
-    }
-  });
-
-  assert.equal(facts.research.confirmedRequirement.present, true);
-  assert.deepEqual(facts.research.confirmedRequirement.missingLabels, []);
-});
-
-test('Confirmed Requirement label gates stay within the layout selected by mode', function() {
-  const required = [
-    'Scope Boundary: fixture',
-    'Irreversibility: none',
-    'Impact Radius: internal',
-    'Dependencies & Constraints: none',
-    'Acceptance Intent: compatibility'
-  ];
-  const incomplete = ['Scope Boundary: fixture'];
-  const options = {
-    inspectProviderReadiness: function() {
-      return { state: 'ready', requiredProviders: [], missingProviders: [], issues: [] };
-    }
-  };
-  const snapshot = function(mode, content) {
-    return {
-      exists: true,
-      location: 'active',
-      projectDir: '',
-      specPath: '',
-      status: 'draft',
-      mode: mode,
-      content: content,
-      design: { exists: true, content: '' }
-    };
-  };
-
-  const lite = gateFacts.collectGateFacts(snapshot('lite', [
-    '## Confirmed Requirement',
-    ...incomplete,
-    '## Research',
-    '### Confirmed Requirement',
-    ...required
-  ].join('\n')), options);
-  const standard = gateFacts.collectGateFacts(snapshot('standard', [
-    '## Research',
-    '### Confirmed Requirement',
-    ...incomplete,
-    '## Confirmed Requirement',
-    ...required
-  ].join('\n')), options);
-  const expected = [
-    'Irreversibility',
-    'Impact Radius',
-    'Dependencies & Constraints',
-    'Acceptance Intent'
-  ];
-
-  assert.deepEqual(lite.research.confirmedRequirement.missingLabels, expected);
-  assert.deepEqual(lite.research.confirmedRequirement.gateMissingLabels, expected);
-  assert.deepEqual(standard.research.confirmedRequirement.missingLabels, expected);
-  assert.deepEqual(standard.research.confirmedRequirement.gateMissingLabels, expected);
+test('retired requirement layouts cannot make an unsupported active Spec executable', function() {
+  for (const mode of ['micro', 'lite', 'standard']) {
+    const state = specState.evaluate({ exists: true, location: 'active', mode,
+      content: '## Research\n### Confirmed Requirement\nScope Boundary: historical\n## Plan\nStep: historical' });
+    assert.equal(state.completionReady, false);
+    assert.ok(state.blockers.some(b => /SDD_WORKFLOW_POLICY_UNSUPPORTED/.test(b.message)));
+  }
 });

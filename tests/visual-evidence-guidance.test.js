@@ -230,7 +230,7 @@ const agentVisualSections = {
     return boundedSection('protocols/sdd-riper-one.md', /^## 阶段\s*$/m, /^## 子代理策略\s*$/m);
   },
   'protocols/sdd-riper-one-light.md': function() {
-    return boundedSection('protocols/sdd-riper-one-light.md', /^## Micro 模式\s*$/m, /^## Challenge 与 Completion Verification\s*$/m);
+    return boundedSection('protocols/sdd-riper-one-light.md', /^## Visual Context\s*$/m, /^## Verification Provider Boundary\s*$/m);
   }
 };
 

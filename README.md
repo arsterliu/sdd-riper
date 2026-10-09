@@ -39,15 +39,15 @@ sdd install-skill --target codex
 一次任务通常沿着这条路径前进：
 
 1. 你描述目标、边界和参考资料。
-2. 新任务默认采用 `workflow-policy: streamlined-v1`：先核实需求、范围和风险；只有阻塞未知才做澄清，实质方案取舍才做设计比较。旧 Spec 继续按原模式执行。
+2. 新任务默认采用 `workflow-policy: streamlined-v1`：先核实需求、范围和风险；只有阻塞未知才做澄清，实质方案取舍才做设计比较。缺失、旧版和未知格式的活动任务明确拒绝执行。
 3. AI 给出可验证的 Plan，满足批准门禁后才执行。
 4. AI 按 Plan 修改；新策略的低风险单步骤任务在 Spec 记录新鲜验证，中高风险或多步骤任务在 Execute Log 记录执行证据。
-5. 新策略的中风险任务完成后进行独立 Challenge，高风险任务另在实施前进行独立 Design 审查；旧 Spec 保留原审查门禁。
+5. 新策略的中风险任务完成后进行独立 Challenge，高风险任务另在实施前进行独立 Design 审查。
 6. 准备就绪后，AI 再单独请求本次归档授权。
 
 协作方式决定 AI 在哪些治理节点停下：
 
-- `auto`：你确认任务范围和风险并授权后，AI 会记录主 Agent 与独立 reviewer 的持续授权；Plan 由 Agent 批准后自动绑定当前摘要，不会为此再次请你批准 Plan 或授权 reviewer，并可在授权范围内持续推进到归档前。
+- `auto`：你提出明确任务并为本任务选择 auto，即授权普通范围内推进。AI 自行评估、记录范围和风险，自动记录真实请求证据及必要 reviewer 授权、批准并激活 Plan，不再询问普通范围、低风险或 Plan 的重复确认。高风险须有你知悉并授权该风险的证据；范围扩大、新风险及专用门禁仍停机。归档始终单独请你授权。
 - `supervised`：你先看 Plan。Plan Approval 只表示计划获准执行；后续持续自动推进还需要一份独立、明确的授权。
 - `human`：AI 在关键治理节点逐次请你确认，普通计划内修改和测试不逐行打扰。
 
@@ -82,13 +82,13 @@ Figma 链接只当普通链接记录，不联网读取、不自动批准、不�
 | 制品 | 用人话说 |
 | :--- | :--- |
 | Spec | 当前任务的目标、范围、验收、Plan、批准和阶段状态。 |
-| Design | 需要独立技术设计时记录方案、影响、兼容与验证：旧 standard/lite 必需；新策略高风险或中风险且存在实质方案取舍时必需。 |
-| Execute Log | 需要执行审计时按事实追加步骤、验证与偏差：旧任务全部必需；新策略中高风险或多步骤任务必需。 |
+| Design | 需要独立技术设计时记录方案、影响、兼容与验证：高风险或显式 design-latitude 必需。 |
+| Execute Log | 需要执行审计时按事实追加步骤、验证与偏差：中高风险或多步骤任务必需。 |
 | Learning Record | 从偏差、修复或审查关注点中提炼出的可复用规则。 |
 
 Spec 是任务控制面，并引用其他制品；Plan 不能替代 Design，聊天记录也不能替代 Execute Log。完成的任务进入归档后保持历史只读；若以后发现缺陷，创建新的修复任务并引用旧记录。
 
-新 Spec 的 `Risk Signals` 使用明确值：局部、可逆且单一关注点填 `none`；跨模块、方案取舍或多场景验证分别填 `cross-module`、`design-latitude`、`multi-scenario`；多步骤再填 `multi-step`。不可逆、数据迁移、安全、隐私、计费、认证、合规、公共接口或持久化 Schema 分别对应 `irreversible`、`data-migration`、`security`、`privacy`、`billing`、`auth`、`compliance`、`public-api`、`persistent-schema`，任一项都按高风险处理。显式选择更严格的 `lite` / `standard` 可增加要求，不能降低风险门禁。旧 Spec 缺少 `workflow-policy` 时按旧规则继续，无需迁移。
+新 Spec 的 `Risk Signals` 使用明确值：局部、可逆且单一关注点填 `none`；跨模块、方案取舍或多场景验证分别填 `cross-module`、`design-latitude`、`multi-scenario`；多步骤再填 `multi-step`。不可逆、数据迁移、安全、隐私、计费、认证、合规、公共接口或持久化 Schema 分别对应 `irreversible`、`data-migration`、`security`、`privacy`、`billing`、`auth`、`compliance`、`public-api`、`persistent-schema`，任一项都按高风险处理。显式选择更严格的 `lite` / `standard` 可增加要求，不能降低风险门禁。缺少 `workflow-policy` 的活动任务不能执行；历史归档保持原样只读。
 
 ## 安装、更新与检查
 
@@ -117,3 +117,7 @@ sdd install-skill --target codex --clean
 | [TEAM-GUIDE.md](./TEAM-GUIDE.md) | 在团队里推广、分工或配置自动化。 |
 | [INTEGRATIONS.md](./INTEGRATIONS.md) | 维护工具，或理解它与其他 agent 工作流的集成。 |
 | `SKILL.md` 与 `protocols/` | AI agent 使用的精确执行规则；普通用户无需从头通读。 |
+
+## 当前格式与历史归档
+
+当前版本只执行 `streamlined-v1`。缺失、旧版或未知格式的活动 Spec 会明确拒绝；可用原工具版本完成旧任务，或创建独立新任务。历史归档永久只读，仍可浏览、作为 Context 和用于 Learning 召回，不迁移、不重写、不重新验证旧门禁。`reopen` 已移除；归档后的缺陷使用 `discover` 创建新任务，审批与授权从头建立。

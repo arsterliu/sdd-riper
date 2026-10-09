@@ -19,7 +19,7 @@ test('普通 validate 与 next 投影已启用但待批准的视觉合同', func
   const logPath = path.join(projectDir, 'mydocs', 'logs', 'v1.0-checkout-ui.execute.md');
 
   write(specPath, [
-    '---', 'task-name: "checkout-ui"', 'mode: micro', 'context-source: "mydocs/context/checkout-ui"',
+    '---', 'task-name: "checkout-ui"', 'workflow-policy: streamlined-v1', 'mode: micro', 'context-source: "mydocs/context/checkout-ui"',
     'visual-evidence: "required"', 'visual-evidence-file: "mydocs/context/checkout-ui/visual-evidence.json"',
     'execute-log-file: "mydocs/logs/v1.0-checkout-ui.execute.md"', '---',
     '## Plan', 'Scope: x', 'Touched Files: x', 'Change: x', 'Impact Scope: x', 'Data Impact: x', 'Interface Impact: x', 'Acceptance: x', 'Verification: x', 'Blast Radius: x',

@@ -22,7 +22,7 @@ function createSpec(frontmatter) {
   write(specPath, [
     '---',
     'task-name: "ui-task"',
-    'mode: micro',
+    'workflow-policy: streamlined-v1', 'mode: micro',
     'context-source: "mydocs/context/ui-task"',
     'visual-evidence: ""',
     'visual-evidence-file: ""',

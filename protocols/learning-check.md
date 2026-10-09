@@ -13,7 +13,6 @@ Create a Learning Record when any of these are true:
 
 - Execute Log contains `BUGFIX_ESCALATED` or `DEVIATED_MAJOR`.
 - Challenge verdict is `PASS_WITH_CONCERNS`.
-- The task was reopened from archived work.
 - Acceptance criteria were found insufficient during Execute or Challenge.
 - The same failure pattern has appeared before.
 

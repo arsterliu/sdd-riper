@@ -6,21 +6,6 @@ const defaults = Object.freeze({
 
 const autonomyModes = Object.freeze(['auto', 'supervised', 'human']);
 
-const microRequiredFields = Object.freeze([
-  'Impact Scope',
-  'Data Impact',
-  'Interface Impact',
-  'Acceptance',
-  'Verification'
-]);
-
-const microRecommendedFields = Object.freeze([
-  'Scope',
-  'Touched Files',
-  'Change',
-  'Blast Radius'
-]);
-
 const auditableReviewerTypes = Object.freeze([
   'subagent:<id>',
   'external-agent:<id>',
@@ -57,16 +42,6 @@ const verdictTargets = Object.freeze({
   FAIL_LEARNING: 'Learning Check'
 });
 
-function modeFields(mode) {
-  if (mode !== 'micro') {
-    return { required: [], recommended: [] };
-  }
-  return {
-    required: microRequiredFields.slice(),
-    recommended: microRecommendedFields.slice()
-  };
-}
-
 function requiresProvider(verification) {
   return typeof verification === 'string' && verification.trim().toLowerCase() === 'e2e';
 }
@@ -92,7 +67,6 @@ function backtrackTarget(verdict) {
 module.exports = Object.freeze({
   defaults: defaults,
   autonomyModes: autonomyModes,
-  modeFields: modeFields,
   requiresProvider: requiresProvider,
   isAuditableReviewer: isAuditableReviewer,
   auditableReviewerTypes: auditableReviewerTypes,

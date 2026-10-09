@@ -8,9 +8,7 @@ const autonomyState = require('../src/core/autonomy-state');
 
 function root() { return fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-autonomy-cli-')); }
 function run(args, cwd) {
-  const legacyArgs = args[0] === 'discover' && !args.includes('--workflow-policy')
-    ? args.concat(['--workflow-policy', 'legacy-v1']) : args;
-  return runSddCli(legacyArgs, { cwd: cwd, env: process.env });
+  return runSddCli(args, { cwd: cwd, env: process.env });
 }
 
 test('init writes supervised by default and supports an explicit autonomy mode', function() {
@@ -79,7 +77,7 @@ test('auto authorization requires the inspected scope digest and appends an audi
     assert.equal(result.status, 0, result.output);
     const content = fs.readFileSync(spec, 'utf-8');
     assert.match(content, /Event Type: task_authorization/);
-    assert.match(content, /Authorized Actors: main,worker,research-reviewer,challenge-reviewer/);
+    assert.match(content, /Authorized Actors: main,worker/);
     assert.match(content, /Authorized By: human:liuy/);
   } finally { fs.rmSync(base, { recursive: true, force: true }); }
 });

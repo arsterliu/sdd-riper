@@ -14,7 +14,7 @@
 | 测试失败、审查不过或任务跑偏 | [场景四：任务卡住或检查失败](#场景四任务卡住或检查失败) |
 | 结果完成，准备收尾 | [场景五：完成与归档](#场景五完成与归档) |
 
-协作方式与任务形状是两件事。`auto`、`supervised`、`human` 决定 AI 何时停下来；`micro`、`lite`、`standard` 在新策略中是最低门禁的严格度选择，风险信号仍可提高门禁。创建任务时，Agent 会按风险推荐任务形状，并让你确认。新 Spec 默认写入 `workflow-policy: streamlined-v1`；缺少该字段的旧 Spec 仍按下文旧门禁继续，无需迁移。
+协作方式与风险下限是两件事。`auto`、`supervised`、`human` 决定 AI 何时停下来；`micro`、`lite`、`standard` 设置最低门禁严格度，风险信号可提高要求。Agent 负责评估并记录风险；选择 auto 后不另加普通范围或低风险确认，高风险未获授权时才说明风险并暂停。活动 Spec 只支持 `workflow-policy: streamlined-v1`；缺失、旧版或未知格式明确拒绝执行。旧任务用原工具版本完成，或新建独立任务；历史归档保持只读。
 
 `supervised` 尤其要分清两个决定：Plan Approval 表示“这个计划可以执行”，后续持续授权表示“AI 可以在这份 Plan 和风险边界内连续推进”。前者不会自动推出后者。
 
@@ -34,7 +34,7 @@
 
 ### AI 动作
 
-AI 先确认这五项，创建 Spec，并按风险推荐 `micro`、`lite` 或 `standard`。新策略先读取参考资料和工程约定，明确范围、风险与验收；只有阻塞未知才进入澄清，Design 与独立审查按风险触发。旧 Spec 保留原 mode 对 Research、Innovate 和 Design 的要求。
+AI 先确认这五项，创建 Spec，并按风险推荐 `micro`、`lite` 或 `standard`。新策略先读取参考资料和工程约定，明确范围、风险与验收；只有阻塞未知才进入澄清，Design 与独立审查按风险触发。旧活动任务使用原工具版本完成，或创建新的独立任务。
 
 接手已有工程时，AI 可以用只读的 Project Profile（工程画像）快速了解技术栈和工程单元，不会安装任何东西。
 
@@ -66,7 +66,7 @@ Spec 已绑定正确的上下文，当前任务制品能用人话说明任务边
 
 AI 根据任务形状完成必要的方案比较、Design 和验收标准，再生成逐步可验证的 Plan。跨多个工程单元时，AI 会用只读的 Quality Plan 告诉你每条验收标准该由哪类测试覆盖；AC 是唯一验收真相，这个建议不会改变它。想自己看原始建议，可运行 `sdd quality plan <项目目录>`。
 
-旧 Spec 需要独立 Research reviewer 时，只有本次任务的新鲜授权明确包含该 reviewer actor，AI 才能启动；新策略需要 Design 或完成独立 reviewer 时也遵守相同授权原则，否则先请求当前用户授权。
+需要独立 Design 或完成 reviewer 时，只有本任务的新鲜授权明确包含对应 reviewer actor，AI 才能启动，否则先请求当前用户明确授权。
 
 ### 何时停下
 
@@ -82,7 +82,7 @@ Plan Approval 使用下面的完整矩阵：
 
 无论哪一档，Plan Approval 都只解决 Plan 门禁，不能推导 reviewer 授权、后续持续自动推进授权或最终归档授权。
 
-`auto` 的例外是：在你已确认当前任务范围和风险、并明确授权持续推进后，AI 会先记录主 Agent 与只读 reviewer 的任务授权；随后若 Agent 批准 Plan 且 scope、风险和 Plan 摘要仍一致，AI 自动记录 Plan 激活，不会再次向你索要 Plan 批准或 reviewer 授权。归档、范围扩大、新风险、不可逆操作、平台权限、Profile 摘要确认和 E2E 跳过仍单独停下。
+`auto` 使用你对当前任务的明确请求和显式 auto 选择作为普通任务授权证据。AI 先评估并记录范围与风险，再自动记录主 Agent 与必要只读 reviewer 的任务授权、批准并激活 Plan，不重复询问普通范围、低风险、Plan 或 reviewer。项目默认和历史授权不构成当前任务授权；高风险须已有你知悉风险影响并授权边界的证据，否则说明风险并暂停，同范围同风险充分证据可复用。归档、范围扩大、新风险、不可逆操作、平台权限、Profile 摘要确认和 E2E 跳过仍单独停下。
 
 ### 完成标志
 
@@ -106,7 +106,7 @@ sdd next <项目目录>
 
 ### AI 动作
 
-AI 按 Plan 修改。新策略的低风险单步骤任务在 Spec 的 `Completion Verification` 记录结果、验证证据和时间；中高风险或多步骤任务把步骤结果、AC Coverage、测试路径和偏差写入 Execute Log。旧 Spec 仍使用独立 Execute Log。失败时先找根因再重试。
+AI 按 Plan 修改。低风险单步骤任务在 Spec 的 `Completion Verification` 记录结果、验证证据和时间；中高风险或多步骤任务把步骤结果、AC Coverage、测试路径和偏差写入 Execute Log。失败时先找根因再重试。
 
 端到端验证（`Verification: e2e`）需要项目里配置好的验证环境（Provider）。环境缺少依赖或浏览器时，AI 会报告并停下，不会自动安装或降级。界面任务按你提供的参考材料处理视觉部分；Figma 链接只当普通链接记录，不联网读取、不自动批准、不启动浏览器，也不做截图对比。
 
@@ -120,7 +120,7 @@ E2E 环境不可用时，AI 先尝试修复；若准备跳过 E2E 并记为 `SKI
 
 ### 完成标志
 
-每个必需的 Plan 步骤有真实结果，相关验收有可追溯证据；E2E 结果来自声明的 Provider，视觉结论没有伪造 baseline 或截图 diff。新策略低风险单步骤任务在 Spec 留新鲜验证，中高风险或多步骤任务在 Execute Log 留完成自查；旧任务继续用原四轴日志。Visual 合同本身不新增 Archive Gate；缺少的视觉证据通过任务自身的验收与验证记录暴露和补齐。
+每个必需的 Plan 步骤有真实结果，相关验收有可追溯证据；E2E 结果来自声明的 Provider，视觉结论没有伪造 baseline 或截图 diff。新策略低风险单步骤任务在 Spec 留新鲜验证，中高风险或多步骤任务在 Execute Log 留完成自查。Visual 合同本身不新增 Archive Gate；缺少的视觉证据通过任务自身的验收与验证记录暴露和补齐。
 
 ### 可选自查
 
@@ -176,7 +176,7 @@ AI 先按当前 Spec 策略检查必需的 Spec、Design、Execute Log、AC Cove
 
 ### 完成标志
 
-得到本次明确授权后，任务及其引用制品进入归档。归档与 legacy 历史继续只读；以后发现缺陷时创建新的 reopen 修复任务，不静默改写旧记录。
+得到本次明确授权后，任务及其引用制品进入归档。归档与 legacy 历史继续只读；以后发现缺陷时使用 discover 创建有独立任务身份的新修复任务，并将历史归档作为 Context；归档永久只读，不支持 reopen，不继承旧审批或授权。
 
 ### 可选自查
 
@@ -186,6 +186,6 @@ AI 先按当前 Spec 策略检查必需的 Spec、Design、Execute Log、AC Cove
 sdd validate <项目目录> --archive-ready
 ```
 
-精确规则见 [REFERENCE：Archive / Reopen](./REFERENCE.md#archive--reopen)。
+精确规则见 [REFERENCE：Archive](./REFERENCE.md#archive)。
 
 如果你只想完成任务，到这里已经足够。需要查完整命令或机器可验证的字段时，再进入 [REFERENCE.md](./REFERENCE.md)；团队推广与角色分工见 [TEAM-GUIDE.md](./TEAM-GUIDE.md)。

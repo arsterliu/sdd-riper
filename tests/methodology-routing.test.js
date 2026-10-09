@@ -47,7 +47,7 @@ test('clarification is bounded and cannot confer approvals or external dependenc
   assert.match(section(protocol, 'Exit Criteria'), /不能以假设绕过/);
   const boundary = section(protocol, 'Autonomy Boundary');
   for (const mode of ['auto', 'supervised', 'human']) assert.ok(boundary.includes(mode));
-  for (const gate of ['Research / Challenge', 'Plan Approval', 'Profile exact digest', 'E2E SKIPPED', '最终归档']) {
+  for (const gate of ['Design / Challenge', 'Plan Approval', 'Profile exact digest', 'E2E SKIPPED', '最终归档']) {
     assert.ok(boundary.includes(gate), 'lost clarification boundary: ' + gate);
   }
   assert.match(protocol, /不需要安装或调用外部 skill/);

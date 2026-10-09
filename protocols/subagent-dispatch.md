@@ -15,7 +15,7 @@ Each SDD phase has activities with a dispatch category:
 | Category | Meaning |
 |---|---|
 | **KEEP** | The orchestrator must do this. It involves gate decisions, user interaction, or cross-artifact judgment that only the orchestrator can make. |
-| **MUST_DELEGATE** | standard/lite require an auditable independent reviewer: subagent, external agent, or human. The implementer cannot review their own work; micro Challenge may use inline. |
+| **MUST_DELEGATE** | Policy-required Design and completion reviews use an auditable independent reviewer: subagent, external agent, or human. The implementer cannot review their own work. |
 | **DELEGATABLE** | The orchestrator may work directly or delegate, judging task boundaries, context cost, and the value of independent evidence. |
 
 ### Research
@@ -25,7 +25,7 @@ Each SDD phase has activities with a dispatch category:
 | Requirement Review | KEEP | Requires user interaction (Open Questions, Assumptions). The orchestrator holds the conversation. |
 | Findings evidence collection | DELEGATABLE | Code/doc reading can be delegated when volume is high. The subagent returns compressed evidence; the orchestrator writes Findings. |
 | Confirmed Requirement | KEEP | Gate decision — the orchestrator finalizes the confirmed requirement from evidence. |
-| Research Gate review | MUST_DELEGATE | standard/lite require an independent reviewer for the five CR elements. Research is skipped in micro. |
+| Research findings | DELEGATABLE | Investigate blocking unknowns; current policy has no independent Research gate. |
 
 ### Innovate
 
@@ -40,7 +40,7 @@ Each SDD phase has activities with a dispatch category:
 |---|---|---|
 | Design writing | DELEGATABLE | Weigh shared Research / Innovate context against the benefit of independently bounded module work. |
 | Acceptance Criteria writing | DELEGATABLE | Same trade-off as Design. |
-| Design review | MUST_DELEGATE | Implemented through the Challenge phase — not a separate dispatch. |
+| Design review | MUST_DELEGATE | High risk requires a separate independent review before implementation. |
 
 ### Plan
 
@@ -60,7 +60,7 @@ Each SDD phase has activities with a dispatch category:
 
 | Activity | Category | Rationale |
 |---|---|---|
-| Adversarial review | MUST_DELEGATE | standard/lite require independent review. Challenge reviewer stays read-only; micro may use inline with deliberate role separation. |
+| Adversarial review | MUST_DELEGATE | Medium/high risk requires independent completion review. Challenge reviewer stays read-only; optional low-risk micro Challenge may use inline. |
 | Verdict aggregation | KEEP | The orchestrator applies verdict precedence and records the final verdict via `sdd challenge --record-result`. |
 
 ### Learning Check / Archive
@@ -94,15 +94,15 @@ Can the work be bounded without reconstructing the orchestrator's full context?
 Would an independent perspective improve this evidence or work package?
 
 - Separate perspectives can help investigate competing hypotheses or module contracts.
-- Ordinary implementation delegation is optional; required Research and Challenge independence is enforced by using a separate reviewer, regardless of who implements.
+- Ordinary implementation delegation is optional; required required Design and Challenge independence is enforced by using a separate reviewer, regardless of who implements.
 
-Weigh these signals against the cost of briefing and verifying the result. Inline implementation does not remove the independent standard/lite Challenge requirement.
+Weigh these signals against the cost of briefing and verifying the result. Inline implementation does not remove the policy-required independent Challenge requirement.
 
 ## When To Dispatch
 
 For ordinary evidence and implementation, consider delegation for a bounded evidence report, an isolated investigation, or an independently scoped Plan step when the benefit exceeds context and coordination cost. These are judgment calls, not automatic dispatch thresholds.
 
-standard/lite Research and Challenge still require an independent reviewer. An automated reviewer may start only when fresh current-Spec task/Plan authorization explicitly includes the reviewer actor, or the current user explicitly authorizes that reviewer. Project configuration and Plan approval alone do not authorize dispatch. Never fabricate reviewer evidence or use this optional-delegation guidance to skip independent review.
+High-risk Design and medium/high-risk completion require an independent reviewer. An automated reviewer may start only when fresh current-Spec task/Plan authorization explicitly includes the reviewer actor, or the current user explicitly authorizes that reviewer. Project configuration and Plan approval alone do not authorize dispatch. Never fabricate reviewer evidence or use this optional-delegation guidance to skip independent review.
 
 ## When Not To Dispatch
 
@@ -110,7 +110,6 @@ Never dispatch subagents for KEEP activities:
 
 - Requirement Review that requires human dialogue.
 - Confirmed Requirement finalization (all five elements: Scope Boundary, Irreversibility, Impact Radius, Dependencies & Constraints, Acceptance Intent).
-- Research Gate approval (Research Reviewed By / Research Reviewed At).
 - Innovate option selection.
 - Plan writing.
 - Plan Approval.
@@ -274,8 +273,8 @@ This verification is a KEEP activity — it cannot be delegated.
 
 ## Mode Policy
 
-- **standard**: Independent Research / Challenge review is mandatory. Ordinary evidence and implementation delegation follows the decision framework; mode alone does not require it.
+- **standard**: High-risk floor requires independent pre-implementation Design review and completion Challenge. Ordinary evidence and implementation delegation follows the decision framework.
 - **lite**: MUST_DELEGATE activities are mandatory. DELEGATABLE activities are optional — delegate when context volume or role separation justifies it.
-- **micro**: MUST_DELEGATE does not apply (micro skips Research Gate and uses inline Challenge). DELEGATABLE activities default to inline.
+- **micro**: Explicit risk signals may require independent Design/Challenge review. Low-risk tasks need fresh verification; optional Challenge may use inline. DELEGATABLE activities default to inline.
 
 The orchestrator's main context stays focused on decisions, gates, and artifact consistency.

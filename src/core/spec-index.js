@@ -22,17 +22,7 @@ var PHASES = [
   'archived'
 ];
 
-var SECTION = {
-  confirmedRequirement: 'Confirmed Requirement',
-  innovateOptions: 'Innovate Options',
-  technicalDesign: 'Technical Design',
-  designNote: 'Design Note',
-  acceptanceCriteria: 'Acceptance Criteria',
-  plan: 'Plan',
-  executeLog: 'Execute Log',
-  review: 'Review (Verdict|Summary)',
-  intake: 'Intake'
-};
+var SECTION = { executeLog: 'Execute Log' };
 
 function stripHtmlComments(text) {
   return String(text || '').replace(/<!--[\s\S]*?-->/g, '');
@@ -114,66 +104,42 @@ function fileSignature(filePath) {
 }
 
 function cacheKey(projectDir, specPath, location, lightweight) {
-  var frontmatter = parseFrontmatter(specPath);
-  var mode = frontmatter.mode || 'standard';
-  var content = fs.readFileSync(specPath, 'utf8');
-  var policy = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
-    ? workflowPolicy.evaluate(content, mode) : null;
-  var designPattern = policy ? 'Design' : (mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign);
-  var designRef = common.getFrontmatterField(specPath, 'design-file');
-  var logRef = common.getFrontmatterField(specPath, 'execute-log-file');
-  var learningRef = common.getFrontmatterField(specPath, 'learning-file');
-  var designPath = mode === 'micro' && !policy || !designRef ? '' : common.resolveProjectPath(projectDir, designRef);
-  var logPath = logRef ? common.resolveProjectPath(projectDir, logRef) : '';
-  var learningPath = learningRef ? common.resolveProjectPath(projectDir, learningRef) : '';
-  return [
-    projectDir,
-    specPath,
-    location,
-    lightweight ? 'light' : 'full',
-    fileSignature(specPath),
-    mode === 'micro' && !policy ? 'micro-design' : designPattern + ':' + fileSignature(designPath),
-    'log:' + fileSignature(logPath),
-    'learning:' + fileSignature(learningPath),
-    'cruise:' + fileSignature(cruiseRun.ledgerPath(projectDir, specPath))
-  ].join('|');
+  var signatures = ['design-file', 'execute-log-file', 'learning-file'].map(function(field) {
+    var ref = common.getFrontmatterField(specPath, field);
+    return field + ':' + fileSignature(ref ? common.resolveProjectPath(projectDir, ref) : '');
+  });
+  return [projectDir, specPath, location, lightweight ? 'light' : 'full', fileSignature(specPath)]
+    .concat(signatures, 'cruise:' + fileSignature(cruiseRun.ledgerPath(projectDir, specPath))).join('|');
 }
 
-function completionState(projectDir, specPath, mode) {
+function completionState(projectDir, specPath, mode, historical) {
   var content = fs.readFileSync(specPath, 'utf-8');
-  var policy = workflowPolicy.version(content) === workflowPolicy.STREAMLINED
-    ? workflowPolicy.evaluate(content, mode) : null;
-  var designPattern = policy ? 'Design' : (mode === 'lite' ? SECTION.designNote : SECTION.technicalDesign);
-  var design = mode === 'micro' && !policy
-    ? { ref: common.getFrontmatterField(specPath, 'design-file'), path: '', relativePath: '', exists: true, hasContent: true, notRequired: true }
-    : artifactState(projectDir, specPath, 'design-file', designPattern);
-  if (policy && !policy.requiresDesign) design.notRequired = true;
+  var policy = !historical && !workflowPolicy.formatIssue(content) ? workflowPolicy.evaluate(content, mode) : null;
+  var design = artifactState(projectDir, specPath, 'design-file', 'Design');
   var executeLog = artifactState(projectDir, specPath, 'execute-log-file', SECTION.executeLog);
-  if (policy && !policy.requiresLog) executeLog.notRequired = true;
   var learningArtifact = learning.learningArtifact(projectDir, specPath);
   var learningContent = learningArtifact.content;
-  var challengeVerdict = specState.challengeFacts(content).verdict;
-  var learningTriggers = learning.learningTriggers(content, executeLog.content || sectionText(executeLog.path || '', SECTION.executeLog), challengeVerdict);
-  var learningRequired = learningTriggers.length > 0;
+  var triggers = historical || !policy ? [] : learning.learningTriggers(content,
+    sectionText(executeLog.path || '', SECTION.executeLog), specState.challengeFacts(content).verdict);
+  var required = triggers.length > 0;
   learningArtifact.hasContent = learningArtifact.exists ? !!learning.firstRealLine(learningContent) : false;
-  learningArtifact.required = learningRequired;
-  learningArtifact.triggers = learningTriggers;
+  learningArtifact.required = required;
+  learningArtifact.triggers = triggers;
   delete learningArtifact.content;
-  if (!learningRequired && !learningArtifact.ref) learningArtifact.notRequired = true;
+  if (historical) {
+    [design, executeLog].forEach(function(artifact) {
+      artifact.hasContent = artifact.exists && !!fs.readFileSync(artifact.path, 'utf8').trim();
+    });
+  } else if (policy) {
+    if (!policy.requiresDesign) design.notRequired = true;
+    if (!policy.requiresLog) executeLog.notRequired = true;
+    if (!required && !learningArtifact.ref) learningArtifact.notRequired = true;
+  }
   return {
-    research: false,
-    innovate: false,
-    design: !!(mode === 'micro' && !policy || policy && !policy.requiresDesign),
-    acceptance: false,
-    plan: false,
-    executeLog: false,
-    completionVerification: false,
-    challengePass: false,
-    designArtifact: design,
-    executeLogArtifact: executeLog,
-    learningArtifact: learningArtifact,
-    learningRequired: learningRequired,
-    learning: !learningRequired || learningArtifact.hasContent
+    research: false, innovate: false, design: !!(policy && !policy.requiresDesign), acceptance: false,
+    plan: false, executeLog: false, completionVerification: false, challengePass: false,
+    designArtifact: design, executeLogArtifact: executeLog, learningArtifact: learningArtifact,
+    learningRequired: required, learning: !historical && !!policy && (!required || learningArtifact.hasContent)
   };
 }
 
@@ -191,7 +157,7 @@ function parseSpecUncached(projectDir, specPath, location, opts) {
   var mode = frontmatter.mode || 'standard';
   var status = frontmatter.status || (location === 'archive' ? 'archived' : 'draft');
   var legacy = location === 'archive';
-  var completion = completionState(projectDir, specPath, mode);
+  var completion = completionState(projectDir, specPath, mode, legacy);
   var phase = inferPhase(status, mode, completion);
   var archiveReady = legacy || opts.lightweight
     ? null

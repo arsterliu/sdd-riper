@@ -56,14 +56,18 @@ function run(projectDir, specName, opts) {
     console.error('[ERROR] Spec not found.');
     process.exit(1);
   }
+  try { require('../core/workflow-policy').assertActive(projectDir, specPath); }
+  catch (error) { console.error('[' + error.code + '] ' + error.message); process.exitCode = 3; return; }
   var parsed = parseVersionSlug(path.basename(specPath));
   if (!parsed) {
     console.error('[ERROR] Invalid versioned spec filename.');
     process.exit(1);
   }
   var learningDir = path.join(docsRoot, 'learnings');
-  if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir, { recursive: true });
   var learningPath = path.join(learningDir, parsed.version + '-' + parsed.slug + '.learning.md');
+  try { require('../core/workflow-policy').assertWritableArtifact(projectDir, learningPath); }
+  catch (error) { console.error('[' + error.code + '] ' + error.message); process.exitCode = 3; return; }
+  if (!fs.existsSync(learningDir)) fs.mkdirSync(learningDir, { recursive: true });
   if (fs.existsSync(learningPath) && !opts.force) {
     console.error('[ERROR] Learning Record already exists. Use --force.');
     process.exit(1);

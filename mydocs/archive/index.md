@@ -55,3 +55,7 @@
 | v4.17-ac-coverage-evidence-input-tolerance.md | 2026-09-20 | ac-coverage-evidence-input-tolerance | PASS |
 | v4.18-streamline-methodology-routing.md | 2026-09-22 | streamline-methodology-routing | PASS |
 | v4.19-streamline-workflow-policy.md | 2026-09-24 | streamline-workflow-policy | PASS |
+| v4.20-retire-legacy-workflow-and-reopen.md | 2026-10-07 | retire-legacy-workflow-and-reopen | PASS |
+| v4.21-web-console-redesign.md | 2026-10-08 | web-console-redesign | PASS |
+| v4.22-improve-design-readability.md | 2026-10-08 | improve-design-readability | PASS |
+| v4.23-streamline-auto-authorization.md | 2026-10-08 | streamline-auto-authorization | PASS |
