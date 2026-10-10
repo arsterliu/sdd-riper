@@ -170,6 +170,11 @@ function evaluate(snapshot, options) {
       }
     } else add('completion', issue);
   });
+  if (acceptanceFacts.providerReadiness.state !== 'ready') {
+    const providers = acceptanceFacts.providerReadiness.requiredProviders.join(', ') || 'required providers';
+    add('completion', 'Verification Provider evidence is not ready: ' + providers +
+      ' (state: ' + acceptanceFacts.providerReadiness.state + ').');
+  }
 
   const plan = policyContract.section(content, 'Plan');
   const planBody = plan.replace(/^Plan Approved By:.*$/gm, '').replace(/^Approved At:.*$/gm, '').replace(/^Gate Evidence:.*$/gm, '');

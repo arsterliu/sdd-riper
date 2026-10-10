@@ -59,3 +59,4 @@
 | v4.21-web-console-redesign.md | 2026-10-08 | web-console-redesign | PASS |
 | v4.22-improve-design-readability.md | 2026-10-08 | improve-design-readability | PASS |
 | v4.23-streamline-auto-authorization.md | 2026-10-08 | streamline-auto-authorization | PASS |
+| v4.24-fix-provider-completion-gate.md | 2026-10-10 | fix-provider-completion-gate | PASS |

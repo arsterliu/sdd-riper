@@ -10,6 +10,8 @@ const autonomy = require('../src/core/autonomy-state');
 const specState = require('../src/core/spec-state');
 const specIndex = require('../src/core/spec-index');
 const validate = require('../src/commands/validate');
+const workflow = require('../src/core/workflow');
+const gateFacts = require('../src/core/workflow-gate-facts');
 
 function spec(mode, signals) {
   return [
@@ -52,6 +54,22 @@ function snapshot(content, additions) {
     learning: { exists: false, content: '' },
     autonomy: { authorizationState: 'active', authorizedActors: ['design-reviewer', 'challenge-reviewer'] }
   }, additions || {});
+}
+
+function completedProviderFixture(t) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'sdd-provider-completion-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const file = path.join(root, 'mydocs/specs/v1.0-provider.md');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.mkdirSync(path.join(root, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(root, 'tests/web.test.js'), '// fixture\n');
+  fs.writeFileSync(path.join(root, '.sdd-config'), 'DOCS_DIR="mydocs"\nAUTONOMY_MODE="human"\n');
+  const content = spec('micro', 'none').replace('Acceptance: 行为可观察\nVerification: unit', [
+    '### AC-001: 页面验收', 'Requirement: 完成一个任务', 'Verification: e2e',
+    'Provider: web-e2e', 'Automated: yes', 'Test: tests/web.test.js'
+  ].join('\n'));
+  fs.writeFileSync(file, content);
+  return { root, file, content };
 }
 
 function activateAuto(content) {
@@ -315,6 +333,66 @@ test('archive validation uses the same streamlined state as direct evaluation', 
   assert.equal(validate.validateSpec(file, { projectDir: root, archiveReady: true }).ok, true);
   fs.writeFileSync(file, spec('micro', 'none').replace('Result: PASS', 'Result: FAIL'), 'utf8');
   assert.equal(validate.validateSpec(file, { projectDir: root, archiveReady: true }).ok, false);
+});
+
+test('configured Provider without Runs blocks completion in validate, archive readiness and next state', t => {
+  const { root, file } = completedProviderFixture(t);
+  fs.writeFileSync(path.join(root, '.sdd-verification.json'), JSON.stringify({ schemaVersion: 1, providers: {
+    'web-e2e': { adapter: 'playwright-test', workspaceRoot: '.', packageRoot: '.',
+      config: 'playwright.config.js', projects: ['chromium'] }
+  } }));
+
+  const ordinary = validate.validateSpec(file, { projectDir: root });
+  const archive = validate.validateSpec(file, { projectDir: root, archiveReady: true });
+  const state = workflow.analyzeSpec(root, file);
+  assert.equal(state.gates.plan.state, 'pass');
+  assert.equal(ordinary.workflowState.facts.providerReadiness.state, 'configured');
+  assert.equal(ordinary.ok, false);
+  assert.equal(archive.ok, false);
+  assert.equal(state.completionReady, false);
+  assert.equal(state.gates.completion.state, 'blocked');
+  assert.equal(state.phase, 'execute');
+  assert.notEqual(state.nextAction, 'request_archive_authorization');
+  assert.ok(state.gates.completion.blockers.some(b => /Verification Provider.*not ready.*configured/.test(b.message)));
+});
+
+test('planned Provider initialization clears the Plan blocker but cannot substitute for completion evidence', t => {
+  const { root, file, content } = completedProviderFixture(t);
+  const unplanned = validate.validateSpec(file, { projectDir: root }).workflowState;
+  assert.ok(unplanned.gates.plan.blockers.some(b => /no explicit init step: web-e2e/.test(b.message)));
+
+  fs.writeFileSync(file, content.replace('Step: 实施并验证', 'Step: sdd verify init --provider web-e2e'));
+  const validation = validate.validateSpec(file, { projectDir: root, archiveReady: true });
+  assert.equal(validation.workflowState.facts.providerReadiness.state, 'required');
+  assert.equal(validation.workflowState.gates.plan.state, 'pass');
+  assert.equal(validation.workflowState.gates.completion.state, 'blocked');
+  assert.equal(validation.ok, false);
+});
+
+test('Provider completion requires ready state even when non-ready diagnostics are empty', () => {
+  const current = snapshot(spec('micro', 'none'));
+  const facts = gateFacts.collectGateFacts(current);
+  for (const state of ['required', 'configured', 'blocked', 'stale', 'unknown']) {
+    const evaluated = specState.evaluate(current, { gateFacts: Object.assign({}, facts, {
+      providerReadiness: { state, requiredProviders: ['web-e2e'], missingProviders: [], issues: [] }
+    }) });
+    assert.equal(evaluated.gates.plan.state, 'pass', state);
+    assert.equal(evaluated.gates.completion.state, 'blocked', state);
+    assert.equal(evaluated.completionReady, false, state);
+  }
+  const ready = specState.evaluate(current, { gateFacts: Object.assign({}, facts, {
+    providerReadiness: { state: 'ready', requiredProviders: ['web-e2e'], missingProviders: [], issues: [] }
+  }) });
+  assert.equal(ready.completionReady, true);
+  assert.equal(specState.evaluate(current).completionReady, true);
+
+  for (const diagnostic of ['CONFIG_SCHEMA_INVALID: invalid verification config JSON',
+    'Verification Run is stale for web-e2e: worktree.']) {
+    const blocked = specState.evaluate(current, { gateFacts: Object.assign({}, facts, {
+      providerReadiness: { state: 'blocked', requiredProviders: ['web-e2e'], missingProviders: [], issues: [diagnostic] }
+    }) });
+    assert.ok(blocked.gates.completion.blockers.some(b => b.message === diagnostic));
+  }
 });
 
 test('low-risk task archives without optional Design, Execute Log, or Challenge', t => {
